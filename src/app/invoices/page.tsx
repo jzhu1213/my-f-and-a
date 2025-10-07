@@ -47,7 +47,7 @@ function downloadPDF(inv: InvoiceForm & { id: string }) {
 }
 
 export default function InvoicesPage() {
-  const { currentUser, invoices, addInvoice } = useAppStore()
+  const { currentUser, invoices, addInvoice, deleteInvoice } = useAppStore()
   const { control, register, handleSubmit, reset } = useForm<InvoiceForm>({
     defaultValues: { date: new Date().toISOString().slice(0,10), items: [{ description: '', quantity: 1, unitPrice: 0 }] }
   })
@@ -93,13 +93,16 @@ export default function InvoicesPage() {
 
         <Panel title="Invoices">
           <div className="space-y-2">
-            {invoices.map(i => (
+            {(currentUser ? invoices.filter(inv => inv.userId === currentUser.id) : []).map(i => (
               <div key={i.id} className="flex items-center justify-between border border-slate-800 rounded-lg p-3 bg-slate-900/50">
                 <div>
                   <div className="font-medium">{i.clientName}</div>
                   <div className="text-xs text-slate-400">{i.date}</div>
                 </div>
-                <div className="text-sm">{i.items.reduce((s, x) => s + x.quantity * x.unitPrice, 0).toFixed(2)}</div>
+                <div className="flex items-center gap-3">
+                  <div className="text-sm">{i.items.reduce((s, x) => s + x.quantity * x.unitPrice, 0).toFixed(2)}</div>
+                  <button className="btn btn-secondary" onClick={() => deleteInvoice(i.id)}>Delete</button>
+                </div>
               </div>
             ))}
           </div>

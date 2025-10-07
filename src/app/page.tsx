@@ -6,7 +6,8 @@ import { useAppStore, currentMonthString } from '@/lib/storage'
 export default function DashboardPage() {
   const { currentUser, transactions, posts } = useAppStore()
   const month = currentMonthString()
-  const monthTx = transactions.filter(t => t.date.startsWith(month))
+  const userTx = currentUser ? transactions.filter(t => t.userId === currentUser.id) : []
+  const monthTx = userTx.filter(t => t.date.startsWith(month))
   const income = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const expense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 

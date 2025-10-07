@@ -12,7 +12,7 @@ type TxForm = {
 }
 
 export default function TransactionsPage() {
-  const { currentUser, transactions, addTransaction } = useAppStore()
+  const { currentUser, transactions, addTransaction, deleteTransaction } = useAppStore()
   const { register, handleSubmit, reset } = useForm<TxForm>({
     defaultValues: { date: new Date().toISOString().slice(0,10), type: 'expense' }
   })
@@ -52,16 +52,25 @@ export default function TransactionsPage() {
                   <th className="text-left font-medium py-2">Category</th>
                   <th className="text-left font-medium py-2">Note</th>
                   <th className="text-right font-medium py-2">Amount</th>
+                  <th className="text-right font-medium py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {transactions.map(t => (
+                {(currentUser ? transactions.filter(t => t.userId === currentUser.id) : []).map(t => (
                   <tr key={t.id} className="border-t border-slate-800">
                     <td className="py-2">{t.date}</td>
                     <td className="py-2 capitalize">{t.type}</td>
                     <td className="py-2">{t.category}</td>
                     <td className="py-2">{t.note}</td>
                     <td className="py-2 text-right">${t.amount.toFixed(2)}</td>
+                    <td className="py-2 text-right">
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => deleteTransaction(t.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -19,6 +19,7 @@ export interface AppState {
   // transactions
   addTransaction: (t: Omit<Transaction, 'id' | 'userId' | 'category'> & { category?: string }) => void
   categorize: (note: string, type: 'income' | 'expense') => string
+  deleteTransaction: (id: string) => void
 
   // budgeting
   setBudget: (b: Omit<Budget, 'id' | 'userId'>) => void
@@ -26,6 +27,7 @@ export interface AppState {
   // invoices
   addInvoice: (invoice: Omit<Invoice, 'id' | 'userId' | 'status'> & { status?: Invoice['status'] }) => void
   setInvoiceStatus: (id: string, status: Invoice['status']) => void
+  deleteInvoice: (id: string) => void
 
   // posts
   addPost: (content: string) => void
@@ -87,6 +89,11 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     return { transactions: [tx, ...state.transactions], users: newUsers, currentUser: newUsers[state.currentUser.id] || state.currentUser }
   }),
 
+  deleteTransaction: (id) => set((state) => {
+    if (!state.currentUser) return {}
+    return { transactions: state.transactions.filter(t => !(t.id === id && t.userId === state.currentUser!.id)) }
+  }),
+
   setBudget: (b) => set((state) => {
     if (!state.currentUser) return {}
     const month = b.month || format(new Date(), 'yyyy-MM')
@@ -104,6 +111,11 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
   setInvoiceStatus: (id, status) => set((state) => ({
     invoices: state.invoices.map(i => i.id === id ? { ...i, status } : i)
   })),
+
+  deleteInvoice: (id) => set((state) => {
+    if (!state.currentUser) return {}
+    return { invoices: state.invoices.filter(i => !(i.id === id && i.userId === state.currentUser!.id)) }
+  }),
 
   addPost: (content) => set((state) => {
     if (!state.currentUser) return {}
