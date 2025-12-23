@@ -1,71 +1,300 @@
 "use client"
-import { Nav } from '@/components/Nav'
-import { Panel } from '@/components/Cards'
-import { useAppStore } from '@/lib/storage'
-import { useForm } from 'react-hook-form'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { signInWithEmail, signUpWithEmail } from '@/lib/supabaseData'
+import { clearOnboarding } from '@/lib/storage'
+import Link from 'next/link'
 
-type AuthForm = { email: string, name?: string, userType?: 'personal' | 'small_business' | 'gig_worker' }
+// Dynamic import to avoid SSR issues
+function useThemeSafe() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+    const stored = localStorage.getItem('folio-theme') as 'light' | 'dark' | null
+    if (stored) {
+      setTheme(stored)
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setTheme('dark')
+    }
+  }, [])
+  
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light'
+    setTheme(newTheme)
+    localStorage.setItem('folio-theme', newTheme)
+    document.documentElement.classList.toggle('dark', newTheme === 'dark')
+  }
+  
+  return { theme, toggleTheme, mounted }
+}
 
 export default function ProfilePage() {
-  const { currentUser, users, signUp, login, logout } = useAppStore()
-  const { register, handleSubmit, reset } = useForm<AuthForm>({})
-
-  const onSignup = (d: AuthForm) => {
-    if (!d.email || !d.name || !d.userType) return
-    signUp(d.email, d.name, d.userType)
-    reset({})
+  const { user, loading, signOut, refreshUser } = useAuth()
+  const { theme, toggleTheme, mounted } = useThemeSafe()
+  
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setMessage('')
+    setSubmitting(true)
+    
+    try {
+      if (mode === 'signup') {
+        const { error } = await signUpWithEmail(email, password, name)
+        if (error) {
+          setError(error.message)
+        } else {
+          setMessage('Check your email to confirm your account!')
+        }
+      } else {
+        const { error } = await signInWithEmail(email, password)
+        if (error) {
+          setError(error.message)
+        } else {
+          await refreshUser()
+        }
+      }
+    } catch (err) {
+      setError('An unexpected error occurred')
+    } finally {
+      setSubmitting(false)
+    }
   }
-  const onLogin = (d: AuthForm) => {
-    if (!d.email) return
-    login(d.email)
+  
+  const handleSignOut = async () => {
+    await signOut()
   }
-
-  return (
-    <div>
-      <Nav />
-      <main className="mx-auto max-w-3xl px-4 py-6 space-y-6">
-        <Panel title="Account">
-          {currentUser ? (
-            <div className="space-y-2">
-              <div className="text-sm">Signed in as <span className="font-medium">{currentUser.name}</span> ({currentUser.email})</div>
-              <div className="text-sm">Type: <span className="capitalize">{currentUser.userType.replace('_',' ')}</span></div>
-              <div className="text-sm">Badges: {currentUser.badges.length ? currentUser.badges.join(', ') : 'None'}</div>
-              <button className="btn btn-secondary" onClick={logout}>Logout</button>
+  
+  const handleResetOnboarding = () => {
+    clearOnboarding()
+    window.location.href = '/'
+  }
+  
+  if (loading || !mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-folio-bg-light dark:bg-folio-bg-dark">
+        <div className="w-12 h-12 border-4 border-sage border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+  
+  // Logged in view
+  if (user) {
+    return (
+      <div className="min-h-screen bg-folio-bg-light dark:bg-folio-bg-dark p-6">
+        <div className="max-w-md mx-auto pt-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <Link href="/" className="flex items-center gap-2 text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </Link>
+            <h1 className="text-xl font-heading font-bold">Profile</h1>
+            <div className="w-16" />
+          </div>
+          
+          {/* Profile Card */}
+          <div className="glass-card-solid p-6 mb-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 rounded-full bg-sage flex items-center justify-center text-2xl font-bold text-white">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">{user.name}</h2>
+                <p className="text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark">{user.email}</p>
+              </div>
             </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2">
-              <form onSubmit={handleSubmit(onLogin)} className="space-y-2">
-                <div className="font-medium">Login</div>
-                <input className="card px-3 py-2 w-full" placeholder="Email" {...register('email')} />
-                <button className="btn btn-primary" type="submit">Login</button>
-              </form>
-              <form onSubmit={handleSubmit(onSignup)} className="space-y-2">
-                <div className="font-medium">Sign up</div>
-                <input className="card px-3 py-2 w-full" placeholder="Email" {...register('email')} />
-                <input className="card px-3 py-2 w-full" placeholder="Name" {...register('name')} />
-                <select className="card px-3 py-2 w-full" {...register('userType')}>
-                  <option value="personal">Personal</option>
-                  <option value="small_business">Small Business</option>
-                  <option value="gig_worker">Gig Worker</option>
-                </select>
-                <button className="btn btn-primary" type="submit">Create account</button>
-              </form>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
+                <span>Account Type</span>
+                <span className="capitalize text-sage-dark dark:text-sage font-medium">
+                  {user.userType.replace('_', ' ')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
+                <span>Priority</span>
+                <span className="capitalize text-peach-dark dark:text-peach font-medium">
+                  {user.priority.replace('_', ' ')}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Settings */}
+          <div className="glass-card-solid p-6 mb-6">
+            <h3 className="font-semibold mb-4">Settings</h3>
+            
+            <div className="flex items-center justify-between py-3">
+              <span>Dark Mode</span>
+              <button
+                onClick={toggleTheme}
+                className={`w-14 h-8 rounded-full p-1 transition-colors duration-200 ${
+                  theme === 'dark' ? 'bg-sage' : 'bg-gray-300'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200 flex items-center justify-center ${
+                  theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
+                }`}>
+                  {theme === 'dark' ? '🌙' : '☀️'}
+                </div>
+              </button>
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="space-y-3">
+            <button
+              onClick={handleResetOnboarding}
+              className="w-full btn-ghost border border-gray-200 dark:border-gray-700"
+            >
+              Reset Onboarding
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="w-full btn-folio bg-red-500 text-white hover:bg-red-600"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  
+  // Auth form
+  return (
+    <div className="min-h-screen bg-folio-bg-light dark:bg-folio-bg-dark p-6">
+      <div className="max-w-md mx-auto pt-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Link href="/" className="flex items-center gap-2 text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </Link>
+          <h1 className="text-xl font-heading font-bold">
+            {mode === 'signin' ? 'Sign In' : 'Sign Up'}
+          </h1>
+          <div className="w-16" />
+        </div>
+        
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="w-20 h-24 bg-sage rounded-lg shadow-xl relative transform rotate-3 mx-auto mb-4">
+            <div className="absolute top-0 right-0 w-6 h-6 bg-sage-dark rounded-bl-lg rounded-tr-lg" />
+            <div className="absolute bottom-3 left-3 right-3 h-1 bg-peach rounded-full" />
+          </div>
+          <h2 className="text-2xl font-heading font-bold">Folio</h2>
+          <p className="text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
+            Your F&A Assistant
+          </p>
+        </div>
+        
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="glass-card-solid p-6 space-y-4">
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark mb-2">
+                Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required={mode === 'signup'}
+                className="input-folio"
+                placeholder="Your name"
+              />
             </div>
           )}
-        </Panel>
-
-        <Panel title="All Users">
-          <ul className="text-sm text-slate-300 space-y-1">
-            {Object.values(users).map(u => (
-              <li key={u.id} className="flex items-center justify-between border border-slate-800 rounded-lg p-2 bg-slate-900/50">
-                <div>{u.name} <span className="text-slate-400">({u.userType.replace('_',' ')})</span></div>
-                <div className="text-xs text-slate-500">{u.email}</div>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      </main>
+          
+          <div>
+            <label className="block text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="input-folio"
+              placeholder="you@example.com"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="input-folio"
+              placeholder="••••••••"
+            />
+          </div>
+          
+          {error && (
+            <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
+              {error}
+            </div>
+          )}
+          
+          {message && (
+            <div className="p-3 rounded-lg bg-sage-light dark:bg-sage-dark/30 text-sage-dark dark:text-sage text-sm">
+              {message}
+            </div>
+          )}
+          
+          <button
+            type="submit"
+            disabled={submitting}
+            className={`w-full btn-sage ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {submitting ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+          </button>
+        </form>
+        
+        {/* Toggle mode */}
+        <p className="text-center mt-6 text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
+          {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
+          <button
+            onClick={() => {
+              setMode(mode === 'signin' ? 'signup' : 'signin')
+              setError('')
+              setMessage('')
+            }}
+            className="ml-2 text-sage-dark dark:text-sage font-medium"
+          >
+            {mode === 'signin' ? 'Sign Up' : 'Sign In'}
+          </button>
+        </p>
+        
+        {/* Continue without account */}
+        <Link
+          href="/"
+          className="block text-center mt-4 text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark hover:text-sage-dark dark:hover:text-sage"
+        >
+          Continue without an account →
+        </Link>
+      </div>
     </div>
   )
 }
-

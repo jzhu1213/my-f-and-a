@@ -19,18 +19,13 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/components/*": [
-        "src/components/*"
-      ],
-      "@/app/*": [
-        "src/app/*"
-      ],
-      "@/lib/*": [
-        "src/lib/*"
-      ],
-      "@/types/*": [
-        "src/types/*"
-      ]
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/app/*": ["src/app/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@/types": ["src/types/index.ts"],
+      "@/types/*": ["src/types/*"],
+      "@/contexts/*": ["src/contexts/*"]
     },
     "plugins": [
       {

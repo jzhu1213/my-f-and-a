@@ -1,52 +1,233 @@
 "use client"
-import { Nav } from '@/components/Nav'
-import { StatCard, Panel } from '@/components/Cards'
-import { useAppStore, currentMonthString } from '@/lib/storage'
+import { useState, useEffect } from 'react'
+import { 
+  Onboarding, 
+  TabNavigation, 
+  AccountingTab, 
+  FinanceTab, 
+  TransactionSheet 
+} from '@/components'
+import { useAuth } from '@/contexts/AuthContext'
+import { 
+  getTransactions, 
+  insertTransaction, 
+  deleteTransaction,
+  getBudgets,
+  getGoals,
+  getLessonProgress,
+  updateLessonProgress,
+} from '@/lib/supabaseData'
+import { generateInsights } from '@/lib/insights'
+import type { 
+  Transaction, 
+  Budget, 
+  Goal, 
+  SmartInsight, 
+  UserLessonProgress,
+  OnboardingData,
+  TransactionCategory,
+  TransactionType,
+} from '@/types'
 
-export default function DashboardPage() {
-  const { currentUser, transactions, posts } = useAppStore()
-  const month = currentMonthString()
-  const userTx = currentUser ? transactions.filter(t => t.userId === currentUser.id) : []
-  const monthTx = userTx.filter(t => t.date.startsWith(month))
-  const income = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const expense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+type Tab = 'accounting' | 'finance'
 
+export default function FolioApp() {
+  const { user, loading: authLoading } = useAuth()
+  
+  // Onboarding state
+  const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null)
+  
+  // App state
+  const [activeTab, setActiveTab] = useState<Tab>('accounting')
+  const [showTransactionSheet, setShowTransactionSheet] = useState(false)
+  
+  // Data state
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [budgets, setBudgets] = useState<Budget[]>([])
+  const [goals, setGoals] = useState<Goal[]>([])
+  const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([])
+  const [insights, setInsights] = useState<SmartInsight[]>([])
+  const [dataLoading, setDataLoading] = useState(true)
+  
+  // Check onboarding status
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const onboarded = localStorage.getItem('folio-onboarded')
+      setHasOnboarded(onboarded === 'true')
+    }
+  }, [])
+  
+  // Load user data
+  useEffect(() => {
+    async function loadData() {
+      if (!user) {
+        setDataLoading(false)
+        return
+      }
+      
+      try {
+        const [txData, budgetData, goalData, progressData] = await Promise.all([
+          getTransactions(user.id),
+          getBudgets(user.id),
+          getGoals(user.id),
+          getLessonProgress(user.id),
+        ])
+        
+        setTransactions(txData)
+        setBudgets(budgetData)
+        setGoals(goalData)
+        setLessonProgress(progressData)
+        
+        // Generate insights
+        const newInsights = generateInsights(txData, budgetData)
+        setInsights(newInsights)
+      } catch (error) {
+        console.error('Error loading data:', error)
+      } finally {
+        setDataLoading(false)
+      }
+    }
+    
+    if (!authLoading) {
+      loadData()
+    }
+  }, [user, authLoading])
+  
+  // Handle onboarding complete
+  const handleOnboardingComplete = (data: OnboardingData) => {
+    localStorage.setItem('folio-onboarded', 'true')
+    localStorage.setItem('folio-user-type', data.userType || 'student')
+    localStorage.setItem('folio-user-priority', data.priority || 'save')
+    setHasOnboarded(true)
+  }
+  
+  // Handle add transaction
+  const handleAddTransaction = async (data: {
+    amount: number
+    category: TransactionCategory
+    type: TransactionType
+    note?: string
+    isRecurring?: boolean
+  }) => {
+    if (!user) {
+      // For demo/non-logged in users, add locally
+      const newTx: Transaction = {
+        id: Date.now().toString(),
+        userId: 'local',
+        date: new Date().toISOString().split('T')[0],
+        amount: data.amount,
+        type: data.type,
+        category: data.category,
+        note: data.note,
+        isRecurring: data.isRecurring,
+        accountType: 'personal',
+        createdAt: new Date().toISOString(),
+      }
+      setTransactions(prev => [newTx, ...prev])
+      
+      // Update insights
+      const newInsights = generateInsights([newTx, ...transactions], budgets)
+      setInsights(newInsights)
+      return
+    }
+    
+    const result = await insertTransaction(user.id, {
+      date: new Date().toISOString().split('T')[0],
+      ...data,
+    })
+    
+    if (result) {
+      setTransactions(prev => [result, ...prev])
+      
+      // Update insights
+      const newInsights = generateInsights([result, ...transactions], budgets)
+      setInsights(newInsights)
+    }
+  }
+  
+  // Handle delete transaction
+  const handleDeleteTransaction = async (id: string) => {
+    if (!user) {
+      setTransactions(prev => prev.filter(t => t.id !== id))
+      return
+    }
+    
+    const success = await deleteTransaction(user.id, id)
+    if (success) {
+      setTransactions(prev => prev.filter(t => t.id !== id))
+    }
+  }
+  
+  // Handle lesson complete
+  const handleLessonComplete = async (lessonId: string, score: number) => {
+    if (!user) {
+      // Local storage for non-logged in users
+      const newProgress: UserLessonProgress = {
+        id: Date.now().toString(),
+        userId: 'local',
+        lessonId,
+        completed: true,
+        quizScore: score,
+        completedAt: new Date().toISOString(),
+      }
+      setLessonProgress(prev => [...prev.filter(p => p.lessonId !== lessonId), newProgress])
+      return
+    }
+    
+    const result = await updateLessonProgress(user.id, lessonId, score)
+    if (result) {
+      setLessonProgress(prev => [...prev.filter(p => p.lessonId !== lessonId), result])
+    }
+  }
+  
+  // Show loading state
+  if (authLoading || hasOnboarded === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-folio-bg-light dark:bg-folio-bg-dark">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-sage border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-folio-text-secondary-light dark:text-folio-text-secondary-dark">Loading Folio...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  // Show onboarding
+  if (!hasOnboarded) {
+    return <Onboarding onComplete={handleOnboardingComplete} />
+  }
+  
+  // Main app
   return (
-    <div>
-      <Nav />
-      <main className="mx-auto max-w-6xl px-4 py-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Welcome{currentUser ? `, ${currentUser.name}` : ''}</h1>
-          {!currentUser && <a href="/profile" className="btn btn-primary">Sign up / Login</a>}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard title="This Month Income" value={`$${income.toFixed(2)}`} />
-          <StatCard title="This Month Expenses" value={`$${expense.toFixed(2)}`} />
-          <StatCard title="Net" value={`$${(income - expense).toFixed(2)}`} />
-        </div>
-
-        <Panel title="Community Feed">
-          <div className="space-y-3">
-            {posts.length === 0 && <div className="text-slate-400 text-sm">No posts yet.</div>}
-            {posts.slice(0, 5).map(p => (
-              <div key={p.id} className="border border-slate-800 rounded-lg p-3 bg-slate-900/50">
-                <div className="text-sm text-slate-400">{new Date(p.createdAt).toLocaleString()}</div>
-                <div className="mt-1">{p.content}</div>
-              </div>
-            ))}
-          </div>
-        </Panel>
-
-        <Panel title="Tips">
-          <ul className="list-disc pl-6 text-slate-300 text-sm space-y-1">
-            <li>Enter 10 expenses to earn the <span className="text-brand">Expense Apprentice</span> badge.</li>
-            <li>Use notes like "groceries" or "uber" for auto-categorization.</li>
-            <li>Send an invoice to track client income.</li>
-          </ul>
-        </Panel>
-      </main>
+    <div className="min-h-screen bg-folio-bg-light dark:bg-folio-bg-dark">
+      {/* Main Content */}
+      {activeTab === 'accounting' ? (
+        <AccountingTab 
+          transactions={transactions}
+          budgets={budgets}
+          goals={goals}
+          insights={insights}
+          onAddTransaction={() => setShowTransactionSheet(true)}
+        />
+      ) : (
+        <FinanceTab 
+          lessonProgress={lessonProgress}
+          onCompleteLesson={handleLessonComplete}
+        />
+      )}
+      
+      {/* Bottom Tab Navigation */}
+      <TabNavigation 
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+      
+      {/* Transaction Entry Sheet */}
+      <TransactionSheet 
+        isOpen={showTransactionSheet}
+        onClose={() => setShowTransactionSheet(false)}
+        onSubmit={handleAddTransaction}
+      />
     </div>
   )
 }
-

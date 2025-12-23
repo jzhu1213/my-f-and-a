@@ -2,10 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Folio Design System - CSS Variables */
 :root {
-  --bg: #0b1020;
-  --panel: #0f172a;
-  --text: #e2e8f0;
+  /* Colors */
+  --sage: #A8D5BA;
+  --sage-dark: #6B9080;
+  --sage-light: #D4F4DD;
+  --peach: #F4A261;
+  --peach-dark: #E76F51;
+  --bg: #F9FBF8;
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --text-primary: #000000;
+  --text-secondary: #6B7280;
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --bg: #1A1F1E;
+  --bg-card: rgba(30, 35, 34, 0.8);
+  --text-primary: #FAFAFA;
+  --text-secondary: #9CA3AF;
+  --glass-bg: rgba(30, 35, 34, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 html, body, #__next {
@@ -13,23 +36,268 @@ html, body, #__next {
 }
 
 body {
-  background: linear-gradient(180deg, #0b1020 0%, #0f172a 100%);
-  color: var(--text);
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
 }
 
-.card {
-  @apply bg-slate-900/60 border border-slate-800 rounded-xl shadow-lg shadow-black/20;
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
 }
 
-.btn {
-  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition-colors;
+.font-mono-number {
+  font-family: 'Space Mono', monospace;
 }
 
-.btn-primary {
-  @apply bg-brand hover:bg-brand-dark text-white;
+/* Glassmorphism Cards */
+.glass-card {
+  @apply rounded-2xl p-6;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
-.btn-secondary {
-  @apply bg-slate-800 hover:bg-slate-700 text-slate-100;
+.glass-card-solid {
+  @apply rounded-2xl p-6;
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
+/* Button Styles */
+.btn-folio {
+  @apply inline-flex items-center justify-center rounded-xl px-6 py-3 font-semibold transition-all duration-200;
+  @apply active:scale-95 active:shadow-lg;
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.btn-sage {
+  @apply btn-folio bg-sage text-black hover:bg-sage-dark hover:text-white;
+  @apply focus:ring-2 focus:ring-sage focus:ring-offset-2;
+}
+
+.btn-peach {
+  @apply btn-folio bg-peach text-white hover:bg-peach-dark;
+  @apply focus:ring-2 focus:ring-peach focus:ring-offset-2;
+}
+
+.btn-ghost {
+  @apply btn-folio bg-transparent hover:bg-sage/20;
+  color: var(--text-primary);
+}
+
+/* Tap Targets - Minimum 48x48 */
+.tap-target {
+  min-height: 48px;
+  min-width: 48px;
+  @apply flex items-center justify-center;
+}
+
+/* Progress Ring */
+.progress-ring {
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.progress-ring-circle {
+  stroke-dasharray: 283;
+  stroke-dashoffset: 283;
+  transition: stroke-dashoffset 1.5s ease-out;
+}
+
+/* Liquid Progress Bar */
+.progress-bar-liquid {
+  @apply h-3 rounded-full overflow-hidden;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.dark .progress-bar-liquid {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar-fill {
+  @apply h-full rounded-full transition-all duration-1000 ease-out;
+  background: linear-gradient(90deg, var(--sage) 0%, var(--sage-dark) 100%);
+}
+
+/* Floating Action Button */
+.fab {
+  @apply fixed bottom-24 right-6 w-14 h-14 rounded-full shadow-xl;
+  @apply flex items-center justify-center;
+  @apply bg-peach text-white;
+  @apply active:scale-95 transition-transform duration-150;
+  @apply z-50;
+  box-shadow: 0 4px 20px rgba(244, 162, 97, 0.4);
+}
+
+.fab:hover {
+  box-shadow: 0 6px 30px rgba(244, 162, 97, 0.5);
+}
+
+/* Category Pills */
+.category-pill {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium;
+  @apply transition-all duration-200 cursor-pointer;
+  @apply active:scale-95;
+  min-height: 48px;
+}
+
+.category-pill.selected {
+  @apply ring-2 ring-offset-2;
+}
+
+/* Transaction Item */
+.transaction-item {
+  @apply flex items-center justify-between p-4 rounded-xl transition-all duration-200;
+  @apply hover:bg-sage/10 cursor-pointer;
+}
+
+/* Bottom Sheet */
+.bottom-sheet {
+  @apply fixed inset-x-0 bottom-0 z-50;
+  @apply rounded-t-3xl p-6 pt-4;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(100%);
+  transition: transform 0.3s ease-out;
+}
+
+.bottom-sheet.open {
+  transform: translateY(0);
+}
+
+.bottom-sheet-handle {
+  @apply w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4;
+}
+
+/* Hero Section */
+.hero-gradient {
+  background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
+}
+
+.hero-gradient-peach {
+  background: linear-gradient(135deg, var(--peach) 0%, var(--peach-dark) 100%);
+}
+
+/* Tab Navigation */
+.tab-nav {
+  @apply fixed bottom-0 inset-x-0 z-40;
+  @apply flex items-center justify-around;
+  @apply py-4 px-6;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+}
+
+.tab-item {
+  @apply flex flex-col items-center gap-1 px-6 py-2 rounded-xl;
+  @apply transition-all duration-200;
+  min-width: 80px;
+}
+
+.tab-item.active {
+  @apply bg-sage/20;
+  color: var(--sage-dark);
+}
+
+.dark .tab-item.active {
+  color: var(--sage);
+}
+
+/* Input Styles */
+.input-folio {
+  @apply w-full px-4 py-3 rounded-xl border-2 transition-all duration-200;
+  @apply focus:outline-none focus:ring-0;
+  background: var(--bg-card);
+  border-color: var(--glass-border);
+}
+
+.input-folio:focus {
+  border-color: var(--sage);
+}
+
+.input-amount {
+  @apply text-4xl font-mono-number text-center py-6;
+  font-family: 'Space Mono', monospace;
+}
+
+/* Animations */
+@keyframes slideUpStagger {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-1 { animation: slideUpStagger 0.5s ease-out 0.1s forwards; opacity: 0; }
+.stagger-2 { animation: slideUpStagger 0.5s ease-out 0.2s forwards; opacity: 0; }
+.stagger-3 { animation: slideUpStagger 0.5s ease-out 0.3s forwards; opacity: 0; }
+.stagger-4 { animation: slideUpStagger 0.5s ease-out 0.4s forwards; opacity: 0; }
+.stagger-5 { animation: slideUpStagger 0.5s ease-out 0.5s forwards; opacity: 0; }
+
+/* Dark Mode Toggle */
+.theme-toggle {
+  @apply w-14 h-8 rounded-full p-1 transition-colors duration-300;
+  @apply flex items-center;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.dark .theme-toggle {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle-knob {
+  @apply w-6 h-6 rounded-full transition-transform duration-300;
+  @apply flex items-center justify-center text-xs;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark .theme-toggle-knob {
+  transform: translateX(24px);
+  background: var(--sage-dark);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sage);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sage-dark);
+}
+
+/* Safe area for mobile */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .tab-nav {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+  
+  .fab {
+    bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+}
