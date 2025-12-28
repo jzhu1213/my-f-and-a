@@ -6,7 +6,6 @@
 
 - 📊 **Accounting**: Budget tracking, goals, transactions, smart insights
 - 📚 **Finance**: Bite-sized lessons, quizzes, calculators
-- 🌙 **Dark mode** with sage green aesthetic
 
 ## Quick Start
 
