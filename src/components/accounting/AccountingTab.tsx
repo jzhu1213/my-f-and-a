@@ -4,15 +4,15 @@ import { ProgressRing } from '../ui/ProgressRing'
 import { BudgetList } from './BudgetList'
 import { GoalList } from './GoalList'
 import { TransactionList } from './TransactionList'
-import { SmartInsights } from './SmartInsights'
-import type { Transaction, Budget, Goal, SmartInsight } from '@/types'
+import type { Transaction, Budget, Goal } from '@/types'
 
 interface AccountingTabProps {
   transactions: Transaction[]
   budgets: Budget[]
   goals: Goal[]
-  insights: SmartInsight[]
   onAddTransaction: () => void
+  onUpdateBudget: (category: import('@/types').TransactionCategory, limit: number) => void
+  onDeleteTransaction: (id: string) => void
 }
 
 type SubTab = 'budgets' | 'goals' | 'transactions'
@@ -20,9 +20,10 @@ type SubTab = 'budgets' | 'goals' | 'transactions'
 export function AccountingTab({ 
   transactions, 
   budgets, 
-  goals, 
-  insights,
-  onAddTransaction 
+  goals,
+  onAddTransaction,
+  onUpdateBudget,
+  onDeleteTransaction
 }: AccountingTabProps) {
   const [subTab, setSubTab] = useState<SubTab>('budgets')
   const [animatedBalance, setAnimatedBalance] = useState(0)
@@ -74,9 +75,9 @@ export function AccountingTab({
         <p className="text-white/70 text-lg">Available this month</p>
       </div>
       
-      {/* Three Glass Cards */}
+      {/* Two Glass Cards */}
       <div className="px-4 -mt-4">
-        <div className="grid grid-cols-3 gap-3 stagger-1">
+        <div className="grid grid-cols-2 gap-3 stagger-1">
           {/* Budget Progress */}
           <div className="glass-card-solid p-4 flex flex-col items-center">
             <ProgressRing 
@@ -99,39 +100,11 @@ export function AccountingTab({
               Safe today
             </p>
           </div>
-          
-          {/* Smart Insight Preview */}
-          <div className="glass-card-solid p-4 flex flex-col items-center bg-peach/10 dark:bg-peach/20">
-            {insights.length > 0 ? (
-              <>
-                <p className="text-sm font-medium text-peach-dark dark:text-peach text-center">
-                  {insights[0]?.title.split(' ').slice(0, 2).join(' ')}
-                </p>
-                <p className="text-xs text-folio-text-secondary-light dark:text-folio-text-secondary-dark mt-1 text-center">
-                  Insight
-                </p>
-              </>
-            ) : (
-              <>
-                <span className="text-2xl">✨</span>
-                <p className="text-xs text-folio-text-secondary-light dark:text-folio-text-secondary-dark mt-1">
-                  On track!
-                </p>
-              </>
-            )}
-          </div>
         </div>
       </div>
       
-      {/* Smart Insights Row */}
-      {insights.length > 0 && (
-        <div className="px-4 mt-6 stagger-2">
-          <SmartInsights insights={insights} />
-        </div>
-      )}
-      
       {/* Sub-Tab Navigation */}
-      <div className="px-4 mt-6 stagger-3">
+      <div className="px-4 mt-6 stagger-2">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {(['budgets', 'goals', 'transactions'] as SubTab[]).map((tab) => (
             <button
@@ -150,10 +123,10 @@ export function AccountingTab({
       </div>
       
       {/* Sub-Tab Content */}
-      <div className="px-4 mt-4 stagger-4">
-        {subTab === 'budgets' && <BudgetList budgets={budgets} />}
+      <div className="px-4 mt-4 stagger-3">
+        {subTab === 'budgets' && <BudgetList budgets={budgets} onUpdateBudget={onUpdateBudget} />}
         {subTab === 'goals' && <GoalList goals={goals} />}
-        {subTab === 'transactions' && <TransactionList transactions={transactions} />}
+        {subTab === 'transactions' && <TransactionList transactions={transactions} onDelete={onDeleteTransaction} />}
       </div>
       
       {/* Floating Action Button */}

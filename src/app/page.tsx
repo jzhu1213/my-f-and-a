@@ -13,16 +13,15 @@ import {
   insertTransaction, 
   deleteTransaction,
   getBudgets,
+  upsertBudget,
   getGoals,
   getLessonProgress,
   updateLessonProgress,
 } from '@/lib/supabaseData'
-import { generateInsights } from '@/lib/insights'
 import type { 
   Transaction, 
   Budget, 
   Goal, 
-  SmartInsight, 
   UserLessonProgress,
   OnboardingData,
   TransactionCategory,
@@ -46,7 +45,6 @@ export default function FolioApp() {
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
   const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([])
-  const [insights, setInsights] = useState<SmartInsight[]>([])
   const [dataLoading, setDataLoading] = useState(true)
   
   // Check onboarding status
@@ -77,10 +75,6 @@ export default function FolioApp() {
         setBudgets(budgetData)
         setGoals(goalData)
         setLessonProgress(progressData)
-        
-        // Generate insights
-        const newInsights = generateInsights(txData, budgetData)
-        setInsights(newInsights)
       } catch (error) {
         console.error('Error loading data:', error)
       } finally {
@@ -124,10 +118,6 @@ export default function FolioApp() {
         createdAt: new Date().toISOString(),
       }
       setTransactions(prev => [newTx, ...prev])
-      
-      // Update insights
-      const newInsights = generateInsights([newTx, ...transactions], budgets)
-      setInsights(newInsights)
       return
     }
     
@@ -138,10 +128,6 @@ export default function FolioApp() {
     
     if (result) {
       setTransactions(prev => [result, ...prev])
-      
-      // Update insights
-      const newInsights = generateInsights([result, ...transactions], budgets)
-      setInsights(newInsights)
     }
   }
   
@@ -155,6 +141,48 @@ export default function FolioApp() {
     const success = await deleteTransaction(user.id, id)
     if (success) {
       setTransactions(prev => prev.filter(t => t.id !== id))
+    }
+  }
+  
+  // Handle update budget
+  const handleUpdateBudget = async (category: TransactionCategory, limit: number) => {
+    if (!user) {
+      // For demo/non-logged in users, update locally
+      setBudgets(prev => {
+        const currentMonth = new Date().toISOString().slice(0, 7)
+        const existing = prev.find(b => b.category === category && b.month === currentMonth)
+        
+        if (existing) {
+          return prev.map(b => 
+            b.category === category && b.month === currentMonth 
+              ? { ...b, monthlyLimit: limit }
+              : b
+          )
+        } else {
+          const newBudget: Budget = {
+            id: Date.now().toString(),
+            userId: 'local',
+            category,
+            monthlyLimit: limit,
+            spent: 0,
+            month: currentMonth,
+          }
+          return [...prev, newBudget]
+        }
+      })
+      return
+    }
+    
+    const result = await upsertBudget(user.id, category, limit)
+    
+    if (result) {
+      setBudgets(prev => {
+        const existing = prev.find(b => b.category === category && b.month === result.month)
+        if (existing) {
+          return prev.map(b => b.id === result.id ? result : b)
+        }
+        return [...prev, result]
+      })
     }
   }
   
@@ -206,8 +234,9 @@ export default function FolioApp() {
           transactions={transactions}
           budgets={budgets}
           goals={goals}
-          insights={insights}
           onAddTransaction={() => setShowTransactionSheet(true)}
+          onUpdateBudget={handleUpdateBudget}
+          onDeleteTransaction={handleDeleteTransaction}
         />
       ) : (
         <FinanceTab 
