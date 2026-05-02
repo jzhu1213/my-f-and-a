@@ -331,9 +331,26 @@ export async function getBudgets(userId: string): Promise<Budget[]> {
 export async function upsertBudget(
   userId: string,
   category: TransactionCategory,
-  monthlyLimit: number
+  monthlyLimit: number,
+  spent?: number
 ): Promise<Budget | null> {
   const currentMonth = new Date().toISOString().slice(0, 7)
+  
+  // If spent is not provided, fetch current spent value
+  let currentSpent = spent ?? 0
+  if (spent === undefined) {
+    const { data: existing } = await supabase
+      .from('budgets')
+      .select('spent')
+      .eq('user_id', userId)
+      .eq('category', category)
+      .eq('month', currentMonth)
+      .single()
+    
+    if (existing) {
+      currentSpent = existing.spent
+    }
+  }
   
   const { data, error } = await supabase
     .from('budgets')
@@ -341,7 +358,7 @@ export async function upsertBudget(
       user_id: userId,
       category,
       monthly_limit: monthlyLimit,
-      spent: 0,
+      spent: currentSpent,
       month: currentMonth,
     }, {
       onConflict: 'user_id,category,month'
@@ -355,6 +372,60 @@ export async function upsertBudget(
   }
 
   return dbBudgetToApp(data)
+}
+
+export async function updateBudgetSpent(
+  userId: string,
+  category: TransactionCategory,
+  spentAmount: number
+): Promise<Budget | null> {
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  
+  // Get existing budget or create one
+  const { data: existing } = await supabase
+    .from('budgets')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('category', category)
+    .eq('month', currentMonth)
+    .single()
+  
+  if (existing) {
+    // Update spent amount
+    const { data, error } = await supabase
+      .from('budgets')
+      .update({ spent: spentAmount })
+      .eq('id', existing.id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error updating budget spent:', error)
+      return null
+    }
+    
+    return dbBudgetToApp(data)
+  } else {
+    // Create new budget with spent amount
+    const { data, error } = await supabase
+      .from('budgets')
+      .insert({
+        user_id: userId,
+        category,
+        monthly_limit: 0,
+        spent: spentAmount,
+        month: currentMonth,
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating budget:', error)
+      return null
+    }
+    
+    return dbBudgetToApp(data)
+  }
 }
 
 // ============================================
@@ -420,6 +491,49 @@ export async function updateGoalProgress(
   }
 
   return dbGoalToApp(data)
+}
+
+export async function updateGoal(
+  userId: string,
+  goalId: string,
+  updates: { name: string; targetAmount: number; emoji: string }
+): Promise<Goal | null> {
+  const { data, error } = await supabase
+    .from('goals')
+    .update({
+      name: updates.name,
+      target_amount: updates.targetAmount,
+      emoji: updates.emoji,
+    })
+    .eq('id', goalId)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating goal:', error)
+    return null
+  }
+
+  return dbGoalToApp(data)
+}
+
+export async function deleteGoal(
+  userId: string,
+  goalId: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('goals')
+    .delete()
+    .eq('id', goalId)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error deleting goal:', error)
+    return false
+  }
+
+  return true
 }
 
 // ============================================

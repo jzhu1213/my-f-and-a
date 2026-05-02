@@ -10,143 +10,124 @@ interface TransactionListProps {
 
 export function TransactionList({ transactions, onDelete }: TransactionListProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [swipedId, setSwipedId] = useState<string | null>(null)
-  
-  // Filter transactions by search
-  const filteredTransactions = transactions.filter(t => 
+  const [expandedId,  setExpandedId]  = useState<string | null>(null)
+
+  const filtered = transactions.filter(t =>
     t.note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.category.toLowerCase().includes(searchQuery.toLowerCase())
   )
-  
-  // Group by date
-  const groupedByDate = filteredTransactions.reduce((acc, tx) => {
-    const date = tx.date
-    if (!acc[date]) acc[date] = []
-    acc[date].push(tx)
+
+  const grouped = filtered.reduce((acc, tx) => {
+    if (!acc[tx.date]) acc[tx.date] = []
+    acc[tx.date].push(tx)
     return acc
   }, {} as Record<string, Transaction[]>)
-  
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a))
-  
-  const getCategoryInfo = (category: Transaction['category']) => {
-    return TRANSACTION_CATEGORIES.find(c => c.category === category) || 
-      { emoji: '💰', label: category, category, type: 'expense' as const }
+
+  const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
+
+  const getCatInfo = (cat: Transaction['category']) =>
+    TRANSACTION_CATEGORIES.find(c => c.category === cat) ||
+    { emoji: '', label: cat, category: cat, type: 'expense' as const }
+
+  const formatDate = (s: string) => {
+    const d   = new Date(s + 'T00:00:00')
+    const now = new Date()
+    const yest = new Date(now)
+    yest.setDate(yest.getDate() - 1)
+    if (s === now.toISOString().split('T')[0])   return 'TODAY'
+    if (s === yest.toISOString().split('T')[0])  return 'YESTERDAY'
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()
   }
-  
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00')
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    
-    if (dateStr === today.toISOString().split('T')[0]) return 'Today'
-    if (dateStr === yesterday.toISOString().split('T')[0]) return 'Yesterday'
-    
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    })
-  }
-  
+
   return (
-    <div className="space-y-4">
-      {/* Search Bar */}
-      <div className="relative">
+    <div>
+      {/* Search */}
+      <div className="mb-4 relative">
         <input
           type="text"
-          placeholder="Search transactions..."
+          placeholder="search..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="input-folio"
+          onChange={e => setSearchQuery(e.target.value)}
+          className="t-input"
+          style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px' }}
         />
       </div>
-      
-      {/* Transaction Groups */}
+
       {sortedDates.length > 0 ? (
         sortedDates.map(date => (
-          <div key={date}>
-            <h4 className="text-sm font-medium text-folio-text-secondary-light dark:text-folio-text-secondary-dark mb-2 px-1">
+          <div key={date} className="mb-6">
+            {/* Date header */}
+            <div
+              className="text-[10px] font-mono tracking-[0.2em] text-t-muted py-2 mb-1"
+              style={{ borderBottom: '1px solid var(--border)' }}
+            >
               {formatDate(date)}
-            </h4>
-            <div className="glass-card-solid p-2 space-y-1">
-              {groupedByDate[date].map((tx) => {
-                const catInfo = getCategoryInfo(tx.category)
-                const isIncome = tx.type === 'income'
-                
-                return (
-                  <div
-                    key={tx.id}
-                    className={`transaction-item relative overflow-hidden ${
-                      swipedId === tx.id ? 'bg-red-50 dark:bg-red-900/20' : ''
-                    }`}
-                    onClick={() => setSwipedId(swipedId === tx.id ? null : tx.id)}
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <span className="text-xl">{catInfo.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
-                          {tx.note || catInfo.label}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
-                          <span className={`px-2 py-0.5 rounded-full ${
-                            isIncome 
-                              ? 'bg-sage-light/50 text-sage-dark' 
-                              : 'bg-peach/20 text-peach-dark'
-                          }`}>
-                            {catInfo.label}
-                          </span>
-                          {tx.isRecurring && (
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                              Recurring
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <span className={`font-mono font-bold ${
-                        isIncome ? 'text-sage-dark dark:text-sage' : 'text-peach-dark dark:text-peach'
-                      }`}>
-                        {isIncome ? '+' : '-'}${tx.amount.toFixed(2)}
-                      </span>
-                      
-                      {/* Delete button (shown on swipe/click) */}
-                      {swipedId === tx.id && onDelete && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete(tx.id)
-                            setSwipedId(null)
-                          }}
-                          className="p-2 bg-red-500 text-white rounded-lg tap-target"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
             </div>
+
+            {/* Rows */}
+            {grouped[date].map(tx => {
+              const cat      = getCatInfo(tx.category)
+              const isIncome = tx.type === 'income'
+              const expanded = expandedId === tx.id
+
+              return (
+                <div key={tx.id}>
+                  <div
+                    className="flex items-center justify-between py-3 cursor-pointer transition-colors hover:bg-t-hover"
+                    style={{ borderBottom: '1px solid var(--border)' }}
+                    onClick={() => setExpandedId(expanded ? null : tx.id)}
+                  >
+                    {/* Left */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span
+                        className="text-[10px] font-mono tracking-wider flex-shrink-0 w-20 truncate"
+                        style={{ color: 'var(--muted)' }}
+                      >
+                        {cat.label.toUpperCase()}
+                      </span>
+                      <span className="text-sm text-t-text truncate">
+                        {tx.note || cat.label}
+                        {tx.isRecurring && (
+                          <span className="ml-1.5 text-[9px] font-mono text-t-muted tracking-wider">↺</span>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Right */}
+                    <span
+                      className="text-sm font-mono flex-shrink-0 ml-4"
+                      style={{ color: isIncome ? 'var(--green)' : 'var(--red)' }}
+                    >
+                      {isIncome ? '+' : '−'}${tx.amount.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Expanded delete */}
+                  {expanded && onDelete && (
+                    <div
+                      className="flex justify-end px-2 py-2 animate-fade-in"
+                      style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}
+                    >
+                      <button
+                        onClick={e => { e.stopPropagation(); onDelete(tx.id); setExpandedId(null) }}
+                        className="text-[10px] font-mono tracking-widest text-t-red hover:text-red-400 transition-colors uppercase"
+                      >
+                        delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         ))
       ) : (
-        <div className="glass-card-solid p-8 text-center">
-          <span className="text-4xl mb-4 block">📭</span>
-          <h3 className="font-semibold mb-2">No transactions yet</h3>
-          <p className="text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
-            Tap the + button to add your first transaction
+        <div className="py-16 text-center">
+          <p className="text-xs font-mono tracking-widest text-t-muted uppercase">
+            {searchQuery ? 'no results' : 'no transactions'}
           </p>
         </div>
       )}
     </div>
   )
 }
-

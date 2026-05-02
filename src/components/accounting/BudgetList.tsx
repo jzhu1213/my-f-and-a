@@ -7,106 +7,95 @@ import { BudgetLimitSheet } from './BudgetLimitSheet'
 interface BudgetListProps {
   budgets: Budget[]
   onUpdateBudget: (category: TransactionCategory, limit: number) => void
+  onAddTransaction: (category: TransactionCategory) => void
 }
 
-export function BudgetList({ budgets, onUpdateBudget }: BudgetListProps) {
+export function BudgetList({ budgets, onUpdateBudget, onAddTransaction }: BudgetListProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<TransactionCategory | undefined>()
-  
-  const handleBudgetClick = (category: TransactionCategory) => {
-    setSelectedCategory(category)
-    setIsSheetOpen(true)
-  }
-  
-  const handleSetLimitsClick = () => {
-    setSelectedCategory(undefined)
-    setIsSheetOpen(true)
-  }
-  
-  // Create display data for all categories
+
   const budgetData = BUDGET_CATEGORIES.map(cat => {
     const budget = budgets.find(b => b.category === cat.category)
-    const spent = budget?.spent ?? 0
-    const limit = budget?.monthlyLimit ?? 0
-    const progress = limit > 0 ? Math.round((spent / limit) * 100) : 0
-    
-    return {
-      ...cat,
-      spent,
-      limit,
-      progress: Math.min(progress, 100),
-      overBudget: progress > 100,
-    }
+    const spent    = budget?.spent ?? 0
+    const limit    = budget?.monthlyLimit ?? 0
+    const progress = limit > 0 ? Math.min(Math.round((spent / limit) * 100), 100) : 0
+    const overBudget = limit > 0 && spent > limit
+
+    return { ...cat, spent, limit, progress, overBudget }
   })
-  
+
+  const barColor = (d: { overBudget: boolean; progress: number }) => {
+    if (d.overBudget)       return 'var(--red)'
+    if (d.progress >= 80)   return 'var(--amber)'
+    return 'var(--green)'
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {budgetData.map((budget) => (
-          <div 
+    <div>
+      {/* Row list */}
+      <div>
+        {budgetData.map(budget => (
+          <button
             key={budget.category}
-            onClick={() => handleBudgetClick(budget.category)}
-            className={`glass-card-solid p-4 transition-all duration-200 hover:scale-102 cursor-pointer ${
-              budget.overBudget ? 'border-peach-dark/50' : ''
-            }`}
+            onClick={() => onAddTransaction(budget.category)}
+            className="w-full text-left py-4 transition-colors hover:bg-t-hover"
+            style={{ borderBottom: '1px solid var(--border)' }}
           >
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-2xl">{budget.emoji}</span>
-              <span className="text-sm font-medium truncate">{budget.label}</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-mono tracking-widest text-t-muted uppercase">
+                {budget.label}
+              </span>
+              <div className="flex items-center gap-3">
+                {budget.limit > 0 ? (
+                  <span
+                    className="text-xs font-mono"
+                    style={{ color: budget.overBudget ? 'var(--red)' : budget.progress >= 80 ? 'var(--amber)' : 'var(--muted)' }}
+                  >
+                    ${budget.spent.toFixed(0)}&nbsp;/&nbsp;${budget.limit.toFixed(0)}
+                  </span>
+                ) : (
+                  <span className="text-xs font-mono text-t-muted">
+                    ${budget.spent.toFixed(0)}
+                  </span>
+                )}
+                <span
+                  className="text-[10px] font-mono w-8 text-right"
+                  style={{ color: budget.overBudget ? 'var(--red)' : 'var(--muted)' }}
+                >
+                  {budget.progress}%
+                </span>
+              </div>
             </div>
-            
-            {/* Progress Bar */}
-            <div className="progress-bar-liquid mb-2">
-              <div 
-                className={`progress-bar-fill ${budget.overBudget ? '!bg-peach-dark' : ''}`}
-                style={{ 
+
+            <div className="progress-track">
+              <div
+                className="progress-fill"
+                style={{
                   width: `${budget.progress}%`,
-                  ['--fill-width' as string]: `${budget.progress}%` 
+                  background: barColor(budget),
                 }}
               />
             </div>
-            
-            <div className="flex justify-between text-xs">
-              <span className={`font-mono ${budget.overBudget ? 'text-peach-dark' : 'text-folio-text-secondary-light dark:text-folio-text-secondary-dark'}`}>
-                {budget.progress}%
-              </span>
-              {budget.limit > 0 ? (
-                <span className="font-mono text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
-                  {budget.spent}/{budget.limit}
-                </span>
-              ) : (
-                <span className="font-mono text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
-                  ${budget.spent}
-                </span>
-              )}
-            </div>
-          </div>
+          </button>
         ))}
       </div>
-      
-      {/* Add Budget Button */}
-      <button 
-        onClick={handleSetLimitsClick}
-        className="w-full glass-card-solid p-4 flex items-center justify-center gap-2 text-sage-dark dark:text-sage hover:bg-sage/10 transition-colors"
+
+      {/* Set limits */}
+      <button
+        onClick={() => setIsSheetOpen(true)}
+        className="w-full py-4 flex items-center justify-center gap-2 text-[11px] font-mono tracking-widest text-t-muted hover:text-t-text transition-colors uppercase mt-2"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
-        <span className="font-medium">Set Budget Limits</span>
+        Set Limits
       </button>
-      
-      {/* Budget Limit Sheet */}
+
       <BudgetLimitSheet
         isOpen={isSheetOpen}
-        onClose={() => {
-          setIsSheetOpen(false)
-          setSelectedCategory(undefined)
-        }}
+        onClose={() => setIsSheetOpen(false)}
         budgets={budgets}
         onUpdateBudget={onUpdateBudget}
-        selectedCategory={selectedCategory}
       />
     </div>
   )
 }
-

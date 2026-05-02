@@ -1,7 +1,7 @@
 "use client"
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TRANSACTION_CATEGORIES } from '@/types'
-import type { TransactionCategory, TransactionType } from '@/types'
+import type { TransactionCategory, TransactionType, Transaction } from '@/types'
 
 interface TransactionSheetProps {
   isOpen: boolean
@@ -10,165 +10,243 @@ interface TransactionSheetProps {
     amount: number
     category: TransactionCategory
     type: TransactionType
+    date: string
     note?: string
     isRecurring?: boolean
   }) => void
+  prefilledCategory?: TransactionCategory
+  recentTransactions?: Transaction[]
 }
 
-export function TransactionSheet({ isOpen, onClose, onSubmit }: TransactionSheetProps) {
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState<TransactionCategory | null>(null)
-  const [note, setNote] = useState('')
+const QUICK_AMOUNTS = [5, 10, 20, 50, 100]
+
+export function TransactionSheet({ isOpen, onClose, onSubmit, prefilledCategory, recentTransactions = [] }: TransactionSheetProps) {
+  const [amount,      setAmount]      = useState('')
+  const [category,    setCategory]    = useState<TransactionCategory | null>(null)
+  const [date,        setDate]        = useState(new Date().toISOString().split('T')[0])
+  const [note,        setNote]        = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
-  
+
+  const yesterday = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    return d.toISOString().split('T')[0]
+  })()
+
+  const uniqueRecent = (() => {
+    const seen = new Set<string>()
+    const out: Transaction[] = []
+    for (const tx of recentTransactions) {
+      const key = `${tx.category}-${tx.amount}-${tx.note || ''}`
+      if (!seen.has(key) && out.length < 4) { seen.add(key); out.push(tx) }
+    }
+    return out
+  })()
+
+  useEffect(() => {
+    if (isOpen && prefilledCategory) setCategory(prefilledCategory)
+  }, [isOpen, prefilledCategory])
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value.replace(/[^0-9.]/g, '')
+    const parts = v.split('.')
+    if (parts.length > 2 || (parts[1]?.length ?? 0) > 2) return
+    setAmount(v)
+  }
+
   const handleSubmit = () => {
-    if (!amount || !category) return
-    
-    const selectedCat = TRANSACTION_CATEGORIES.find(c => c.category === category)
-    
+    if (!amount || !category || !date) return
+    const selCat = TRANSACTION_CATEGORIES.find(c => c.category === category)
     onSubmit({
       amount: parseFloat(amount),
       category,
-      type: selectedCat?.type || 'expense',
+      type: selCat?.type || 'expense',
+      date,
       note: note || undefined,
       isRecurring,
     })
-    
-    // Reset form
-    setAmount('')
-    setCategory(null)
-    setNote('')
-    setIsRecurring(false)
+    setAmount(''); setCategory(null); setNote(''); setIsRecurring(false)
+    setDate(new Date().toISOString().split('T')[0])
     onClose()
   }
-  
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9.]/g, '')
-    // Only allow one decimal point
-    const parts = value.split('.')
-    if (parts.length > 2) return
-    if (parts[1]?.length > 2) return
-    setAmount(value)
-  }
-  
+
+  const canSubmit = !!amount && !!category && !!date
+
   return (
     <>
       {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+      <div
+        className={`fixed inset-0 bg-black/70 z-40 transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
-      
+
       {/* Sheet */}
-      <div className={`bottom-sheet ${isOpen ? 'open' : ''}`}>
-        <div className="bottom-sheet-handle" />
-        
-        <h2 className="text-xl font-heading font-bold mb-6 text-center">
-          Add Transaction
-        </h2>
-        
-        {/* Amount Input */}
-        <div className="mb-6">
-          <label className="block text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark mb-2">
-            Amount
-          </label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-3xl font-mono text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
-              $
-            </span>
+      <div className={`sheet overflow-y-auto ${isOpen ? 'open' : ''}`}>
+        <div className="sheet-handle" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
+          <span className="text-[10px] font-mono tracking-[0.2em] text-t-muted uppercase">Add Transaction</span>
+          <button onClick={onClose} className="text-t-muted hover:text-t-text transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-5 py-5 space-y-6">
+          {/* Recent templates */}
+          {uniqueRecent.length > 0 && (
+            <div>
+              <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-3">Recent</p>
+              <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
+                {uniqueRecent.map(tx => {
+                  const cat = TRANSACTION_CATEGORIES.find(c => c.category === tx.category)
+                  return (
+                    <button
+                      key={tx.id}
+                      onClick={() => { setAmount(tx.amount.toString()); setCategory(tx.category); setNote(tx.note || '') }}
+                      className="flex-shrink-0 flex items-center gap-2 px-3 py-2 text-xs font-mono text-t-muted hover:text-t-text transition-colors"
+                      style={{ border: '1px solid var(--border)' }}
+                    >
+                      <span className="text-t-muted">{cat?.label || tx.category}</span>
+                      <span>${tx.amount}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Amount */}
+          <div>
+            <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-3">Amount</p>
+            <div className="flex gap-2 mb-3 overflow-x-auto">
+              {QUICK_AMOUNTS.map(p => (
+                <button
+                  key={p}
+                  onClick={() => setAmount(p.toString())}
+                  className="flex-shrink-0 px-3 py-1.5 text-xs font-mono transition-colors"
+                  style={{
+                    border: '1px solid',
+                    borderColor: amount === p.toString() ? 'var(--text)' : 'var(--border)',
+                    color: amount === p.toString() ? 'var(--text)' : 'var(--muted)',
+                    background: amount === p.toString() ? 'var(--raised)' : 'transparent',
+                  }}
+                >
+                  ${p}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-mono text-t-muted">$</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={amount}
+                onChange={handleAmountChange}
+                autoFocus
+                className="flex-1 bg-transparent text-4xl font-mono text-t-text outline-none border-b"
+                style={{ borderColor: 'var(--line)' }}
+              />
+            </div>
+          </div>
+
+          {/* Category */}
+          <div>
+            <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-3">Category</p>
+            <div className="grid grid-cols-4 gap-2">
+              {TRANSACTION_CATEGORIES.map(cat => {
+                const sel = category === cat.category
+                const isIncome = cat.type === 'income'
+                return (
+                  <button
+                    key={cat.category}
+                    onClick={() => setCategory(cat.category)}
+                    className="cat-pill"
+                    style={sel ? {
+                      borderColor: isIncome ? 'var(--green)' : 'var(--red)',
+                      background: isIncome ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)',
+                    } : {}}
+                  >
+                    <span className="text-xl">{cat.emoji}</span>
+                    <span
+                      className="text-[9px] font-mono tracking-wide truncate w-full text-center leading-none"
+                      style={{ color: sel ? (isIncome ? 'var(--green)' : 'var(--red)') : 'var(--muted)' }}
+                    >
+                      {cat.label.toUpperCase()}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Date */}
+          <div>
+            <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-3">Date</p>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="t-input flex-1 text-xs font-mono"
+              />
+              <button
+                onClick={() => setDate(yesterday)}
+                className="px-4 py-2 text-[10px] font-mono tracking-widest uppercase transition-colors"
+                style={{
+                  border: '1px solid',
+                  borderColor: date === yesterday ? 'var(--text)' : 'var(--border)',
+                  color: date === yesterday ? 'var(--text)' : 'var(--muted)',
+                }}
+              >
+                YEST
+              </button>
+            </div>
+          </div>
+
+          {/* Note */}
+          <div>
+            <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-3">Note</p>
             <input
               type="text"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={amount}
-              onChange={handleAmountChange}
-              className="input-folio input-amount pl-12"
-              autoFocus
+              placeholder="optional"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              className="t-input text-sm"
             />
           </div>
-        </div>
-        
-        {/* Category Selection */}
-        <div className="mb-6">
-          <label className="block text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark mb-3">
-            Category
-          </label>
-          <div className="grid grid-cols-4 gap-2">
-            {TRANSACTION_CATEGORIES.map((cat) => (
-              <button
-                key={cat.category}
-                onClick={() => setCategory(cat.category)}
-                className={`category-pill flex-col gap-1 py-3 ${
-                  category === cat.category 
-                    ? cat.type === 'income'
-                      ? 'bg-sage ring-sage'
-                      : 'bg-peach/30 ring-peach'
-                    : 'bg-gray-100 dark:bg-gray-800'
-                } ${category === cat.category ? 'selected' : ''}`}
-              >
-                <span className="text-xl">{cat.emoji}</span>
-                <span className="text-xs">{cat.label}</span>
-              </button>
-            ))}
+
+          {/* Recurring */}
+          <div
+            className="flex items-center justify-between py-3"
+            style={{ borderTop: '1px solid var(--border)' }}
+          >
+            <span className="text-[11px] font-mono tracking-widest text-t-muted uppercase">Recurring</span>
+            <button
+              onClick={() => setIsRecurring(!isRecurring)}
+              className="relative w-10 h-5 transition-colors"
+              style={{
+                background: isRecurring ? 'var(--text)' : 'var(--line)',
+              }}
+            >
+              <div
+                className="absolute top-0.5 w-4 h-4 bg-black transition-transform"
+                style={{ transform: isRecurring ? 'translateX(22px)' : 'translateX(2px)' }}
+              />
+            </button>
           </div>
-        </div>
-        
-        {/* Note Input */}
-        <div className="mb-6">
-          <label className="block text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark mb-2">
-            Note (optional)
-          </label>
-          <input
-            type="text"
-            placeholder="What was this for?"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="input-folio"
-          />
-        </div>
-        
-        {/* Recurring Toggle */}
-        <div className="flex items-center justify-between mb-8 p-4 rounded-xl bg-gray-100 dark:bg-gray-800">
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-folio-text-secondary-light dark:text-folio-text-secondary-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span className="font-medium">Make recurring?</span>
+
+          {/* Actions */}
+          <div className="flex gap-3 pb-4">
+            <button onClick={onClose} className="flex-1 btn-ghost">CANCEL</button>
+            <button onClick={handleSubmit} disabled={!canSubmit} className="flex-1 btn-primary">ADD</button>
           </div>
-          <button
-            onClick={() => setIsRecurring(!isRecurring)}
-            className={`w-12 h-7 rounded-full p-1 transition-colors duration-200 ${
-              isRecurring ? 'bg-sage' : 'bg-gray-300 dark:bg-gray-600'
-            }`}
-          >
-            <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-              isRecurring ? 'translate-x-5' : 'translate-x-0'
-            }`} />
-          </button>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <button 
-            onClick={onClose}
-            className="flex-1 btn-ghost border border-gray-200 dark:border-gray-700"
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={handleSubmit}
-            disabled={!amount || !category}
-            className={`flex-1 btn-peach ${
-              (!amount || !category) ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            Add
-          </button>
         </div>
       </div>
     </>
   )
 }
-

@@ -10,85 +10,57 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Folio Design System
-        sage: {
-          DEFAULT: '#A8D5BA',  // Primary Sage Green
-          dark: '#6B9080',     // Forest Sage
-          light: '#D4F4DD',    // Mint Glow
-        },
-        peach: {
-          DEFAULT: '#F4A261',  // Warm Peach (Accent)
-          dark: '#E76F51',     // Burnt Orange
-        },
-        folio: {
-          bg: {
-            light: '#F9FBF8',  // Warm White
-            dark: '#1A1F1E',   // Deep Charcoal
-          },
-          text: {
-            primary: {
-              light: '#000000',
-              dark: '#FAFAFA',
-            },
-            secondary: {
-              light: '#6B7280',
-              dark: '#9CA3AF',
-            },
-          },
+        t: {
+          bg:      '#000000',
+          surface: '#0a0a0a',
+          raised:  '#111111',
+          hover:   '#161616',
+          border:  '#1e1e1e',
+          line:    '#2a2a2a',
+          text:    '#e2e2e2',
+          muted:   '#525252',
+          dim:     '#333333',
+          green:   '#4ade80',
+          'green-bg': 'rgba(74,222,128,0.08)',
+          red:     '#f87171',
+          'red-bg': 'rgba(248,113,113,0.08)',
+          amber:   '#fbbf24',
+          blue:    '#60a5fa',
+          'blue-bg': 'rgba(96,165,250,0.08)',
         },
       },
       fontFamily: {
-        heading: ['Poppins', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
         mono: ['Space Mono', 'monospace'],
       },
       animation: {
-        'count-up': 'countUp 1s ease-out forwards',
-        'slide-up': 'slideUp 0.5s ease-out forwards',
-        'scale-tap': 'scaleTap 0.15s ease-out',
-        'liquid-fill': 'liquidFill 1.5s ease-out forwards',
-        'fade-in': 'fadeIn 0.3s ease-out forwards',
-        'glow': 'glow 0.3s ease-out',
-        'confetti': 'confetti 0.5s ease-out forwards',
-        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+        'slide-up':   'slideUp 0.25s ease-out forwards',
+        'fade-in':    'fadeIn 0.2s ease-out forwards',
+        'count-up':   'countUp 0.5s ease-out forwards',
+        'fill-bar':   'fillBar 1s ease-out forwards',
+        'slide-in-right': 'slideInRight 0.2s ease-out forwards',
       },
       keyframes: {
-        countUp: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
         slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '0%':   { opacity: '0', transform: 'translateY(12px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        scaleTap: {
-          '0%': { transform: 'scale(1)' },
-          '50%': { transform: 'scale(0.95)' },
-          '100%': { transform: 'scale(1)' },
-        },
-        liquidFill: {
-          '0%': { width: '0%' },
-          '100%': { width: 'var(--fill-width)' },
         },
         fadeIn: {
-          '0%': { opacity: '0' },
+          '0%':   { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        glow: {
-          '0%': { boxShadow: '0 0 0 0 rgba(168, 213, 186, 0.4)' },
-          '100%': { boxShadow: '0 0 20px 5px rgba(168, 213, 186, 0.2)' },
+        countUp: {
+          '0%':   { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
-        confetti: {
-          '0%': { transform: 'scale(0) rotate(0deg)', opacity: '1' },
-          '100%': { transform: 'scale(1) rotate(360deg)', opacity: '0' },
+        fillBar: {
+          '0%':   { width: '0%' },
+          '100%': { width: 'var(--fill-width)' },
         },
-        pulseSoft: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
+        slideInRight: {
+          '0%':   { opacity: '0', transform: 'translateX(100%)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
         },
-      },
-      backdropBlur: {
-        xs: '2px',
       },
     },
   },

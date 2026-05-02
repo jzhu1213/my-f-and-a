@@ -5,16 +5,23 @@ import {
   TabNavigation, 
   AccountingTab, 
   FinanceTab, 
-  TransactionSheet 
+  TransactionSheet,
+  Toast 
 } from '@/components'
 import { useAuth } from '@/contexts/AuthContext'
+import { useToast } from '@/contexts/ToastContext'
 import { 
   getTransactions, 
   insertTransaction, 
   deleteTransaction,
   getBudgets,
   upsertBudget,
+  updateBudgetSpent,
   getGoals,
+  createGoal,
+  updateGoal,
+  updateGoalProgress,
+  deleteGoal,
   getLessonProgress,
   updateLessonProgress,
 } from '@/lib/supabaseData'
@@ -32,6 +39,7 @@ type Tab = 'accounting' | 'finance'
 
 export default function FolioApp() {
   const { user, loading: authLoading } = useAuth()
+  const { showToast } = useToast()
   
   // Onboarding state
   const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null)
@@ -39,6 +47,7 @@ export default function FolioApp() {
   // App state
   const [activeTab, setActiveTab] = useState<Tab>('accounting')
   const [showTransactionSheet, setShowTransactionSheet] = useState(false)
+  const [prefilledCategory, setPrefilledCategory] = useState<TransactionCategory | undefined>()
   
   // Data state
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -95,11 +104,69 @@ export default function FolioApp() {
     setHasOnboarded(true)
   }
   
+  // Recalculate budget spent amounts for a category
+  const recalculateBudgetSpent = async (updatedTransactions: Transaction[], category?: TransactionCategory) => {
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    const monthTxs = updatedTransactions.filter(t => t.date.startsWith(currentMonth) && t.type === 'expense')
+    
+    // If category specified, only update that category
+    const categoriesToUpdate = category ? [category] : Array.from(new Set(monthTxs.map(t => t.category)))
+    
+    for (const cat of categoriesToUpdate) {
+      const spent = monthTxs
+        .filter(t => t.category === cat)
+        .reduce((sum, t) => sum + t.amount, 0)
+      
+      if (!user) {
+        // Local update
+        setBudgets(prev => {
+          const existing = prev.find(b => b.category === cat && b.month === currentMonth)
+          if (existing) {
+            return prev.map(b => 
+              b.category === cat && b.month === currentMonth 
+                ? { ...b, spent }
+                : b
+            )
+          } else {
+            const newBudget: Budget = {
+              id: Date.now().toString(),
+              userId: 'local',
+              category: cat as TransactionCategory,
+              monthlyLimit: 0,
+              spent,
+              month: currentMonth,
+            }
+            return [...prev, newBudget]
+          }
+        })
+      } else {
+        // Database update
+        const result = await updateBudgetSpent(user.id, cat as TransactionCategory, spent)
+        if (result) {
+          setBudgets(prev => {
+            const existing = prev.find(b => b.id === result.id)
+            if (existing) {
+              return prev.map(b => b.id === result.id ? result : b)
+            }
+            return [...prev, result]
+          })
+        }
+      }
+    }
+  }
+  
+  // Handle open transaction sheet
+  const handleOpenTransactionSheet = (category?: TransactionCategory) => {
+    setPrefilledCategory(category)
+    setShowTransactionSheet(true)
+  }
+  
   // Handle add transaction
   const handleAddTransaction = async (data: {
     amount: number
     category: TransactionCategory
     type: TransactionType
+    date: string
     note?: string
     isRecurring?: boolean
   }) => {
@@ -108,7 +175,7 @@ export default function FolioApp() {
       const newTx: Transaction = {
         id: Date.now().toString(),
         userId: 'local',
-        date: new Date().toISOString().split('T')[0],
+        date: data.date,
         amount: data.amount,
         type: data.type,
         category: data.category,
@@ -117,30 +184,73 @@ export default function FolioApp() {
         accountType: 'personal',
         createdAt: new Date().toISOString(),
       }
-      setTransactions(prev => [newTx, ...prev])
+      const updatedTxs = [newTx, ...transactions]
+      setTransactions(updatedTxs)
+      
+      // Update budget if expense
+      if (data.type === 'expense') {
+        await recalculateBudgetSpent(updatedTxs, data.category)
+      }
+      
+      showToast('Transaction added successfully')
       return
     }
     
     const result = await insertTransaction(user.id, {
-      date: new Date().toISOString().split('T')[0],
-      ...data,
+      date: data.date,
+      amount: data.amount,
+      type: data.type,
+      category: data.category,
+      note: data.note,
+      isRecurring: data.isRecurring,
     })
     
     if (result) {
-      setTransactions(prev => [result, ...prev])
+      const updatedTxs = [result, ...transactions]
+      setTransactions(updatedTxs)
+      
+      // Update budget if expense
+      if (data.type === 'expense') {
+        await recalculateBudgetSpent(updatedTxs, data.category)
+      }
+      
+      showToast('Transaction added successfully')
+    } else {
+      showToast('Failed to add transaction', 'error')
     }
   }
   
   // Handle delete transaction
   const handleDeleteTransaction = async (id: string) => {
+    // Find the transaction to get its category
+    const txToDelete = transactions.find(t => t.id === id)
+    
     if (!user) {
-      setTransactions(prev => prev.filter(t => t.id !== id))
+      const updatedTxs = transactions.filter(t => t.id !== id)
+      setTransactions(updatedTxs)
+      
+      // Update budget if it was an expense
+      if (txToDelete && txToDelete.type === 'expense') {
+        await recalculateBudgetSpent(updatedTxs, txToDelete.category)
+      }
+      
+      showToast('Transaction deleted')
       return
     }
     
     const success = await deleteTransaction(user.id, id)
     if (success) {
-      setTransactions(prev => prev.filter(t => t.id !== id))
+      const updatedTxs = transactions.filter(t => t.id !== id)
+      setTransactions(updatedTxs)
+      
+      // Update budget if it was an expense
+      if (txToDelete && txToDelete.type === 'expense') {
+        await recalculateBudgetSpent(updatedTxs, txToDelete.category)
+      }
+      
+      showToast('Transaction deleted')
+    } else {
+      showToast('Failed to delete transaction', 'error')
     }
   }
   
@@ -170,6 +280,8 @@ export default function FolioApp() {
           return [...prev, newBudget]
         }
       })
+      
+      showToast('Budget limit updated')
       return
     }
     
@@ -183,6 +295,104 @@ export default function FolioApp() {
         }
         return [...prev, result]
       })
+      
+      showToast('Budget limit updated')
+    } else {
+      showToast('Failed to update budget', 'error')
+    }
+  }
+  
+  // Handle create goal
+  const handleCreateGoal = async (data: { name: string; targetAmount: number; emoji: string }) => {
+    if (!user) {
+      // Local storage for demo users
+      const newGoal: Goal = {
+        id: Date.now().toString(),
+        userId: 'local',
+        name: data.name,
+        targetAmount: data.targetAmount,
+        currentAmount: 0,
+        emoji: data.emoji,
+        createdAt: new Date().toISOString(),
+      }
+      setGoals(prev => [newGoal, ...prev])
+      showToast('Goal created successfully')
+      return
+    }
+    
+    const result = await createGoal(user.id, data)
+    if (result) {
+      setGoals(prev => [result, ...prev])
+      showToast('Goal created successfully')
+    } else {
+      showToast('Failed to create goal', 'error')
+    }
+  }
+  
+  // Handle update goal
+  const handleUpdateGoal = async (goalId: string, data: { name: string; targetAmount: number; emoji: string }) => {
+    if (!user) {
+      // Local update for demo users
+      setGoals(prev => prev.map(g => 
+        g.id === goalId 
+          ? { ...g, name: data.name, targetAmount: data.targetAmount, emoji: data.emoji }
+          : g
+      ))
+      showToast('Goal updated successfully')
+      return
+    }
+    
+    const result = await updateGoal(user.id, goalId, data)
+    if (result) {
+      setGoals(prev => prev.map(g => g.id === goalId ? result : g))
+      showToast('Goal updated successfully')
+    } else {
+      showToast('Failed to update goal', 'error')
+    }
+  }
+  
+  // Handle contribute to goal
+  const handleContributeToGoal = async (goalId: string, amount: number) => {
+    const goal = goals.find(g => g.id === goalId)
+    if (!goal) return
+    
+    const newAmount = goal.currentAmount + amount
+    
+    if (!user) {
+      // Local update for demo users
+      setGoals(prev => prev.map(g => 
+        g.id === goalId 
+          ? { ...g, currentAmount: newAmount }
+          : g
+      ))
+      showToast(`$${amount} added to goal`)
+      return
+    }
+    
+    const result = await updateGoalProgress(user.id, goalId, newAmount)
+    if (result) {
+      setGoals(prev => prev.map(g => g.id === goalId ? result : g))
+      showToast(`$${amount} added to goal`)
+    } else {
+      showToast('Failed to update goal', 'error')
+    }
+  }
+  
+  // Handle delete goal
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!user) {
+      // Local delete for demo users
+      setGoals(prev => prev.filter(g => g.id !== goalId))
+      showToast('Goal deleted')
+      return
+    }
+    
+    const success = await deleteGoal(user.id, goalId)
+    if (success) {
+      setGoals(prev => prev.filter(g => g.id !== goalId))
+      showToast('Goal deleted')
+    } else {
+      showToast('Failed to delete goal', 'error')
     }
   }
   
@@ -208,13 +418,15 @@ export default function FolioApp() {
     }
   }
   
-  // Show loading state
   if (authLoading || hasOnboarded === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-folio-bg-light dark:bg-folio-bg-dark">
+      <div className="min-h-screen flex items-center justify-center bg-t-bg">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-sage border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-folio-text-secondary-light dark:text-folio-text-secondary-dark">Loading Folio...</p>
+          <div
+            className="w-8 h-8 mx-auto mb-4 border-t border-t-text animate-spin"
+            style={{ borderColor: 'transparent', borderTopColor: 'var(--muted)' }}
+          />
+          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase">folio</p>
         </div>
       </div>
     )
@@ -225,18 +437,21 @@ export default function FolioApp() {
     return <Onboarding onComplete={handleOnboardingComplete} />
   }
   
-  // Main app
   return (
-    <div className="min-h-screen bg-folio-bg-light dark:bg-folio-bg-dark">
+    <div className="min-h-screen bg-t-bg">
       {/* Main Content */}
       {activeTab === 'accounting' ? (
         <AccountingTab 
           transactions={transactions}
           budgets={budgets}
           goals={goals}
-          onAddTransaction={() => setShowTransactionSheet(true)}
+          onAddTransaction={handleOpenTransactionSheet}
           onUpdateBudget={handleUpdateBudget}
           onDeleteTransaction={handleDeleteTransaction}
+          onCreateGoal={handleCreateGoal}
+          onUpdateGoal={handleUpdateGoal}
+          onContributeToGoal={handleContributeToGoal}
+          onDeleteGoal={handleDeleteGoal}
         />
       ) : (
         <FinanceTab 
@@ -254,9 +469,17 @@ export default function FolioApp() {
       {/* Transaction Entry Sheet */}
       <TransactionSheet 
         isOpen={showTransactionSheet}
-        onClose={() => setShowTransactionSheet(false)}
+        onClose={() => {
+          setShowTransactionSheet(false)
+          setPrefilledCategory(undefined)
+        }}
         onSubmit={handleAddTransaction}
+        prefilledCategory={prefilledCategory}
+        recentTransactions={transactions}
       />
+      
+      {/* Toast Notifications */}
+      <Toast />
     </div>
   )
 }

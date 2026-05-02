@@ -2,77 +2,74 @@
 import { useEffect, useState } from 'react'
 
 interface ProgressRingProps {
-  progress: number // 0-100
+  progress: number
   size?: number
   strokeWidth?: number
-  color?: 'sage' | 'peach'
+  color?: 'green' | 'blue' | 'amber'
   showLabel?: boolean
 }
 
-export function ProgressRing({ 
-  progress, 
-  size = 80, 
-  strokeWidth = 8,
-  color = 'sage',
-  showLabel = true 
+export function ProgressRing({
+  progress,
+  size = 80,
+  strokeWidth = 4,
+  color = 'green',
+  showLabel = true,
 }: ProgressRingProps) {
-  const [animatedProgress, setAnimatedProgress] = useState(0)
-  
-  const radius = (size - strokeWidth) / 2
+  const [animated, setAnimated] = useState(0)
+
+  const radius      = (size - strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
-  const offset = circumference - (animatedProgress / 100) * circumference
-  
-  const colorClasses = {
-    sage: 'stroke-sage',
-    peach: 'stroke-peach',
-  }
-  
+  const offset      = circumference - (animated / 100) * circumference
+
+  const strokeColor = {
+    green: 'var(--green)',
+    blue:  'var(--blue)',
+    amber: 'var(--amber)',
+  }[color]
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimatedProgress(Math.min(progress, 100))
-    }, 100)
-    return () => clearTimeout(timer)
+    const t = setTimeout(() => setAnimated(Math.min(progress, 100)), 100)
+    return () => clearTimeout(t)
   }, [progress])
-  
+
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg 
-        className="progress-ring" 
-        width={size} 
+      <svg
+        style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
+        width={size}
         height={size}
       >
-        {/* Background circle */}
         <circle
-          className="stroke-gray-200 dark:stroke-gray-700"
           fill="transparent"
+          stroke="var(--line)"
           strokeWidth={strokeWidth}
           r={radius}
           cx={size / 2}
           cy={size / 2}
         />
-        {/* Progress circle */}
         <circle
-          className={`${colorClasses[color]} transition-all duration-1000 ease-out`}
           fill="transparent"
+          stroke={strokeColor}
           strokeWidth={strokeWidth}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           r={radius}
           cx={size / 2}
           cy={size / 2}
           style={{
             strokeDasharray: circumference,
             strokeDashoffset: offset,
+            transition: 'stroke-dashoffset 1s ease-out',
           }}
         />
       </svg>
       {showLabel && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm font-mono font-bold">
-            {Math.round(animatedProgress)}%
+          <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>
+            {Math.round(animated)}%
           </span>
         </div>
       )}
     </div>
   )
 }
-

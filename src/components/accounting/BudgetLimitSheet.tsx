@@ -11,140 +11,89 @@ interface BudgetLimitSheetProps {
   selectedCategory?: TransactionCategory
 }
 
-export function BudgetLimitSheet({ 
-  isOpen, 
-  onClose, 
-  budgets, 
-  onUpdateBudget,
-  selectedCategory 
-}: BudgetLimitSheetProps) {
+export function BudgetLimitSheet({ isOpen, onClose, budgets, onUpdateBudget, selectedCategory }: BudgetLimitSheetProps) {
   const [limits, setLimits] = useState<Record<TransactionCategory, number>>({} as Record<TransactionCategory, number>)
-  
+
   useEffect(() => {
     if (isOpen) {
-      // Initialize limits from current budgets
-      const initialLimits = {} as Record<TransactionCategory, number>
+      const init = {} as Record<TransactionCategory, number>
       BUDGET_CATEGORIES.forEach(cat => {
-        const budget = budgets.find(b => b.category === cat.category)
-        initialLimits[cat.category] = budget?.monthlyLimit ?? 0
+        init[cat.category] = budgets.find(b => b.category === cat.category)?.monthlyLimit ?? 0
       })
-      setLimits(initialLimits)
+      setLimits(init)
     }
   }, [isOpen, budgets])
-  
+
   const handleSave = () => {
-    // Save all limits
-    Object.entries(limits).forEach(([category, limit]) => {
-      onUpdateBudget(category as TransactionCategory, limit)
-    })
+    Object.entries(limits).forEach(([cat, limit]) => onUpdateBudget(cat as TransactionCategory, limit))
     onClose()
   }
-  
-  const updateLimit = (category: TransactionCategory, value: string) => {
-    const numValue = parseFloat(value) || 0
-    setLimits(prev => ({ ...prev, [category]: numValue }))
-  }
-  
+
   if (!isOpen) return null
-  
+
   return (
     <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
-        onClick={onClose}
-      />
-      
-      {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-800 rounded-t-3xl shadow-xl animate-slide-up max-h-[80vh] overflow-hidden flex flex-col">
+      <div className="fixed inset-0 bg-black/70 z-40 animate-fade-in" onClick={onClose} />
+
+      <div className="fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[88vh] animate-slide-up" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)' }}>
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-folio-text-primary-light dark:text-folio-text-primary-dark">
-              Set Budget Limits
-            </h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <p className="text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark mt-2">
-            Set monthly spending limits for each category
-          </p>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+          <span className="text-[10px] font-mono tracking-[0.2em] text-t-muted uppercase">Set Budget Limits</span>
+          <button onClick={onClose} className="text-t-muted hover:text-t-text transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto px-5">
           {BUDGET_CATEGORIES.map(cat => {
-            const budget = budgets.find(b => b.category === cat.category)
+            const spent = budgets.find(b => b.category === cat.category)?.spent ?? 0
             const isSelected = selectedCategory === cat.category
-            
             return (
-              <div 
+              <div
                 key={cat.category}
-                className={`glass-card-solid p-4 transition-all ${
-                  isSelected ? 'ring-2 ring-sage' : ''
-                }`}
+                className="py-4"
+                style={{
+                  borderBottom: '1px solid var(--border)',
+                  borderLeft: isSelected ? '2px solid var(--text)' : '2px solid transparent',
+                  paddingLeft: isSelected ? '12px' : '0',
+                }}
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-2xl">{cat.emoji}</span>
-                  <div className="flex-1">
-                    <p className="font-medium text-folio-text-primary-light dark:text-folio-text-primary-dark">
-                      {cat.label}
-                    </p>
-                    {budget && budget.spent > 0 && (
-                      <p className="text-xs text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
-                        ${budget.spent} spent this month
-                      </p>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-[11px] font-mono tracking-widest text-t-muted uppercase">{cat.label}</p>
+                    {spent > 0 && (
+                      <p className="text-[10px] font-mono text-t-muted mt-0.5">${spent} spent</p>
                     )}
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-mono text-folio-text-primary-light dark:text-folio-text-primary-dark">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    value={limits[cat.category] || ''}
-                    onChange={(e) => updateLimit(cat.category, e.target.value)}
-                    placeholder="0"
-                    className="flex-1 text-2xl font-mono bg-transparent border-b-2 border-gray-300 dark:border-gray-600 focus:border-sage focus:outline-none transition-colors px-2 py-1"
-                    min="0"
-                    step="10"
-                  />
-                  <span className="text-sm text-folio-text-secondary-light dark:text-folio-text-secondary-dark">
-                    / month
-                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-mono text-t-muted">$</span>
+                    <input
+                      type="number"
+                      value={limits[cat.category] || ''}
+                      onChange={e => setLimits(prev => ({ ...prev, [cat.category]: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0"
+                      className="bg-transparent text-xl font-mono text-t-text text-right w-24 outline-none border-b"
+                      style={{ borderColor: 'var(--line)' }}
+                      min="0"
+                      step="10"
+                    />
+                    <span className="text-[10px] font-mono text-t-muted">/mo</span>
+                  </div>
                 </div>
               </div>
             )
           })}
         </div>
-        
+
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-folio-bg-light dark:bg-folio-bg-dark">
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-600 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex-1 px-6 py-3 rounded-xl bg-sage text-black font-medium hover:bg-sage-dark transition-colors"
-            >
-              Save Limits
-            </button>
-          </div>
+        <div className="px-5 py-4 flex gap-3" style={{ borderTop: '1px solid var(--border)' }}>
+          <button onClick={onClose}   className="flex-1 btn-ghost">CANCEL</button>
+          <button onClick={handleSave} className="flex-1 btn-primary">SAVE</button>
         </div>
       </div>
     </>
   )
 }
-

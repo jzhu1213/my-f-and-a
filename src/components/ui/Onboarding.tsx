@@ -6,96 +6,76 @@ interface OnboardingProps {
   onComplete: (data: OnboardingData) => void
 }
 
-const USER_TYPES: { value: UserType; label: string; emoji: string }[] = [
-  { value: 'student', label: 'Student', emoji: '📚' },
-  { value: 'gig_worker', label: 'Gig Worker', emoji: '💼' },
-  { value: 'small_business', label: 'Small Business', emoji: '🏪' },
+const USER_TYPES: { value: UserType; label: string; sub: string }[] = [
+  { value: 'student',        label: 'Student',        sub: 'College / university' },
+  { value: 'gig_worker',     label: 'Gig Worker',     sub: 'Freelance / delivery / contract' },
+  { value: 'small_business', label: 'Small Business', sub: 'Self-employed / entrepreneur' },
 ]
 
-const PRIORITIES: { value: UserPriority; label: string; emoji: string }[] = [
-  { value: 'avoid_overdraft', label: 'Avoid overdraft', emoji: '🛡️' },
-  { value: 'pay_debt', label: 'Pay off debt', emoji: '💳' },
-  { value: 'save', label: 'Save money', emoji: '🐷' },
-  { value: 'learn_investing', label: 'Learn investing', emoji: '📈' },
+const PRIORITIES: { value: UserPriority; label: string; sub: string }[] = [
+  { value: 'avoid_overdraft',  label: 'Stay in the black',  sub: 'Avoid overdraft' },
+  { value: 'pay_debt',         label: 'Pay off debt',       sub: 'Credit cards / loans' },
+  { value: 'save',             label: 'Build savings',      sub: 'Emergency fund / goals' },
+  { value: 'learn_investing',  label: 'Learn investing',    sub: 'Stocks / index funds' },
 ]
 
 export function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(0)
-  const [data, setData] = useState<OnboardingData>({
-    userType: null,
-    priority: null,
-  })
+  const [data, setData] = useState<OnboardingData>({ userType: null, priority: null })
 
-  const handleUserType = (userType: UserType) => {
-    setData(prev => ({ ...prev, userType }))
-    setStep(2)
-  }
-
-  const handlePriority = (priority: UserPriority) => {
-    const finalData = { ...data, priority }
-    setData(finalData)
-    onComplete(finalData)
-  }
-
-  // Screen 1: Welcome
   if (step === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 hero-gradient">
-        <div className="text-center max-w-md stagger-1">
-          {/* Logo */}
-          <div className="mb-8 relative inline-block">
-            <div className="w-24 h-28 bg-white/90 rounded-lg shadow-xl relative transform rotate-3">
-              <div className="absolute top-0 right-0 w-8 h-8 bg-sage-dark rounded-bl-lg rounded-tr-lg" />
-              <div className="absolute bottom-4 left-4 right-4 h-1 bg-peach rounded-full" />
-            </div>
+      <div className="min-h-screen flex flex-col items-center justify-center px-8 bg-t-bg">
+        <div className="w-full max-w-sm animate-slide-up">
+          <div className="mb-12">
+            <h1 className="text-4xl font-mono text-t-text tracking-tighter mb-2">folio</h1>
+            <p className="text-xs font-mono tracking-widest text-t-muted uppercase">
+              personal finance tracker
+            </p>
           </div>
-          
-          <h1 className="text-4xl font-heading font-bold text-white mb-3">
-            Folio
-          </h1>
-          <p className="text-xl text-white/90 mb-2">
-            Your F&A Assistant
-          </p>
-          <p className="text-white/70 mb-12">
-            Simple budgeting + financial literacy for young adults
-          </p>
-          
+
+          <div className="mb-8" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '16px' }}>
+            <p className="text-sm text-t-text leading-relaxed">
+              Track spending. Set budgets.<br />
+              Reach your goals.
+            </p>
+          </div>
+
           <button
             onClick={() => setStep(1)}
-            className="btn-folio bg-white text-sage-dark hover:bg-white/90 text-lg px-10 py-4 shadow-xl"
+            className="w-full btn-primary"
           >
-            Get Started
+            GET STARTED
           </button>
         </div>
       </div>
     )
   }
 
-  // Screen 2: User Type
   if (step === 1) {
     return (
-      <div className="min-h-screen flex flex-col p-8 bg-folio-bg-light dark:bg-folio-bg-dark">
-        <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-          <div className="stagger-1">
-            <p className="text-sage-dark dark:text-sage text-sm font-medium mb-2">
-              Step 1 of 2
-            </p>
-            <h2 className="text-3xl font-heading font-bold mb-8">
-              What describes you best?
-            </h2>
+      <div className="min-h-screen flex flex-col justify-center px-8 bg-t-bg">
+        <div className="w-full max-w-sm mx-auto animate-slide-up">
+          <div className="mb-8">
+            <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-2">01 / 02</p>
+            <h2 className="text-2xl font-mono text-t-text">Who are you?</h2>
           </div>
-          
-          <div className="space-y-4">
-            {USER_TYPES.map((type, i) => (
+
+          <div style={{ borderTop: '1px solid var(--border)' }}>
+            {USER_TYPES.map(type => (
               <button
                 key={type.value}
-                onClick={() => handleUserType(type.value)}
-                className={`w-full glass-card-solid flex items-center gap-4 p-5 transition-all duration-200 active:scale-98 hover:border-sage stagger-${i + 2}`}
-                style={{ animationDelay: `${(i + 1) * 0.1}s` }}
+                onClick={() => { setData(d => ({ ...d, userType: type.value })); setStep(2) }}
+                className="w-full flex items-center justify-between py-5 transition-colors hover:bg-t-hover text-left"
+                style={{ borderBottom: '1px solid var(--border)' }}
               >
-                <span className="text-3xl">{type.emoji}</span>
-                <span className="text-lg font-medium">{type.label}</span>
-                <span className="ml-auto text-sage-dark">→</span>
+                <div>
+                  <p className="text-sm text-t-text">{type.label}</p>
+                  <p className="text-xs text-t-muted mt-0.5">{type.sub}</p>
+                </div>
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--muted)' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                </svg>
               </button>
             ))}
           </div>
@@ -104,42 +84,40 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     )
   }
 
-  // Screen 3: Priority
   return (
-    <div className="min-h-screen flex flex-col p-8 bg-folio-bg-light dark:bg-folio-bg-dark">
-      <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-        <div className="stagger-1">
-          <p className="text-sage-dark dark:text-sage text-sm font-medium mb-2">
-            Step 2 of 2
-          </p>
-          <h2 className="text-3xl font-heading font-bold mb-8">
-            Your top priority?
-          </h2>
+    <div className="min-h-screen flex flex-col justify-center px-8 bg-t-bg">
+      <div className="w-full max-w-sm mx-auto animate-slide-up">
+        <div className="mb-8">
+          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-2">02 / 02</p>
+          <h2 className="text-2xl font-mono text-t-text">Top priority?</h2>
         </div>
-        
-        <div className="space-y-4">
-          {PRIORITIES.map((priority, i) => (
+
+        <div style={{ borderTop: '1px solid var(--border)' }}>
+          {PRIORITIES.map(p => (
             <button
-              key={priority.value}
-              onClick={() => handlePriority(priority.value)}
-              className={`w-full glass-card-solid flex items-center gap-4 p-5 transition-all duration-200 active:scale-98 hover:border-sage stagger-${i + 2}`}
-              style={{ animationDelay: `${(i + 1) * 0.1}s` }}
+              key={p.value}
+              onClick={() => { const final = { ...data, priority: p.value }; setData(final); onComplete(final) }}
+              className="w-full flex items-center justify-between py-5 transition-colors hover:bg-t-hover text-left"
+              style={{ borderBottom: '1px solid var(--border)' }}
             >
-              <span className="text-3xl">{priority.emoji}</span>
-              <span className="text-lg font-medium">{priority.label}</span>
-              <span className="ml-auto text-sage-dark">→</span>
+              <div>
+                <p className="text-sm text-t-text">{p.label}</p>
+                <p className="text-xs text-t-muted mt-0.5">{p.sub}</p>
+              </div>
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--muted)' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           ))}
         </div>
-        
+
         <button
           onClick={() => setStep(1)}
-          className="mt-8 text-folio-text-secondary-light dark:text-folio-text-secondary-dark text-sm"
+          className="mt-6 text-[10px] font-mono tracking-widest text-t-muted uppercase hover:text-t-text transition-colors"
         >
-          ← Back
+          ← back
         </button>
       </div>
     </div>
   )
 }
-

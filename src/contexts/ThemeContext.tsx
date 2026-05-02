@@ -12,31 +12,21 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light')
+  const [theme, setThemeState] = useState<Theme>('dark')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    // Check localStorage first, then system preference
-    const stored = localStorage.getItem('folio-theme') as Theme | null
-    if (stored) {
-      setThemeState(stored)
-      document.documentElement.classList.toggle('dark', stored === 'dark')
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setThemeState('dark')
-      document.documentElement.classList.add('dark')
-    }
+    // Always dark
+    document.documentElement.classList.add('dark')
   }, [])
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme)
-    localStorage.setItem('folio-theme', newTheme)
-    document.documentElement.classList.toggle('dark', newTheme === 'dark')
+  const setTheme = (_newTheme: Theme) => {
+    setThemeState('dark')
+    document.documentElement.classList.add('dark')
   }
 
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
-  }
+  const toggleTheme = () => { /* always dark */ }
 
   // Prevent flash of wrong theme
   if (!mounted) {
