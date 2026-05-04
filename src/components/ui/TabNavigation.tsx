@@ -8,63 +8,78 @@ interface TabNavigationProps {
   onTabChange: (tab: Tab) => void
 }
 
-export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
-  const inactive = { color: 'var(--muted)' }
-  const active   = { color: 'var(--text)' }
+function BudgetIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={active ? 1.75 : 1.5} strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: active ? 'var(--text)' : 'var(--muted)', transition: 'color 0.15s' }}
+    >
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+      <path d="M6 15h2M10 15h4" />
+    </svg>
+  )
+}
 
+function LearnIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={active ? 1.75 : 1.5} strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: active ? 'var(--text)' : 'var(--muted)', transition: 'color 0.15s' }}
+    >
+      <path d="M12 20V10" />
+      <path d="M18 20V4" />
+      <path d="M6 20v-4" />
+    </svg>
+  )
+}
+
+function AccountIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: 'var(--muted)', transition: 'color 0.15s' }}
+    >
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20c0-3.314 3.134-6 7-6s7 2.686 7 6" />
+    </svg>
+  )
+}
+
+export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
   return (
     <nav className="t-tab-nav">
-      {/* Accounting */}
       <button
         onClick={() => onTabChange('accounting')}
-        className="t-tab-item"
-        style={activeTab === 'accounting' ? {} : {}}
+        className={`t-tab-item ${activeTab === 'accounting' ? 'active' : ''}`}
       >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          style={activeTab === 'accounting' ? active : inactive}
+        <BudgetIcon active={activeTab === 'accounting'} />
+        <span
+          className="tab-label"
+          style={{ color: activeTab === 'accounting' ? 'var(--text)' : 'var(--muted)' }}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18M7 6h.01M12 6h.01M17 6h.01M7 18h.01M12 18h.01M17 18h.01" />
-        </svg>
-        <span style={activeTab === 'accounting' ? active : inactive}>
           budget
         </span>
       </button>
 
-      {/* Finance */}
       <button
         onClick={() => onTabChange('finance')}
-        className="t-tab-item"
+        className={`t-tab-item ${activeTab === 'finance' ? 'active' : ''}`}
       >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          style={activeTab === 'finance' ? active : inactive}
+        <LearnIcon active={activeTab === 'finance'} />
+        <span
+          className="tab-label"
+          style={{ color: activeTab === 'finance' ? 'var(--text)' : 'var(--muted)' }}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-        <span style={activeTab === 'finance' ? active : inactive}>
           learn
         </span>
       </button>
 
-      {/* Profile */}
       <Link href="/profile" className="t-tab-item">
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          style={inactive}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-        <span style={inactive}>account</span>
+        <AccountIcon />
+        <span className="tab-label" style={{ color: 'var(--muted)' }}>
+          account
+        </span>
       </Link>
     </nav>
   )

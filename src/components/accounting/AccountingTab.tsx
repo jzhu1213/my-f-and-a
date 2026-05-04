@@ -19,28 +19,20 @@ interface AccountingTabProps {
 }
 
 type SubTab = 'budgets' | 'goals' | 'transactions'
-
 const SUBTABS: SubTab[] = ['budgets', 'goals', 'transactions']
 
 export function AccountingTab({
-  transactions,
-  budgets,
-  goals,
-  onAddTransaction,
-  onUpdateBudget,
-  onDeleteTransaction,
-  onCreateGoal,
-  onUpdateGoal,
-  onContributeToGoal,
-  onDeleteGoal,
+  transactions, budgets, goals,
+  onAddTransaction, onUpdateBudget, onDeleteTransaction,
+  onCreateGoal, onUpdateGoal, onContributeToGoal, onDeleteGoal,
 }: AccountingTabProps) {
   const [subTab, setSubTab] = useState<SubTab>('budgets')
   const [animatedBalance, setAnimatedBalance] = useState(0)
 
   const currentMonth = new Date().toISOString().slice(0, 7)
   const monthTxs = transactions.filter(t => t.date.startsWith(currentMonth))
-  const income   = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const expenses = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const income    = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const expenses  = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const available = income - expenses
 
   const daysLeft = new Date(
@@ -51,103 +43,90 @@ export function AccountingTab({
   const monthLabel = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()
 
   useEffect(() => {
-    const steps = 40
+    const steps = 50
     const increment = available / steps
     let current = 0
     const timer = setInterval(() => {
       current += increment
-      if (current >= available) {
-        setAnimatedBalance(available)
-        clearInterval(timer)
-      } else {
-        setAnimatedBalance(Math.round(current))
-      }
-    }, 800 / steps)
+      if (current >= available) { setAnimatedBalance(available); clearInterval(timer) }
+      else setAnimatedBalance(Math.round(current))
+    }, 900 / steps)
     return () => clearInterval(timer)
   }, [available])
 
+  const balanceColor = available < 0 ? 'var(--red)' : 'var(--text)'
+
   return (
     <div className="pb-20">
-      {/* ── Header ──────────────────────────────────────────── */}
+      {/* ── Header ──────────────────────────────────────────────── */}
       <div className="px-5 pt-10 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="flex items-center justify-between mb-8">
-          <span className="text-[10px] font-mono tracking-[0.2em] text-t-muted">FOLIO</span>
-          <span className="text-[10px] font-mono tracking-widest text-t-muted">{monthLabel}</span>
+        {/* Top row */}
+        <div className="flex items-center justify-between mb-7">
+          <span className="label">folio</span>
+          <span className="label">{monthLabel}</span>
         </div>
 
-        <div className="mb-1">
-          <span className="text-[10px] font-mono tracking-[0.15em] text-t-muted">AVAILABLE</span>
-        </div>
-        <div className="text-5xl font-mono text-t-text font-normal mb-5 tracking-tight animate-slide-up">
-          ${animatedBalance < 0 ? '-' : ''}{Math.abs(animatedBalance).toLocaleString()}
+        {/* Balance */}
+        <div className="mb-6">
+          <span className="label mb-2 block">available</span>
+          <div
+            className="text-[52px] leading-none font-mono tracking-tighter animate-slide-up"
+            style={{ color: balanceColor, fontWeight: 300 }}
+          >
+            {available < 0 ? '−' : ''}${Math.abs(animatedBalance).toLocaleString()}
+          </div>
         </div>
 
-        <div className="flex items-center gap-5">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-sm font-mono text-t-green">+{income.toLocaleString()}</span>
-            <span className="text-[10px] font-mono text-t-muted tracking-widest">IN</span>
+        {/* Stats row */}
+        <div className="flex items-center gap-0 divide-x" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
+          <div className="flex items-baseline gap-1.5 pr-4">
+            <span className="text-sm font-mono" style={{ color: 'var(--green)' }}>+${income.toLocaleString()}</span>
+            <span className="label">in</span>
           </div>
-          <div className="w-px h-3" style={{ background: 'var(--line)' }} />
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-sm font-mono text-t-red">{expenses.toLocaleString()}</span>
-            <span className="text-[10px] font-mono text-t-muted tracking-widest">OUT</span>
+          <div className="flex items-baseline gap-1.5 px-4">
+            <span className="text-sm font-mono" style={{ color: 'var(--red)' }}>${expenses.toLocaleString()}</span>
+            <span className="label">out</span>
           </div>
-          <div className="w-px h-3" style={{ background: 'var(--line)' }} />
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-sm font-mono text-t-text">${safeToSpend}</span>
-            <span className="text-[10px] font-mono text-t-muted tracking-widest">/DAY</span>
+          <div className="flex items-baseline gap-1.5 pl-4">
+            <span className="text-sm font-mono" style={{ color: 'var(--text)' }}>${safeToSpend}</span>
+            <span className="label">/day</span>
           </div>
         </div>
       </div>
 
-      {/* ── Sub-tabs ─────────────────────────────────────────── */}
+      {/* ── Sub-tabs ─────────────────────────────────────────────── */}
       <div className="flex" style={{ borderBottom: '1px solid var(--border)' }}>
         {SUBTABS.map(tab => (
           <button
             key={tab}
             onClick={() => setSubTab(tab)}
-            className={`flex-1 py-3 text-[10px] font-mono tracking-[0.18em] uppercase transition-colors ${
-              subTab === tab
-                ? 'text-t-text border-b-2 border-t-text -mb-px'
-                : 'text-t-muted hover:text-t-text'
-            }`}
+            className="flex-1 py-3.5 transition-colors duration-150 relative"
+            style={{
+              fontFamily: 'Space Mono, monospace',
+              fontSize: '10px',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: subTab === tab ? 'var(--text)' : 'var(--muted)',
+              borderBottom: subTab === tab ? '1px solid var(--text)' : '1px solid transparent',
+              marginBottom: '-1px',
+            }}
           >
             {tab}
           </button>
         ))}
       </div>
 
-      {/* ── Content ──────────────────────────────────────────── */}
-      <div className="px-5 pt-4">
-        {subTab === 'budgets' && (
-          <BudgetList
-            budgets={budgets}
-            onUpdateBudget={onUpdateBudget}
-            onAddTransaction={onAddTransaction}
-          />
-        )}
-        {subTab === 'goals' && (
-          <GoalList
-            goals={goals}
-            onCreateGoal={onCreateGoal}
-            onUpdateGoal={onUpdateGoal}
-            onContributeToGoal={onContributeToGoal}
-            onDeleteGoal={onDeleteGoal}
-          />
-        )}
-        {subTab === 'transactions' && (
-          <TransactionList transactions={transactions} onDelete={onDeleteTransaction} />
-        )}
+      {/* ── Content ───────────────────────────────────────────────── */}
+      <div className="px-5 pt-5">
+        {subTab === 'budgets'      && <BudgetList budgets={budgets} onUpdateBudget={onUpdateBudget} onAddTransaction={onAddTransaction} />}
+        {subTab === 'goals'        && <GoalList goals={goals} onCreateGoal={onCreateGoal} onUpdateGoal={onUpdateGoal} onContributeToGoal={onContributeToGoal} onDeleteGoal={onDeleteGoal} />}
+        {subTab === 'transactions' && <TransactionList transactions={transactions} onDelete={onDeleteTransaction} />}
       </div>
 
-      {/* ── Add button ───────────────────────────────────────── */}
-      <button
-        onClick={() => onAddTransaction()}
-        className="t-fab"
-        aria-label="Add transaction"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      {/* ── FAB ───────────────────────────────────────────────────── */}
+      <button onClick={() => onAddTransaction()} className="t-fab" aria-label="Add transaction">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
         </svg>
       </button>
     </div>

@@ -95,31 +95,33 @@ export function FinanceTab({ lessonProgress, onCompleteLesson }: FinanceTabProps
     <div className="pb-20 px-5">
       {/* Header */}
       <div className="pt-10 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="flex items-center justify-between mb-6">
-          <span className="text-[10px] font-mono tracking-[0.2em] text-t-muted">FOLIO</span>
-          <div className="flex items-center gap-3">
-            <ProgressRing progress={progressPercent} size={28} strokeWidth={3} color="green" showLabel={false} />
-            <span className="text-[10px] font-mono text-t-muted">{completedCount}/{totalLessons}</span>
+        <div className="flex items-center justify-between mb-7">
+          <span className="label">folio</span>
+          <div className="flex items-center gap-2.5">
+            <ProgressRing progress={progressPercent} size={26} strokeWidth={3} color="green" showLabel={false} />
+            <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>
+              {completedCount}<span style={{ color: 'var(--dim)' }}>/{totalLessons}</span>
+            </span>
           </div>
         </div>
-        <h1 className="text-2xl font-mono text-t-text tracking-tight">Learn</h1>
-        <p className="text-xs text-t-muted mt-1">financial literacy · bite-sized</p>
+        <h1 className="text-2xl font-mono" style={{ color: 'var(--text)', fontWeight: 300 }}>Learn</h1>
+        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>financial literacy · bite-sized</p>
       </div>
 
       {/* Up next */}
       {nextLesson && (
         <div className="py-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-3">Up Next</p>
+          <p className="label mb-3">Up Next</p>
           <button
             onClick={() => setActiveLesson(nextLesson)}
-            className="w-full flex items-center justify-between text-left py-3 hover:bg-t-hover transition-colors"
+            className="t-row w-full text-left py-3.5 gap-3"
           >
-            <div>
-              <p className="text-sm text-t-text">{nextLesson.title}</p>
-              <p className="text-xs text-t-muted mt-0.5">{nextLesson.description}</p>
+            <div className="flex-1">
+              <p className="text-sm" style={{ color: 'var(--text)' }}>{nextLesson.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{nextLesson.description}</p>
             </div>
-            <svg className="w-4 h-4 ml-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--muted)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} style={{ color: 'var(--muted)' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
@@ -127,7 +129,7 @@ export function FinanceTab({ lessonProgress, onCompleteLesson }: FinanceTabProps
 
       {/* All lessons */}
       <div className="py-5" style={{ borderBottom: '1px solid var(--border)' }}>
-        <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-3">All Lessons</p>
+        <p className="label mb-3">All Lessons</p>
         <div style={{ borderTop: '1px solid var(--border)' }}>
           {SAMPLE_LESSONS.map(lesson => {
             const done = isCompleted(lesson.id)
@@ -135,23 +137,29 @@ export function FinanceTab({ lessonProgress, onCompleteLesson }: FinanceTabProps
               <button
                 key={lesson.id}
                 onClick={() => setActiveLesson(lesson)}
-                className="w-full flex items-center justify-between py-4 text-left transition-colors hover:bg-t-hover"
-                style={{ borderBottom: '1px solid var(--border)' }}
+                className="t-row w-full text-left py-4 gap-4"
               >
-                <div className="flex items-center gap-4">
+                <div
+                  className="w-7 h-7 flex items-center justify-center flex-shrink-0"
+                  style={{
+                    border: '1px solid',
+                    borderColor: done ? 'var(--green)' : 'var(--border)',
+                    borderRadius: '3px',
+                  }}
+                >
                   <span
-                    className="text-[10px] font-mono w-5 text-center"
+                    className="text-xs font-mono"
                     style={{ color: done ? 'var(--green)' : 'var(--muted)' }}
                   >
                     {done ? '✓' : lesson.order}
                   </span>
-                  <div>
-                    <p className="text-sm" style={{ color: done ? 'var(--muted)' : 'var(--text)' }}>{lesson.title}</p>
-                    <p className="text-xs text-t-muted mt-0.5">{lesson.description}</p>
-                  </div>
                 </div>
-                <svg className="w-4 h-4 ml-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--muted)' }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm truncate" style={{ color: done ? 'var(--sub)' : 'var(--text)' }}>{lesson.title}</p>
+                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--muted)' }}>{lesson.description}</p>
+                </div>
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} style={{ color: 'var(--muted)' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             )
@@ -161,34 +169,26 @@ export function FinanceTab({ lessonProgress, onCompleteLesson }: FinanceTabProps
 
       {/* Tools */}
       <div className="py-5">
-        <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-3">Calculators</p>
+        <p className="label mb-3">Calculators</p>
         <div style={{ borderTop: '1px solid var(--border)' }}>
-          <button
-            onClick={() => setShowCalculator('credit')}
-            className="w-full flex items-center justify-between py-4 text-left transition-colors hover:bg-t-hover"
-            style={{ borderBottom: '1px solid var(--border)' }}
-          >
-            <div>
-              <p className="text-sm text-t-text">Credit Payoff</p>
-              <p className="text-xs text-t-muted mt-0.5">See how fast you can clear debt</p>
-            </div>
-            <svg className="w-4 h-4 ml-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--muted)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setShowCalculator('compound')}
-            className="w-full flex items-center justify-between py-4 text-left transition-colors hover:bg-t-hover"
-            style={{ borderBottom: '1px solid var(--border)' }}
-          >
-            <div>
-              <p className="text-sm text-t-text">Compound Growth</p>
-              <p className="text-xs text-t-muted mt-0.5">Visualize your money growing</p>
-            </div>
-            <svg className="w-4 h-4 ml-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--muted)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+          {[
+            { key: 'credit' as const,   label: 'Credit Payoff',    sub: 'How fast can you clear debt?' },
+            { key: 'compound' as const, label: 'Compound Growth',  sub: 'Visualize your money growing' },
+          ].map(tool => (
+            <button
+              key={tool.key}
+              onClick={() => setShowCalculator(tool.key)}
+              className="t-row w-full text-left py-4 gap-3"
+            >
+              <div className="flex-1">
+                <p className="text-sm" style={{ color: 'var(--text)' }}>{tool.label}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{tool.sub}</p>
+              </div>
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} style={{ color: 'var(--muted)' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          ))}
         </div>
       </div>
     </div>

@@ -420,13 +420,17 @@ export default function FolioApp() {
   
   if (authLoading || hasOnboarded === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-t-bg">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="text-center">
           <div
-            className="w-8 h-8 mx-auto mb-4 border-t border-t-text animate-spin"
-            style={{ borderColor: 'transparent', borderTopColor: 'var(--muted)' }}
+            className="w-6 h-6 mx-auto mb-5 animate-spin"
+            style={{
+              border: '1px solid var(--line)',
+              borderTopColor: 'var(--sub)',
+              borderRadius: '50%',
+            }}
           />
-          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase">folio</p>
+          <p className="label">folio</p>
         </div>
       </div>
     )

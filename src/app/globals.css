@@ -5,17 +5,22 @@
 /* ── Terminal Design System ─────────────────────────────────────── */
 :root {
   --bg:           #000000;
-  --surface:      #0a0a0a;
-  --raised:       #111111;
-  --border:       #1e1e1e;
-  --line:         #2a2a2a;
-  --text:         #e2e2e2;
-  --muted:        #525252;
-  --dim:          #333333;
+  --surface:      #0c0c0c;
+  --raised:       #141414;
+  --border:       #252525;
+  --line:         #313131;
+  --text:         #e8e8e8;
+  --sub:          #a0a0a0;   /* secondary text — readable but clearly secondary */
+  --muted:        #606060;   /* tertiary text / labels */
+  --dim:          #3a3a3a;   /* disabled / very dim */
   --green:        #4ade80;
+  --green-glow:   rgba(74, 222, 128, 0.12);
   --red:          #f87171;
+  --red-glow:     rgba(248, 113, 113, 0.12);
   --amber:        #fbbf24;
   --blue:         #60a5fa;
+  --blue-glow:    rgba(96, 165, 250, 0.12);
+  --radius:       3px;
 }
 
 html, body, #__next {
@@ -27,33 +32,52 @@ body {
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Typography ─────────────────────────────────────────────────── */
-.mono { font-family: 'Space Mono', monospace; }
+/* ── Typography helpers ─────────────────────────────────────────── */
+.label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.label-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sub);
+}
 
 /* ── Cards / Surfaces ───────────────────────────────────────────── */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .card-raised {
   background: var(--raised);
   border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 /* ── Progress Track ─────────────────────────────────────────────── */
 .progress-track {
   width: 100%;
-  height: 2px;
+  height: 3px;
   background: var(--line);
   overflow: hidden;
+  border-radius: 2px;
 }
 
 .progress-fill {
   height: 100%;
-  transition: width 1s ease-out;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 2px;
 }
 
 /* ── Bottom Sheet ───────────────────────────────────────────────── */
@@ -61,9 +85,10 @@ body {
   @apply fixed inset-x-0 bottom-0 z-50 flex flex-col;
   background: var(--surface);
   border-top: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
   transform: translateY(100%);
   transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
-  max-height: 92vh;
+  max-height: 93vh;
 }
 
 .sheet.open {
@@ -71,24 +96,28 @@ body {
 }
 
 .sheet-handle {
-  @apply w-8 h-[2px] mx-auto mt-3 mb-4;
+  width: 36px;
+  height: 3px;
+  margin: 12px auto 16px;
   background: var(--line);
+  border-radius: 2px;
 }
 
 /* ── Inputs ─────────────────────────────────────────────────────── */
 .t-input {
-  @apply w-full bg-transparent text-sm;
+  @apply w-full bg-transparent;
   font-family: 'Inter', sans-serif;
+  font-size: 14px;
   color: var(--text);
   border: none;
   border-bottom: 1px solid var(--line);
-  padding: 8px 0;
+  padding: 10px 0;
   outline: none;
   transition: border-color 0.15s;
 }
 
 .t-input:focus {
-  border-bottom-color: var(--muted);
+  border-bottom-color: var(--sub);
 }
 
 .t-input::placeholder {
@@ -101,30 +130,34 @@ input[type="date"] {
 
 /* ── Buttons ─────────────────────────────────────────────────────── */
 .btn-primary {
-  @apply flex items-center justify-center px-6 py-3 text-sm font-medium transition-all;
+  @apply flex items-center justify-center gap-2 px-6 py-3.5 text-xs font-medium transition-all;
   background: var(--text);
-  color: var(--bg);
+  color: #000;
   font-family: 'Space Mono', monospace;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
+  border-radius: var(--radius);
 }
 
-.btn-primary:hover  { background: #ffffff; }
-.btn-primary:active { transform: scale(0.98); }
+.btn-primary:hover   { background: #ffffff; }
+.btn-primary:active  { transform: scale(0.97); opacity: 0.9; }
 
 .btn-primary:disabled {
-  opacity: 0.25;
+  opacity: 0.2;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .btn-ghost {
-  @apply flex items-center justify-center px-6 py-3 text-sm transition-all;
-  color: var(--muted);
-  border: 1px solid var(--line);
+  @apply flex items-center justify-center gap-2 px-6 py-3.5 text-xs transition-all;
+  color: var(--sub);
+  border: 1px solid var(--border);
   font-family: 'Space Mono', monospace;
+  letter-spacing: 0.08em;
+  border-radius: var(--radius);
 }
 
 .btn-ghost:hover  { color: var(--text); border-color: var(--muted); }
-.btn-ghost:active { transform: scale(0.98); }
+.btn-ghost:active { transform: scale(0.97); }
 
 /* ── Tab Navigation ─────────────────────────────────────────────── */
 .t-tab-nav {
@@ -134,67 +167,141 @@ input[type="date"] {
 }
 
 .t-tab-item {
-  @apply flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-colors;
-  min-height: 56px;
+  @apply flex-1 flex flex-col items-center justify-center gap-1.5 py-3 transition-all duration-150;
+  min-height: 58px;
+  position: relative;
 }
 
-.t-tab-item span {
-  @apply text-[10px] tracking-widest uppercase;
+.t-tab-item .tab-label {
   font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: color 0.15s;
+}
+
+/* Active tab indicator — thin top line */
+.t-tab-item.active::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background: var(--text);
 }
 
 /* ── FAB ─────────────────────────────────────────────────────────── */
 .t-fab {
-  @apply fixed right-4 z-50 w-11 h-11 flex items-center justify-center transition-all;
-  bottom: calc(64px + 1rem);
+  @apply fixed right-5 z-50 w-12 h-12 flex items-center justify-center transition-all duration-150;
+  bottom: calc(66px + 1rem);
   background: var(--text);
-  color: var(--bg);
+  color: #000;
+  border-radius: 6px;
+  box-shadow: 0 4px 24px rgba(232, 232, 232, 0.08);
 }
 
-.t-fab:hover  { background: #ffffff; }
-.t-fab:active { transform: scale(0.94); }
+.t-fab:hover  { background: #ffffff; box-shadow: 0 4px 32px rgba(255,255,255,0.14); }
+.t-fab:active { transform: scale(0.92); }
 
 /* ── Category pill ───────────────────────────────────────────────── */
 .cat-pill {
-  @apply flex flex-col items-center justify-center gap-1 py-3 px-2 text-center transition-all;
+  @apply flex flex-col items-center justify-center gap-1.5 py-3 px-1 text-center transition-all duration-150;
   border: 1px solid var(--border);
   background: var(--surface);
-  min-height: 64px;
+  border-radius: var(--radius);
+  min-height: 68px;
+}
+
+.cat-pill:active {
+  transform: scale(0.96);
 }
 
 .cat-pill.selected {
-  border-color: var(--muted);
   background: var(--raised);
 }
 
-.cat-pill:hover {
+.cat-pill:not(.selected):hover {
   border-color: var(--dim);
   background: var(--raised);
+}
+
+/* ── Quick amount chip ───────────────────────────────────────────── */
+.amount-chip {
+  @apply flex-shrink-0 px-3 py-1.5 text-xs font-mono transition-all duration-150;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: var(--radius);
+}
+
+.amount-chip.active {
+  border-color: var(--text);
+  color: var(--text);
+  background: var(--raised);
+}
+
+.amount-chip:not(.active):hover {
+  border-color: var(--dim);
+  color: var(--sub);
+}
+
+/* ── Divider ─────────────────────────────────────────────────────── */
+.t-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Row interactive ─────────────────────────────────────────────── */
+.t-row {
+  @apply flex items-center transition-colors duration-100;
+  border-bottom: 1px solid var(--border);
+}
+
+.t-row:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+/* ── Toggle ──────────────────────────────────────────────────────── */
+.t-toggle {
+  @apply relative flex-shrink-0 transition-colors duration-200;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+}
+
+.t-toggle-knob {
+  @apply absolute top-[3px] transition-transform duration-200;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #000;
+  left: 3px;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────── */
 ::-webkit-scrollbar        { width: 2px; height: 2px; }
 ::-webkit-scrollbar-track  { background: transparent; }
-::-webkit-scrollbar-thumb  { background: var(--dim); }
+::-webkit-scrollbar-thumb  { background: var(--dim); border-radius: 2px; }
 
 /* ── Animations ──────────────────────────────────────────────────── */
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(60px); }
+  from { opacity: 0; transform: translateX(40px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-.animate-slide-in-right { animation: slideInRight 0.2s ease-out forwards; }
+.animate-slide-in-right { animation: slideInRight 0.18s ease-out forwards; }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-slide-up { animation: slideUp 0.25s ease-out forwards; }
+.animate-slide-up { animation: slideUp 0.22s ease-out forwards; }
 
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-.animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+.animate-fade-in { animation: fadeIn 0.18s ease-out forwards; }
 
 /* ── Safe area (mobile) ──────────────────────────────────────────── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
@@ -202,6 +309,6 @@ input[type="date"] {
     padding-bottom: env(safe-area-inset-bottom);
   }
   .t-fab {
-    bottom: calc(64px + env(safe-area-inset-bottom) + 1rem);
+    bottom: calc(66px + env(safe-area-inset-bottom) + 1rem);
   }
 }
