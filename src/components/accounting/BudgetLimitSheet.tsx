@@ -46,9 +46,9 @@ export function BudgetLimitSheet({ isOpen, onClose, budgets, onUpdateBudget, sel
         <div className="sheet-handle" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <span className="label">Set Budget Limits</span>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center" style={{ color: 'var(--muted)', borderRadius: '3px' }}>
+        <div className="flex items-center justify-between px-6 pb-5" style={{ borderBottom: '1px solid var(--border)' }}>
+          <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sub)' }}>Set Budget Limits</span>
+          <button onClick={onClose} style={{ color: 'var(--muted)', padding: '4px' }}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -56,53 +56,49 @@ export function BudgetLimitSheet({ isOpen, onClose, budgets, onUpdateBudget, sel
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto px-5">
+        <div className="flex-1 overflow-y-auto px-6">
           {BUDGET_CATEGORIES.map(cat => {
-            const spent      = budgets.find(b => b.category === cat.category)?.spent ?? 0
-            const isSelected = selectedCategory === cat.category
+            const spent = budgets.find(b => b.category === cat.category)?.spent ?? 0
             return (
               <div
                 key={cat.category}
-                className="py-4"
-                style={{
-                  borderBottom: '1px solid var(--border)',
-                  borderLeft: isSelected ? '2px solid var(--sub)' : '2px solid transparent',
-                  paddingLeft: isSelected ? '12px' : '0',
-                }}
+                className="py-5 flex items-center justify-between"
+                style={{ borderBottom: '1px solid var(--border)' }}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="label">{cat.label}</p>
-                    {spent > 0 && (
-                      <p className="text-xs font-mono mt-1" style={{ color: 'var(--muted)' }}>${spent} spent this month</p>
-                    )}
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-mono" style={{ color: 'var(--muted)' }}>$</span>
-                    <input
-                      type="number"
-                      value={limits[cat.category] || ''}
-                      onChange={e => setLimits(prev => ({ ...prev, [cat.category]: parseFloat(e.target.value) || 0 }))}
-                      placeholder="0"
-                      className="bg-transparent text-xl font-mono text-right outline-none w-24"
-                      style={{
-                        color: 'var(--text)',
-                        borderBottom: '1px solid var(--line)',
-                        paddingBottom: '4px',
-                        caretColor: 'var(--text)',
-                      }}
-                      min="0"
-                      step="10"
-                    />
-                    <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>/mo</span>
-                  </div>
+                <div>
+                  <p style={{ fontSize: '15px', color: 'var(--text)' }}>{cat.label}</p>
+                  {spent > 0 && (
+                    <p className="label mt-1">${spent} spent this month</p>
+                  )}
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '18px', color: 'var(--muted)' }}>$</span>
+                  <input
+                    type="number"
+                    value={limits[cat.category] || ''}
+                    onChange={e => setLimits(prev => ({ ...prev, [cat.category]: parseFloat(e.target.value) || 0 }))}
+                    placeholder="0"
+                    className="bg-transparent text-right outline-none"
+                    style={{
+                      fontFamily: 'Space Mono, monospace',
+                      fontSize: '22px',
+                      width: '96px',
+                      color: 'var(--text)',
+                      borderBottom: '1px solid var(--line)',
+                      paddingBottom: '4px',
+                      caretColor: 'var(--text)',
+                    }}
+                    min="0"
+                    step="10"
+                  />
+                  <span className="label">/mo</span>
                 </div>
               </div>
             )
           })}
         </div>
 
-        <div className="px-5 py-4 flex gap-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="px-6 py-4 flex gap-3" style={{ borderTop: '1px solid var(--border)' }}>
           <button onClick={onClose}    className="flex-1 btn-ghost">Cancel</button>
           <button onClick={handleSave} className="flex-1 btn-primary">Save</button>
         </div>

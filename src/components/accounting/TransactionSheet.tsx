@@ -18,7 +18,7 @@ interface TransactionSheetProps {
   recentTransactions?: Transaction[]
 }
 
-const QUICK_AMOUNTS = [5, 10, 20, 50, 100]
+const QUICK_AMOUNTS = [10, 20, 50, 100, 200]
 
 export function TransactionSheet({
   isOpen, onClose, onSubmit, prefilledCategory, recentTransactions = [],
@@ -29,23 +29,16 @@ export function TransactionSheet({
   const [note,        setNote]        = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
 
+  const today     = new Date().toISOString().split('T')[0]
   const yesterday = (() => {
     const d = new Date(); d.setDate(d.getDate() - 1)
     return d.toISOString().split('T')[0]
   })()
 
-  const uniqueRecent = (() => {
-    const seen = new Set<string>(); const out: Transaction[] = []
-    for (const tx of recentTransactions) {
-      const key = `${tx.category}-${tx.amount}-${tx.note || ''}`
-      if (!seen.has(key) && out.length < 4) { seen.add(key); out.push(tx) }
-    }
-    return out
-  })()
-
   useEffect(() => {
     if (isOpen && prefilledCategory) setCategory(prefilledCategory)
-  }, [isOpen, prefilledCategory])
+    if (!isOpen) { setAmount(''); setCategory(null); setNote(''); setIsRecurring(false); setDate(today) }
+  }, [isOpen, prefilledCategory, today])
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value.replace(/[^0-9.]/g, '')
@@ -58,20 +51,19 @@ export function TransactionSheet({
     if (!amount || !category || !date) return
     const selCat = TRANSACTION_CATEGORIES.find(c => c.category === category)
     onSubmit({ amount: parseFloat(amount), category, type: selCat?.type || 'expense', date, note: note || undefined, isRecurring })
-    setAmount(''); setCategory(null); setNote(''); setIsRecurring(false)
-    setDate(new Date().toISOString().split('T')[0])
     onClose()
   }
 
-  const canSubmit = !!amount && !!category && !!date
+  const canSubmit      = !!amount && !!category && !!date
   const selectedCatInfo = category ? TRANSACTION_CATEGORIES.find(c => c.category === category) : null
+  const isIncomeCat    = selectedCatInfo?.type === 'income'
 
   return (
     <>
       {/* Backdrop */}
       <div
         className={`fixed inset-0 z-40 transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(2px)' }}
+        style={{ background: 'rgba(0,0,0,0.80)' }}
         onClick={onClose}
       />
 
@@ -80,70 +72,27 @@ export function TransactionSheet({
         <div className="sheet-handle" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <span className="label">Add Transaction</span>
+        <div className="flex items-center justify-between px-6 pb-5" style={{ borderBottom: '1px solid var(--border)' }}>
+          <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sub)' }}>
+            Add Transaction
+          </span>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center transition-colors"
-            style={{ color: 'var(--muted)', borderRadius: '3px' }}
+            style={{ color: 'var(--muted)', padding: '4px' }}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="px-5 py-5 space-y-7">
-          {/* Recent templates */}
-          {uniqueRecent.length > 0 && (
-            <div>
-              <p className="label mb-3">Recent</p>
-              <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
-                {uniqueRecent.map(tx => {
-                  const cat = TRANSACTION_CATEGORIES.find(c => c.category === tx.category)
-                  return (
-                    <button
-                      key={tx.id}
-                      onClick={() => { setAmount(tx.amount.toString()); setCategory(tx.category); setNote(tx.note || '') }}
-                      className="flex-shrink-0 flex items-center gap-2 px-3 py-2 text-xs font-mono transition-all"
-                      style={{
-                        border: '1px solid var(--border)',
-                        color: 'var(--sub)',
-                        borderRadius: '3px',
-                      }}
-                    >
-                      <span className="text-sm">{cat?.emoji}</span>
-                      <div className="text-left">
-                        <p style={{ color: 'var(--sub)' }}>{cat?.label || tx.category}</p>
-                        <p style={{ color: 'var(--muted)' }}>${tx.amount}</p>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+        <div className="px-6 pt-7 pb-8 space-y-8">
 
-          {/* Amount */}
+          {/* Amount — hero input */}
           <div>
-            <p className="label mb-3">Amount</p>
-            <div className="flex gap-2 mb-4 flex-wrap">
-              {QUICK_AMOUNTS.map(p => (
-                <button
-                  key={p}
-                  onClick={() => setAmount(p.toString())}
-                  className={`amount-chip ${amount === p.toString() ? 'active' : ''}`}
-                >
-                  ${p}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-baseline gap-3">
-              <span
-                className="text-3xl font-mono flex-shrink-0"
-                style={{ color: selectedCatInfo?.type === 'income' ? 'var(--green)' : amount ? 'var(--sub)' : 'var(--dim)' }}
-              >
-                {selectedCatInfo?.type === 'income' ? '+' : '−'}
+            <div className="flex items-baseline gap-2 mb-4">
+              <span style={{ fontSize: '32px', fontFamily: 'Space Mono, monospace', color: isIncomeCat ? 'var(--green)' : 'var(--muted)', lineHeight: 1 }}>
+                {isIncomeCat ? '+' : '−'}$
               </span>
               <input
                 type="text"
@@ -152,47 +101,58 @@ export function TransactionSheet({
                 value={amount}
                 onChange={handleAmountChange}
                 autoFocus
-                className="flex-1 bg-transparent outline-none font-mono"
                 style={{
-                  fontSize: '40px',
+                  flex: 1,
+                  background: 'transparent',
+                  outline: 'none',
+                  fontSize: '48px',
                   lineHeight: 1,
+                  fontFamily: 'Space Mono, monospace',
                   color: 'var(--text)',
                   borderBottom: '1px solid var(--line)',
-                  paddingBottom: '8px',
+                  paddingBottom: '10px',
                   caretColor: 'var(--text)',
                 }}
               />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {QUICK_AMOUNTS.map(p => (
+                <button
+                  key={p}
+                  onClick={() => setAmount(p.toString())}
+                  className="amount-chip"
+                  style={amount === p.toString() ? { borderColor: 'var(--text)', color: 'var(--text)', background: 'var(--raised)' } : {}}
+                >
+                  ${p}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Category */}
           <div>
-            <p className="label mb-3">Category</p>
+            <p className="label mb-4">Category</p>
             <div className="grid grid-cols-4 gap-2">
               {TRANSACTION_CATEGORIES.map(cat => {
-                const sel      = category === cat.category
-                const isIncome = cat.type === 'income'
-                const accentColor = isIncome ? 'var(--green)' : 'var(--red)'
+                const sel        = category === cat.category
+                const accent     = cat.type === 'income' ? 'var(--green)' : 'var(--red)'
+                const accentGlow = cat.type === 'income' ? 'var(--green-glow)' : 'var(--red-glow)'
                 return (
                   <button
                     key={cat.category}
                     onClick={() => setCategory(cat.category)}
-                    className={`cat-pill ${sel ? 'selected' : ''}`}
-                    style={sel ? {
-                      borderColor: accentColor,
-                      background: isIncome ? 'var(--green-glow)' : 'var(--red-glow)',
-                    } : {}}
+                    className="cat-pill"
+                    style={sel ? { borderColor: accent, background: accentGlow } : {}}
                   >
-                    <span className="text-xl leading-none">{cat.emoji}</span>
-                    <span
-                      style={{
-                        fontFamily: 'Space Mono, monospace',
-                        fontSize: '9px',
-                        letterSpacing: '0.06em',
-                        color: sel ? accentColor : 'var(--muted)',
-                        lineHeight: 1.3,
-                      }}
-                    >
+                    <span style={{ fontSize: '20px', lineHeight: 1 }}>{cat.emoji}</span>
+                    <span style={{
+                      fontFamily: 'Space Mono, monospace',
+                      fontSize: '9px',
+                      letterSpacing: '0.05em',
+                      color: sel ? accent : 'var(--muted)',
+                      lineHeight: 1.4,
+                      textAlign: 'center',
+                    }}>
                       {cat.label}
                     </span>
                   </button>
@@ -203,38 +163,58 @@ export function TransactionSheet({
 
           {/* Date */}
           <div>
-            <p className="label mb-3">Date</p>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-                className="t-input flex-1 font-mono text-xs"
-              />
+            <p className="label mb-4">Date</p>
+            <div className="flex gap-3 items-center">
+              <button
+                onClick={() => setDate(today)}
+                style={{
+                  fontFamily: 'Space Mono, monospace', fontSize: '11px', letterSpacing: '0.1em',
+                  padding: '8px 14px', borderRadius: '4px',
+                  border: '1px solid',
+                  borderColor: date === today ? 'var(--sub)' : 'var(--border)',
+                  color: date === today ? 'var(--text)' : 'var(--muted)',
+                  background: date === today ? 'var(--raised)' : 'transparent',
+                  transition: 'all 0.15s',
+                  flexShrink: 0,
+                }}
+              >
+                Today
+              </button>
               <button
                 onClick={() => setDate(yesterday)}
-                className="px-4 py-2 text-xs font-mono tracking-wider uppercase transition-all flex-shrink-0"
                 style={{
+                  fontFamily: 'Space Mono, monospace', fontSize: '11px', letterSpacing: '0.1em',
+                  padding: '8px 14px', borderRadius: '4px',
                   border: '1px solid',
                   borderColor: date === yesterday ? 'var(--sub)' : 'var(--border)',
                   color: date === yesterday ? 'var(--text)' : 'var(--muted)',
                   background: date === yesterday ? 'var(--raised)' : 'transparent',
-                  borderRadius: '3px',
-                  letterSpacing: '0.1em',
+                  transition: 'all 0.15s',
+                  flexShrink: 0,
                 }}
               >
-                YEST
+                Yesterday
               </button>
+              <input
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                max={today}
+                className="t-input flex-1"
+                style={{ fontFamily: 'Space Mono, monospace', fontSize: '13px' }}
+              />
             </div>
           </div>
 
           {/* Note */}
           <div>
-            <p className="label mb-3">Note <span style={{ color: 'var(--dim)' }}>(optional)</span></p>
+            <p className="label mb-3">
+              Note{' '}
+              <span style={{ color: 'var(--dim)' }}>(optional)</span>
+            </p>
             <input
               type="text"
-              placeholder="what was this for?"
+              placeholder="what was this?"
               value={note}
               onChange={e => setNote(e.target.value)}
               className="t-input"
@@ -242,8 +222,8 @@ export function TransactionSheet({
           </div>
 
           {/* Recurring */}
-          <div className="flex items-center justify-between py-1">
-            <span className="label-sub">Recurring</span>
+          <div className="flex items-center justify-between">
+            <span style={{ fontSize: '14px', color: 'var(--sub)' }}>Recurring monthly</span>
             <button
               onClick={() => setIsRecurring(!isRecurring)}
               className="t-toggle"
@@ -251,15 +231,15 @@ export function TransactionSheet({
             >
               <div
                 className="t-toggle-knob"
-                style={{ transform: isRecurring ? 'translateX(18px)' : 'translateX(0)' }}
+                style={{ transform: isRecurring ? 'translateX(20px)' : 'translateX(4px)' }}
               />
             </button>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pb-2">
-            <button onClick={onClose}    className="flex-1 btn-ghost">Cancel</button>
-            <button onClick={handleSubmit} disabled={!canSubmit} className="flex-1 btn-primary">Add</button>
+          <div className="flex gap-3 pt-2">
+            <button onClick={onClose}       className="flex-1 btn-ghost">Cancel</button>
+            <button onClick={handleSubmit}  disabled={!canSubmit} className="flex-1 btn-primary">Add</button>
           </div>
         </div>
       </div>

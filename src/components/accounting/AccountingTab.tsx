@@ -19,7 +19,11 @@ interface AccountingTabProps {
 }
 
 type SubTab = 'budgets' | 'goals' | 'transactions'
-const SUBTABS: SubTab[] = ['budgets', 'goals', 'transactions']
+const SUBTABS: { key: SubTab; label: string }[] = [
+  { key: 'budgets',      label: 'Budget' },
+  { key: 'goals',        label: 'Goals' },
+  { key: 'transactions', label: 'History' },
+]
 
 export function AccountingTab({
   transactions, budgets, goals,
@@ -35,95 +39,83 @@ export function AccountingTab({
   const expenses  = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const available = income - expenses
 
-  const daysLeft = new Date(
-    new Date().getFullYear(), new Date().getMonth() + 1, 0
-  ).getDate() - new Date().getDate()
-  const safeToSpend = daysLeft > 0 ? Math.max(0, Math.round(available / daysLeft)) : 0
-
-  const monthLabel = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()
+  const month = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   useEffect(() => {
     const steps = 50
-    const increment = available / steps
-    let current = 0
-    const timer = setInterval(() => {
-      current += increment
-      if (current >= available) { setAnimatedBalance(available); clearInterval(timer) }
-      else setAnimatedBalance(Math.round(current))
+    const inc = available / steps
+    let cur = 0
+    const t = setInterval(() => {
+      cur += inc
+      if (cur >= available) { setAnimatedBalance(available); clearInterval(t) }
+      else setAnimatedBalance(Math.round(cur))
     }, 900 / steps)
-    return () => clearInterval(timer)
+    return () => clearInterval(t)
   }, [available])
-
-  const balanceColor = available < 0 ? 'var(--red)' : 'var(--text)'
 
   return (
     <div className="pb-20">
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="px-5 pt-10 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
-        {/* Top row */}
-        <div className="flex items-center justify-between mb-7">
-          <span className="label">folio</span>
-          <span className="label">{monthLabel}</span>
-        </div>
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="px-6 pt-12 pb-8" style={{ borderBottom: '1px solid var(--border)' }}>
+        {/* Month */}
+        <p className="label mb-8">{month}</p>
 
-        {/* Balance */}
-        <div className="mb-6">
-          <span className="label mb-2 block">available</span>
-          <div
-            className="text-[52px] leading-none font-mono tracking-tighter animate-slide-up"
-            style={{ color: balanceColor, fontWeight: 300 }}
-          >
+        {/* Balance — the hero number */}
+        <div className="mb-7">
+          <p style={{ fontSize: '64px', lineHeight: 1, fontFamily: 'Space Mono, monospace', fontWeight: 300, color: available < 0 ? 'var(--red)' : 'var(--text)', letterSpacing: '-0.02em' }}>
             {available < 0 ? '−' : ''}${Math.abs(animatedBalance).toLocaleString()}
-          </div>
+          </p>
+          <p className="mt-2" style={{ fontSize: '13px', color: 'var(--sub)' }}>available this month</p>
         </div>
 
-        {/* Stats row */}
-        <div className="flex items-center gap-0 divide-x" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
-          <div className="flex items-baseline gap-1.5 pr-4">
-            <span className="text-sm font-mono" style={{ color: 'var(--green)' }}>+${income.toLocaleString()}</span>
-            <span className="label">in</span>
+        {/* Income / Expenses — two clear items only */}
+        <div className="flex gap-8">
+          <div>
+            <p style={{ fontSize: '18px', fontFamily: 'Space Mono, monospace', fontWeight: 400, color: 'var(--green)' }}>
+              +${income.toLocaleString()}
+            </p>
+            <p className="label mt-1">income</p>
           </div>
-          <div className="flex items-baseline gap-1.5 px-4">
-            <span className="text-sm font-mono" style={{ color: 'var(--red)' }}>${expenses.toLocaleString()}</span>
-            <span className="label">out</span>
-          </div>
-          <div className="flex items-baseline gap-1.5 pl-4">
-            <span className="text-sm font-mono" style={{ color: 'var(--text)' }}>${safeToSpend}</span>
-            <span className="label">/day</span>
+          <div style={{ width: '1px', background: 'var(--border)', alignSelf: 'stretch' }} />
+          <div>
+            <p style={{ fontSize: '18px', fontFamily: 'Space Mono, monospace', fontWeight: 400, color: 'var(--red)' }}>
+              −${expenses.toLocaleString()}
+            </p>
+            <p className="label mt-1">spent</p>
           </div>
         </div>
       </div>
 
-      {/* ── Sub-tabs ─────────────────────────────────────────────── */}
+      {/* ── Sub-tabs ────────────────────────────────────────── */}
       <div className="flex" style={{ borderBottom: '1px solid var(--border)' }}>
-        {SUBTABS.map(tab => (
+        {SUBTABS.map(({ key, label }) => (
           <button
-            key={tab}
-            onClick={() => setSubTab(tab)}
-            className="flex-1 py-3.5 transition-colors duration-150 relative"
+            key={key}
+            onClick={() => setSubTab(key)}
+            className="flex-1 py-4 transition-colors duration-150"
             style={{
               fontFamily: 'Space Mono, monospace',
-              fontSize: '10px',
-              letterSpacing: '0.14em',
+              fontSize: '11px',
+              letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              color: subTab === tab ? 'var(--text)' : 'var(--muted)',
-              borderBottom: subTab === tab ? '1px solid var(--text)' : '1px solid transparent',
+              color: subTab === key ? 'var(--text)' : 'var(--muted)',
+              borderBottom: subTab === key ? '1px solid var(--text)' : '1px solid transparent',
               marginBottom: '-1px',
             }}
           >
-            {tab}
+            {label}
           </button>
         ))}
       </div>
 
-      {/* ── Content ───────────────────────────────────────────────── */}
-      <div className="px-5 pt-5">
+      {/* ── Content ─────────────────────────────────────────── */}
+      <div className="px-6 pt-6">
         {subTab === 'budgets'      && <BudgetList budgets={budgets} onUpdateBudget={onUpdateBudget} onAddTransaction={onAddTransaction} />}
         {subTab === 'goals'        && <GoalList goals={goals} onCreateGoal={onCreateGoal} onUpdateGoal={onUpdateGoal} onContributeToGoal={onContributeToGoal} onDeleteGoal={onDeleteGoal} />}
         {subTab === 'transactions' && <TransactionList transactions={transactions} onDelete={onDeleteTransaction} />}
       </div>
 
-      {/* ── FAB ───────────────────────────────────────────────────── */}
+      {/* ── FAB ─────────────────────────────────────────────── */}
       <button onClick={() => onAddTransaction()} className="t-fab" aria-label="Add transaction">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

@@ -52,19 +52,21 @@ export function GoalSheet({ isOpen, onClose, onSubmit, editGoal }: GoalSheetProp
       >
         <div className="sheet-handle" />
 
-        <div className="flex items-center justify-between px-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <span className="label">{editGoal ? 'Edit Goal' : 'New Goal'}</span>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center" style={{ color: 'var(--muted)', borderRadius: '3px' }}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+        <div className="flex items-center justify-between px-6 pb-5" style={{ borderBottom: '1px solid var(--border)' }}>
+          <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sub)' }}>
+            {editGoal ? 'Edit Goal' : 'New Goal'}
+          </span>
+          <button onClick={onClose} style={{ color: 'var(--muted)', padding: '4px' }}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-7">
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
           {/* Icon */}
           <div>
-            <p className="label mb-3">Icon</p>
+            <p className="label mb-4">Icon</p>
             <div className="grid grid-cols-6 gap-2">
               {EMOJI_OPTIONS.map(emoji => (
                 <button
@@ -86,7 +88,7 @@ export function GoalSheet({ isOpen, onClose, onSubmit, editGoal }: GoalSheetProp
 
           {/* Name */}
           <div>
-            <p className="label mb-3">Goal Name</p>
+            <p className="label mb-4">Goal Name</p>
             <input
               type="text"
               placeholder="Emergency Fund, New Laptop..."
@@ -99,7 +101,7 @@ export function GoalSheet({ isOpen, onClose, onSubmit, editGoal }: GoalSheetProp
 
           {/* Target */}
           <div>
-            <p className="label mb-3">Target Amount</p>
+            <p className="label mb-4">Target Amount</p>
             <div className="flex items-baseline gap-3">
               <span className="text-2xl font-mono" style={{ color: 'var(--muted)' }}>$</span>
               <input
@@ -121,7 +123,7 @@ export function GoalSheet({ isOpen, onClose, onSubmit, editGoal }: GoalSheetProp
           </div>
         </div>
 
-        <div className="px-5 py-4 flex gap-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="px-6 py-4 flex gap-3" style={{ borderTop: '1px solid var(--border)' }}>
           <button onClick={onClose}    className="flex-1 btn-ghost">Cancel</button>
           <button onClick={handleSubmit} disabled={!name || !targetAmount} className="flex-1 btn-primary">
             {editGoal ? 'Update' : 'Create'}

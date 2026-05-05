@@ -54,35 +54,35 @@ export function GoalContributeSheet({ isOpen, onClose, goal, onContribute, onEdi
         <div className="sheet-handle" />
 
         {/* Goal header */}
-        <div className="px-5 pb-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <div className="flex items-start justify-between mb-4">
+        <div className="px-6 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div className="flex items-start justify-between mb-5">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">{goal.emoji}</span>
+              <span style={{ fontSize: '28px', lineHeight: 1 }}>{goal.emoji}</span>
               <div>
-                <h2 className="text-base font-medium" style={{ color: 'var(--text)' }}>{goal.name}</h2>
-                <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--muted)' }}>
-                  ${goal.currentAmount.toLocaleString()} <span style={{ color: 'var(--dim)' }}>/ ${goal.targetAmount.toLocaleString()}</span>
+                <h2 style={{ fontSize: '17px', color: 'var(--text)', fontWeight: 400 }}>{goal.name}</h2>
+                <p style={{ fontFamily: 'Space Mono, monospace', fontSize: '13px', color: 'var(--sub)', marginTop: '3px' }}>
+                  ${goal.currentAmount.toLocaleString()} <span style={{ color: 'var(--muted)' }}>/ ${goal.targetAmount.toLocaleString()}</span>
                 </p>
               </div>
             </div>
-            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center" style={{ color: 'var(--muted)' }}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+            <button onClick={onClose} style={{ color: 'var(--muted)', padding: '4px' }}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          <div className="progress-track mb-2">
+          <div className="progress-track mb-3">
             <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: 'var(--blue)' }} />
           </div>
           <div className="flex justify-between">
-            <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>{pct}% complete</span>
-            <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>${remaining.toLocaleString()} to go</span>
+            <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', color: 'var(--sub)' }}>{pct}% complete</span>
+            <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', color: 'var(--muted)' }}>${remaining.toLocaleString()} to go</span>
           </div>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           {/* Amount input */}
           <div>
             <p className="label mb-3">Add Amount</p>
@@ -121,16 +121,12 @@ export function GoalContributeSheet({ isOpen, onClose, goal, onContribute, onEdi
             Add ${amount || '0'}
           </button>
 
-          <div className="flex gap-2 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="flex gap-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
             <button onClick={onEdit} className="flex-1 btn-ghost">Edit</button>
             <button
               onClick={handleDelete}
-              className="flex-1 py-3.5 text-xs font-mono tracking-wide uppercase transition-colors"
-              style={{
-                border: '1px solid var(--border)',
-                color: 'var(--red)',
-                borderRadius: '3px',
-              }}
+              className="flex-1 btn-ghost"
+              style={{ color: 'var(--red)', borderColor: 'var(--border)' }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--red)')}
               onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
             >
