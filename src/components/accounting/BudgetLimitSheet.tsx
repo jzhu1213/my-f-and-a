@@ -44,9 +44,14 @@ export function BudgetLimitSheet({ isOpen, onClose, budgets, onUpdateBudget, sel
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pb-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sub)' }}>
-            Set Budget Limits
-          </span>
+          <div>
+            <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sub)' }}>
+              Set Budget Limits
+            </span>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
+              Leave blank or tap × to remove a limit
+            </p>
+          </div>
           <button onClick={onClose} style={{ color: 'var(--muted)', padding: '4px' }}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -80,27 +85,43 @@ export function BudgetLimitSheet({ isOpen, onClose, budgets, onUpdateBudget, sel
                     </p>
                   )}
                 </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '18px', color: 'var(--muted)' }}>$</span>
-                  <input
-                    type="number"
-                    value={limits[cat.category] || ''}
-                    onChange={e => setLimits(prev => ({ ...prev, [cat.category]: parseFloat(e.target.value) || 0 }))}
-                    placeholder="0"
-                    className="bg-transparent text-right outline-none"
-                    style={{
-                      fontFamily: 'Space Mono, monospace',
-                      fontSize: '22px',
-                      width: '96px',
-                      color: 'var(--text)',
-                      borderBottom: '1px solid var(--line)',
-                      paddingBottom: '4px',
-                      caretColor: 'var(--text)',
-                    }}
-                    min="0"
-                    step="10"
-                  />
-                  <span className="label">/mo</span>
+                <div className="flex items-center gap-2">
+                  {/* Clear button — only shown when a limit is set */}
+                  {(limits[cat.category] ?? 0) > 0 && (
+                    <button
+                      onClick={() => setLimits(prev => ({ ...prev, [cat.category]: 0 }))}
+                      style={{ color: 'var(--muted)', padding: '4px', lineHeight: 1 }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--sub)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
+                      title="Remove limit"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                  <div className="flex items-baseline gap-1.5">
+                    <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '18px', color: 'var(--muted)' }}>$</span>
+                    <input
+                      type="number"
+                      value={limits[cat.category] || ''}
+                      onChange={e => setLimits(prev => ({ ...prev, [cat.category]: parseFloat(e.target.value) || 0 }))}
+                      placeholder="—"
+                      className="bg-transparent text-right outline-none"
+                      style={{
+                        fontFamily: 'Space Mono, monospace',
+                        fontSize: '22px',
+                        width: '88px',
+                        color: 'var(--text)',
+                        borderBottom: '1px solid var(--line)',
+                        paddingBottom: '4px',
+                        caretColor: 'var(--text)',
+                      }}
+                      min="0"
+                      step="10"
+                    />
+                    <span className="label">/mo</span>
+                  </div>
                 </div>
               </div>
             )

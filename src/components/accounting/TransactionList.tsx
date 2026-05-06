@@ -1,7 +1,90 @@
 "use client"
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { TRANSACTION_CATEGORIES } from '@/types'
 import type { Transaction, TransactionCategory } from '@/types'
+
+// ── Swipeable row wrapper ────────────────────────────────────────
+const SWIPE_THRESHOLD  = 56   // px to trigger reveal
+const DELETE_PANEL_W   = 72   // px width of the delete panel
+
+interface SwipeableRowProps {
+  onDelete: () => void
+  children: React.ReactNode
+}
+
+function SwipeableRow({ onDelete, children }: SwipeableRowProps) {
+  const startXRef  = useRef(0)
+  const [offset,   setOffset]   = useState(0)  // negative = swiped left
+  const [snapping, setSnapping] = useState(false)
+
+  const snapTo = (target: number) => {
+    setSnapping(true)
+    setOffset(target)
+    // Clear transition flag after animation
+    setTimeout(() => setSnapping(false), 200)
+  }
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startXRef.current = e.touches[0].clientX
+    setSnapping(false)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - startXRef.current
+    // Only allow left-swipe (negative dx), cap at panel width
+    const clamped = Math.max(-DELETE_PANEL_W, Math.min(0, dx))
+    setOffset(clamped)
+  }
+
+  const onTouchEnd = () => {
+    if (offset < -SWIPE_THRESHOLD) {
+      snapTo(-DELETE_PANEL_W) // snap open
+    } else {
+      snapTo(0) // snap back
+    }
+  }
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Delete panel sits behind, revealed by sliding the row */}
+      <div
+        style={{
+          position: 'absolute', right: 0, top: 0, bottom: 0,
+          width: `${DELETE_PANEL_W}px`,
+          background: 'var(--red)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <button
+          onClick={e => { e.stopPropagation(); snapTo(0); onDelete() }}
+          style={{
+            fontFamily: 'Space Mono, monospace', fontSize: '11px',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: '#fff', width: '100%', height: '100%',
+          }}
+        >
+          Delete
+        </button>
+      </div>
+
+      {/* Sliding row content */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateX(${offset}px)`,
+          transition: snapping ? 'transform 0.2s ease' : 'none',
+          position: 'relative',
+          background: 'var(--bg)',
+          willChange: 'transform',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
 
 interface TransactionListProps {
   transactions: Transaction[]
@@ -23,14 +106,21 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
     .filter(([, info]) => info !== undefined)
     .map(([cat, info]) => ({ category: cat as TransactionCategory, label: info!.label }))
 
-  // Filter chain: category first, then search
+  // Normalize search: strip leading $ so "$45" finds a $45 transaction
+  const searchNorm = search.replace(/^\$/, '').trim().toLowerCase()
+
+  // Filter chain: category first, then search (note, category, or amount)
   const filtered = transactions
     .filter(t => !activeFilter || t.category === activeFilter)
-    .filter(t =>
-      !search ||
-      t.note?.toLowerCase().includes(search.toLowerCase()) ||
-      t.category.toLowerCase().includes(search.toLowerCase())
-    )
+    .filter(t => {
+      if (!searchNorm) return true
+      if (t.note?.toLowerCase().includes(searchNorm)) return true
+      if (t.category.toLowerCase().includes(searchNorm)) return true
+      // Amount matching: "45", "45.00", "45.5" should all find a $45.50 charge
+      if (t.amount.toFixed(2).includes(searchNorm)) return true
+      if (String(Math.round(t.amount)).includes(searchNorm)) return true
+      return false
+    })
 
   const grouped = filtered.reduce((acc, tx) => {
     if (!acc[tx.date]) acc[tx.date] = []
@@ -128,9 +218,8 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
           {grouped[date].map(tx => {
             const isIncome = tx.type === 'income'
             const expanded = expandedId === tx.id
-
-            return (
-              <div key={tx.id}>
+            const row = (
+              <div>
                 {/* Main row */}
                 <div
                   className="flex items-center justify-between gap-4 py-4 cursor-pointer transition-colors"
@@ -165,7 +254,7 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                   </div>
                 </div>
 
-                {/* Expanded actions */}
+                {/* Expanded actions (Edit + Delete for desktop / non-swipe fallback) */}
                 {expanded && (
                   <div
                     className="flex gap-3 px-1 py-3 animate-fade-in"
@@ -207,6 +296,16 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                 )}
               </div>
             )
+
+            // Wrap with swipe-to-delete when onDelete is available
+            if (onDelete) {
+              return (
+                <SwipeableRow key={tx.id} onDelete={() => { onDelete(tx.id); setExpandedId(null) }}>
+                  {row}
+                </SwipeableRow>
+              )
+            }
+            return <div key={tx.id}>{row}</div>
           })}
         </div>
       )) : (

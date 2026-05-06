@@ -205,25 +205,38 @@ export default function FolioApp() {
     }
   }
 
-  // ── Delete transaction ──────────────────────────────────────────
-  const handleDeleteTransaction = async (id: string) => {
+  // ── Delete transaction (optimistic + 3.5 s undo window) ────────
+  const handleDeleteTransaction = (id: string) => {
     const tx = transactions.find(t => t.id === id)
-    if (!user) {
-      const updated = transactions.filter(t => t.id !== id)
-      setTransactions(updated)
-      if (tx?.type === 'expense') await recalculateBudgetSpent(updated, tx.category)
-      showToast('Transaction deleted')
-      return
-    }
-    const ok = await deleteTransaction(user.id, id)
-    if (ok) {
-      const updated = transactions.filter(t => t.id !== id)
-      setTransactions(updated)
-      if (tx?.type === 'expense') await recalculateBudgetSpent(updated, tx.category)
-      showToast('Transaction deleted')
-    } else {
-      showToast('Failed to delete transaction', 'error')
-    }
+    if (!tx) return
+
+    // Optimistically remove from UI immediately
+    const restored = [...transactions]
+    const updated  = transactions.filter(t => t.id !== id)
+    setTransactions(updated)
+    if (tx.type === 'expense') recalculateBudgetSpent(updated, tx.category)
+
+    let undone = false
+
+    showToast('Transaction deleted', 'info', {
+      label: 'Undo',
+      onClick: () => {
+        undone = true
+        setTransactions(restored)
+        if (tx.type === 'expense') recalculateBudgetSpent(restored, tx.category)
+      },
+    })
+
+    // After toast duration: commit delete to backend (unless undone)
+    setTimeout(async () => {
+      if (undone || !user) return
+      const ok = await deleteTransaction(user.id, id)
+      if (!ok) {
+        setTransactions(restored)
+        if (tx.type === 'expense') recalculateBudgetSpent(restored, tx.category)
+        showToast('Failed to delete transaction', 'error')
+      }
+    }, 3500)
   }
 
   // ── Budget ──────────────────────────────────────────────────────
