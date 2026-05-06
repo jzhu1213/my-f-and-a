@@ -1,29 +1,54 @@
 "use client"
 import { useState } from 'react'
 import { BUDGET_CATEGORIES } from '@/types'
-import type { Budget, TransactionCategory } from '@/types'
+import type { Budget, Transaction, TransactionCategory } from '@/types'
 import { BudgetLimitSheet } from './BudgetLimitSheet'
 
 interface BudgetListProps {
   budgets: Budget[]
+  transactions: Transaction[]
   onUpdateBudget: (category: TransactionCategory, limit: number) => void
   onAddTransaction: (category: TransactionCategory) => void
 }
 
-export function BudgetList({ budgets, onUpdateBudget, onAddTransaction }: BudgetListProps) {
+/** Monday of the current week */
+function weekStart(): string {
+  const d = new Date()
+  const day = d.getDay()               // 0=Sun … 6=Sat
+  const diff = day === 0 ? -6 : 1 - day // shift to Monday
+  d.setDate(d.getDate() + diff)
+  return d.toISOString().split('T')[0]
+}
+
+export function BudgetList({ budgets, transactions, onUpdateBudget, onAddTransaction }: BudgetListProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
+  const ws = weekStart()
+
   const budgetData = BUDGET_CATEGORIES.map(cat => {
-    const budget     = budgets.find(b => b.category === cat.category)
-    const spent      = budget?.spent ?? 0
-    const limit      = budget?.monthlyLimit ?? 0
-    const pct        = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0
-    const overBudget = limit > 0 && spent > limit
-    return { ...cat, spent, limit, pct, overBudget }
+    const budget      = budgets.find(b => b.category === cat.category)
+    const monthlySpent = budget?.spent ?? 0
+    const monthlyLimit = budget?.monthlyLimit ?? 0
+
+    // Weekly limit = monthly ÷ 4.33  (≈ avg weeks/month)
+    const weeklyLimit = monthlyLimit > 0 ? monthlyLimit / 4.33 : 0
+
+    // Weekly spent from transactions this week
+    const weeklySpent = transactions
+      .filter(t => t.category === cat.category && t.type === 'expense' && t.date >= ws)
+      .reduce((s, t) => s + t.amount, 0)
+
+    const weekPct    = weeklyLimit > 0 ? Math.min((weeklySpent / weeklyLimit) * 100, 100) : 0
+    const overWeekly = weeklyLimit > 0 && weeklySpent > weeklyLimit
+
+    return { ...cat, monthlySpent, monthlyLimit, weeklySpent, weeklyLimit, weekPct, overWeekly }
   })
 
-  const barColor = (d: { overBudget: boolean; pct: number }) =>
-    d.overBudget ? 'var(--red)' : d.pct >= 80 ? 'var(--amber)' : 'var(--green)'
+  const barColor = (d: { overWeekly: boolean; weekPct: number }) =>
+    d.overWeekly ? 'var(--red)' : d.weekPct >= 80 ? 'var(--amber)' : 'var(--green)'
+
+  const amountColor = (d: { overWeekly: boolean; weekPct: number }) =>
+    d.overWeekly ? 'var(--red)' : d.weekPct >= 80 ? 'var(--amber)' : 'var(--sub)'
 
   return (
     <div>
@@ -36,32 +61,39 @@ export function BudgetList({ budgets, onUpdateBudget, onAddTransaction }: Budget
           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          {/* Category name + amount */}
+          {/* Category name + weekly amount (primary) */}
           <div className="flex items-baseline justify-between gap-4">
-            <span style={{ fontSize: '15px', color: 'var(--text)', fontWeight: 400 }}>
+            <span style={{ fontSize: '15px', color: 'var(--text)' }}>
               {budget.label}
             </span>
             <span style={{
               fontSize: '15px',
               fontFamily: 'Space Mono, monospace',
-              color: budget.overBudget ? 'var(--red)' : budget.pct >= 80 ? 'var(--amber)' : 'var(--sub)',
+              color: amountColor(budget),
               flexShrink: 0,
             }}>
-              {budget.limit > 0
-                ? `$${budget.spent.toFixed(0)}  /  $${budget.limit.toFixed(0)}`
-                : `$${budget.spent.toFixed(0)}`
+              {budget.weeklyLimit > 0
+                ? `$${budget.weeklySpent.toFixed(0)}  /  $${budget.weeklyLimit.toFixed(0)}`
+                : `$${budget.weeklySpent.toFixed(0)}`
               }
             </span>
           </div>
 
-          {/* Progress bar */}
+          {/* Weekly progress bar */}
           <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${budget.pct}%`, background: barColor(budget) }} />
+            <div className="progress-fill" style={{ width: `${budget.weekPct}%`, background: barColor(budget) }} />
           </div>
+
+          {/* Monthly sub-number */}
+          {budget.monthlyLimit > 0 && (
+            <p style={{ fontFamily: 'Space Mono, monospace', fontSize: '11px', color: 'var(--muted)', textAlign: 'right' }}>
+              ${budget.monthlySpent.toFixed(0)} / ${budget.monthlyLimit.toFixed(0)} mo
+            </p>
+          )}
         </button>
       ))}
 
-      {/* Set limits button */}
+      {/* Set limits */}
       <button
         onClick={() => setIsSheetOpen(true)}
         className="w-full flex items-center justify-center gap-2.5 py-6 transition-colors"

@@ -70,6 +70,11 @@ export function BudgetLimitSheet({ isOpen, onClose, budgets, onUpdateBudget, sel
                   {spent > 0 && (
                     <p className="label mt-1">${spent} spent this month</p>
                   )}
+                  {(limits[cat.category] ?? 0) > 0 && (
+                    <p className="label mt-0.5" style={{ color: 'var(--dim)' }}>
+                      ≈ ${(limits[cat.category] / 4.33).toFixed(0)} / wk
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-baseline gap-1.5">
                   <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '18px', color: 'var(--muted)' }}>$</span>
