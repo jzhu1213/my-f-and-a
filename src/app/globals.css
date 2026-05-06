@@ -196,8 +196,8 @@ input[type="date"] {
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: var(--radius);
-  min-height: 72px;
-  padding: 12px 8px;
+  min-height: 80px;
+  padding: 14px 8px;
 }
 
 .cat-pill.selected { background: var(--raised); }

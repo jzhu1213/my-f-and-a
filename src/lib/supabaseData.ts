@@ -227,7 +227,7 @@ export async function getTransactions(userId: string): Promise<Transaction[]> {
     .select('*')
     .eq('user_id', userId)
     .order('date', { ascending: false })
-    .limit(100)
+    .limit(500)
 
   if (error) {
     console.error('Error fetching transactions:', error)
@@ -292,6 +292,39 @@ export async function insertTransaction(
   return dbTransactionToApp(data)
 }
 
+export async function updateTransaction(
+  userId: string,
+  txId: string,
+  updates: {
+    date: string
+    amount: number
+    type: TransactionType
+    category: TransactionCategory
+    note?: string
+  }
+): Promise<Transaction | null> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .update({
+      date: updates.date,
+      amount: updates.amount,
+      type: updates.type,
+      category: updates.category,
+      note: updates.note ?? null,
+    })
+    .eq('id', txId)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating transaction:', error)
+    return null
+  }
+
+  return dbTransactionToApp(data)
+}
+
 export async function deleteTransaction(userId: string, txId: string): Promise<boolean> {
   const { error } = await supabase
     .from('transactions')
@@ -326,6 +359,69 @@ export async function getBudgets(userId: string): Promise<Budget[]> {
   }
 
   return (data || []).map(dbBudgetToApp)
+}
+
+/**
+ * On the first load of a new month, copies budget limits from the most recent
+ * previous month into the current month so users don't have to re-enter them.
+ * Only runs when the current month has no limits set yet; already-tracked
+ * `spent` values for the current month are preserved.
+ */
+export async function carryForwardBudgetLimits(userId: string): Promise<void> {
+  const currentMonth = new Date().toISOString().slice(0, 7)
+
+  // Fetch all current-month records
+  const { data: current } = await supabase
+    .from('budgets')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('month', currentMonth)
+
+  const hasLimits = (current || []).some((b: DbBudget) => b.monthly_limit > 0)
+  if (hasLimits) return // This month already has limits — nothing to do
+
+  // Find the most recent previous month that has limits
+  const { data: previous } = await supabase
+    .from('budgets')
+    .select('*')
+    .eq('user_id', userId)
+    .lt('month', currentMonth)
+    .gt('monthly_limit', 0)
+    .order('month', { ascending: false })
+    .limit(20) // enough to cover all categories in the most recent month
+
+  if (!previous || previous.length === 0) return // No prior limits to carry
+
+  const mostRecentMonth = (previous as DbBudget[])[0].month
+  const prevBudgets = (previous as DbBudget[]).filter(b => b.month === mostRecentMonth)
+
+  // Build a lookup of current-month spent amounts to preserve them
+  const currentByCategory: Record<string, DbBudget> = {}
+  ;(current || []).forEach((b: DbBudget) => { currentByCategory[b.category] = b })
+
+  for (const prev of prevBudgets) {
+    if (prev.monthly_limit <= 0) continue
+    const existing = currentByCategory[prev.category]
+
+    if (existing) {
+      // Record exists — only update the limit, preserve spent
+      await supabase
+        .from('budgets')
+        .update({ monthly_limit: prev.monthly_limit })
+        .eq('id', existing.id)
+    } else {
+      // No record yet — insert with carried limit and 0 spent
+      await supabase
+        .from('budgets')
+        .insert({
+          user_id: userId,
+          category: prev.category,
+          monthly_limit: prev.monthly_limit,
+          spent: 0,
+          month: currentMonth,
+        })
+    }
+  }
 }
 
 export async function upsertBudget(

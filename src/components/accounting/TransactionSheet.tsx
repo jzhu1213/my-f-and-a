@@ -12,22 +12,25 @@ interface TransactionSheetProps {
     type: TransactionType
     date: string
     note?: string
-    isRecurring?: boolean
   }) => void
   prefilledCategory?: TransactionCategory
-  recentTransactions?: Transaction[]
+  editTransaction?: Transaction   // when set, we're in edit mode
 }
 
+const EXPENSE_CATS = TRANSACTION_CATEGORIES.filter(c => c.type === 'expense')
+const INCOME_CATS  = TRANSACTION_CATEGORIES.filter(c => c.type === 'income')
 const QUICK_AMOUNTS = [10, 20, 50, 100, 200]
 
 export function TransactionSheet({
-  isOpen, onClose, onSubmit, prefilledCategory, recentTransactions = [],
+  isOpen, onClose, onSubmit, prefilledCategory, editTransaction,
 }: TransactionSheetProps) {
-  const [amount,      setAmount]      = useState('')
-  const [category,    setCategory]    = useState<TransactionCategory | null>(null)
-  const [date,        setDate]        = useState(new Date().toISOString().split('T')[0])
-  const [note,        setNote]        = useState('')
-  const [isRecurring, setIsRecurring] = useState(false)
+  const isEditMode = !!editTransaction
+
+  const [txType,   setTxType]   = useState<'expense' | 'income'>('expense')
+  const [amount,   setAmount]   = useState('')
+  const [category, setCategory] = useState<TransactionCategory | null>(null)
+  const [date,     setDate]     = useState(new Date().toISOString().split('T')[0])
+  const [note,     setNote]     = useState('')
 
   const today     = new Date().toISOString().split('T')[0]
   const yesterday = (() => {
@@ -35,10 +38,35 @@ export function TransactionSheet({
     return d.toISOString().split('T')[0]
   })()
 
+  // Reset / populate when sheet opens or edit target changes
   useEffect(() => {
-    if (isOpen && prefilledCategory) setCategory(prefilledCategory)
-    if (!isOpen) { setAmount(''); setCategory(null); setNote(''); setIsRecurring(false); setDate(today) }
-  }, [isOpen, prefilledCategory, today])
+    if (!isOpen) return
+    if (editTransaction) {
+      setTxType(editTransaction.type)
+      setAmount(editTransaction.amount.toString())
+      setCategory(editTransaction.category)
+      setDate(editTransaction.date)
+      setNote(editTransaction.note ?? '')
+    } else {
+      const prefilled = prefilledCategory
+        ? TRANSACTION_CATEGORIES.find(c => c.category === prefilledCategory)
+        : null
+      setTxType(prefilled?.type ?? 'expense')
+      setCategory(prefilledCategory ?? null)
+      setAmount('')
+      setDate(today)
+      setNote('')
+    }
+  }, [isOpen, editTransaction, prefilledCategory, today])
+
+  // When user toggles type, clear category if it belongs to the old type
+  const handleTypeSwitch = (t: 'expense' | 'income') => {
+    setTxType(t)
+    if (category) {
+      const catInfo = TRANSACTION_CATEGORIES.find(c => c.category === category)
+      if (catInfo && catInfo.type !== t) setCategory(null)
+    }
+  }
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value.replace(/[^0-9.]/g, '')
@@ -49,14 +77,12 @@ export function TransactionSheet({
 
   const handleSubmit = () => {
     if (!amount || !category || !date) return
-    const selCat = TRANSACTION_CATEGORIES.find(c => c.category === category)
-    onSubmit({ amount: parseFloat(amount), category, type: selCat?.type || 'expense', date, note: note || undefined, isRecurring })
+    onSubmit({ amount: parseFloat(amount), category, type: txType, date, note: note || undefined })
     onClose()
   }
 
-  const canSubmit      = !!amount && !!category && !!date
-  const selectedCatInfo = category ? TRANSACTION_CATEGORIES.find(c => c.category === category) : null
-  const isIncomeCat    = selectedCatInfo?.type === 'income'
+  const canSubmit = !!amount && parseFloat(amount) > 0 && !!category && !!date
+  const visibleCats = txType === 'expense' ? EXPENSE_CATS : INCOME_CATS
 
   return (
     <>
@@ -74,25 +100,51 @@ export function TransactionSheet({
         {/* Header */}
         <div className="flex items-center justify-between px-6 pb-5" style={{ borderBottom: '1px solid var(--border)' }}>
           <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sub)' }}>
-            Add Transaction
+            {isEditMode ? 'Edit Transaction' : 'Add Transaction'}
           </span>
-          <button
-            onClick={onClose}
-            style={{ color: 'var(--muted)', padding: '4px' }}
-          >
+          <button onClick={onClose} style={{ color: 'var(--muted)', padding: '4px' }}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="px-6 pt-7 pb-8 space-y-8">
+        <div className="px-6 pt-6 pb-8 space-y-7">
 
-          {/* Amount — hero input */}
+          {/* ── Expense / Income toggle ── */}
+          <div
+            className="flex"
+            style={{ background: 'var(--raised)', borderRadius: '6px', padding: '3px' }}
+          >
+            {(['expense', 'income'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => handleTypeSwitch(t)}
+                className="flex-1 py-2.5 transition-all duration-150"
+                style={{
+                  fontFamily: 'Space Mono, monospace',
+                  fontSize: '11px',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  borderRadius: '4px',
+                  color: txType === t ? (t === 'income' ? 'var(--green)' : 'var(--red)') : 'var(--muted)',
+                  background: txType === t ? 'var(--bg)' : 'transparent',
+                  border: txType === t ? '1px solid var(--border)' : '1px solid transparent',
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Amount ── */}
           <div>
             <div className="flex items-baseline gap-2 mb-4">
-              <span style={{ fontSize: '32px', fontFamily: 'Space Mono, monospace', color: isIncomeCat ? 'var(--green)' : 'var(--muted)', lineHeight: 1 }}>
-                {isIncomeCat ? '+' : '−'}$
+              <span style={{
+                fontSize: '32px', fontFamily: 'Space Mono, monospace', lineHeight: 1,
+                color: txType === 'income' ? 'var(--green)' : 'var(--muted)',
+              }}>
+                {txType === 'income' ? '+' : '−'}$
               </span>
               <input
                 type="text"
@@ -102,11 +154,8 @@ export function TransactionSheet({
                 onChange={handleAmountChange}
                 autoFocus
                 style={{
-                  flex: 1,
-                  background: 'transparent',
-                  outline: 'none',
-                  fontSize: '48px',
-                  lineHeight: 1,
+                  flex: 1, background: 'transparent', outline: 'none',
+                  fontSize: '48px', lineHeight: 1,
                   fontFamily: 'Space Mono, monospace',
                   color: 'var(--text)',
                   borderBottom: '1px solid var(--line)',
@@ -129,29 +178,27 @@ export function TransactionSheet({
             </div>
           </div>
 
-          {/* Category */}
+          {/* ── Category ── */}
           <div>
             <p className="label mb-4">Category</p>
-            <div className="grid grid-cols-4 gap-2">
-              {TRANSACTION_CATEGORIES.map(cat => {
-                const sel        = category === cat.category
-                const accent     = cat.type === 'income' ? 'var(--green)' : 'var(--red)'
-                const accentGlow = cat.type === 'income' ? 'var(--green-glow)' : 'var(--red-glow)'
+            <div className={`grid gap-2 ${txType === 'income' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {visibleCats.map(cat => {
+                const sel    = category === cat.category
+                const accent = txType === 'income' ? 'var(--green)' : 'var(--red)'
+                const glow   = txType === 'income' ? 'var(--green-glow)' : 'var(--red-glow)'
                 return (
                   <button
                     key={cat.category}
                     onClick={() => setCategory(cat.category)}
                     className="cat-pill"
-                    style={sel ? { borderColor: accent, background: accentGlow } : {}}
+                    style={sel ? { borderColor: accent, background: glow } : {}}
                   >
-                    <span style={{ fontSize: '20px', lineHeight: 1 }}>{cat.emoji}</span>
+                    <span style={{ fontSize: '22px', lineHeight: 1 }}>{cat.emoji}</span>
                     <span style={{
                       fontFamily: 'Space Mono, monospace',
-                      fontSize: '9px',
-                      letterSpacing: '0.05em',
-                      color: sel ? accent : 'var(--muted)',
-                      lineHeight: 1.4,
-                      textAlign: 'center',
+                      fontSize: '12px',
+                      letterSpacing: '0.04em',
+                      color: sel ? accent : 'var(--sub)',
                     }}>
                       {cat.label}
                     </span>
@@ -161,40 +208,26 @@ export function TransactionSheet({
             </div>
           </div>
 
-          {/* Date */}
+          {/* ── Date ── */}
           <div>
             <p className="label mb-4">Date</p>
             <div className="flex gap-3 items-center">
-              <button
-                onClick={() => setDate(today)}
-                style={{
-                  fontFamily: 'Space Mono, monospace', fontSize: '11px', letterSpacing: '0.1em',
-                  padding: '8px 14px', borderRadius: '4px',
-                  border: '1px solid',
-                  borderColor: date === today ? 'var(--sub)' : 'var(--border)',
-                  color: date === today ? 'var(--text)' : 'var(--muted)',
-                  background: date === today ? 'var(--raised)' : 'transparent',
-                  transition: 'all 0.15s',
-                  flexShrink: 0,
-                }}
-              >
-                Today
-              </button>
-              <button
-                onClick={() => setDate(yesterday)}
-                style={{
-                  fontFamily: 'Space Mono, monospace', fontSize: '11px', letterSpacing: '0.1em',
-                  padding: '8px 14px', borderRadius: '4px',
-                  border: '1px solid',
-                  borderColor: date === yesterday ? 'var(--sub)' : 'var(--border)',
-                  color: date === yesterday ? 'var(--text)' : 'var(--muted)',
-                  background: date === yesterday ? 'var(--raised)' : 'transparent',
-                  transition: 'all 0.15s',
-                  flexShrink: 0,
-                }}
-              >
-                Yesterday
-              </button>
+              {[{ label: 'Today', val: today }, { label: 'Yesterday', val: yesterday }].map(({ label, val }) => (
+                <button
+                  key={val}
+                  onClick={() => setDate(val)}
+                  style={{
+                    fontFamily: 'Space Mono, monospace', fontSize: '11px', letterSpacing: '0.1em',
+                    padding: '8px 14px', borderRadius: '4px', border: '1px solid', flexShrink: 0,
+                    borderColor: date === val ? 'var(--sub)' : 'var(--border)',
+                    color: date === val ? 'var(--text)' : 'var(--muted)',
+                    background: date === val ? 'var(--raised)' : 'transparent',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
               <input
                 type="date"
                 value={date}
@@ -206,11 +239,10 @@ export function TransactionSheet({
             </div>
           </div>
 
-          {/* Note */}
+          {/* ── Note ── */}
           <div>
             <p className="label mb-3">
-              Note{' '}
-              <span style={{ color: 'var(--dim)' }}>(optional)</span>
+              Note <span style={{ color: 'var(--dim)' }}>(optional)</span>
             </p>
             <input
               type="text"
@@ -221,25 +253,12 @@ export function TransactionSheet({
             />
           </div>
 
-          {/* Recurring */}
-          <div className="flex items-center justify-between">
-            <span style={{ fontSize: '14px', color: 'var(--sub)' }}>Recurring monthly</span>
-            <button
-              onClick={() => setIsRecurring(!isRecurring)}
-              className="t-toggle"
-              style={{ background: isRecurring ? 'var(--text)' : 'var(--line)' }}
-            >
-              <div
-                className="t-toggle-knob"
-                style={{ transform: isRecurring ? 'translateX(20px)' : 'translateX(4px)' }}
-              />
-            </button>
-          </div>
-
-          {/* Actions */}
+          {/* ── Actions ── */}
           <div className="flex gap-3 pt-2">
-            <button onClick={onClose}       className="flex-1 btn-ghost">Cancel</button>
-            <button onClick={handleSubmit}  disabled={!canSubmit} className="flex-1 btn-primary">Add</button>
+            <button onClick={onClose} className="flex-1 btn-ghost">Cancel</button>
+            <button onClick={handleSubmit} disabled={!canSubmit} className="flex-1 btn-primary">
+              {isEditMode ? 'Save' : 'Add'}
+            </button>
           </div>
         </div>
       </div>

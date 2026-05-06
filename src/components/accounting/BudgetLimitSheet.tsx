@@ -29,46 +29,50 @@ export function BudgetLimitSheet({ isOpen, onClose, budgets, onUpdateBudget, sel
     onClose()
   }
 
-  if (!isOpen) return null
-
   return (
     <>
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/75 z-40 animate-fade-in"
-        style={{ backdropFilter: 'blur(2px)' }}
+        className={`fixed inset-0 z-40 transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        style={{ background: 'rgba(0,0,0,0.80)' }}
         onClick={onClose}
       />
 
-      <div
-        className="fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[88vh] animate-slide-up"
-        style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', borderRadius: '8px 8px 0 0' }}
-      >
+      {/* Sheet */}
+      <div className={`sheet ${isOpen ? 'open' : ''}`} style={{ maxHeight: '88vh' }}>
         <div className="sheet-handle" />
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pb-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sub)' }}>Set Budget Limits</span>
+          <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sub)' }}>
+            Set Budget Limits
+          </span>
           <button onClick={onClose} style={{ color: 'var(--muted)', padding: '4px' }}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* List */}
+        {/* Category list */}
         <div className="flex-1 overflow-y-auto px-6">
           {BUDGET_CATEGORIES.map(cat => {
             const spent = budgets.find(b => b.category === cat.category)?.spent ?? 0
+            const isSelected = selectedCategory === cat.category
             return (
               <div
                 key={cat.category}
                 className="py-5 flex items-center justify-between"
-                style={{ borderBottom: '1px solid var(--border)' }}
+                style={{
+                  borderBottom: '1px solid var(--border)',
+                  borderLeft: isSelected ? '2px solid var(--sub)' : '2px solid transparent',
+                  paddingLeft: isSelected ? '10px' : '0',
+                }}
               >
                 <div>
                   <p style={{ fontSize: '15px', color: 'var(--text)' }}>{cat.label}</p>
                   {spent > 0 && (
-                    <p className="label mt-1">${spent} spent this month</p>
+                    <p className="label mt-1">${spent.toFixed(0)} spent this month</p>
                   )}
                   {(limits[cat.category] ?? 0) > 0 && (
                     <p className="label mt-0.5" style={{ color: 'var(--dim)' }}>
@@ -103,6 +107,7 @@ export function BudgetLimitSheet({ isOpen, onClose, budgets, onUpdateBudget, sel
           })}
         </div>
 
+        {/* Footer */}
         <div className="px-6 py-4 flex gap-3" style={{ borderTop: '1px solid var(--border)' }}>
           <button onClick={onClose}    className="flex-1 btn-ghost">Cancel</button>
           <button onClick={handleSave} className="flex-1 btn-primary">Save</button>
