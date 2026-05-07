@@ -77,8 +77,8 @@ export const TRANSACTION_CATEGORIES: { category: TransactionCategory; emoji: str
   { category: 'school', emoji: '📚', label: 'School', type: 'expense' },
   { category: 'fun', emoji: '🎮', label: 'Fun', type: 'expense' },
   { category: 'other', emoji: '💼', label: 'Other', type: 'expense' },
-  { category: 'gig', emoji: '💼', label: 'Gig', type: 'income' },
-  { category: 'income', emoji: '📈', label: 'Income', type: 'income' },
+  { category: 'gig', emoji: '⚡', label: 'Side Hustle', type: 'income' },
+  { category: 'income', emoji: '💵', label: 'Paycheck', type: 'income' },
 ]
 
 // Goal Types

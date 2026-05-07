@@ -392,6 +392,7 @@ export default function FolioApp() {
         onSubmit={handleSheetSubmit}
         prefilledCategory={prefilledCategory}
         editTransaction={editingTransaction}
+        transactions={transactions}
       />
 
       <ProfileSheet

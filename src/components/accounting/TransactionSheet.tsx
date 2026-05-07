@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { TRANSACTION_CATEGORIES } from '@/types'
 import type { TransactionCategory, TransactionType, Transaction } from '@/types'
 
@@ -14,33 +14,34 @@ interface TransactionSheetProps {
     note?: string
   }) => void
   prefilledCategory?: TransactionCategory
-  editTransaction?: Transaction   // when set, we're in edit mode
+  editTransaction?: Transaction
+  transactions?: Transaction[]   // used for context-aware quick-amount chips
 }
 
 const EXPENSE_CATS = TRANSACTION_CATEGORIES.filter(c => c.type === 'expense')
 const INCOME_CATS  = TRANSACTION_CATEGORIES.filter(c => c.type === 'income')
-const QUICK_AMOUNTS = [10, 20, 50, 100, 200]
+const DEFAULT_QUICK_AMOUNTS = [5, 10, 20, 50]
 
 export function TransactionSheet({
-  isOpen, onClose, onSubmit, prefilledCategory, editTransaction,
+  isOpen, onClose, onSubmit,
+  prefilledCategory, editTransaction, transactions = [],
 }: TransactionSheetProps) {
   const isEditMode = !!editTransaction
 
-  const [txType,   setTxType]   = useState<'expense' | 'income'>('expense')
-  const [amount,   setAmount]   = useState('')
-  const [category, setCategory] = useState<TransactionCategory | null>(null)
-  const [date,     setDate]     = useState(new Date().toISOString().split('T')[0])
-  const [note,     setNote]     = useState('')
-
   const today     = new Date().toISOString().split('T')[0]
-  const yesterday = (() => {
-    const d = new Date(); d.setDate(d.getDate() - 1)
-    return d.toISOString().split('T')[0]
-  })()
+  const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })()
 
-  // Reset / populate when sheet opens or edit target changes
+  const [txType,          setTxType]          = useState<'expense' | 'income'>('expense')
+  const [amount,          setAmount]          = useState('')
+  const [category,        setCategory]        = useState<TransactionCategory | null>(null)
+  const [date,            setDate]            = useState(today)
+  const [note,            setNote]            = useState('')
+  const [showDatePicker,  setShowDatePicker]  = useState(false)
+
+  // ── Populate on open / edit ──────────────────────────────────
   useEffect(() => {
     if (!isOpen) return
+    setShowDatePicker(false)
     if (editTransaction) {
       setTxType(editTransaction.type)
       setAmount(editTransaction.amount.toString())
@@ -59,15 +60,43 @@ export function TransactionSheet({
     }
   }, [isOpen, editTransaction, prefilledCategory, today])
 
-  // When user toggles type, clear category if it belongs to the old type
-  const handleTypeSwitch = (t: 'expense' | 'income') => {
-    setTxType(t)
+  // ── Toggle type (the subtle link) ───────────────────────────
+  const handleTypeToggle = () => {
+    const next: TransactionType = txType === 'expense' ? 'income' : 'expense'
+    setTxType(next)
+    // Clear category if it doesn't belong to the new type
     if (category) {
-      const catInfo = TRANSACTION_CATEGORIES.find(c => c.category === category)
-      if (catInfo && catInfo.type !== t) setCategory(null)
+      const info = TRANSACTION_CATEGORIES.find(c => c.category === category)
+      if (info && info.type !== next) setCategory(null)
     }
   }
 
+  // ── Category selection drives type ──────────────────────────
+  const handleCategorySelect = (cat: TransactionCategory) => {
+    setCategory(cat)
+    const info = TRANSACTION_CATEGORIES.find(c => c.category === cat)
+    if (info) setTxType(info.type)
+  }
+
+  // ── Context-aware quick amounts ──────────────────────────────
+  const quickAmounts = useMemo(() => {
+    if (!category) return DEFAULT_QUICK_AMOUNTS
+    const seen  = new Set<number>()
+    const recent: number[] = []
+    for (const tx of transactions) {
+      if (tx.category !== category) continue
+      // Round to nearest 50 cents to group near-identical amounts
+      const rounded = Math.round(tx.amount * 2) / 2
+      if (!seen.has(rounded) && rounded > 0) {
+        seen.add(rounded)
+        recent.push(rounded)
+        if (recent.length === 4) break
+      }
+    }
+    return recent.length >= 2 ? recent : DEFAULT_QUICK_AMOUNTS
+  }, [category, transactions])
+
+  // ── Amount helpers ───────────────────────────────────────────
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value.replace(/[^0-9.]/g, '')
     const parts = v.split('.')
@@ -75,14 +104,32 @@ export function TransactionSheet({
     setAmount(v)
   }
 
+  const adjustAmount = (delta: number) => {
+    const current = parseFloat(amount) || 0
+    const next    = Math.max(0.01, current + delta)
+    setAmount(next % 1 === 0 ? next.toString() : next.toFixed(2))
+  }
+
+  // ── Date label ───────────────────────────────────────────────
+  const dateLabel = (() => {
+    if (date === today)     return 'Today'
+    if (date === yesterday) return 'Yesterday'
+    return new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  })()
+
+  // ── Submit ───────────────────────────────────────────────────
   const handleSubmit = () => {
     if (!amount || !category || !date) return
     onSubmit({ amount: parseFloat(amount), category, type: txType, date, note: note || undefined })
     onClose()
   }
 
-  const canSubmit = !!amount && parseFloat(amount) > 0 && !!category && !!date
-  const visibleCats = txType === 'expense' ? EXPENSE_CATS : INCOME_CATS
+  const canSubmit     = !!amount && parseFloat(amount) > 0 && !!category && !!date
+  const needsCategory = !!amount && parseFloat(amount) > 0 && !category
+  const visibleCats   = txType === 'expense' ? EXPENSE_CATS : INCOME_CATS
+  const accentColor   = txType === 'income' ? 'var(--green)' : 'var(--red)'
+  const accentGlow    = txType === 'income' ? 'var(--green-glow)' : 'var(--red-glow)'
+  const signChar      = txType === 'income' ? '+' : '−'
 
   return (
     <>
@@ -111,40 +158,61 @@ export function TransactionSheet({
 
         <div className="px-6 pt-6 pb-8 space-y-7">
 
-          {/* ── Expense / Income toggle ── */}
-          <div
-            className="flex"
-            style={{ background: 'var(--raised)', borderRadius: '6px', padding: '3px' }}
-          >
-            {(['expense', 'income'] as const).map(t => (
+          {/* ── 1. Category ───────────────────────────────────────── */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="label">Category</p>
+              {/* Subtle income/expense toggle link */}
               <button
-                key={t}
-                onClick={() => handleTypeSwitch(t)}
-                className="flex-1 py-2.5 transition-all duration-150"
+                onClick={handleTypeToggle}
                 style={{
                   fontFamily: 'Space Mono, monospace',
                   fontSize: '11px',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  borderRadius: '4px',
-                  color: txType === t ? (t === 'income' ? 'var(--green)' : 'var(--red)') : 'var(--muted)',
-                  background: txType === t ? 'var(--bg)' : 'transparent',
-                  border: txType === t ? '1px solid var(--border)' : '1px solid transparent',
+                  letterSpacing: '0.08em',
+                  color: 'var(--muted)',
+                  transition: 'color 0.15s',
                 }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--sub)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
               >
-                {t}
+                {txType === 'expense' ? 'income →' : '← expenses'}
               </button>
-            ))}
+            </div>
+
+            <div className={`grid gap-2 ${txType === 'income' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {visibleCats.map(cat => {
+                const sel = category === cat.category
+                return (
+                  <button
+                    key={cat.category}
+                    onClick={() => handleCategorySelect(cat.category)}
+                    className="cat-pill"
+                    style={sel ? { borderColor: accentColor, background: accentGlow } : {}}
+                  >
+                    <span style={{ fontSize: '22px', lineHeight: 1 }}>{cat.emoji}</span>
+                    <span style={{
+                      fontFamily: 'Space Mono, monospace',
+                      fontSize: '12px',
+                      letterSpacing: '0.04em',
+                      color: sel ? accentColor : 'var(--sub)',
+                    }}>
+                      {cat.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
-          {/* ── Amount ── */}
+          {/* ── 2. Amount ─────────────────────────────────────────── */}
           <div>
+            {/* Large amount input */}
             <div className="flex items-baseline gap-2 mb-4">
               <span style={{
                 fontSize: '32px', fontFamily: 'Space Mono, monospace', lineHeight: 1,
                 color: txType === 'income' ? 'var(--green)' : 'var(--muted)',
               }}>
-                {txType === 'income' ? '+' : '−'}$
+                {signChar}$
               </span>
               <input
                 type="text"
@@ -152,7 +220,6 @@ export function TransactionSheet({
                 placeholder="0.00"
                 value={amount}
                 onChange={handleAmountChange}
-                autoFocus
                 style={{
                   flex: 1, background: 'transparent', outline: 'none',
                   fontSize: '48px', lineHeight: 1,
@@ -164,97 +231,123 @@ export function TransactionSheet({
                 }}
               />
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {QUICK_AMOUNTS.map(p => (
-                <button
-                  key={p}
-                  onClick={() => setAmount(p.toString())}
-                  className="amount-chip"
-                  style={amount === p.toString() ? { borderColor: 'var(--text)', color: 'var(--text)', background: 'var(--raised)' } : {}}
-                >
-                  ${p}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* ── Category ── */}
-          <div>
-            <p className="label mb-4">Category</p>
-            <div className={`grid gap-2 ${txType === 'income' ? 'grid-cols-2' : 'grid-cols-3'}`}>
-              {visibleCats.map(cat => {
-                const sel    = category === cat.category
-                const accent = txType === 'income' ? 'var(--green)' : 'var(--red)'
-                const glow   = txType === 'income' ? 'var(--green-glow)' : 'var(--red-glow)'
-                return (
+            {/* Quick chips + stepper */}
+            <div className="flex items-center gap-2">
+              <div className="flex gap-2 flex-wrap flex-1">
+                {quickAmounts.map(p => {
+                  const label = p % 1 === 0 ? `$${p}` : `$${p.toFixed(2)}`
+                  const active = amount === p.toString() || amount === p.toFixed(2)
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setAmount(p % 1 === 0 ? p.toString() : p.toFixed(2))}
+                      className="amount-chip"
+                      style={active ? { borderColor: 'var(--text)', color: 'var(--text)', background: 'var(--raised)' } : {}}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Fine-tune stepper */}
+              <div className="flex gap-1 flex-shrink-0">
+                {(['−', '+'] as const).map(sym => (
                   <button
-                    key={cat.category}
-                    onClick={() => setCategory(cat.category)}
-                    className="cat-pill"
-                    style={sel ? { borderColor: accent, background: glow } : {}}
+                    key={sym}
+                    onClick={() => adjustAmount(sym === '+' ? 1 : -1)}
+                    style={{
+                      width: '32px', height: '32px',
+                      fontFamily: 'Space Mono, monospace', fontSize: '16px',
+                      color: 'var(--muted)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '4px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.15s',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--sub)'; e.currentTarget.style.color = 'var(--sub)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)' }}
                   >
-                    <span style={{ fontSize: '22px', lineHeight: 1 }}>{cat.emoji}</span>
-                    <span style={{
-                      fontFamily: 'Space Mono, monospace',
-                      fontSize: '12px',
-                      letterSpacing: '0.04em',
-                      color: sel ? accent : 'var(--sub)',
-                    }}>
-                      {cat.label}
-                    </span>
+                    {sym}
                   </button>
-                )
-              })}
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* ── Date ── */}
-          <div>
-            <p className="label mb-4">Date</p>
-            <div className="flex gap-3 items-center">
-              {[{ label: 'Today', val: today }, { label: 'Yesterday', val: yesterday }].map(({ label, val }) => (
-                <button
-                  key={val}
-                  onClick={() => setDate(val)}
-                  style={{
-                    fontFamily: 'Space Mono, monospace', fontSize: '11px', letterSpacing: '0.1em',
-                    padding: '8px 14px', borderRadius: '4px', border: '1px solid', flexShrink: 0,
-                    borderColor: date === val ? 'var(--sub)' : 'var(--border)',
-                    color: date === val ? 'var(--text)' : 'var(--muted)',
-                    background: date === val ? 'var(--raised)' : 'transparent',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+          {/* ── 3. Note ───────────────────────────────────────────── */}
+          <input
+            type="text"
+            placeholder="what was this? (Chipotle, Netflix…)"
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            maxLength={60}
+            className="t-input"
+          />
+
+          {/* ── 4. Date — compact ─────────────────────────────────── */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="label" style={{ marginRight: '4px' }}>Date</p>
+
+            {[{ label: 'Today', val: today }, { label: 'Yesterday', val: yesterday }].map(({ label, val }) => (
+              <button
+                key={val}
+                onClick={() => { setDate(val); setShowDatePicker(false) }}
+                style={{
+                  fontFamily: 'Space Mono, monospace', fontSize: '11px', letterSpacing: '0.1em',
+                  padding: '6px 12px', borderRadius: '4px', border: '1px solid', flexShrink: 0,
+                  borderColor: date === val && !showDatePicker ? 'var(--sub)' : 'var(--border)',
+                  color: date === val && !showDatePicker ? 'var(--text)' : 'var(--muted)',
+                  background: date === val && !showDatePicker ? 'var(--raised)' : 'transparent',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+
+            {/* "Pick date" toggle or current custom date chip */}
+            {!showDatePicker ? (
+              <button
+                onClick={() => setShowDatePicker(true)}
+                style={{
+                  fontFamily: 'Space Mono, monospace', fontSize: '11px', letterSpacing: '0.1em',
+                  padding: '6px 12px', borderRadius: '4px', border: '1px solid', flexShrink: 0,
+                  borderColor: date !== today && date !== yesterday ? 'var(--sub)' : 'var(--border)',
+                  color: date !== today && date !== yesterday ? 'var(--text)' : 'var(--muted)',
+                  background: date !== today && date !== yesterday ? 'var(--raised)' : 'transparent',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {date !== today && date !== yesterday ? dateLabel : 'Pick date'}
+              </button>
+            ) : (
               <input
                 type="date"
                 value={date}
-                onChange={e => setDate(e.target.value)}
+                onChange={e => { setDate(e.target.value); setShowDatePicker(false) }}
                 max={today}
-                className="t-input flex-1"
-                style={{ fontFamily: 'Space Mono, monospace', fontSize: '13px' }}
+                autoFocus
+                className="t-input"
+                style={{ fontFamily: 'Space Mono, monospace', fontSize: '13px', flex: 1 }}
               />
-            </div>
+            )}
           </div>
 
-          {/* ── Note ── */}
-          <div>
-            <p className="label mb-3">
-              Note <span style={{ color: 'var(--dim)' }}>(optional)</span>
+          {/* ── Submit hint + actions ─────────────────────────────── */}
+          {needsCategory && (
+            <p style={{
+              fontFamily: 'Space Mono, monospace', fontSize: '11px',
+              letterSpacing: '0.08em', textAlign: 'center',
+              color: 'var(--sub)',
+            }}>
+              select a category to continue
             </p>
-            <input
-              type="text"
-              placeholder="what was this?"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              className="t-input"
-            />
-          </div>
+          )}
 
-          {/* ── Actions ── */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-1">
             <button onClick={onClose} className="flex-1 btn-ghost">Cancel</button>
             <button onClick={handleSubmit} disabled={!canSubmit} className="flex-1 btn-primary">
               {isEditMode ? 'Save' : 'Add'}
