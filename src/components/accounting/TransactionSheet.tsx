@@ -280,7 +280,7 @@ export function TransactionSheet({
           {/* ── 3. Note ───────────────────────────────────────────── */}
           <input
             type="text"
-            placeholder="what was this? (Chipotle, Netflix…)"
+            placeholder="what was this? (Restuarant, subscription, etc.)"
             value={note}
             onChange={e => setNote(e.target.value)}
             maxLength={60}
