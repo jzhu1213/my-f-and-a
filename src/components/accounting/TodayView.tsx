@@ -5,7 +5,7 @@ import type { Budget, Transaction, TransactionCategory } from '@/types'
 import {
   computeCategoryBudgets,
   computeWeeklyTotals,
-  daysLeftInWeek,
+  computeDailyBudget,
   toMonthString,
   weekRangeLabel,
 } from '@/lib/budgetUtils'
@@ -41,6 +41,7 @@ export function TodayView({
   const currentMonth = toMonthString(new Date())
   const rows         = computeCategoryBudgets(budgets, transactions, currentMonth, true)
   const totals       = computeWeeklyTotals(rows)
+  const daily        = computeDailyBudget(transactions, totals)
   const weekRange    = weekRangeLabel()
   const repeats      = getRecentRepeats(transactions, 3)
 
@@ -61,9 +62,15 @@ export function TodayView({
   const recentTxs = transactions.slice(0, 5)
 
   const heroAmount = (() => {
-    if (isLoading || noLimitsSet) return null
-    if (totals.weeklyLeft < 0) return { value: `$${Math.abs(totals.weeklyLeft).toFixed(0)}`, over: true }
-    return { value: `$${Math.max(0, totals.weeklyLeft).toFixed(0)}`, over: false }
+    if (isLoading || noLimitsSet || daily.leftToday === null) return null
+    if (daily.overWeekly) {
+      return { value: '$0', over: true, showOverAmount: true }
+    }
+    return {
+      value: `$${daily.leftToday.toFixed(0)}`,
+      over: daily.leftToday <= 0,
+      showOverAmount: false,
+    }
   })()
 
   return (
@@ -101,21 +108,24 @@ export function TodayView({
             <div className="mb-6">
               <p style={{
                 fontSize: '56px', lineHeight: 1, fontFamily: 'Space Mono, monospace', fontWeight: 300,
-                letterSpacing: '-0.02em', color: heroAmount?.over ? 'var(--red)' : 'var(--text)',
+                letterSpacing: '-0.02em',
+                color: heroAmount?.over ? 'var(--red)' : daily.leftToday! < 10 ? 'var(--amber)' : 'var(--text)',
               }}>
-                {heroAmount?.over ? '−' : ''}{heroAmount?.value}
+                {heroAmount?.value}
               </p>
               <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--sub)' }}>
-                {heroAmount?.over ? 'over budget this week' : 'left this week'}
+                {heroAmount?.showOverAmount
+                  ? `$${Math.abs(totals.weeklyLeft).toFixed(0)} over budget this week`
+                  : 'left to spend today'}
               </p>
-              {totals.safePerDay !== null && !heroAmount?.over && (
-                <p style={{
-                  marginTop: '12px', fontFamily: 'Space Mono, monospace', fontSize: '14px',
-                  color: totals.safePerDay <= 0 ? 'var(--red)' : totals.safePerDay < 10 ? 'var(--amber)' : 'var(--sub)',
-                }}>
-                  ≈ ${Math.max(0, totals.safePerDay).toFixed(0)}/day · {daysLeftInWeek()}d left
-                </p>
-              )}
+              <p style={{
+                marginTop: '12px', fontFamily: 'Space Mono, monospace', fontSize: '13px', color: 'var(--muted)',
+              }}>
+                ${Math.max(0, totals.weeklyLeft).toFixed(0)} left this week
+                {daily.spentToday > 0 && (
+                  <span style={{ color: 'var(--sub)' }}> · ${daily.spentToday.toFixed(0)} spent today</span>
+                )}
+              </p>
             </div>
           )}
 

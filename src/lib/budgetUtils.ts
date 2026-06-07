@@ -105,3 +105,31 @@ export function computeWeeklyTotals(rows: CategoryBudgetRow[]) {
 
   return { totalWeeklySpent, totalWeeklyLimit, weeklyLeft, totalWeekPct, safePerDay }
 }
+
+export function todayString(): string {
+  return new Date().toISOString().split('T')[0]
+}
+
+/** Daily budget context for the Today hero */
+export function computeDailyBudget(
+  transactions: Transaction[],
+  totals: ReturnType<typeof computeWeeklyTotals>,
+) {
+  const spentToday = transactions
+    .filter(t => t.date === todayString() && t.type === 'expense')
+    .reduce((s, t) => s + t.amount, 0)
+
+  const overWeekly = totals.totalWeeklyLimit > 0 && totals.weeklyLeft < 0
+
+  // Left today = daily allowance minus what's already spent today,
+  // capped by what's safe to spend to stay on track for the week.
+  let leftToday: number | null = null
+  if (totals.totalWeeklyLimit > 0) {
+    const dailyAllowance = totals.totalWeeklyLimit / 7
+    const byDailyCap     = dailyAllowance - spentToday
+    const byWeeklyPace   = totals.safePerDay ?? 0
+    leftToday            = Math.max(0, Math.min(byDailyCap, byWeeklyPace))
+  }
+
+  return { spentToday, leftToday, overWeekly }
+}
