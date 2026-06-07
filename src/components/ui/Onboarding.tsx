@@ -24,9 +24,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         {/* Value props */}
         <div className="mb-12" style={{ borderTop: '1px solid var(--border)' }}>
           {[
-            { icon: '↗', text: 'Track spending weekly and monthly' },
-            { icon: '◼', text: 'Set budgets per category'          },
-            { icon: '◎', text: 'Save toward your goals'            },
+            { icon: '◎', text: 'See what you can spend today'     },
+            { icon: '↗', text: 'Log expenses and income in seconds' },
+            { icon: '◼', text: 'Set weekly limits by category'    },
           ].map(({ icon, text }) => (
             <div
               key={text}

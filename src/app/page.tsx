@@ -6,7 +6,9 @@ import {
   Toast,
   ProfileSheet,
 } from '@/components'
-import { AccountingTab } from '@/components/accounting/AccountingTab'
+import { TodayView } from '@/components/accounting/TodayView'
+import { HistoryView } from '@/components/accounting/HistoryView'
+import { LimitsView } from '@/components/accounting/LimitsView'
 import { FinanceTab } from '@/components/finance/FinanceTab'
 import { TransactionSheet } from '@/components/accounting/TransactionSheet'
 import { useAuth } from '@/contexts/AuthContext'
@@ -38,17 +40,18 @@ import type {
   TransactionType,
 } from '@/types'
 
-type Tab = 'accounting' | 'finance'
+type Tab = 'today' | 'history' | 'learn' | 'limits'
 
 export default function FolioApp() {
   const { user, loading: authLoading } = useAuth()
   const { showToast } = useToast()
 
   const [hasOnboarded,          setHasOnboarded]          = useState<boolean | null>(null)
-  const [activeTab,             setActiveTab]             = useState<Tab>('accounting')
+  const [activeTab,             setActiveTab]             = useState<Tab>('today')
   const [showTransactionSheet,  setShowTransactionSheet]  = useState(false)
   const [editingTransaction,    setEditingTransaction]    = useState<Transaction | undefined>()
   const [prefilledCategory,     setPrefilledCategory]     = useState<TransactionCategory | undefined>()
+  const [prefilledType,         setPrefilledType]         = useState<TransactionType | undefined>()
   const [showProfile,           setShowProfile]           = useState(false)
 
   const [transactions,   setTransactions]   = useState<Transaction[]>([])
@@ -121,15 +124,17 @@ export default function FolioApp() {
   }
 
   // ── Transaction sheet open ──────────────────────────────────────
-  const handleOpenAddSheet = (category?: TransactionCategory) => {
+  const handleOpenAddSheet = (category?: TransactionCategory, type: TransactionType = 'expense') => {
     setEditingTransaction(undefined)
     setPrefilledCategory(category)
+    setPrefilledType(type)
     setShowTransactionSheet(true)
   }
 
   const handleOpenEditSheet = (tx: Transaction) => {
     setEditingTransaction(tx)
     setPrefilledCategory(undefined)
+    setPrefilledType(undefined)
     setShowTransactionSheet(true)
   }
 
@@ -137,6 +142,7 @@ export default function FolioApp() {
     setShowTransactionSheet(false)
     setEditingTransaction(undefined)
     setPrefilledCategory(undefined)
+    setPrefilledType(undefined)
   }
 
   // ── Add transaction ─────────────────────────────────────────────
@@ -358,39 +364,60 @@ export default function FolioApp() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      {activeTab === 'accounting' ? (
-        <AccountingTab
+      {activeTab === 'today' && (
+        <TodayView
           transactions={transactions}
           budgets={budgets}
-          goals={goals}
           isLoading={dataLoading}
-          onAddTransaction={handleOpenAddSheet}
+          onLogExpense={cat => handleOpenAddSheet(cat, 'expense')}
+          onLogIncome={() => handleOpenAddSheet(undefined, 'income')}
+          onOpenLimits={() => setActiveTab('limits')}
+          onViewHistory={() => setActiveTab('history')}
           onEditTransaction={handleOpenEditSheet}
-          onUpdateBudget={handleUpdateBudget}
+        />
+      )}
+      {activeTab === 'history' && (
+        <HistoryView
+          transactions={transactions}
+          isLoading={dataLoading}
+          onEditTransaction={handleOpenEditSheet}
           onDeleteTransaction={handleDeleteTransaction}
+        />
+      )}
+      {activeTab === 'limits' && (
+        <LimitsView
+          budgets={budgets}
+          goals={goals}
+          onBack={() => setActiveTab('today')}
+          onUpdateBudget={handleUpdateBudget}
           onCreateGoal={handleCreateGoal}
           onUpdateGoal={handleUpdateGoal}
           onContributeToGoal={handleContributeToGoal}
           onDeleteGoal={handleDeleteGoal}
         />
-      ) : (
+      )}
+      {activeTab === 'learn' && (
         <FinanceTab
           lessonProgress={lessonProgress}
           onCompleteLesson={handleLessonComplete}
         />
       )}
 
-      <TabNavigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onProfileOpen={() => setShowProfile(true)}
-      />
+      {/* Bottom nav hidden on limits screen (has its own back nav) */}
+      {activeTab !== 'limits' && (
+        <TabNavigation
+          activeTab={activeTab === 'learn' ? 'learn' : activeTab === 'history' ? 'history' : 'today'}
+          onTabChange={tab => setActiveTab(tab)}
+          onProfileOpen={() => setShowProfile(true)}
+        />
+      )}
 
       <TransactionSheet
         isOpen={showTransactionSheet}
         onClose={handleCloseSheet}
         onSubmit={handleSheetSubmit}
         prefilledCategory={prefilledCategory}
+        prefilledType={prefilledType}
         editTransaction={editingTransaction}
         transactions={transactions}
       />

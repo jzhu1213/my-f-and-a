@@ -14,6 +14,7 @@ interface TransactionSheetProps {
     note?: string
   }) => void
   prefilledCategory?: TransactionCategory
+  prefilledType?: TransactionType
   editTransaction?: Transaction
   transactions?: Transaction[]   // used for context-aware quick-amount chips
 }
@@ -24,7 +25,7 @@ const DEFAULT_QUICK_AMOUNTS = [5, 10, 20, 50]
 
 export function TransactionSheet({
   isOpen, onClose, onSubmit,
-  prefilledCategory, editTransaction, transactions = [],
+  prefilledCategory, prefilledType, editTransaction, transactions = [],
 }: TransactionSheetProps) {
   const isEditMode = !!editTransaction
 
@@ -52,13 +53,13 @@ export function TransactionSheet({
       const prefilled = prefilledCategory
         ? TRANSACTION_CATEGORIES.find(c => c.category === prefilledCategory)
         : null
-      setTxType(prefilled?.type ?? 'expense')
+      setTxType(prefilled?.type ?? prefilledType ?? 'expense')
       setCategory(prefilledCategory ?? null)
       setAmount('')
       setDate(today)
       setNote('')
     }
-  }, [isOpen, editTransaction, prefilledCategory, today])
+  }, [isOpen, editTransaction, prefilledCategory, prefilledType, today])
 
   // ── Toggle type (the subtle link) ───────────────────────────
   const handleTypeToggle = () => {

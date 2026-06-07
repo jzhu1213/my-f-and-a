@@ -1,6 +1,6 @@
 "use client"
 
-type Tab = 'accounting' | 'finance'
+type Tab = 'today' | 'history' | 'learn'
 
 interface TabNavigationProps {
   activeTab: Tab
@@ -10,8 +10,9 @@ interface TabNavigationProps {
 
 export function TabNavigation({ activeTab, onTabChange, onProfileOpen }: TabNavigationProps) {
   const tabs = [
-    { key: 'accounting' as Tab, label: 'Budget' },
-    { key: 'finance'    as Tab, label: 'Learn'  },
+    { key: 'today'   as Tab, label: 'Today'   },
+    { key: 'history' as Tab, label: 'History' },
+    { key: 'learn'   as Tab, label: 'Learn'   },
   ]
 
   return (
@@ -48,7 +49,6 @@ export function TabNavigation({ activeTab, onTabChange, onProfileOpen }: TabNavi
         )
       })}
 
-      {/* Profile button */}
       <button
         onClick={onProfileOpen}
         className="flex items-center justify-center px-5 transition-colors"
