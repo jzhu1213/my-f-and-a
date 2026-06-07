@@ -1,5 +1,6 @@
 "use client"
 import { useState } from 'react'
+import { BUDGET_CATEGORIES } from '@/types'
 import { BudgetLimitSheet } from './BudgetLimitSheet'
 import { GoalList } from './GoalList'
 import type { Budget, Goal, TransactionCategory } from '@/types'
@@ -19,9 +20,13 @@ export function LimitsView({
   budgets, goals, onBack,
   onUpdateBudget, onCreateGoal, onUpdateGoal, onContributeToGoal, onDeleteGoal,
 }: LimitsViewProps) {
-  const [showLimitSheet, setShowLimitSheet] = useState(false)
+  const [showLimitSheet, setShowLimitSheet]       = useState(false)
+  const [focusCategory, setFocusCategory]         = useState<TransactionCategory | undefined>()
 
-  const limitsSet = budgets.some(b => b.monthlyLimit > 0)
+  const openSheet = (cat?: TransactionCategory) => {
+    setFocusCategory(cat)
+    setShowLimitSheet(true)
+  }
 
   return (
     <div className="pb-24">
@@ -40,51 +45,60 @@ export function LimitsView({
         </button>
         <p className="label mb-4">limits & savings</p>
         <p style={{ fontSize: '14px', color: 'var(--sub)', lineHeight: 1.5 }}>
-          Adjust how much you can spend per week. Monthly limits are split into weekly budgets automatically.
+          Monthly limits split into weekly budgets on Today.
         </p>
       </div>
 
       <div className="px-6 pt-6">
-        {/* Budget limits section */}
+        {/* Inline limits list */}
         <div className="mb-10">
           <div className="flex items-center justify-between mb-4">
-            <p className="label">Weekly limits</p>
+            <p className="label">Category limits</p>
             <button
-              onClick={() => setShowLimitSheet(true)}
-              style={{
-                fontFamily: 'Space Mono, monospace', fontSize: '11px',
-                letterSpacing: '0.08em', color: 'var(--sub)',
-              }}
+              onClick={() => openSheet()}
+              style={{ fontFamily: 'Space Mono, monospace', fontSize: '11px', letterSpacing: '0.08em', color: 'var(--sub)' }}
             >
-              {limitsSet ? 'edit →' : 'set →'}
+              edit all →
             </button>
           </div>
 
-          {!limitsSet ? (
-            <button
-              onClick={() => setShowLimitSheet(true)}
-              className="w-full py-8 text-center transition-colors"
-              style={{
-                background: 'var(--raised)', border: '1px solid var(--border)', borderRadius: '6px',
-                color: 'var(--sub)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--line)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
-            >
-              <p style={{ fontSize: '15px', color: 'var(--text)', marginBottom: '4px' }}>No limits set</p>
-              <p style={{ fontSize: '13px' }}>Tap to set Food, Rent, Fun, etc.</p>
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowLimitSheet(true)}
-              className="w-full text-left py-4 transition-colors"
-              style={{ borderBottom: '1px solid var(--border)', color: 'var(--muted)' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--sub)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
-            >
-              <span className="label">Tap to adjust category limits</span>
-            </button>
-          )}
+          {BUDGET_CATEGORIES.map(cat => {
+            const budget       = budgets.find(b => b.category === cat.category)
+            const monthlyLimit = budget?.monthlyLimit ?? 0
+            const weeklyLimit  = monthlyLimit > 0 ? monthlyLimit / 4.33 : 0
+
+            return (
+              <button
+                key={cat.category}
+                onClick={() => openSheet(cat.category)}
+                className="w-full flex items-center justify-between gap-4 py-4 text-left transition-colors"
+                style={{ borderBottom: '1px solid var(--border)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span style={{ fontSize: '20px', lineHeight: 1 }}>{cat.emoji}</span>
+                  <span style={{ fontSize: '15px', color: 'var(--text)' }}>{cat.label}</span>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  {monthlyLimit > 0 ? (
+                    <>
+                      <p style={{ fontFamily: 'Space Mono, monospace', fontSize: '14px', color: 'var(--text)' }}>
+                        ${monthlyLimit.toFixed(0)}/mo
+                      </p>
+                      <p style={{ fontFamily: 'Space Mono, monospace', fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
+                        ≈ ${weeklyLimit.toFixed(0)}/wk
+                      </p>
+                    </>
+                  ) : (
+                    <p style={{ fontFamily: 'Space Mono, monospace', fontSize: '14px', color: 'var(--dim)' }}>
+                      not set
+                    </p>
+                  )}
+                </div>
+              </button>
+            )
+          })}
         </div>
 
         {/* Savings goals */}
@@ -102,9 +116,10 @@ export function LimitsView({
 
       <BudgetLimitSheet
         isOpen={showLimitSheet}
-        onClose={() => setShowLimitSheet(false)}
+        onClose={() => { setShowLimitSheet(false); setFocusCategory(undefined) }}
         budgets={budgets}
         onUpdateBudget={onUpdateBudget}
+        selectedCategory={focusCategory}
       />
     </div>
   )

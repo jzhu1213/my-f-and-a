@@ -1,7 +1,9 @@
 "use client"
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { TRANSACTION_CATEGORIES } from '@/types'
 import type { TransactionCategory, TransactionType, Transaction } from '@/types'
+import { getRecentRepeats } from '@/lib/transactionUtils'
+import type { TransactionRepeat } from '@/lib/transactionUtils'
 
 interface TransactionSheetProps {
   isOpen: boolean
@@ -13,10 +15,14 @@ interface TransactionSheetProps {
     date: string
     note?: string
   }) => void
+  onRepeatLog?: (repeat: TransactionRepeat) => void
   prefilledCategory?: TransactionCategory
   prefilledType?: TransactionType
+  prefilledAmount?: number
+  prefilledNote?: string
+  budgetRemaining?: number
   editTransaction?: Transaction
-  transactions?: Transaction[]   // used for context-aware quick-amount chips
+  transactions?: Transaction[]
 }
 
 const EXPENSE_CATS = TRANSACTION_CATEGORIES.filter(c => c.type === 'expense')
@@ -24,10 +30,12 @@ const INCOME_CATS  = TRANSACTION_CATEGORIES.filter(c => c.type === 'income')
 const DEFAULT_QUICK_AMOUNTS = [5, 10, 20, 50]
 
 export function TransactionSheet({
-  isOpen, onClose, onSubmit,
-  prefilledCategory, prefilledType, editTransaction, transactions = [],
+  isOpen, onClose, onSubmit, onRepeatLog,
+  prefilledCategory, prefilledType, prefilledAmount, prefilledNote,
+  budgetRemaining, editTransaction, transactions = [],
 }: TransactionSheetProps) {
   const isEditMode = !!editTransaction
+  const amountRef  = useRef<HTMLInputElement>(null)
 
   const today     = new Date().toISOString().split('T')[0]
   const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })()
@@ -55,11 +63,23 @@ export function TransactionSheet({
         : null
       setTxType(prefilled?.type ?? prefilledType ?? 'expense')
       setCategory(prefilledCategory ?? null)
-      setAmount('')
+      setAmount(prefilledAmount ? prefilledAmount.toString() : '')
       setDate(today)
-      setNote('')
+      setNote(prefilledNote ?? '')
     }
-  }, [isOpen, editTransaction, prefilledCategory, prefilledType, today])
+  }, [isOpen, editTransaction, prefilledCategory, prefilledType, prefilledAmount, prefilledNote, today])
+
+  // Auto-focus amount when category is pre-selected
+  useEffect(() => {
+    if (isOpen && !isEditMode && prefilledCategory) {
+      setTimeout(() => amountRef.current?.focus(), 100)
+    }
+  }, [isOpen, isEditMode, prefilledCategory])
+
+  const repeats = useMemo(
+    () => (!isEditMode && isOpen ? getRecentRepeats(transactions, 3) : []),
+    [isEditMode, isOpen, transactions],
+  )
 
   // ── Toggle type (the subtle link) ───────────────────────────
   const handleTypeToggle = () => {
@@ -159,6 +179,38 @@ export function TransactionSheet({
 
         <div className="px-6 pt-6 pb-8 space-y-7">
 
+          {/* Budget remaining hint */}
+          {!isEditMode && budgetRemaining !== undefined && prefilledCategory && (
+            <p style={{
+              fontFamily: 'Space Mono, monospace', fontSize: '12px',
+              color: budgetRemaining < 0 ? 'var(--red)' : budgetRemaining < 10 ? 'var(--amber)' : 'var(--sub)',
+              padding: '10px 12px', background: 'var(--raised)', borderRadius: '4px',
+              border: '1px solid var(--border)',
+            }}>
+              {budgetRemaining < 0
+                ? `$${Math.abs(budgetRemaining).toFixed(0)} over budget this week`
+                : `$${budgetRemaining.toFixed(0)} left in ${TRANSACTION_CATEGORIES.find(c => c.category === prefilledCategory)?.label ?? 'category'} this week`}
+            </p>
+          )}
+
+          {/* Log again — one tap in sheet */}
+          {!isEditMode && repeats.length > 0 && onRepeatLog && (
+            <div>
+              <p className="label mb-3">Log again</p>
+              <div className="flex gap-2 flex-wrap">
+                {repeats.map((r, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { onRepeatLog(r); onClose() }}
+                    className="amount-chip"
+                  >
+                    {r.type === 'income' ? '+' : '−'}{r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── 1. Category ───────────────────────────────────────── */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -216,6 +268,7 @@ export function TransactionSheet({
                 {signChar}$
               </span>
               <input
+                ref={amountRef}
                 type="text"
                 inputMode="decimal"
                 placeholder="0.00"

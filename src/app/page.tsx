@@ -5,7 +5,13 @@ import {
   TabNavigation,
   Toast,
   ProfileSheet,
+  LimitSetupWizard,
+  QuickLogFab,
 } from '@/components'
+import type { LimitSetupResult } from '@/components/ui/LimitSetupWizard'
+import { PaycheckSheet } from '@/components/accounting/PaycheckSheet'
+import { computeCategoryBudgets, toMonthString } from '@/lib/budgetUtils'
+import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { TodayView } from '@/components/accounting/TodayView'
 import { HistoryView } from '@/components/accounting/HistoryView'
 import { LimitsView } from '@/components/accounting/LimitsView'
@@ -35,23 +41,26 @@ import type {
   Budget,
   Goal,
   UserLessonProgress,
-  OnboardingData,
   TransactionCategory,
   TransactionType,
 } from '@/types'
 
 type Tab = 'today' | 'history' | 'learn' | 'limits'
+type OnboardingStep = 'loading' | 'welcome' | 'limits' | 'done'
 
 export default function FolioApp() {
   const { user, loading: authLoading } = useAuth()
   const { showToast } = useToast()
 
-  const [hasOnboarded,          setHasOnboarded]          = useState<boolean | null>(null)
+  const [onboardingStep,        setOnboardingStep]        = useState<OnboardingStep>('loading')
   const [activeTab,             setActiveTab]             = useState<Tab>('today')
   const [showTransactionSheet,  setShowTransactionSheet]  = useState(false)
   const [editingTransaction,    setEditingTransaction]    = useState<Transaction | undefined>()
   const [prefilledCategory,     setPrefilledCategory]     = useState<TransactionCategory | undefined>()
   const [prefilledType,         setPrefilledType]         = useState<TransactionType | undefined>()
+  const [prefilledAmount,       setPrefilledAmount]       = useState<number | undefined>()
+  const [prefilledNote,         setPrefilledNote]         = useState<string | undefined>()
+  const [paycheckAmount,        setPaycheckAmount]        = useState<number | null>(null)
   const [showProfile,           setShowProfile]           = useState(false)
 
   const [transactions,   setTransactions]   = useState<Transaction[]>([])
@@ -63,7 +72,7 @@ export default function FolioApp() {
   // ── Onboarding ─────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setHasOnboarded(localStorage.getItem('folio-onboarded') === 'true')
+      setOnboardingStep(localStorage.getItem('folio-onboarded') === 'true' ? 'done' : 'welcome')
     }
   }, [])
 
@@ -94,11 +103,22 @@ export default function FolioApp() {
     if (!authLoading) loadData()
   }, [user, authLoading])
 
-  // ── Onboarding complete ─────────────────────────────────────────
-  const handleOnboardingComplete = (_data: OnboardingData) => {
+  // ── Onboarding & limit setup ────────────────────────────────────
+  const finishOnboarding = () => {
     localStorage.setItem('folio-onboarded', 'true')
-    setHasOnboarded(true)
+    setOnboardingStep('done')
   }
+
+  const applyInitialLimits = async (limits: LimitSetupResult) => {
+    const entries = Object.entries(limits) as [TransactionCategory, number][]
+    for (const [cat, limit] of entries) {
+      if (limit > 0) await handleUpdateBudget(cat, limit, true)
+    }
+    if (entries.length > 0) showToast('Limits set — check Today to see what\'s left')
+    finishOnboarding()
+  }
+
+  const handleLimitSetupSkip = () => finishOnboarding()
 
   // ── Budget recalculation helper ─────────────────────────────────
   const recalculateBudgetSpent = async (updatedTxs: Transaction[], category?: TransactionCategory) => {
@@ -124,10 +144,17 @@ export default function FolioApp() {
   }
 
   // ── Transaction sheet open ──────────────────────────────────────
-  const handleOpenAddSheet = (category?: TransactionCategory, type: TransactionType = 'expense') => {
+  const handleOpenAddSheet = (
+    category?: TransactionCategory,
+    type: TransactionType = 'expense',
+    amount?: number,
+    note?: string,
+  ) => {
     setEditingTransaction(undefined)
     setPrefilledCategory(category)
     setPrefilledType(type)
+    setPrefilledAmount(amount)
+    setPrefilledNote(note)
     setShowTransactionSheet(true)
   }
 
@@ -135,6 +162,8 @@ export default function FolioApp() {
     setEditingTransaction(tx)
     setPrefilledCategory(undefined)
     setPrefilledType(undefined)
+    setPrefilledAmount(undefined)
+    setPrefilledNote(undefined)
     setShowTransactionSheet(true)
   }
 
@@ -143,12 +172,34 @@ export default function FolioApp() {
     setEditingTransaction(undefined)
     setPrefilledCategory(undefined)
     setPrefilledType(undefined)
+    setPrefilledAmount(undefined)
+    setPrefilledNote(undefined)
+  }
+
+  const handleRepeatLog = async (repeat: TransactionRepeat) => {
+    const today = new Date().toISOString().split('T')[0]
+    await handleAddTransaction({
+      amount: repeat.amount,
+      category: repeat.category,
+      type: repeat.type,
+      date: today,
+      note: repeat.note,
+    }, { silent: true })
+    showToast(repeat.type === 'income' ? 'Income logged' : 'Expense logged')
+  }
+
+  const getBudgetRemaining = (cat?: TransactionCategory): number | undefined => {
+    if (!cat) return undefined
+    const row = computeCategoryBudgets(budgets, transactions, toMonthString(new Date()), true)
+      .find(r => r.category === cat)
+    return row?.hasLimit ? row.weeklyLeft : undefined
   }
 
   // ── Add transaction ─────────────────────────────────────────────
-  const handleAddTransaction = async (data: {
-    amount: number; category: TransactionCategory; type: TransactionType; date: string; note?: string
-  }) => {
+  const handleAddTransaction = async (
+    data: { amount: number; category: TransactionCategory; type: TransactionType; date: string; note?: string },
+    opts?: { silent?: boolean },
+  ) => {
     if (!user) {
       const newTx: Transaction = {
         id: Date.now().toString(), userId: 'local',
@@ -159,7 +210,8 @@ export default function FolioApp() {
       const updated = [newTx, ...transactions]
       setTransactions(updated)
       if (data.type === 'expense') await recalculateBudgetSpent(updated, data.category)
-      showToast('Transaction added')
+      if (!opts?.silent) showToast('Transaction added')
+      if (data.type === 'income') setPaycheckAmount(data.amount)
       return
     }
     const result = await insertTransaction(user.id, data)
@@ -167,7 +219,8 @@ export default function FolioApp() {
       const updated = [result, ...transactions]
       setTransactions(updated)
       if (data.type === 'expense') await recalculateBudgetSpent(updated, data.category)
-      showToast('Transaction added')
+      if (!opts?.silent) showToast('Transaction added')
+      if (data.type === 'income') setPaycheckAmount(data.amount)
     } else {
       showToast('Failed to add transaction', 'error')
     }
@@ -246,7 +299,7 @@ export default function FolioApp() {
   }
 
   // ── Budget ──────────────────────────────────────────────────────
-  const handleUpdateBudget = async (category: TransactionCategory, limit: number) => {
+  const handleUpdateBudget = async (category: TransactionCategory, limit: number, quiet = false) => {
     if (!user) {
       const currentMonth = new Date().toISOString().slice(0, 7)
       setBudgets(prev => {
@@ -254,7 +307,7 @@ export default function FolioApp() {
         if (existing) return prev.map(b => b.category === category && b.month === currentMonth ? { ...b, monthlyLimit: limit } : b)
         return [...prev, { id: Date.now().toString(), userId: 'local', category, monthlyLimit: limit, spent: 0, month: currentMonth }]
       })
-      showToast('Budget updated')
+      if (!quiet) showToast('Budget updated')
       return
     }
     const result = await upsertBudget(user.id, category, limit)
@@ -262,8 +315,8 @@ export default function FolioApp() {
       setBudgets(prev => prev.some(b => b.category === category && b.month === result.month)
         ? prev.map(b => b.id === result.id ? result : b)
         : [...prev, result])
-      showToast('Budget updated')
-    } else {
+      if (!quiet) showToast('Budget updated')
+    } else if (!quiet) {
       showToast('Failed to update budget', 'error')
     }
   }
@@ -291,18 +344,22 @@ export default function FolioApp() {
     else showToast('Failed to update goal', 'error')
   }
 
-  const handleContributeToGoal = async (goalId: string, amount: number) => {
+  const handleContributeToGoal = async (goalId: string, amount: number, quiet = false) => {
     const goal = goals.find(g => g.id === goalId)
     if (!goal) return
     const newAmount = goal.currentAmount + amount
     if (!user) {
       setGoals(prev => prev.map(g => g.id === goalId ? { ...g, currentAmount: newAmount } : g))
-      showToast(`$${amount} added to goal`)
+      if (!quiet) showToast(`$${amount} added to goal`)
       return
     }
     const result = await updateGoalProgress(user.id, goalId, newAmount)
-    if (result) { setGoals(prev => prev.map(g => g.id === goalId ? result : g)); showToast(`$${amount} added`) }
-    else showToast('Failed to update goal', 'error')
+    if (result) {
+      setGoals(prev => prev.map(g => g.id === goalId ? result : g))
+      if (!quiet) showToast(`$${amount} added`)
+    } else if (!quiet) {
+      showToast('Failed to update goal', 'error')
+    }
   }
 
   const handleDeleteGoal = async (goalId: string) => {
@@ -332,11 +389,11 @@ export default function FolioApp() {
     setGoals([])
     setLessonProgress([])
     localStorage.removeItem('folio-onboarded')
-    setHasOnboarded(false)
+    setOnboardingStep('welcome')
   }
 
   // ── Loading state ───────────────────────────────────────────────
-  if (authLoading || hasOnboarded === null) {
+  if (authLoading || onboardingStep === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="text-center">
@@ -350,8 +407,17 @@ export default function FolioApp() {
     )
   }
 
-  if (!hasOnboarded) {
-    return <Onboarding onComplete={handleOnboardingComplete} />
+  if (onboardingStep === 'welcome') {
+    return <Onboarding onComplete={() => setOnboardingStep('limits')} />
+  }
+
+  if (onboardingStep === 'limits') {
+    return (
+      <LimitSetupWizard
+        onComplete={applyInitialLimits}
+        onSkip={handleLimitSetupSkip}
+      />
+    )
   }
 
   // Transaction sheet submit handler — route to add or edit
@@ -371,6 +437,7 @@ export default function FolioApp() {
           isLoading={dataLoading}
           onLogExpense={cat => handleOpenAddSheet(cat, 'expense')}
           onLogIncome={() => handleOpenAddSheet(undefined, 'income')}
+          onRepeatLog={handleRepeatLog}
           onOpenLimits={() => setActiveTab('limits')}
           onViewHistory={() => setActiveTab('history')}
           onEditTransaction={handleOpenEditSheet}
@@ -412,14 +479,33 @@ export default function FolioApp() {
         />
       )}
 
+      {(activeTab === 'history' || activeTab === 'learn') && (
+        <QuickLogFab
+          onLogExpense={() => handleOpenAddSheet(undefined, 'expense')}
+          onLogIncome={() => handleOpenAddSheet(undefined, 'income')}
+        />
+      )}
+
       <TransactionSheet
         isOpen={showTransactionSheet}
         onClose={handleCloseSheet}
         onSubmit={handleSheetSubmit}
+        onRepeatLog={handleRepeatLog}
         prefilledCategory={prefilledCategory}
         prefilledType={prefilledType}
+        prefilledAmount={prefilledAmount}
+        prefilledNote={prefilledNote}
+        budgetRemaining={getBudgetRemaining(prefilledCategory)}
         editTransaction={editingTransaction}
         transactions={transactions}
+      />
+
+      <PaycheckSheet
+        isOpen={paycheckAmount !== null}
+        amount={paycheckAmount ?? 0}
+        goals={goals}
+        onContribute={(goalId, amount) => handleContributeToGoal(goalId, amount, true)}
+        onClose={() => setPaycheckAmount(null)}
       />
 
       <ProfileSheet
