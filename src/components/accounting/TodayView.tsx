@@ -6,6 +6,7 @@ import {
   computeCategoryBudgets,
   computeWeeklyTotals,
   computeDailyBudget,
+  daysLeftInMonth,
   toMonthString,
   weekRangeLabel,
 } from '@/lib/budgetUtils'
@@ -60,16 +61,42 @@ export function TodayView({
   })
 
   const recentTxs = transactions.slice(0, 5)
+  const monthAvailable = monthIncome - monthExpenses
 
-  const heroAmount = (() => {
-    if (isLoading || noLimitsSet || daily.leftToday === null) return null
-    if (daily.overWeekly) {
-      return { value: '$0', over: true, showOverAmount: true }
+  const hero = (() => {
+    if (isLoading) {
+      return { value: '—', label: '\u00A0', sub: null as string | null, color: 'var(--line)' }
     }
+    if (showIncomeNudge) {
+      return { value: '—', label: 'add income to see your balance', sub: null, color: 'var(--muted)' }
+    }
+
+    if (!noLimitsSet && daily.leftToday !== null) {
+      if (daily.overWeekly) {
+        return {
+          value: '$0',
+          label: `$${Math.abs(totals.weeklyLeft).toFixed(0)} over budget this week`,
+          sub: daily.spentToday > 0 ? `$${daily.spentToday.toFixed(0)} spent today` : null,
+          color: 'var(--red)',
+        }
+      }
+      return {
+        value: `$${daily.leftToday.toFixed(0)}`,
+        label: 'left to spend today',
+        sub: `$${Math.max(0, totals.weeklyLeft).toFixed(0)} left this week${
+          daily.spentToday > 0 ? ` · $${daily.spentToday.toFixed(0)} spent today` : ''
+        }`,
+        color: daily.leftToday <= 0 ? 'var(--red)' : daily.leftToday < 10 ? 'var(--amber)' : 'var(--text)',
+      }
+    }
+
+    const daysLeft = daysLeftInMonth()
+    const estimatedDaily = daysLeft > 0 ? Math.max(0, monthAvailable / daysLeft) : Math.max(0, monthAvailable)
     return {
-      value: `$${daily.leftToday.toFixed(0)}`,
-      over: daily.leftToday <= 0,
-      showOverAmount: false,
+      value: `${monthAvailable < 0 ? '−' : ''}$${Math.abs(estimatedDaily).toFixed(0)}`,
+      label: 'left per day (estimated)',
+      sub: `$${Math.abs(monthAvailable).toFixed(0)} available this month`,
+      color: monthAvailable < 0 ? 'var(--red)' : 'var(--text)',
     }
   })()
 
@@ -90,44 +117,35 @@ export function TodayView({
             </button>
           </div>
 
-          {isLoading ? (
-            <div className="mb-6">
-              <p style={{ fontSize: '56px', fontFamily: 'Space Mono, monospace', color: 'var(--line)', lineHeight: 1 }}>—</p>
-            </div>
-          ) : noLimitsSet ? (
-            <div className="mb-6">
-              <p style={{ fontSize: '22px', color: 'var(--text)', marginBottom: '8px', lineHeight: 1.3 }}>
-                Set limits to see what&apos;s left
-              </p>
-              <p style={{ fontSize: '14px', color: 'var(--sub)', marginBottom: '16px' }}>
-                Know instantly if you can afford coffee, dinner, or going out.
-              </p>
-              <button onClick={onOpenLimits} className="btn-primary w-full">Set weekly limits</button>
-            </div>
-          ) : (
-            <div className="mb-6">
-              <p style={{
-                fontSize: '56px', lineHeight: 1, fontFamily: 'Space Mono, monospace', fontWeight: 300,
-                letterSpacing: '-0.02em',
-                color: heroAmount?.over ? 'var(--red)' : daily.leftToday! < 10 ? 'var(--amber)' : 'var(--text)',
-              }}>
-                {heroAmount?.value}
-              </p>
-              <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--sub)' }}>
-                {heroAmount?.showOverAmount
-                  ? `$${Math.abs(totals.weeklyLeft).toFixed(0)} over budget this week`
-                  : 'left to spend today'}
-              </p>
+          <div className="mb-6">
+            <p style={{
+              fontSize: '64px', lineHeight: 1, fontFamily: 'Space Mono, monospace', fontWeight: 300,
+              letterSpacing: '-0.02em', color: hero.color,
+            }}>
+              {hero.value}
+            </p>
+            <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--sub)' }}>
+              {hero.label}
+            </p>
+            {hero.sub && (
               <p style={{
                 marginTop: '12px', fontFamily: 'Space Mono, monospace', fontSize: '13px', color: 'var(--muted)',
               }}>
-                ${Math.max(0, totals.weeklyLeft).toFixed(0)} left this week
-                {daily.spentToday > 0 && (
-                  <span style={{ color: 'var(--sub)' }}> · ${daily.spentToday.toFixed(0)} spent today</span>
-                )}
+                {hero.sub}
               </p>
-            </div>
-          )}
+            )}
+            {!isLoading && noLimitsSet && !showIncomeNudge && (
+              <button
+                onClick={onOpenLimits}
+                className="mt-4 w-full text-left"
+                style={{ fontSize: '13px', color: 'var(--muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--sub)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
+              >
+                Set limits for an accurate daily budget →
+              </button>
+            )}
+          </div>
 
           <div className="flex gap-3">
             <button onClick={() => onLogExpense()} className="flex-1 btn-primary" style={{ background: 'var(--text)', color: 'var(--bg)' }}>

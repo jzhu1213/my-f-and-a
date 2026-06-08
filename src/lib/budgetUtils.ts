@@ -31,6 +31,12 @@ export function daysLeftInWeek(): number {
   return day === 0 ? 1 : 8 - day
 }
 
+export function daysLeftInMonth(): number {
+  const now = new Date()
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  return lastDay - now.getDate() + 1
+}
+
 export interface CategoryBudgetRow {
   category: TransactionCategory
   emoji: string
