@@ -64,39 +64,55 @@ export function getStatus(remainingAmount: number, dailyBudget: number): Allowan
 }
 
 /**
- * Generates encouraging message based on status
+ * Generates context-aware encouraging messages based on allowance status.
+ * 
+ * **Validates: Requirements 1.10, 2.3**
+ * 
+ * Messages follow UX guidelines:
+ * - Encouraging and non-judgmental tone
+ * - Short and human language
+ * - Actionable context when appropriate
+ * - Warm and supportive rather than shame-based
  */
-function generateEncouragingMessage(status: AllowanceStatus, amount: number, spentToday: number): string {
-  const messages: Record<AllowanceStatus, string[]> = {
-    healthy: [
-      "You're doing great! Stay on track.",
-      "Nice! Plenty of budget left today.",
-      "Looking good! Keep it up.",
-      "You're in great shape today!"
-    ],
-    caution: [
-      "Getting close, but you've got this.",
-      "Watch your spending, you're doing well.",
-      "Halfway there, stay mindful.",
-      "You're on track, just be careful."
-    ],
-    warning: [
-      "Almost at your limit, spend wisely.",
-      "Getting tight, make it count.",
-      "Nearly there, choose carefully.",
-      "Running low, be thoughtful."
-    ],
-    over: [
-      "Over budget today, try to save tomorrow.",
-      "A bit over, but tomorrow's a new day.",
-      "Over today, plan better tomorrow.",
-      "Above budget, reset tomorrow."
-    ]
+export function generateEncouragingMessage(status: AllowanceStatus, amount: number, spentToday: number): string {
+  // Format amounts for contextual messages
+  const amountStr = amount > 0 ? `$${Math.round(amount)}` : '$0'
+  
+  switch (status) {
+    case 'healthy':
+      if (amount >= 50) {
+        return `Nice! You've got ${amountStr} left today.`
+      } else if (amount >= 20) {
+        return `You're doing great — ${amountStr} to go.`
+      } else {
+        return `Still ${amountStr} left. You're on track!`
+      }
+      
+    case 'caution':
+      if (amount >= 10) {
+        return `Heads up, you're close to today's limit. ${amountStr} left.`
+      } else {
+        return `Getting close — ${amountStr} left. You've got this.`
+      }
+      
+    case 'warning':
+      if (amount > 0) {
+        return `Almost there — just ${amountStr} left today.`
+      } else {
+        return `Right at your limit. Nice job staying on track.`
+      }
+      
+    case 'over':
+      if (spentToday < 50) {
+        return 'A little tight today — tomorrow resets.'
+      } else {
+        return 'Over today, but no stress. Tomorrow\'s a fresh start.'
+      }
+      
+    default:
+      // Fallback for any unexpected status values
+      return 'No stress — let\'s keep it simple.'
   }
-
-  const statusMessages = messages[status]
-  const index = Math.floor(Math.random() * statusMessages.length)
-  return statusMessages[index]
 }
 
 /**
