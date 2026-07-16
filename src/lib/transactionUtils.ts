@@ -1,4 +1,8 @@
 import type { Transaction, TransactionCategory, TransactionType } from '@/types'
+import type { QuickTransaction, DailyAllowance } from '@/types/folio'
+import { insertTransaction } from '@/lib/supabaseData'
+import { getStatus, generateEncouragingMessage } from '@/lib/dailyAllowanceUtils'
+import { addToOfflineQueue } from '@/lib/offlineQueue'
 
 export interface TransactionRepeat {
   category: TransactionCategory
@@ -34,4 +38,100 @@ export function getRecentRepeats(transactions: Transaction[], limit = 3): Transa
   }
 
   return result
+}
+
+/**
+ * Result of a quick transaction log attempt.
+ * - success + transaction: persisted to DB immediately
+ * - !success + queued: stored offline for background retry
+ */
+export interface LogTransactionResult {
+  success: boolean
+  transaction: Transaction | null
+  queued: boolean
+}
+
+/**
+ * Logs a quick transaction to Supabase.
+ * On network failure, queues the transaction locally for background retry.
+ * Defaults to 'personal' account and 'expense' type.
+ *
+ * **Validates: Requirements 3.8, 10.1, 10.2**
+ */
+export async function logQuickTransaction(
+  userId: string,
+  transaction: QuickTransaction
+): Promise<LogTransactionResult> {
+  const today = new Date()
+  const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+  const result = await insertTransaction(userId, {
+    date,
+    amount: transaction.amount,
+    type: 'expense',
+    category: transaction.category,
+    note: transaction.note,
+    accountType: 'personal',
+  })
+
+  if (result) {
+    return { success: true, transaction: result, queued: false }
+  }
+
+  // Network/DB failure — queue locally for background retry
+  addToOfflineQueue(userId, transaction)
+  return { success: false, transaction: null, queued: true }
+}
+
+/**
+ * Applies an optimistic update to the daily allowance after an expense.
+ * Returns a new DailyAllowance reflecting the deducted amount without mutating the original.
+ *
+ * **Validates: Requirements 3.8, 10.1**
+ */
+export function applyOptimisticUpdate(
+  allowance: DailyAllowance,
+  amount: number
+): DailyAllowance {
+  const newSpentToday = allowance.spentToday + amount
+  const newAmount = Math.max(0, allowance.amount - amount)
+
+  // Use raw amount (can be negative) for accurate status calculation
+  const rawAmount = allowance.amount - amount
+  const status = getStatus(rawAmount, allowance.dailyBudget)
+  const message = generateEncouragingMessage(status, newAmount, newSpentToday)
+
+  return {
+    ...allowance,
+    amount: newAmount,
+    spentToday: newSpentToday,
+    status,
+    message,
+  }
+}
+
+/**
+ * Reverts an optimistic update when the network call fails.
+ * Restores the daily allowance to its pre-optimistic state.
+ *
+ * **Validates: Requirements 3.8, 10.1**
+ */
+export function revertOptimisticUpdate(
+  allowance: DailyAllowance,
+  amount: number
+): DailyAllowance {
+  const revertedSpentToday = allowance.spentToday - amount
+  const revertedAmount = allowance.amount + amount
+
+  const rawAmount = revertedAmount // already positive since we're restoring
+  const status = getStatus(rawAmount, allowance.dailyBudget)
+  const message = generateEncouragingMessage(status, revertedAmount, revertedSpentToday)
+
+  return {
+    ...allowance,
+    amount: revertedAmount,
+    spentToday: revertedSpentToday,
+    status,
+    message,
+  }
 }
