@@ -39,22 +39,28 @@ function getDaysInMonth(date: Date): number {
 }
 
 /**
- * Determines allowance status based on remaining amount and daily budget
+ * Determines allowance status based on remaining amount and daily budget.
+ *
+ * **Validates: Requirements 1.6, 1.7, 1.8, 1.9**
  */
-function getStatus(remainingAmount: number, dailyBudget: number): AllowanceStatus {
-  if (remainingAmount < 0 || dailyBudget === 0) {
+export function getStatus(remainingAmount: number, dailyBudget: number): AllowanceStatus {
+  if (remainingAmount < 0) {
     return 'over'
   }
-  
-  const percentRemaining = (remainingAmount / dailyBudget) * 100
-  
-  if (percentRemaining <= 25) {
+
+  if (dailyBudget <= 0) {
     return 'warning'
   }
-  if (percentRemaining <= 50) {
+
+  const percentRemaining = (remainingAmount / dailyBudget) * 100
+
+  if (percentRemaining > 50) {
+    return 'healthy'
+  }
+  if (percentRemaining >= 25) {
     return 'caution'
   }
-  return 'healthy'
+  return 'warning'
 }
 
 /**
