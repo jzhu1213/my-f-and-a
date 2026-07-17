@@ -4,35 +4,69 @@ const config: Config = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/features/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
+        // Semantic surface colors — driven by CSS variables so warm/dark
+        // themes switch without rebuilding Tailwind.
+        background: 'var(--bg)',
+        surface: 'var(--surface)',
+        'surface-raised': 'var(--raised)',
+        'surface-hover': 'var(--hover, var(--raised))',
+        border: 'var(--border)',
+        line: 'var(--line)',
+
+        // Text hierarchy
+        foreground: 'var(--text)',
+        'foreground-sub': 'var(--sub)',
+        'foreground-muted': 'var(--muted)',
+        'foreground-dim': 'var(--dim)',
+
+        // Semantic status colors
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        error: 'var(--error)',
+        info: 'var(--blue, #60a5fa)',
+
+        // Accent
+        accent: 'var(--accent, #818cf8)',
+        'accent-muted': 'var(--accent-muted, rgba(129, 140, 248, 0.15))',
+
+        // Legacy t-* aliases — kept temporarily for the finance/ components
+        // that still reference them. Remove once those are migrated/removed.
         t: {
-          bg:      '#000000',
-          surface: '#0d0d0d',
-          raised:  '#161616',
-          hover:   '#1a1a1a',
-          border:  '#282828',
-          line:    '#323232',
-          text:    '#ffffff',
-          sub:     '#888888',
-          muted:   '#4a4a4a',
-          dim:     '#2e2e2e',
-          green:   '#4ade80',
+          bg:      'var(--bg)',
+          surface: 'var(--surface)',
+          raised:  'var(--raised)',
+          hover:   'var(--raised)',
+          border:  'var(--border)',
+          line:    'var(--line)',
+          text:    'var(--text)',
+          sub:     'var(--sub)',
+          muted:   'var(--muted)',
+          dim:     'var(--dim)',
+          green:   'var(--success)',
           'green-bg': 'rgba(74,222,128,0.08)',
-          red:     '#f87171',
+          red:     'var(--error)',
           'red-bg': 'rgba(248,113,113,0.08)',
-          amber:   '#fbbf24',
-          blue:    '#60a5fa',
+          amber:   'var(--warning)',
+          blue:    'var(--blue, #60a5fa)',
           'blue-bg': 'rgba(96,165,250,0.08)',
         },
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         mono: ['Space Mono', 'monospace'],
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        full: '9999px',
       },
       animation: {
         'slide-up':   'slideUp 0.25s ease-out forwards',

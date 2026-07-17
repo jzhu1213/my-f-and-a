@@ -38,7 +38,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen antialiased bg-t-bg text-t-text">
+      <body className="min-h-screen antialiased bg-background text-foreground">
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>
