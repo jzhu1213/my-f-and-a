@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
+import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { TransactionCategory, Transaction } from '@/types'
 import type { SmartSuggestion } from '@/types/folio'
@@ -368,7 +369,7 @@ export function ExpenseSheet({
                     <motion.button
                       key={cat.category}
                       type="button"
-                      onClick={() => setCategory(cat.category)}
+                      onClick={() => { setCategory(cat.category); triggerHaptic('light') }}
                       aria-label={`Category: ${cat.label}`}
                       aria-pressed={selected}
                       className="cat-pill"

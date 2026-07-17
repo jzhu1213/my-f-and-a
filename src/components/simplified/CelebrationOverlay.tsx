@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { GlassCard } from "@/components/ui"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
+import { triggerHaptic } from "@/lib/haptics"
 import type { CelebrationEvent, CelebrationType } from "@/types/folio"
 
 /**
@@ -201,6 +202,9 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
   // Auto-dismiss after the event's duration, and wire up Escape + focus.
   useEffect(() => {
     if (!event) return
+
+    // Trigger celebratory haptic feedback when the celebration appears
+    triggerHaptic("success")
 
     dismissButtonRef.current?.focus()
 

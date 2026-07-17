@@ -12,7 +12,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { HomeScreenSkeleton, FadeInContent } from "@/components/ui/Skeleton"
 import { CategoryDetailSheet } from "@/components/accounting/CategoryDetailSheet"
+import { SwipeableTransactionRow } from "./SwipeableTransactionRow"
+import { PullToRefresh } from "./PullToRefresh"
 
 // ============================================================================
 // Helpers
@@ -59,6 +62,10 @@ export interface HomeScreenProps {
   onViewTransaction: (tx: Transaction) => void
   /** Called when user wants to see full history */
   onViewAllHistory: () => void
+  /** Called when user swipes to delete a transaction (optimistic delete with undo) */
+  onDeleteTransaction?: (id: string) => void
+  /** Called when user pulls to refresh — refetches transactions and budgets */
+  onRefresh?: () => Promise<void>
 }
 
 // ============================================================================
@@ -91,6 +98,8 @@ export function HomeScreen({
   onRepeatLog,
   onViewTransaction,
   onViewAllHistory,
+  onDeleteTransaction,
+  onRefresh,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -131,7 +140,17 @@ export function HomeScreen({
     [transactions]
   )
 
+  // ── Loading state: show full-page skeleton ────────────────────────────────
+  if (isLoading) {
+    return <HomeScreenSkeleton />
+  }
+
+  // ── Default no-op refresh handler ──────────────────────────────────────────
+  const handleRefresh = onRefresh ?? (() => Promise.resolve())
+
   return (
+    <FadeInContent>
+    <PullToRefresh onRefresh={handleRefresh} disabled={isLoading}>
     <div className="home-screen" style={{ width: "100%", display: "flex", justifyContent: "center" }}>
       <div
         className="home-screen__content"
@@ -291,26 +310,36 @@ export function HomeScreen({
           >
             Categories
           </h2>
-          {isLoading ? (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="animate-pulse"
-                  style={{
-                    height: 110,
-                    borderRadius: 14,
-                    background: "rgba(255,255,255,0.04)",
-                  }}
-                />
-              ))}
-            </div>
-          ) : categoryRows.length === 0 ? (
-            <GlassCard elevation="low" style={{ padding: "16px", borderRadius: 14 }}>
-              <p style={{ fontSize: 13, color: "var(--sub)", textAlign: "center" }}>
-                No categories yet
-              </p>
-            </GlassCard>
+          {categoryRows.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: 14 }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 32 }} aria-hidden="true">🎯</span>
+                  <p style={{
+                    fontSize: 14,
+                    color: "var(--text)",
+                    textAlign: "center",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 500,
+                  }}>
+                    Set limits for an accurate daily budget
+                  </p>
+                  <p style={{
+                    fontSize: 12,
+                    color: "var(--sub)",
+                    textAlign: "center",
+                    fontFamily: "Inter, sans-serif",
+                    opacity: 0.8,
+                  }}>
+                    Category limits help Folio calculate what you can spend each day
+                  </p>
+                </div>
+              </GlassCard>
+            </motion.div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {categoryRows.map((row) => {
@@ -373,13 +402,13 @@ export function HomeScreen({
                               marginTop: 2,
                             }}
                           >
-                            <div
+                            <motion.div
+                              animate={{ width: `${Math.min(row.weekPct, 100)}%` }}
+                              transition={{ type: "spring", stiffness: 100, damping: 20 }}
                               style={{
-                                width: `${Math.min(row.weekPct, 100)}%`,
                                 height: "100%",
                                 borderRadius: 2,
                                 background: barColor,
-                                transition: "width 0.3s ease",
                               }}
                             />
                           </div>
@@ -469,26 +498,36 @@ export function HomeScreen({
             )}
           </div>
 
-          {isLoading ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="animate-pulse"
-                  style={{
-                    height: 48,
-                    borderRadius: 12,
-                    background: "rgba(255,255,255,0.04)",
-                  }}
-                />
-              ))}
-            </div>
-          ) : recentTransactions.length === 0 ? (
-            <GlassCard elevation="low" style={{ padding: "16px", borderRadius: 14 }}>
-              <p style={{ fontSize: 13, color: "var(--sub)", textAlign: "center" }}>
-                No transactions yet — log your first one above!
-              </p>
-            </GlassCard>
+          {recentTransactions.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: 14 }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 32 }} aria-hidden="true">✨</span>
+                  <p style={{
+                    fontSize: 14,
+                    color: "var(--text)",
+                    textAlign: "center",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 500,
+                  }}>
+                    Start by logging your first expense!
+                  </p>
+                  <p style={{
+                    fontSize: 12,
+                    color: "var(--sub)",
+                    textAlign: "center",
+                    fontFamily: "Inter, sans-serif",
+                    opacity: 0.8,
+                  }}>
+                    Tap "Log expense" above — it only takes a second
+                  </p>
+                </div>
+              </GlassCard>
+            </motion.div>
           ) : (
             <GlassCard elevation="low" style={{ padding: "12px 0", borderRadius: 14 }}>
               {(() => {
@@ -530,59 +569,53 @@ export function HomeScreen({
                       )
                       const emoji = catInfo?.emoji ?? "💰"
                       const label = tx.note || catInfo?.label || tx.category
+                      const isLast =
+                        groupIdx === grouped.length - 1 &&
+                        txIdx === group.txs.length - 1
 
                       return (
-                        <motion.button
+                        <SwipeableTransactionRow
                           key={tx.id}
-                          type="button"
-                          onClick={() => onViewTransaction(tx)}
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{
-                            delay: (groupIdx * 2 + txIdx) * 0.04,
-                            ...springs.gentle,
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            width: "100%",
-                            padding: "10px 16px",
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            textAlign: "left",
-                            borderBottom:
-                              groupIdx === grouped.length - 1 &&
-                              txIdx === group.txs.length - 1
-                                ? "none"
-                                : "1px solid rgba(255,255,255,0.04)",
-                          }}
+                          id={tx.id}
+                          onDelete={(id) => onDeleteTransaction?.(id)}
+                          onTap={() => onViewTransaction(tx)}
+                          showBorder={!isLast}
                         >
-                          <span
+                          <div
                             style={{
-                              fontSize: 14,
-                              color: "var(--text)",
-                              fontFamily: "Inter, sans-serif",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              width: "100%",
+                              padding: "10px 16px",
+                              textAlign: "left",
                             }}
                           >
-                            {emoji} {label}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 14,
-                              fontWeight: 500,
-                              fontFamily: "Inter, sans-serif",
-                              color:
-                                tx.type === "income"
-                                  ? "var(--success)"
-                                  : "var(--text)",
-                            }}
-                          >
-                            {tx.type === "income" ? "+" : "−"}$
-                            {tx.amount.toFixed(2)}
-                          </span>
-                        </motion.button>
+                            <span
+                              style={{
+                                fontSize: 14,
+                                color: "var(--text)",
+                                fontFamily: "Inter, sans-serif",
+                              }}
+                            >
+                              {emoji} {label}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 500,
+                                fontFamily: "Inter, sans-serif",
+                                color:
+                                  tx.type === "income"
+                                    ? "var(--success)"
+                                    : "var(--text)",
+                              }}
+                            >
+                              {tx.type === "income" ? "+" : "−"}$
+                              {tx.amount.toFixed(2)}
+                            </span>
+                          </div>
+                        </SwipeableTransactionRow>
                       )
                     })}
                   </div>
@@ -594,17 +627,7 @@ export function HomeScreen({
 
         {/* ── 5. Monthly Summary ──────────────────────────────────── */}
         <section aria-label="Monthly summary">
-          {isLoading ? (
-            <div
-              className="animate-pulse"
-              style={{
-                height: 72,
-                borderRadius: 14,
-                background: "rgba(255,255,255,0.04)",
-              }}
-            />
-          ) : (
-            <GlassCard elevation="low" style={{ padding: 0, borderRadius: 14, overflow: "hidden" }}>
+          <GlassCard elevation="low" style={{ padding: 0, borderRadius: 14, overflow: "hidden" }}>
               {/* Header — always visible, acts as toggle */}
               <motion.button
                 type="button"
@@ -773,7 +796,6 @@ export function HomeScreen({
                 )}
               </AnimatePresence>
             </GlassCard>
-          )}
         </section>
       </div>
 
@@ -786,5 +808,7 @@ export function HomeScreen({
         onLogHere={(cat) => { setSelectedRow(null); onLogExpense(cat) }}
       />
     </div>
+    </PullToRefresh>
+    </FadeInContent>
   )
 }

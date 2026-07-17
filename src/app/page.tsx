@@ -45,6 +45,7 @@ import type {
   TransactionCategory,
   TransactionType,
 } from '@/types'
+import { triggerHaptic } from '@/lib/haptics'
 
 type OnboardingStep = 'loading' | 'welcome' | 'limits' | 'done'
 
@@ -78,31 +79,47 @@ export default function FolioApp() {
   }, [])
 
   // ── Data loading ────────────────────────────────────────────────
-  useEffect(() => {
-    async function loadData() {
-      if (!user) { setDataLoading(false); return }
-      try {
-        // Carry forward budget limits from previous month before fetching
-        await carryForwardBudgetLimits(user.id)
+  const loadData = async () => {
+    if (!user) { setDataLoading(false); return }
+    try {
+      // Carry forward budget limits from previous month before fetching
+      await carryForwardBudgetLimits(user.id)
 
-        const [txData, budgetData, goalData, progressData] = await Promise.all([
-          getTransactions(user.id),
-          getBudgets(user.id),
-          getGoals(user.id),
-          getLessonProgress(user.id),
-        ])
-        setTransactions(txData)
-        setBudgets(budgetData)
-        setGoals(goalData)
-        setLessonProgress(progressData)
-      } catch (err) {
-        console.error('Error loading data:', err)
-      } finally {
-        setDataLoading(false)
-      }
+      const [txData, budgetData, goalData, progressData] = await Promise.all([
+        getTransactions(user.id),
+        getBudgets(user.id),
+        getGoals(user.id),
+        getLessonProgress(user.id),
+      ])
+      setTransactions(txData)
+      setBudgets(budgetData)
+      setGoals(goalData)
+      setLessonProgress(progressData)
+    } catch (err) {
+      console.error('Error loading data:', err)
+    } finally {
+      setDataLoading(false)
     }
+  }
+
+  useEffect(() => {
     if (!authLoading) loadData()
   }, [user, authLoading])
+
+  /** Pull-to-refresh handler: refetches transactions and budgets from Supabase */
+  const handleRefresh = async () => {
+    if (!user) return
+    try {
+      const [txData, budgetData] = await Promise.all([
+        getTransactions(user.id),
+        getBudgets(user.id),
+      ])
+      setTransactions(txData)
+      setBudgets(budgetData)
+    } catch (err) {
+      console.error('Error refreshing data:', err)
+    }
+  }
 
   // ── Onboarding & limit setup ────────────────────────────────────
   const finishOnboarding = () => {
@@ -213,6 +230,7 @@ export default function FolioApp() {
       if (data.type === 'expense') await recalculateBudgetSpent(updated, data.category)
       if (!opts?.silent) showToast('Transaction added')
       if (data.type === 'income') setPaycheckAmount(data.amount)
+      triggerHaptic('medium')
       return
     }
     const result = await insertTransaction(user.id, data)
@@ -222,6 +240,7 @@ export default function FolioApp() {
       if (data.type === 'expense') await recalculateBudgetSpent(updated, data.category)
       if (!opts?.silent) showToast('Transaction added')
       if (data.type === 'income') setPaycheckAmount(data.amount)
+      triggerHaptic('medium')
     } else {
       showToast('Failed to add transaction', 'error')
     }
