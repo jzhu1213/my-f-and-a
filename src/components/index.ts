@@ -11,4 +11,5 @@ export * from './ui'
 export * from './simplified/DailyAllowanceHero'
 export * from './simplified/AllowanceRing'
 export * from './simplified/QuickLogArea'
+export * from './simplified/CelebrationOverlay'
 

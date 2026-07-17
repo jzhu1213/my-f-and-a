@@ -314,6 +314,311 @@ input[type="date"] {
 }
 .animate-fade-in { animation: fadeIn 0.18s ease-out forwards; }
 
+/* ── Gradient mesh background ────────────────────────────────────── */
+/*
+ * Full-viewport animated backdrop built from layered radial-gradient
+ * "orbs". Each orb is a GPU-composited layer that drifts slowly using
+ * translate3d + opacity only, so it stays on the compositor thread and
+ * holds 60fps. A faint SVG noise overlay adds grain for depth.
+ */
+.gradient-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--bg);
+}
+
+.gradient-mesh__orb {
+  position: absolute;
+  border-radius: 50%;
+  /* Soft edges — the color fades to transparent well before the box edge */
+  filter: blur(40px);
+  opacity: 0.5;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Home variant — three rich orbs (soft purple, indigo, deep blue) */
+.gradient-mesh--home .gradient-mesh__orb--1 {
+  width: 60vmax;
+  height: 60vmax;
+  top: -20vmax;
+  left: -10vmax;
+  background: radial-gradient(circle at center, rgba(129, 140, 248, 0.55), transparent 65%);
+  animation: mesh-drift-1 26s ease-in-out infinite;
+}
+
+.gradient-mesh--home .gradient-mesh__orb--2 {
+  width: 55vmax;
+  height: 55vmax;
+  bottom: -18vmax;
+  right: -12vmax;
+  background: radial-gradient(circle at center, rgba(99, 102, 241, 0.5), transparent 65%);
+  animation: mesh-drift-2 32s ease-in-out infinite;
+}
+
+.gradient-mesh--home .gradient-mesh__orb--3 {
+  width: 45vmax;
+  height: 45vmax;
+  top: 30vmax;
+  left: 25vmax;
+  background: radial-gradient(circle at center, rgba(67, 56, 202, 0.45), transparent 65%);
+  animation: mesh-drift-3 38s ease-in-out infinite;
+}
+
+/* Muted variant — dimmer, calmer orbs for settings / secondary screens */
+.gradient-mesh--muted .gradient-mesh__orb {
+  opacity: 0.28;
+  filter: blur(60px);
+}
+
+.gradient-mesh--muted .gradient-mesh__orb--1 {
+  width: 55vmax;
+  height: 55vmax;
+  top: -18vmax;
+  left: -12vmax;
+  background: radial-gradient(circle at center, rgba(129, 140, 248, 0.4), transparent 68%);
+  animation: mesh-drift-1 34s ease-in-out infinite;
+}
+
+.gradient-mesh--muted .gradient-mesh__orb--2 {
+  width: 50vmax;
+  height: 50vmax;
+  bottom: -20vmax;
+  right: -14vmax;
+  background: radial-gradient(circle at center, rgba(79, 70, 229, 0.32), transparent 68%);
+  animation: mesh-drift-2 42s ease-in-out infinite;
+}
+
+.gradient-mesh--muted .gradient-mesh__orb--3 {
+  width: 40vmax;
+  height: 40vmax;
+  top: 28vmax;
+  left: 22vmax;
+  background: radial-gradient(circle at center, rgba(49, 46, 129, 0.3), transparent 68%);
+  animation: mesh-drift-3 48s ease-in-out infinite;
+}
+
+/* Grain overlay for depth/richness — a tiled fractal-noise SVG */
+.gradient-mesh__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Gentle position shifts — translate3d + scale keep it GPU-composited */
+@keyframes mesh-drift-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(6vmax, 4vmax, 0) scale(1.08); }
+}
+
+@keyframes mesh-drift-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-5vmax, -6vmax, 0) scale(1.1); }
+}
+
+@keyframes mesh-drift-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(4vmax, -5vmax, 0) scale(0.92); }
+}
+
+/* Reduced motion — freeze the drift, keep a calm static gradient */
+@media (prefers-reduced-motion: reduce) {
+  .gradient-mesh__orb {
+    animation: none !important;
+  }
+}
+
+/* ── Skeleton loading states ─────────────────────────────────────── */
+/*
+ * Shimmer placeholders for premium loading states. Each skeleton is a
+ * neutral surface with a soft highlight that sweeps left-to-right. The
+ * sweep is driven by a GPU-composited `transform: translateX(...)` on a
+ * pseudo-element, so it stays on the compositor thread and holds 60fps.
+ */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 40%,
+    rgba(255, 255, 255, 0.10) 50%,
+    rgba(255, 255, 255, 0.06) 60%,
+    transparent 100%
+  );
+  will-change: transform;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+/* Shape variants */
+.skeleton--circle { border-radius: 50%; }
+.skeleton--text   { border-radius: var(--radius-sm); height: 0.85em; }
+.skeleton--card   { border-radius: var(--radius-md); background: var(--raised); }
+
+@keyframes skeleton-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Crossfade — real content fades in gently as the skeleton is removed */
+@keyframes skeleton-content-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.skeleton-content-in {
+  animation: skeleton-content-in 0.32s ease-out forwards;
+}
+
+/* Logo pulse glow — a slow breathing glow during initial auth/data load */
+.logo-pulse {
+  will-change: transform, opacity;
+  animation: logo-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes logo-pulse {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(129, 140, 248, 0));
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 14px rgba(129, 140, 248, 0.45));
+  }
+}
+
+/* Reduced motion — swap the sweep for a gentle, slow opacity pulse and
+ * calm the logo/crossfade so nothing moves abruptly. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: skeleton-fade 2s ease-in-out infinite;
+    transform: none;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .logo-pulse {
+    animation: skeleton-fade 2.4s ease-in-out infinite;
+    transform: none;
+    filter: none;
+  }
+  .skeleton-content-in {
+    animation: skeleton-content-in 0.6s ease-out forwards;
+  }
+}
+
+@keyframes skeleton-fade {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.75; }
+}
+
+/* ── Glass card (glassmorphism) ─────────────────────────────────── */
+/*
+ * Frosted-glass surface used across the premium UI. A translucent white
+ * fill sits over the animated mesh background and is blurred + saturated
+ * with `backdrop-filter` so whatever drifts behind it shows through softly.
+ *
+ * Structure:
+ *   .glass-card            → base surface (fill, blur, radius, shadow)
+ *   .glass-card::before    → 1px gradient inner border (bright top → clear
+ *                            bottom) rendered with a mask so only the edge
+ *                            shows, giving the "lit rim" look.
+ *   .glass-card--low/med/high → elevation: blur intensity, border
+ *                            brightness and drop-shadow depth.
+ *   .glass-card--glow      → contextual colored halo driven by the
+ *                            `--glass-glow` custom property set inline.
+ *
+ * Contrast: the fill is only ~4% white over the dark (#1a1a2e) background,
+ * so the effective surface stays dark and the theme's pure-white --text
+ * (and --sub #b4b4c8) keep WCAG AA contrast for body copy. Browsers without
+ * backdrop-filter fall back to a more opaque surface (see @supports) so text
+ * never lands on a see-through background.
+ */
+.glass-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  /* Halo color/strength — overridden inline when a glow is requested. */
+  --glass-glow: transparent;
+}
+
+/* 1px gradient rim: bright at the top, fading to transparent at the bottom */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    to bottom,
+    var(--glass-border-top, rgba(255, 255, 255, 0.08)),
+    transparent
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Elevation — controls blur intensity, rim brightness and shadow depth */
+.glass-card--low {
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  --glass-border-top: rgba(255, 255, 255, 0.06);
+}
+
+.glass-card--medium {
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  --glass-border-top: rgba(255, 255, 255, 0.08);
+}
+
+.glass-card--high {
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
+  --glass-border-top: rgba(255, 255, 255, 0.12);
+}
+
+/* Contextual colored halo — layered on top of the elevation drop-shadow */
+.glass-card--glow.glass-card--low {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), 0 0 20px 0 var(--glass-glow);
+}
+.glass-card--glow.glass-card--medium {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24), 0 0 28px 0 var(--glass-glow);
+}
+.glass-card--glow.glass-card--high {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32), 0 0 40px 2px var(--glass-glow);
+}
+
+/* Fallback for browsers without backdrop-filter: use a solid-ish surface so
+ * text stays on an opaque, high-contrast background. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-card {
+    background: rgba(37, 37, 58, 0.92); /* ~var(--surface) */
+  }
+}
+
 /* ── Safe area ───────────────────────────────────────────────────── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .t-tab-nav {
@@ -321,5 +626,929 @@ input[type="date"] {
   }
   .t-fab {
     bottom: calc(72px + env(safe-area-inset-bottom) + 1rem);
+  }
+}
+
+/* ── Ambient glow ────────────────────────────────────────────────── */
+/*
+ * Contextual ambient lighting that sits behind key UI (hero, category
+ * selection, tip cards). A large, heavily-blurred radial-gradient pool of
+ * colored light layered *behind* content via a negative z-index.
+ *
+ * Classes:
+ *   .ambient-glow                → positioned decorative container.
+ *   .ambient-glow--sm/md/lg/xl   → footprint of the glow pool.
+ *   .ambient-glow--subtle/...    → perceived strength (opacity band).
+ *   .ambient-glow--center/...    → anchor point within the parent.
+ *   .ambient-glow--fixed         → viewport-fixed instead of absolute.
+ *
+ * The glow color is supplied inline via the `--ambient-glow-color` custom
+ * property and transitions smoothly (300ms ease) when the status changes.
+ */
+.ambient-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ambient-glow--fixed {
+  position: fixed;
+}
+
+.ambient-glow__pool {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  will-change: opacity;
+  background: radial-gradient(
+    circle at center,
+    var(--ambient-glow-color, rgba(129, 140, 248, 0.5)),
+    transparent 70%
+  );
+  /* Smooth color + strength transition when status changes */
+  transition: background 300ms ease, opacity 300ms ease;
+}
+
+/* Footprint of the glow pool */
+.ambient-glow--sm .ambient-glow__pool {
+  width: 220px;
+  height: 220px;
+}
+.ambient-glow--md .ambient-glow__pool {
+  width: 360px;
+  height: 360px;
+}
+.ambient-glow--lg .ambient-glow__pool {
+  width: 520px;
+  height: 520px;
+}
+.ambient-glow--xl .ambient-glow__pool {
+  width: 720px;
+  height: 720px;
+}
+
+/* Perceived strength — kept subtle/atmospheric (0.15–0.3) */
+.ambient-glow--subtle .ambient-glow__pool {
+  opacity: 0.15;
+}
+.ambient-glow--medium .ambient-glow__pool {
+  opacity: 0.22;
+}
+.ambient-glow--strong .ambient-glow__pool {
+  opacity: 0.3;
+}
+
+/* Anchor point within the positioned parent */
+.ambient-glow--center .ambient-glow__pool {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.ambient-glow--top .ambient-glow__pool {
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.ambient-glow--bottom .ambient-glow__pool {
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+.ambient-glow--top-left .ambient-glow__pool {
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+.ambient-glow--top-right .ambient-glow__pool {
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+}
+.ambient-glow--bottom-left .ambient-glow__pool {
+  bottom: 0;
+  left: 0;
+  transform: translate(-50%, 50%);
+}
+.ambient-glow--bottom-right .ambient-glow__pool {
+  bottom: 0;
+  right: 0;
+  transform: translate(50%, 50%);
+}
+
+/* Reduced motion — make the glow static (no color-transition animation) */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-glow__pool {
+    transition: none !important;
+  }
+}
+
+/* ── Daily allowance hero (premium treatment) ────────────────────── */
+/*
+ * Visual polish for DailyAllowanceHero:
+ *   .hero-amount           → gradient text fill for the dollar amount. A slow
+ *                            moving linear gradient is clipped to the number
+ *                            glyphs via background-clip: text. Colors are fed
+ *                            in per status through --hero-grad-from/-to.
+ *   .hero-breathe          → gentle breathing pulse for the ambient light
+ *                            behind the number (scale + opacity).
+ *   .hero-shimmer-particle → barely-visible twinkles arranged around the ring
+ *                            when the status is healthy.
+ *
+ * All motion is transform/opacity only (GPU-composited) and is disabled under
+ * prefers-reduced-motion so the hero degrades to a calm static state.
+ */
+.hero-amount {
+  background-image: linear-gradient(
+    100deg,
+    var(--hero-grad-from, var(--success)),
+    var(--hero-grad-to, #a7f3d0),
+    var(--hero-grad-from, var(--success))
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  will-change: background-position;
+  animation: hero-gradient-shift 6s ease-in-out infinite;
+}
+
+@keyframes hero-gradient-shift {
+  0%   { background-position: 0% center; }
+  50%  { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+/* Breathing ambient light behind the number */
+.hero-breathe {
+  will-change: transform, opacity;
+  animation: hero-breathe 4.5s ease-in-out infinite;
+}
+
+@keyframes hero-breathe {
+  0%, 100% { transform: scale(1);    opacity: 0.8; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+
+/* Barely-visible particle shimmer around the ring (healthy status only) */
+.hero-shimmer-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--success);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: hero-shimmer 3.2s ease-in-out infinite;
+}
+
+@keyframes hero-shimmer {
+  0%, 100% { opacity: 0;    transform: scale(0.5); }
+  50%      { opacity: 0.5;  transform: scale(1); }
+}
+
+/* Reduced motion — freeze the shifting gradient, breathing and shimmer */
+@media (prefers-reduced-motion: reduce) {
+  .hero-amount          { animation: none; }
+  .hero-breathe         { animation: none; transform: none; }
+  .hero-shimmer-particle { animation: none; opacity: 0; }
+}
+
+/* ── Quick log: elevated interaction design (task 9.4) ──────────── */
+/*
+ * Glass-pill treatment for the QuickLogArea category cards and suggestion
+ * chips, plus the success ripple and press-and-hold pulse ring. All motion
+ * is transform/opacity only (GPU-composited) and is disabled under
+ * prefers-reduced-motion so the experience stays calm.
+ */
+
+/* Category card — frosted glass pill with a lit rim */
+.cat-pill--glass {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.cat-pill--glass:not(.selected):hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Selection backdrop — a soft indigo inner glow behind the content */
+.cat-pill-highlight {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid rgba(129, 140, 248, 0.55);
+  background: rgba(129, 140, 248, 0.12);
+  box-shadow:
+    inset 0 0 18px rgba(129, 140, 248, 0.28),
+    0 0 22px rgba(129, 140, 248, 0.28);
+}
+
+/* Suggestion chip — floating glass pill with a soft shadow */
+.chip--glass {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+.chip--glass:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Success ripple — expands and fades out from the tapped chip */
+.chip-ripple {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 2px solid rgba(129, 140, 248, 0.6);
+  animation: chip-ripple 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes chip-ripple {
+  0%   { opacity: 0.75; transform: scale(1); }
+  100% { opacity: 0;    transform: scale(1.9); }
+}
+
+/* Press-and-hold pulse ring — breathing outline while a chip is held */
+.chip-pulse-ring {
+  position: absolute;
+  inset: -3px;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 2px solid rgba(129, 140, 248, 0.5);
+  animation: chip-pulse-ring 0.9s ease-out infinite;
+}
+
+@keyframes chip-pulse-ring {
+  0%   { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(1.28); }
+}
+
+/* Reduced motion — drop the emanating/breathing motion entirely */
+@media (prefers-reduced-motion: reduce) {
+  .chip-ripple,
+  .chip-pulse-ring {
+    animation: none !important;
+  }
+}
+
+/* ── Contextual tip card ─────────────────────────────────────────── */
+
+/* Gradient accent bar pinned to the card's left edge. Colored per tip type
+ * via --tip-accent-from / --tip-accent-to, with a slow vertical shimmer. */
+.tip-accent-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  background: linear-gradient(
+    180deg,
+    var(--tip-accent-from, var(--blue)),
+    var(--tip-accent-to, var(--blue)),
+    var(--tip-accent-from, var(--blue))
+  );
+  background-size: 100% 200%;
+  animation: tip-accent-shimmer 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes tip-accent-shimmer {
+  0%, 100% { background-position: center 0%; }
+  50%      { background-position: center 100%; }
+}
+
+/* Emoji float — gentle Y-axis oscillation, ~3s period */
+.tip-emoji-float {
+  display: inline-block;
+  animation: tip-emoji-float 3s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes tip-emoji-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* Ghost glass action pill */
+.tip-action-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  font-family: 'Inter', sans-serif;
+}
+.tip-action-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.tip-action-pill svg {
+  transition: transform 0.15s ease;
+}
+.tip-action-pill:hover svg {
+  transform: translateX(2px);
+}
+
+/* Reduced motion — drop the floating/shimmer, keep static surfaces */
+@media (prefers-reduced-motion: reduce) {
+  .tip-emoji-float,
+  .tip-accent-bar {
+    animation: none !important;
+  }
+}
+
+/* ── App shell: navigation & layout chrome (task 9.9) ───────────── */
+/*
+ * Top-level chrome for the simplified app (see AppShell.tsx):
+ *   .app-shell        → min-height viewport container (mesh sits behind).
+ *   .app-topbar       → floating glass top bar (avatar left, settings right).
+ *   .app-content      → scrollable content area, padded clear of the chrome.
+ *   .app-dock         → floating pill-shaped glass dock navigation.
+ *   .section-divider  → subtle gradient rule between major sections.
+ *
+ * Spacing is safe-area-aware via env(safe-area-inset-*) so the chrome clears
+ * notches / the Dynamic Island. The dock carries a soft *upward* shadow and a
+ * blur backdrop so it reads as floating above the animated mesh.
+ */
+
+.app-shell {
+  position: relative;
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+/* Safe-area spacing tokens (overridden in @supports below when available) */
+.app-shell {
+  --safe-top: 0px;
+  --safe-bottom: 0px;
+}
+
+/* ── Floating glass top bar ─────────────────────────────────────── */
+.app-topbar {
+  position: fixed;
+  top: 0;
+  inset-inline: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 56px;
+  padding: 0 16px;
+  /* Clear the notch / Dynamic Island */
+  padding-top: var(--safe-top);
+  box-sizing: content-box;
+  /* Glass treatment blended into the mesh */
+  background: rgba(26, 26, 46, 0.35);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Shared round icon-button base for top-bar controls */
+.app-topbar__avatar,
+.app-topbar__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--sub);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.app-topbar__avatar:hover,
+.app-topbar__btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.app-topbar__avatar:active,
+.app-topbar__btn:active {
+  transform: scale(0.94);
+}
+
+.app-topbar__avatar {
+  overflow: hidden;
+  padding: 0;
+}
+
+.app-topbar__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-topbar__avatar-initial {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+}
+
+/* ── Scrollable content ─────────────────────────────────────────── */
+.app-content {
+  position: relative;
+  z-index: 1;
+  /* Clear the fixed top bar (56px + safe-area) and the floating dock. */
+  padding-top: calc(56px + var(--safe-top) + 16px);
+  padding-bottom: calc(72px + var(--safe-bottom) + 24px);
+  padding-inline: 16px;
+  max-width: 560px;
+  margin-inline: auto;
+}
+
+.app-content--no-topbar {
+  padding-top: calc(var(--safe-top) + 16px);
+}
+
+/* ── Subtle section divider gradient ────────────────────────────── */
+/*
+ * A hairline rule that fades from transparent → border color → transparent,
+ * for calm separation between major sections without a hard line.
+ */
+.section-divider {
+  height: 1px;
+  border: 0;
+  margin: 24px 0;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--border) 20%,
+    var(--line) 50%,
+    var(--border) 80%,
+    transparent
+  );
+  opacity: 0.7;
+}
+
+/* ── Floating dock navigation ───────────────────────────────────── */
+.app-dock {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(16px + var(--safe-bottom));
+  z-index: 45;
+  padding: 8px;
+  border-radius: 999px;
+  /* Pill-shaped frosted glass matching the mesh backdrop */
+  background: rgba(37, 37, 58, 0.45);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  /* Soft *upward* shadow so it lifts off the content below */
+  box-shadow:
+    0 -2px 10px rgba(0, 0, 0, 0.18),
+    0 -12px 32px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.app-dock__list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-dock__item-wrap {
+  margin: 0;
+  padding: 0;
+}
+
+.app-dock__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 48px;
+  border-radius: 999px;
+  color: var(--sub);
+  background: transparent;
+  transition: color 0.2s ease;
+}
+
+.app-dock__item.is-active {
+  color: var(--text);
+}
+
+.app-dock__item:not(.is-active):hover {
+  color: var(--text);
+}
+
+/* Active item glow — a soft indigo halo behind the icon */
+.app-dock__glow {
+  position: absolute;
+  inset: 4px;
+  z-index: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  background: rgba(129, 140, 248, 0.18);
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  box-shadow:
+    inset 0 0 12px rgba(129, 140, 248, 0.28),
+    0 0 18px rgba(129, 140, 248, 0.35);
+}
+
+.app-dock__icon {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Safe-area: feed env() insets into the shell spacing tokens ─── */
+@supports (padding: env(safe-area-inset-top)) {
+  .app-shell {
+    --safe-top: env(safe-area-inset-top);
+    --safe-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Reduced motion — drop the transform-based hover feedback on the dock */
+@media (prefers-reduced-motion: reduce) {
+  .app-topbar__avatar:active,
+  .app-topbar__btn:active {
+    transform: none;
+  }
+}
+
+/* ── Scroll-responsive visual effects ───────────────────────────── */
+/*
+ * Primitives that react to scroll (see src/components/ui/ScrollAware and
+ * src/hooks/useScrollProgress). Every scroll-driven change is applied inline
+ * by framer-motion as a `transform` or `opacity` on a MotionValue, so it runs
+ * on the compositor thread. The classes below only supply the static
+ * structure (layout, glass treatment, shadows, masks).
+ *
+ *   .parallax-mesh          → fixed, over-extended layer holding GradientMesh
+ *   .condensing-header      → sticky hero that compresses into a glass pill
+ *   .top-edge-blur          → frosted band pinned to the top edge
+ *   .momentum-scroll        → content wrapper with a spring/momentum scroll lean
+ */
+
+/* Parallax mesh layer — over-extended so drift never reveals an edge.
+ * The transform set by framer-motion makes this a containing block, so the
+ * GradientMesh inside (position: fixed) fills this extended box. */
+.parallax-mesh {
+  position: fixed;
+  top: -24vmax;
+  bottom: -24vmax;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Condensing header — sticks below the top bar and compresses on scroll */
+.condensing-header {
+  position: sticky;
+  z-index: 30;
+  display: grid;
+}
+
+/* Layers stack on top of one another so full + compact can cross-fade */
+.condensing-header__layer {
+  grid-area: 1 / 1;
+}
+
+.condensing-header__full {
+  transform-origin: top center;
+  will-change: transform, opacity;
+}
+
+.condensing-header__compact {
+  align-self: center;
+  justify-self: center;
+  /* Only interactive once it has faded in; the full hero owns taps until then.
+   * framer-motion drives opacity, so this stays visually hidden at rest. */
+  pointer-events: auto;
+  will-change: transform, opacity;
+}
+
+/* Soft elevation shadow beneath the condensed header */
+.condensing-header__shadow {
+  grid-area: 1 / 1;
+  align-self: end;
+  height: 24px;
+  margin-bottom: -24px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 100% at 50% 0%,
+    rgba(0, 0, 0, 0.32),
+    transparent 70%
+  );
+  will-change: opacity;
+}
+
+/* Top-edge frosted band — constant blur, opacity animated by scroll.
+ * A downward alpha mask fades it softly into the content below. */
+.top-edge-blur {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  pointer-events: none;
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  background: linear-gradient(
+    to bottom,
+    rgba(26, 26, 46, 0.55),
+    rgba(26, 26, 46, 0)
+  );
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
+  mask-image: linear-gradient(to bottom, #000 40%, transparent);
+  will-change: opacity;
+}
+
+/* Fallback: without backdrop-filter, lean on the gradient tint alone. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .top-edge-blur {
+    background: linear-gradient(
+      to bottom,
+      rgba(26, 26, 46, 0.85),
+      rgba(26, 26, 46, 0)
+    );
+  }
+}
+
+/* Momentum scroll wrapper — framer-motion drives a small translateY lean that
+ * springs back as scrolling settles. Only the transform changes, so it stays
+ * on the compositor thread. */
+.momentum-scroll {
+  will-change: transform;
+}
+
+/* Reduced motion — freeze parallax drift and momentum lean; keep layers calm
+ * and static. */
+@media (prefers-reduced-motion: reduce) {
+  .parallax-mesh {
+    transform: none !important;
+    top: 0;
+    bottom: 0;
+  }
+
+  .momentum-scroll {
+    transform: none !important;
+    will-change: auto;
+  }
+}
+
+/* ── Celebration overlay ─────────────────────────────────────────────
+ *
+ * The immersive, full-screen celebration moment (CelebrationOverlay). A dim
+ * backdrop, a brief warm gradient flash, two confetti canvases (a blurred
+ * background layer + a crisp foreground layer for depth-of-field), CSS trail
+ * particles, and a centered glass card with an animated emoji.
+ *
+ * All motion is transform/opacity only (GPU-composited) and is fully disabled
+ * under prefers-reduced-motion, where only a calm centered card + fade remain.
+ */
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.celebration-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+}
+
+/* Brief warm glow that flashes over the whole screen then fades out. */
+.celebration-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  will-change: opacity;
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(252, 211, 77, 0.55) 0%,
+      rgba(251, 146, 60, 0.28) 38%,
+      transparent 72%
+    );
+  animation: celebration-flash 0.75s ease-out forwards;
+}
+
+@keyframes celebration-flash {
+  0%   { opacity: 0; }
+  22%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Confetti canvases fill the viewport; the background layer is softened with a
+ * blur to create a depth-of-field separation from the sharp foreground. */
+.celebration-confetti {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.celebration-confetti--bg {
+  filter: blur(2.5px);
+  opacity: 0.85;
+  z-index: 1;
+}
+
+.celebration-confetti--fg {
+  z-index: 2;
+}
+
+/* Trail particles — small dots with a soft trailing tail that drift downward
+ * behind the confetti, adding a sense of falling motion. */
+.celebration-trails {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.celebration-trail {
+  position: absolute;
+  top: -6%;
+  display: block;
+  border-radius: 999px;
+  color: #fcd34d;
+  box-shadow: 0 0 8px currentColor;
+  will-change: transform, opacity;
+  opacity: 0;
+  /* The trailing tail. */
+  background: linear-gradient(
+    to bottom,
+    currentColor 0%,
+    color-mix(in srgb, currentColor 35%, transparent) 55%,
+    transparent 100%
+  );
+  animation: celebration-trail var(--trail-duration, 2s) ease-in var(--trail-delay, 0s) infinite;
+}
+
+@keyframes celebration-trail {
+  0% {
+    transform: translate3d(0, 0, 0) scaleY(1);
+    opacity: 0;
+  }
+  12% { opacity: 1; }
+  85% { opacity: 0.9; }
+  100% {
+    transform: translate3d(var(--trail-drift, 0px), 92vh, 0) scaleY(1.6);
+    opacity: 0;
+  }
+}
+
+/* Centered card wrapper — also the shake target for milestone celebrations. */
+.celebration-card-wrap {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 22rem;
+  width: 100%;
+}
+
+.celebration-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 32px 28px;
+}
+
+.celebration-emoji {
+  font-size: 56px;
+  line-height: 1;
+  display: inline-block;
+}
+
+.celebration-emoji--animated {
+  will-change: transform;
+  transform-origin: center bottom;
+  animation: celebration-emoji-pop 0.6s cubic-bezier(0.22, 1, 0.36, 1) both,
+             celebration-emoji-bob 2.4s ease-in-out 0.6s infinite;
+}
+
+@keyframes celebration-emoji-pop {
+  0%   { transform: scale(0.2) rotate(-12deg); }
+  60%  { transform: scale(1.25) rotate(6deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes celebration-emoji-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-6px) scale(1.04); }
+}
+
+.celebration-card__title {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.celebration-card__message {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--sub);
+  margin: 0;
+}
+
+.celebration-card__dismiss {
+  margin-top: 8px;
+  padding: 10px 28px;
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1626;
+  background: linear-gradient(135deg, #fcd34d 0%, #fb923c 100%);
+  box-shadow: 0 6px 20px rgba(251, 146, 60, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.celebration-card__dismiss:active {
+  transform: scale(0.96);
+}
+
+.celebration-card__dismiss:focus-visible {
+  outline: 2px solid #fcd34d;
+  outline-offset: 3px;
+}
+
+/* Subtle screen shake for milestone celebrations (2px, 150ms). */
+.celebration-shake {
+  animation: celebration-shake 0.15s ease-in-out 1;
+}
+
+@keyframes celebration-shake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25%      { transform: translate3d(-2px, 1px, 0); }
+  50%      { transform: translate3d(2px, -1px, 0); }
+  75%      { transform: translate3d(-1px, 2px, 0); }
+}
+
+/* Reduced motion — strip the flash, confetti, trails, emoji motion and shake.
+ * The overlay degrades to a calm centered card with a gentle fade (handled in
+ * the component by not rendering the effects); these guards are a safety net. */
+@media (prefers-reduced-motion: reduce) {
+  .celebration-flash,
+  .celebration-trail,
+  .celebration-emoji--animated,
+  .celebration-shake {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .celebration-emoji--animated {
+    transform: none !important;
   }
 }

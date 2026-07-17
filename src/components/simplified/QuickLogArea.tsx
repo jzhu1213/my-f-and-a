@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useMemo, useRef } from "react"
-import { motion, AnimatePresence, PanInfo } from "framer-motion"
+import { useState, useMemo, useRef, useEffect } from "react"
+import { motion, AnimatePresence, PanInfo, Variants } from "framer-motion"
 import type { Transaction, Budget, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { QuickTransaction, SmartSuggestion } from "@/types/folio"
 import { generateSmartSuggestions } from "@/lib/suggestionUtils"
 import { useToast } from "@/contexts/ToastContext"
+import { springs, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,15 @@ const MAX_NOTE_LENGTH = 60
 
 /** Minimum swipe distance (px) to reveal custom amount input (Requirement 3.5) */
 const SWIPE_THRESHOLD = 60
+
+/** Spring for the category icon bounce micro-interaction (task 9.4). */
+const ICON_BOUNCE_SPRING = { type: "spring", stiffness: 400, damping: 17 } as const
+
+/** How long (ms) a chip must be held before the pulse-ring haptic fires. */
+const LONG_PRESS_MS = 350
+
+/** How long (ms) the success ripple plays before the selection resets. */
+const RIPPLE_MS = 550
 
 // ── Validation & Sanitization ────────────────────────────────────────────────
 
@@ -50,38 +60,99 @@ interface CategoryButtonProps {
   label: string
   isSelected: boolean
   onSelect: () => void
+  reducedMotion: boolean
 }
 
 /**
  * Large tappable category button — minimum 48×80px for accessibility.
- * Requirement 3.1, 15.2
+ *
+ * Restyled as a rounded glass pill (task 9.4). On selection a shared-layout
+ * highlight slides in behind the content as an expanding backdrop with a
+ * subtle inner glow, and the whole card lifts slightly with a scale. On tap
+ * the icon plays a spring bounce (stiffness 400 / damping 17).
+ *
+ * Requirement 3.1, 8.4, 13.5, 15.2
  */
-function CategoryButton({ category, emoji, label, isSelected, onSelect }: CategoryButtonProps) {
+function CategoryButton({
+  category,
+  emoji,
+  label,
+  isSelected,
+  onSelect,
+  reducedMotion,
+}: CategoryButtonProps) {
+  // Variant maps drive the tap gesture. Framer propagates the active gesture
+  // variant ("tap") to any child that defines the same key, so the icon
+  // bounces no matter where inside the card the press lands.
+  const cardTapVariants: Variants = reducedMotion
+    ? { tap: {} }
+    : { tap: { scale: 0.94 } }
+
+  const iconBounceVariants: Variants = reducedMotion
+    ? { tap: {} }
+    : { tap: { scale: 1.3 } }
+
+  // Selection lift — the highlighted card floats upward slightly with scale.
+  const selectionAnimate = reducedMotion
+    ? {}
+    : { y: isSelected ? -4 : 0, scale: isSelected ? 1.03 : 1 }
+
   return (
     <motion.button
       type="button"
-      className={`cat-pill flex-1 min-w-0${isSelected ? " selected" : ""}`}
-      style={{
-        minHeight: 80,
-        minWidth: 48,
-        outline: isSelected ? `2px solid var(--sub)` : "none",
-        outlineOffset: 2,
-      }}
+      className={`cat-pill cat-pill--glass flex-1 min-w-0${isSelected ? " selected" : ""}`}
+      style={{ minHeight: 80, minWidth: 48 }}
       onClick={onSelect}
-      whileTap={{ scale: 0.93 }}
+      variants={cardTapVariants}
+      initial={false}
+      animate={selectionAnimate}
+      whileTap="tap"
+      transition={springs.snappy}
       aria-pressed={isSelected}
       aria-label={`${label} category${isSelected ? ", selected" : ""}`}
     >
-      <span style={{ fontSize: 24 }} aria-hidden="true">{emoji}</span>
+      {/* Expanding backdrop — shared layout element animates between cards */}
+      {isSelected && (
+        reducedMotion ? (
+          <span className="cat-pill-highlight" aria-hidden="true" />
+        ) : (
+          <motion.span
+            layoutId="cat-pill-highlight"
+            className="cat-pill-highlight"
+            transition={springs.snappy}
+            aria-hidden="true"
+          />
+        )
+      )}
+
       <span
         style={{
-          fontSize: 11,
-          fontWeight: 500,
-          color: isSelected ? "var(--text)" : "var(--sub)",
-          letterSpacing: "0.03em",
+          position: "relative",
+          zIndex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
         }}
       >
-        {label}
+        <motion.span
+          style={{ fontSize: 24, display: "inline-block" }}
+          variants={iconBounceVariants}
+          transition={ICON_BOUNCE_SPRING}
+          aria-hidden="true"
+        >
+          {emoji}
+        </motion.span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            color: isSelected ? "var(--text)" : "var(--sub)",
+            letterSpacing: "0.03em",
+          }}
+        >
+          {label}
+        </span>
       </span>
     </motion.button>
   )
@@ -90,24 +161,56 @@ function CategoryButton({ category, emoji, label, isSelected, onSelect }: Catego
 interface SuggestionChipProps {
   suggestion: SmartSuggestion
   onTap: () => void
+  /** True while the success ripple should emanate from this chip. */
+  rippleActive: boolean
+  reducedMotion: boolean
 }
 
 /**
  * Chip showing a suggested amount with optional label.
- * Tapping immediately logs the expense.
- * Requirements 3.3, 3.4
+ *
+ * Restyled as a floating glass pill with a soft shadow (task 9.4). Tapping
+ * immediately logs the expense and triggers a success ripple; pressing and
+ * holding fires a haptic buzz and shows a breathing pulse ring.
+ *
+ * Requirements 3.3, 3.4, 8.4, 13.5
  */
-function SuggestionChip({ suggestion, onTap }: SuggestionChipProps) {
+function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion }: SuggestionChipProps) {
+  const [isHolding, setIsHolding] = useState(false)
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const amountStr =
     suggestion.amount % 1 === 0
       ? `$${suggestion.amount}`
       : `$${suggestion.amount.toFixed(2)}`
 
+  function clearHold() {
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current)
+      holdTimer.current = null
+    }
+    if (isHolding) setIsHolding(false)
+  }
+
+  function handlePointerDown() {
+    holdTimer.current = setTimeout(() => {
+      setIsHolding(true)
+      // Press-and-hold haptic pattern (no-op where unsupported).
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate([10, 30, 10])
+      }
+    }, LONG_PRESS_MS)
+  }
+
+  // Clean up any pending timer on unmount.
+  useEffect(() => clearHold, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <motion.button
       type="button"
-      className="amount-chip active flex-shrink-0"
+      className="amount-chip active chip--glass flex-shrink-0"
       style={{
+        position: "relative",
         minHeight: 48,
         display: "flex",
         flexDirection: "column",
@@ -115,22 +218,37 @@ function SuggestionChip({ suggestion, onTap }: SuggestionChipProps) {
         justifyContent: "center",
         gap: 2,
         padding: "10px 16px",
-        borderRadius: "var(--radius-sm)",
+        borderRadius: 999,
       }}
       onClick={onTap}
-      whileTap={{ scale: 0.95 }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={clearHold}
+      onPointerLeave={clearHold}
+      onPointerCancel={clearHold}
+      whileTap={reducedMotion ? undefined : { scale: 0.95 }}
       aria-label={
         suggestion.label
           ? `Log ${amountStr} for ${suggestion.label}`
           : `Log ${amountStr}`
       }
     >
-      <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>
+      {/* Press-and-hold pulse ring */}
+      {isHolding && !reducedMotion && (
+        <span className="chip-pulse-ring" aria-hidden="true" />
+      )}
+      {/* Success ripple emanating from the tapped chip */}
+      {rippleActive && !reducedMotion && (
+        <span className="chip-ripple" aria-hidden="true" />
+      )}
+
+      <span style={{ position: "relative", zIndex: 3, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>
         {amountStr}
       </span>
       {suggestion.label && (
         <span
           style={{
+            position: "relative",
+            zIndex: 3,
             fontSize: 11,
             color: "var(--muted)",
             maxWidth: 80,
@@ -150,6 +268,7 @@ interface CustomAmountPanelProps {
   category: TransactionCategory
   onSubmit: (transaction: QuickTransaction) => void
   onCancel: () => void
+  reducedMotion: boolean
 }
 
 /**
@@ -157,7 +276,7 @@ interface CustomAmountPanelProps {
  * Validates amount and sanitizes note before submitting.
  * Requirements 3.5, 10.5, 10.7, 14.1
  */
-function CustomAmountPanel({ category, onSubmit, onCancel }: CustomAmountPanelProps) {
+function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: CustomAmountPanelProps) {
   const [rawAmount, setRawAmount] = useState("")
   const [note, setNote] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -191,12 +310,13 @@ function CustomAmountPanel({ category, onSubmit, onCancel }: CustomAmountPanelPr
 
   return (
     <motion.form
+      layout={!reducedMotion}
       onSubmit={handleSubmit}
       className="flex flex-col gap-3"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 12 }}
-      transition={{ duration: 0.2 }}
+      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
+      animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
+      transition={springs.gentle}
       aria-label={`Custom amount for ${categoryInfo?.label ?? category}`}
     >
       <div className="flex items-center gap-2">
@@ -321,9 +441,32 @@ export function QuickLogArea({
   onLogIncome,
 }: QuickLogAreaProps) {
   const { showToast } = useToast()
+  const { prefersReducedMotion } = useReducedMotion()
   const [selectedCategory, setSelectedCategory] = useState<TransactionCategory | null>(null)
   const [showCustomInput, setShowCustomInput] = useState(false)
+  /** Id of the chip currently playing the success ripple (task 9.4). */
+  const [rippleChipId, setRippleChipId] = useState<string | null>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clean up the ripple reset timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current)
+    }
+  }, [])
+
+  // Scale + fade entrance stagger for suggestion chips (task 9.4).
+  const chipContainerVariants: Variants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: prefersReducedMotion ? 0 : STAGGER_STEP } },
+  }
+  const chipItemVariants: Variants = prefersReducedMotion
+    ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
+    : {
+        hidden: { opacity: 0, scale: 0.8, y: 8 },
+        visible: { opacity: 1, scale: 1, y: 0, transition: springs.snappy },
+      }
 
   // ── 6.2: Sort categories by usage frequency (Requirement 3.2) ──────────────
   const sortedCategories = useMemo(() => {
@@ -374,9 +517,21 @@ export function QuickLogArea({
         ? `$${suggestion.amount}`
         : `$${suggestion.amount.toFixed(2)}`
     showToast(`Logged ${amountStr} for ${categoryLabel(selectedCategory)} ✓`, "success")
-    // Clear category and return to default state (Requirement 3.7)
-    setSelectedCategory(null)
-    setShowCustomInput(false)
+
+    // Reset to the default state (Requirement 3.7). When motion is enabled we
+    // briefly keep the tapped chip mounted so the success ripple can play.
+    if (prefersReducedMotion) {
+      setSelectedCategory(null)
+      setShowCustomInput(false)
+      return
+    }
+    setRippleChipId(suggestion.id)
+    if (resetTimer.current) clearTimeout(resetTimer.current)
+    resetTimer.current = setTimeout(() => {
+      setSelectedCategory(null)
+      setShowCustomInput(false)
+      setRippleChipId(null)
+    }, RIPPLE_MS)
   }
 
   /** ── 6.5: Custom amount submitted from panel ── */
@@ -462,6 +617,7 @@ export function QuickLogArea({
             label={cat.label}
             isSelected={selectedCategory === cat.category}
             onSelect={() => handleCategorySelect(cat.category)}
+            reducedMotion={prefersReducedMotion}
           />
         ))}
       </div>
@@ -483,21 +639,26 @@ export function QuickLogArea({
             style={{ overflow: "hidden", touchAction: "none" }}
             aria-label={`Suggestions for ${categoryLabel(selectedCategory)}`}
           >
-            <div
+            <motion.div
               className="flex gap-2 overflow-x-auto pb-1"
-              style={{ scrollbarWidth: "none" }}
+              style={{ scrollbarWidth: "none", paddingTop: 4 }}
               role="list"
               aria-label="Suggested amounts"
+              variants={chipContainerVariants}
+              initial="hidden"
+              animate="visible"
             >
               {suggestions.slice(0, 4).map((s) => (
-                <div key={s.id} role="listitem">
+                <motion.div key={s.id} role="listitem" variants={chipItemVariants}>
                   <SuggestionChip
                     suggestion={s}
                     onTap={() => handleSuggestionTap(s)}
+                    rippleActive={rippleChipId === s.id}
+                    reducedMotion={prefersReducedMotion}
                   />
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Swipe hint */}
             <p
@@ -531,14 +692,15 @@ export function QuickLogArea({
           </motion.div>
         )}
 
-        {/* ── Custom amount panel (Requirement 3.5) ── */}
+        {/* ── Custom amount panel (Requirement 3.5) — fluid slide-up ── */}
         {selectedCategory && showCustomInput && (
           <motion.div
             key={`custom-${selectedCategory}`}
+            layout={!prefersReducedMotion}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            transition={prefersReducedMotion ? { duration: 0.18 } : springs.gentle}
             style={{
               background: "var(--surface)",
               borderRadius: "var(--radius-md)",
@@ -550,6 +712,7 @@ export function QuickLogArea({
               category={selectedCategory}
               onSubmit={handleCustomSubmit}
               onCancel={() => setShowCustomInput(false)}
+              reducedMotion={prefersReducedMotion}
             />
           </motion.div>
         )}
