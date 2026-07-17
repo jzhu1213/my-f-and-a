@@ -2,9 +2,9 @@
  * GlassCard
  *
  * A reusable frosted-glass surface for the premium Folio UI. It renders a
- * translucent, blurred panel (`backdrop-filter: blur(16px) saturate(180%)`)
- * over the animated mesh background, with a 1px gradient rim (bright top,
- * fading to transparent) and a soft drop-shadow.
+ * translucent, blurred panel (`backdrop-filter: blur(8px) saturate(160%)`)
+ * over the animated mesh background, with a 0.5px gradient rim (cyan-tinted
+ * glow at top, fading to near-transparent) and a drop-shadow.
  *
  * - `elevation` controls blur intensity, rim brightness and shadow depth.
  * - `glow` adds a contextual colored halo tied to allowance status (healthy,
@@ -51,13 +51,13 @@ export interface GlassCardProps extends HTMLAttributes<HTMLDivElement> {
   glow?: GlassGlow
 }
 
-/** Halo colors for the semantic glow presets (tuned to the warm theme). */
+/** Halo colors for the semantic glow presets (tuned to the cooler theme). */
 const GLOW_PRESET_COLORS: Record<Exclude<GlowPreset, 'none'>, string> = {
-  healthy: 'rgba(74, 222, 128, 0.35)', // --success green
-  caution: 'rgba(251, 191, 36, 0.35)', // --warning amber
-  warning: 'rgba(251, 146, 60, 0.40)', // urgent orange
-  over: 'rgba(248, 113, 113, 0.42)', // --error red
-  celebration: 'rgba(252, 211, 77, 0.45)', // warm gold
+  healthy: 'rgba(6, 214, 160, 0.30)',     // --success teal
+  caution: 'rgba(245, 158, 11, 0.30)',    // --warning amber
+  warning: 'rgba(245, 158, 11, 0.40)',    // urgent amber
+  over: 'rgba(239, 68, 68, 0.38)',        // --error red
+  celebration: 'rgba(76, 201, 240, 0.40)', // electric blue
 }
 
 function resolveGlow(glow: GlassGlow): string | null {

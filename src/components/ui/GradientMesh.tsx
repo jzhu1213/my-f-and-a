@@ -4,8 +4,8 @@
  * GradientMesh
  *
  * A full-viewport animated background made of layered radial-gradient orbs
- * (soft purple, indigo, deep blue) that drift slowly to create a living,
- * breathing backdrop. A faint grain overlay adds depth.
+ * (electric blue, teal, dark navy) that drift slowly to create a living,
+ * breathing backdrop. A faint grain + scan-line overlay adds depth.
  *
  * Performance: every animated layer moves using GPU-composited
  * `transform: translate3d(...)` + `opacity` only (see `.gradient-mesh__orb`
@@ -21,8 +21,8 @@ type GradientMeshVariant = 'home' | 'muted'
 interface GradientMeshProps {
   /**
    * Visual intensity for the current screen.
-   * - `home`: rich, vivid purple orbs for the primary experience.
-   * - `muted`: dimmer, calmer orbs for settings and secondary surfaces.
+   * - `home`: cool-tone orbs (electric blue, teal, navy) for the primary experience.
+   * - `muted`: even subtler cool-tone orbs for settings and secondary surfaces.
    * Defaults to `home`.
    */
   variant?: GradientMeshVariant

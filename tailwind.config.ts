@@ -30,11 +30,11 @@ const config: Config = {
         success: 'var(--success)',
         warning: 'var(--warning)',
         error: 'var(--error)',
-        info: 'var(--blue, #60a5fa)',
+        info: 'var(--blue, #4cc9f0)',
 
         // Accent
-        accent: 'var(--accent, #818cf8)',
-        'accent-muted': 'var(--accent-muted, rgba(129, 140, 248, 0.15))',
+        accent: 'var(--accent, #4cc9f0)',
+        'accent-muted': 'var(--accent-muted, rgba(76, 201, 240, 0.15))',
 
         // Legacy t-* aliases — kept temporarily for the finance/ components
         // that still reference them. Remove once those are migrated/removed.
@@ -50,12 +50,12 @@ const config: Config = {
           muted:   'var(--muted)',
           dim:     'var(--dim)',
           green:   'var(--success)',
-          'green-bg': 'rgba(74,222,128,0.08)',
+          'green-bg': 'rgba(6, 214, 160, 0.08)',
           red:     'var(--error)',
-          'red-bg': 'rgba(248,113,113,0.08)',
+          'red-bg': 'rgba(239, 68, 68, 0.08)',
           amber:   'var(--warning)',
-          blue:    'var(--blue, #60a5fa)',
-          'blue-bg': 'rgba(96,165,250,0.08)',
+          blue:    'var(--blue, #4cc9f0)',
+          'blue-bg': 'rgba(76, 201, 240, 0.08)',
         },
       },
       fontFamily: {

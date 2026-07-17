@@ -1,21 +1,27 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Transaction, Budget, Goal, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
+import type { CelebrationEvent } from "@/types/folio"
 import type { DailyAllowance, QuickTransaction } from "@/types/folio"
 import type { TransactionRepeat } from "@/lib/transactionUtils"
 import { getRecentRepeats } from "@/lib/transactionUtils"
 import { computeCategoryBudgets } from "@/lib/budgetUtils"
 import type { CategoryBudgetRow } from "@/lib/budgetUtils"
+import { selectContextualTip } from "@/lib/tipUtils"
+import type { UserContext } from "@/lib/tipUtils"
+import { checkAllCelebrations } from "@/lib/celebrationEngine"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
+import { ContextualTipCard } from "./ContextualTipCard"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { HomeScreenSkeleton, FadeInContent } from "@/components/ui/Skeleton"
 import { CategoryDetailSheet } from "@/components/accounting/CategoryDetailSheet"
 import { SwipeableTransactionRow } from "./SwipeableTransactionRow"
 import { PullToRefresh } from "./PullToRefresh"
+import { CelebrationOverlay } from "./CelebrationOverlay"
 
 // ============================================================================
 // Helpers
@@ -66,6 +72,12 @@ export interface HomeScreenProps {
   onDeleteTransaction?: (id: string) => void
   /** Called when user pulls to refresh — refetches transactions and budgets */
   onRefresh?: () => Promise<void>
+
+  // ── Celebrations ───────────────────────────────────────────────────────────
+  /** Active celebration event passed from the parent (e.g. after expense logged) */
+  celebrationEvent?: CelebrationEvent | null
+  /** Called when the celebration overlay is dismissed (auto-timeout or user tap) */
+  onCelebrationDismiss?: () => void
 }
 
 // ============================================================================
@@ -100,10 +112,27 @@ export function HomeScreen({
   onViewAllHistory,
   onDeleteTransaction,
   onRefresh,
+  celebrationEvent: externalCelebration,
+  onCelebrationDismiss,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
   const [showMonthSummary, setShowMonthSummary] = useState(false)
+  const [localCelebration, setLocalCelebration] = useState<CelebrationEvent | null>(null)
+  const [celebrationQueue, setCelebrationQueue] = useState<CelebrationEvent[]>([])
+  const prevTxCountRef = useRef<number>(transactions.length)
+  const prevGoalsRef = useRef<string>("")
+
+  // ── Dismissed tips (persisted in localStorage) ────────────────────────────
+  const [dismissedTips, setDismissedTips] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set<string>()
+    try {
+      const stored = localStorage.getItem("folio-dismissed-tips")
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>()
+    } catch {
+      return new Set<string>()
+    }
+  })
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
@@ -139,6 +168,142 @@ export function HomeScreen({
     () => getRecentRepeats(transactions, 3),
     [transactions]
   )
+
+  // ── Contextual tip selection ──────────────────────────────────────────────
+  const userContext = useMemo((): UserContext => {
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const todayTxs = transactions.filter(
+      (t) => t.date.startsWith(todayStr) && t.type === "expense"
+    )
+
+    // Derive top category from today's expenses, default to "food"
+    const categorySpend: Partial<Record<TransactionCategory, number>> = {}
+    for (const tx of todayTxs) {
+      categorySpend[tx.category] = (categorySpend[tx.category] ?? 0) + tx.amount
+    }
+    const topCategory: TransactionCategory =
+      (Object.entries(categorySpend).sort(
+        ([, a], [, b]) => (b as number) - (a as number)
+      )[0]?.[0] as TransactionCategory) ?? "food"
+
+    const dailyBudget = allowance?.dailyBudget ?? 0
+    const spentToday = allowance?.spentToday ?? 0
+    const todaySpentPercent = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0
+
+    return {
+      underBudgetStreak: 0, // Placeholder until celebration engine (task 16)
+      todaySpentPercent,
+      totalTransactions: transactions.length,
+      topCategory,
+      allowance: {
+        amount: allowance?.amount ?? 0,
+        dailyBudget,
+      },
+    }
+  }, [transactions, allowance])
+
+  const activeTip = useMemo(
+    () => selectContextualTip(userContext, dismissedTips),
+    [userContext, dismissedTips]
+  )
+
+  const handleDismissTip = useCallback(() => {
+    if (!activeTip) return
+    setDismissedTips((prev) => {
+      const next = new Set(prev)
+      next.add(activeTip.id)
+      try {
+        localStorage.setItem("folio-dismissed-tips", JSON.stringify([...next]))
+      } catch {
+        // localStorage unavailable — dismiss is still in memory
+      }
+      return next
+    })
+  }, [activeTip])
+
+  // ── Celebration: first_transaction trigger (Requirement 6.5) ──────────────
+  useEffect(() => {
+    if (transactions.length !== 1) return
+    if (typeof window === "undefined") return
+    try {
+      if (localStorage.getItem("folio-celebrated-first-tx")) return
+    } catch {
+      // If localStorage is unavailable, skip to avoid showing repeatedly
+      return
+    }
+
+    // Fire the first_transaction celebration
+    const event: CelebrationEvent = {
+      id: "first-transaction-" + Date.now(),
+      type: "first_transaction",
+      title: "First one logged!",
+      message: "You're on your way — tracking is the first step.",
+      emoji: "🎉",
+      animation: "confetti",
+      duration: 4000,
+      sound: "cheerful",
+    }
+    setLocalCelebration(event)
+
+    try {
+      localStorage.setItem("folio-celebrated-first-tx", "true")
+    } catch {
+      // Best-effort persistence
+    }
+  }, [transactions.length])
+
+  // ── Celebration Engine: check all celebrations on data change ──────────────
+  // Fires when transactions or goals change (after initial load).
+  // Requirements 6.1–6.6: trigger celebrations for streaks, goal progress, etc.
+  useEffect(() => {
+    // Skip if data hasn't loaded yet (no budgets means no daily budget to compute)
+    if (budgets.length === 0 && transactions.length === 0) return
+
+    // Build a fingerprint for goals to detect changes
+    const goalsFingerprint = goals.map(g => `${g.id}:${g.currentAmount}`).join("|")
+
+    // Only run checks when data actually changes (not on every render)
+    const txCountChanged = transactions.length !== prevTxCountRef.current
+    const goalsChanged = goalsFingerprint !== prevGoalsRef.current
+
+    // Update refs
+    prevTxCountRef.current = transactions.length
+    prevGoalsRef.current = goalsFingerprint
+
+    // On first meaningful load OR when data changes, run celebration checks
+    if (!txCountChanged && !goalsChanged) return
+
+    const events = checkAllCelebrations(budgets, transactions, goals)
+    if (events.length > 0) {
+      // If no celebration is currently showing, show the first one immediately
+      if (!localCelebration) {
+        setLocalCelebration(events[0])
+        if (events.length > 1) {
+          setCelebrationQueue(events.slice(1))
+        }
+      } else {
+        // Queue all new events
+        setCelebrationQueue(prev => [...prev, ...events])
+      }
+    }
+  }, [transactions, goals, budgets, localCelebration])
+
+  // ── Effective celebration: external prop takes priority over local ─────────
+  const effectiveCelebration = externalCelebration ?? localCelebration
+
+  const handleCelebrationDismiss = useCallback(() => {
+    if (externalCelebration) {
+      onCelebrationDismiss?.()
+    } else {
+      // Advance to next queued celebration, or clear
+      if (celebrationQueue.length > 0) {
+        setLocalCelebration(celebrationQueue[0])
+        setCelebrationQueue(prev => prev.slice(1))
+      } else {
+        setLocalCelebration(null)
+      }
+    }
+  }, [externalCelebration, onCelebrationDismiss, celebrationQueue])
 
   // ── Loading state: show full-page skeleton ────────────────────────────────
   if (isLoading) {
@@ -192,6 +357,20 @@ export function HomeScreen({
             </p>
           )}
         </section>
+
+        {/* ── 1.5. Contextual Tip ─────────────────────────────────── */}
+        <AnimatePresence>
+          {activeTip && (
+            <section aria-label="Contextual tip">
+              <ContextualTipCard
+                tip={activeTip}
+                onDismiss={handleDismissTip}
+                onLearnMore={() => {}}
+                onActionComplete={() => {}}
+              />
+            </section>
+          )}
+        </AnimatePresence>
 
         {/* ── 2. Quick Actions ────────────────────────────────────── */}
         <section aria-label="Quick actions">
@@ -806,6 +985,12 @@ export function HomeScreen({
         row={selectedRow}
         transactions={transactions}
         onLogHere={(cat) => { setSelectedRow(null); onLogExpense(cat) }}
+      />
+
+      {/* ── Celebration Overlay (Requirements 6.1–6.7) ────────── */}
+      <CelebrationOverlay
+        event={effectiveCelebration ?? null}
+        onDismiss={handleCelebrationDismiss}
       />
     </div>
     </PullToRefresh>

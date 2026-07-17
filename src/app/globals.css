@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,41 +13,41 @@
  * values — no Tailwind rebuild required.
  */
 :root {
-  /* Warm theme (default) - softer purple-tinted dark backgrounds */
-  --bg:        #1a1a2e;
-  --surface:   #25253a;
-  --raised:    #2f2f44;
-  --hover:     #353548;
-  --border:    #3a3a4e;
-  --line:      #454560;
+  /* Cool futuristic theme (default) - deep navy/charcoal backgrounds */
+  --bg:        #0a0f1a;
+  --surface:   #111827;
+  --raised:    #1a2332;
+  --hover:     #1f2d3d;
+  --border:    #1e3a4f;
+  --line:      #2a3f52;
   --text:      #ffffff;       /* pure white — maximum contrast */
-  --sub:       #b4b4c8;       /* secondary text — clearly readable */
-  --muted:     #7a7a8e;       /* labels, hints */
-  --dim:       #3e3e52;       /* disabled */
+  --sub:       #94a3b8;       /* secondary text — slate-blue, clearly readable */
+  --muted:     #64748b;       /* labels, hints — cool gray */
+  --dim:       #1e293b;       /* disabled */
 
-  /* Semantic status */
-  --success:   #4ade80;
-  --warning:   #fbbf24;
-  --error:     #f87171;
-  --blue:      #63b3ed;
+  /* Semantic status — cooler tones */
+  --success:   #06d6a0;
+  --warning:   #f59e0b;
+  --error:     #ef4444;
+  --blue:      #4cc9f0;
 
-  /* Accent */
-  --accent:      #818cf8;
-  --accent-muted: rgba(129, 140, 248, 0.15);
+  /* Accent — electric blue */
+  --accent:      #4cc9f0;
+  --accent-muted: rgba(76, 201, 240, 0.15);
 
   /* Legacy shorthand aliases (used in inline styles) */
-  --green:     #4ade80;
-  --green-glow: rgba(74,222,128,0.10);
-  --red:       #f87171;
-  --red-glow:  rgba(248,113,113,0.10);
-  --amber:     #fbbf24;
-  --blue-glow: rgba(99,179,237,0.10);
+  --green:     #06d6a0;
+  --green-glow: rgba(6, 214, 160, 0.10);
+  --red:       #ef4444;
+  --red-glow:  rgba(239, 68, 68, 0.10);
+  --amber:     #f59e0b;
+  --blue-glow: rgba(76, 201, 240, 0.10);
 
-  /* Border radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius:    8px;
+  /* Border radius — sharper, more technical */
+  --radius-sm: 4px;   /* buttons, chips */
+  --radius-md: 6px;   /* cards, inputs */
+  --radius-lg: 8px;   /* modals, sheets */
+  --radius:    4px;
 }
 
 /* Dark theme option - original brutalist aesthetic */
@@ -60,26 +62,42 @@
   --muted:     #4a4a4a;
   --dim:       #2e2e2e;
 
-  --success:   #4ade80;
-  --warning:   #fbbf24;
-  --error:     #f87171;
-  --blue:      #60a5fa;
+  /* Match the cooler semantic colors */
+  --success:   #06d6a0;
+  --warning:   #f59e0b;
+  --error:     #ef4444;
+  --blue:      #4cc9f0;
 
-  --accent:      #818cf8;
-  --accent-muted: rgba(129, 140, 248, 0.12);
+  --accent:      #4cc9f0;
+  --accent-muted: rgba(76, 201, 240, 0.12);
 
-  --green:     #3ecf6e;
-  --green-glow: rgba(62,207,110,0.10);
-  --red:       #f56565;
-  --red-glow:  rgba(245,101,101,0.10);
-  --amber:     #f6ad55;
-  --blue-glow: rgba(96,165,250,0.08);
+  --green:     #06d6a0;
+  --green-glow: rgba(6, 214, 160, 0.10);
+  --red:       #ef4444;
+  --red-glow:  rgba(239, 68, 68, 0.10);
+  --amber:     #f59e0b;
+  --blue-glow: rgba(76, 201, 240, 0.08);
 
   /* Smaller radius for brutalist aesthetic */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius:    4px;
+}
+
+/* ── Gradient accent utilities ───────────────────────────────────── */
+/*
+ * Subtle cyan→purple shimmer for key interactive surfaces. Apply
+ * .accent-border-shimmer for a border-image effect, or combine
+ * .glass-card--accent-border with .glass-card for a ::before gradient
+ * overlay on the card rim.
+ */
+.accent-border-shimmer {
+  border-image: linear-gradient(135deg, rgba(76, 201, 240, 0.3), rgba(129, 140, 248, 0.3), rgba(76, 201, 240, 0.3)) 1;
+}
+
+.glass-card--accent-border::before {
+  background: linear-gradient(135deg, rgba(76, 201, 240, 0.15), rgba(129, 140, 248, 0.2), transparent);
 }
 
 html, body, #__next {
@@ -89,7 +107,7 @@ html, body, #__next {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 15px;
   line-height: 1.5;
   font-weight: 400;
@@ -99,11 +117,16 @@ body {
 
 /* ── Label utility ──────────────────────────────────────────────── */
 .label {
-  font-family: 'Space Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* ── Mono utility for amounts/numbers ───────────────────────────── */
+.font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
 }
 
 /* ── Progress track ─────────────────────────────────────────────── */
@@ -126,7 +149,7 @@ body {
   @apply fixed inset-x-0 bottom-0 z-50 flex flex-col;
   background: var(--surface);
   border-top: 1px solid var(--line);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;  /* now 6px */
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
   max-height: 93vh;
@@ -147,7 +170,7 @@ body {
 /* ── Inputs ─────────────────────────────────────────────────────── */
 .t-input {
   @apply w-full bg-transparent;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 15px;
   color: var(--text);
   border: none;
@@ -174,16 +197,26 @@ input[type="date"] {
 .btn-primary {
   @apply flex items-center justify-center px-6 font-medium transition-all;
   height: 52px;
-  background: var(--text);
+  background: var(--accent);
   color: #000;
-  font-family: 'Space Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   letter-spacing: 0.08em;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
 }
 
-.btn-primary:hover   { background: #f0f0f0; }
-.btn-primary:active  { transform: scale(0.97); }
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  border-color: rgba(76, 201, 240, 0.5);
+  box-shadow: 0 0 12px rgba(76, 201, 240, 0.25);
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 16px rgba(76, 201, 240, 0.4);
+}
+
 .btn-primary:disabled {
   opacity: 0.2;
   cursor: not-allowed;
@@ -195,14 +228,23 @@ input[type="date"] {
   height: 52px;
   color: var(--sub);
   border: 1px solid var(--border);
-  font-family: 'Space Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   letter-spacing: 0.08em;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
 }
 
-.btn-ghost:hover  { color: var(--text); border-color: var(--muted); }
-.btn-ghost:active { transform: scale(0.97); }
+.btn-ghost:hover {
+  color: var(--text);
+  border-color: rgba(76, 201, 240, 0.4);
+  background: rgba(76, 201, 240, 0.05);
+}
+
+.btn-ghost:active {
+  transform: scale(0.97);
+  border-color: rgba(76, 201, 240, 0.6);
+  box-shadow: 0 0 10px rgba(76, 201, 240, 0.2);
+}
 
 /* ── Tab navigation ─────────────────────────────────────────────── */
 .t-tab-nav {
@@ -219,7 +261,7 @@ input[type="date"] {
 }
 
 .t-tab-item .tab-label {
-  font-family: 'Space Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -253,29 +295,46 @@ input[type="date"] {
 /* ── Category pill ───────────────────────────────────────────────── */
 .cat-pill {
   @apply flex flex-col items-center justify-center gap-2 transition-all duration-150;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   background: var(--surface);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   min-height: 80px;
   padding: 14px 8px;
 }
 
-.cat-pill.selected { background: var(--raised); }
-.cat-pill:not(.selected):hover { border-color: var(--muted); background: var(--raised); }
-.cat-pill:active { transform: scale(0.95); }
+.cat-pill.selected {
+  background: var(--raised);
+  border-color: rgba(76, 201, 240, 0.4);
+  box-shadow: 0 0 8px rgba(76, 201, 240, 0.15);
+}
+
+.cat-pill:not(.selected):hover {
+  border-color: rgba(76, 201, 240, 0.25);
+  background: var(--raised);
+}
+
+.cat-pill:active {
+  transform: scale(0.97);
+}
 
 /* ── Amount chip ─────────────────────────────────────────────────── */
 .amount-chip {
   @apply flex-shrink-0 px-4 py-2 text-sm font-mono transition-all duration-150;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   color: var(--sub);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
 }
 
 .amount-chip.active {
-  border-color: var(--text);
+  border-color: rgba(76, 201, 240, 0.5);
   color: var(--text);
-  background: var(--raised);
+  background: rgba(76, 201, 240, 0.08);
+  box-shadow: 0 0 8px rgba(76, 201, 240, 0.15);
+}
+
+.amount-chip:hover:not(.active) {
+  border-color: rgba(76, 201, 240, 0.3);
+  color: var(--text);
 }
 
 /* ── Toggle ──────────────────────────────────────────────────────── */
@@ -349,20 +408,21 @@ input[type="date"] {
 .gradient-mesh__orb {
   position: absolute;
   border-radius: 50%;
-  /* Soft edges — the color fades to transparent well before the box edge */
-  filter: blur(40px);
-  opacity: 0.5;
+  /* Soft edges — heavily diffused for a subtle, low-saturation backdrop */
+  filter: blur(60px);
+  opacity: 0.3;
   will-change: transform, opacity;
   transform: translate3d(0, 0, 0);
 }
 
-/* Home variant — three rich orbs (soft purple, indigo, deep blue) */
+/* Home variant — three cool-tone orbs (electric blue, teal, dark navy) */
 .gradient-mesh--home .gradient-mesh__orb--1 {
   width: 60vmax;
   height: 60vmax;
   top: -20vmax;
   left: -10vmax;
-  background: radial-gradient(circle at center, rgba(129, 140, 248, 0.55), transparent 65%);
+  background: radial-gradient(circle at center, rgba(76, 201, 240, 0.35), transparent 65%);
+  /* electric blue — was indigo rgba(129, 140, 248, 0.55) */
   animation: mesh-drift-1 26s ease-in-out infinite;
 }
 
@@ -371,7 +431,8 @@ input[type="date"] {
   height: 55vmax;
   bottom: -18vmax;
   right: -12vmax;
-  background: radial-gradient(circle at center, rgba(99, 102, 241, 0.5), transparent 65%);
+  background: radial-gradient(circle at center, rgba(6, 214, 160, 0.3), transparent 65%);
+  /* teal — was indigo rgba(99, 102, 241, 0.5) */
   animation: mesh-drift-2 32s ease-in-out infinite;
 }
 
@@ -380,14 +441,15 @@ input[type="date"] {
   height: 45vmax;
   top: 30vmax;
   left: 25vmax;
-  background: radial-gradient(circle at center, rgba(67, 56, 202, 0.45), transparent 65%);
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.5), transparent 65%);
+  /* dark navy — was deep violet rgba(67, 56, 202, 0.45) — adds depth */
   animation: mesh-drift-3 38s ease-in-out infinite;
 }
 
-/* Muted variant — dimmer, calmer orbs for settings / secondary screens */
+/* Muted variant — even subtler cool-tone orbs for settings / secondary screens */
 .gradient-mesh--muted .gradient-mesh__orb {
-  opacity: 0.28;
-  filter: blur(60px);
+  opacity: 0.18;
+  filter: blur(80px);
 }
 
 .gradient-mesh--muted .gradient-mesh__orb--1 {
@@ -395,7 +457,7 @@ input[type="date"] {
   height: 55vmax;
   top: -18vmax;
   left: -12vmax;
-  background: radial-gradient(circle at center, rgba(129, 140, 248, 0.4), transparent 68%);
+  background: radial-gradient(circle at center, rgba(76, 201, 240, 0.25), transparent 68%);
   animation: mesh-drift-1 34s ease-in-out infinite;
 }
 
@@ -404,7 +466,7 @@ input[type="date"] {
   height: 50vmax;
   bottom: -20vmax;
   right: -14vmax;
-  background: radial-gradient(circle at center, rgba(79, 70, 229, 0.32), transparent 68%);
+  background: radial-gradient(circle at center, rgba(6, 214, 160, 0.2), transparent 68%);
   animation: mesh-drift-2 42s ease-in-out infinite;
 }
 
@@ -413,17 +475,26 @@ input[type="date"] {
   height: 40vmax;
   top: 28vmax;
   left: 22vmax;
-  background: radial-gradient(circle at center, rgba(49, 46, 129, 0.3), transparent 68%);
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.35), transparent 68%);
   animation: mesh-drift-3 48s ease-in-out infinite;
 }
 
-/* Grain overlay for depth/richness — a tiled fractal-noise SVG */
+/* Grain + scan-line overlay for depth/richness */
 .gradient-mesh__grain {
   position: absolute;
   inset: 0;
-  opacity: 0.04;
+  opacity: 0.035;
   mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Combine faint horizontal scan-lines with noise texture */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(76, 201, 240, 0.03) 3px,
+      rgba(76, 201, 240, 0.03) 4px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Gentle position shifts — translate3d + scale keep it GPU-composited */
@@ -549,42 +620,42 @@ input[type="date"] {
  *
  * Structure:
  *   .glass-card            → base surface (fill, blur, radius, shadow)
- *   .glass-card::before    → 1px gradient inner border (bright top → clear
- *                            bottom) rendered with a mask so only the edge
- *                            shows, giving the "lit rim" look.
+ *   .glass-card::before    → 0.5px gradient inner border (cyan-tinted glow
+ *                            at top → nearly invisible at bottom) rendered
+ *                            with a mask so only the edge shows.
  *   .glass-card--low/med/high → elevation: blur intensity, border
  *                            brightness and drop-shadow depth.
  *   .glass-card--glow      → contextual colored halo driven by the
  *                            `--glass-glow` custom property set inline.
  *
- * Contrast: the fill is only ~4% white over the dark (#1a1a2e) background,
+ * Contrast: the fill is only ~3% white over the dark (#0a0f1a) background,
  * so the effective surface stays dark and the theme's pure-white --text
- * (and --sub #b4b4c8) keep WCAG AA contrast for body copy. Browsers without
+ * (and --sub #94a3b8) keep WCAG AA contrast for body copy. Browsers without
  * backdrop-filter fall back to a more opaque surface (see @supports) so text
  * never lands on a see-through background.
  */
 .glass-card {
   position: relative;
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   /* Halo color/strength — overridden inline when a glow is requested. */
   --glass-glow: transparent;
 }
 
-/* 1px gradient rim: bright at the top, fading to transparent at the bottom */
+/* Hairline gradient rim: bright cyan-tinted glow at top, nearly invisible at bottom */
 .glass-card::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 1px;
+  padding: 0.5px;
   background: linear-gradient(
     to bottom,
-    var(--glass-border-top, rgba(255, 255, 255, 0.08)),
-    transparent
+    var(--glass-border-top, rgba(76, 201, 240, 0.12)),
+    rgba(255, 255, 255, 0.03)
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -596,43 +667,61 @@ input[type="date"] {
 
 /* Elevation — controls blur intensity, rim brightness and shadow depth */
 .glass-card--low {
-  backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-  --glass-border-top: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  --glass-border-top: rgba(76, 201, 240, 0.08);
 }
 
 .glass-card--medium {
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
-  --glass-border-top: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --glass-border-top: rgba(76, 201, 240, 0.12);
 }
 
 .glass-card--high {
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
-  --glass-border-top: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.4);
+  --glass-border-top: rgba(76, 201, 240, 0.16);
 }
 
 /* Contextual colored halo — layered on top of the elevation drop-shadow */
 .glass-card--glow.glass-card--low {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), 0 0 20px 0 var(--glass-glow);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 20px 0 var(--glass-glow);
 }
 .glass-card--glow.glass-card--medium {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24), 0 0 28px 0 var(--glass-glow);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 28px 0 var(--glass-glow);
 }
 .glass-card--glow.glass-card--high {
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32), 0 0 40px 2px var(--glass-glow);
+  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.4), 0 0 40px 2px var(--glass-glow);
 }
 
 /* Fallback for browsers without backdrop-filter: use a solid-ish surface so
  * text stays on an opaque, high-contrast background. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass-card {
-    background: rgba(37, 37, 58, 0.92); /* ~var(--surface) */
+    background: rgba(17, 24, 39, 0.95); /* --surface with high opacity */
   }
+}
+
+/* Subtle scan-line texture for futuristic depth */
+.surface-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(76, 201, 240, 0.015) 2px,
+    rgba(76, 201, 240, 0.015) 3px
+  );
+  opacity: 0.5;
+  z-index: 1;
 }
 
 /* ── Safe area ───────────────────────────────────────────────────── */
@@ -845,46 +934,47 @@ input[type="date"] {
 .cat-pill--glass {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.045);
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border: 0.5px solid rgba(76, 201, 240, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 .cat-pill--glass:not(.selected):hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(76, 201, 240, 0.2);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-/* Selection backdrop — a soft indigo inner glow behind the content */
+/* Selection backdrop — a soft cyan inner glow behind the content */
 .cat-pill-highlight {
   position: absolute;
   inset: 0;
   z-index: 0;
   border-radius: inherit;
   pointer-events: none;
-  border: 1px solid rgba(129, 140, 248, 0.55);
-  background: rgba(129, 140, 248, 0.12);
+  border: 0.5px solid rgba(76, 201, 240, 0.5);
+  background: rgba(76, 201, 240, 0.06);
   box-shadow:
-    inset 0 0 18px rgba(129, 140, 248, 0.28),
-    0 0 22px rgba(129, 140, 248, 0.28);
+    inset 0 0 12px rgba(76, 201, 240, 0.15),
+    0 0 16px rgba(76, 201, 240, 0.2);
 }
 
 /* Suggestion chip — floating glass pill with a soft shadow */
 .chip--glass {
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  border: 0.5px solid rgba(76, 201, 240, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-md);
 }
 
 .chip--glass:hover {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(76, 201, 240, 0.25);
+  background: rgba(76, 201, 240, 0.05);
 }
 
 /* Success ripple — expands and fades out from the tapped chip */
@@ -894,7 +984,7 @@ input[type="date"] {
   z-index: 2;
   border-radius: inherit;
   pointer-events: none;
-  border: 2px solid rgba(129, 140, 248, 0.6);
+  border: 1.5px solid rgba(76, 201, 240, 0.6);
   animation: chip-ripple 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
@@ -910,7 +1000,7 @@ input[type="date"] {
   z-index: 1;
   border-radius: inherit;
   pointer-events: none;
-  border: 2px solid rgba(129, 140, 248, 0.5);
+  border: 1.5px solid rgba(76, 201, 240, 0.4);
   animation: chip-pulse-ring 0.9s ease-out infinite;
 }
 
@@ -975,7 +1065,7 @@ input[type="date"] {
   border: 1px solid rgba(255, 255, 255, 0.12);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .tip-action-pill:hover {
   background: rgba(255, 255, 255, 0.1);
@@ -1038,7 +1128,7 @@ input[type="date"] {
   padding-top: var(--safe-top);
   box-sizing: content-box;
   /* Glass treatment blended into the mesh */
-  background: rgba(26, 26, 46, 0.35);
+  background: rgba(10, 15, 26, 0.45);
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -1083,7 +1173,7 @@ input[type="date"] {
 }
 
 .app-topbar__avatar-initial {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
@@ -1134,12 +1224,12 @@ input[type="date"] {
   bottom: calc(16px + var(--safe-bottom));
   z-index: 45;
   padding: 8px;
-  border-radius: 999px;
-  /* Pill-shaped frosted glass matching the mesh backdrop */
-  background: rgba(37, 37, 58, 0.45);
+  border-radius: var(--radius-md);
+  /* Sharper frosted glass matching the mesh backdrop */
+  background: rgba(17, 24, 39, 0.45);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 0.5px solid rgba(76, 201, 240, 0.1);
   /* Soft *upward* shadow so it lifts off the content below */
   box-shadow:
     0 -2px 10px rgba(0, 0, 0, 0.18),
@@ -1168,7 +1258,7 @@ input[type="date"] {
   justify-content: center;
   width: 52px;
   height: 48px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   color: var(--sub);
   background: transparent;
   transition: color 0.2s ease;
@@ -1182,18 +1272,18 @@ input[type="date"] {
   color: var(--text);
 }
 
-/* Active item glow — a soft indigo halo behind the icon */
+/* Active item glow — a soft cyan halo behind the icon */
 .app-dock__glow {
   position: absolute;
   inset: 4px;
   z-index: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   pointer-events: none;
-  background: rgba(129, 140, 248, 0.18);
-  border: 1px solid rgba(129, 140, 248, 0.4);
+  background: rgba(76, 201, 240, 0.12);
+  border: 0.5px solid rgba(76, 201, 240, 0.4);
   box-shadow:
-    inset 0 0 12px rgba(129, 140, 248, 0.28),
-    0 0 18px rgba(129, 140, 248, 0.35);
+    inset 0 0 10px rgba(76, 201, 240, 0.2),
+    0 0 14px rgba(76, 201, 240, 0.25);
 }
 
 .app-dock__icon {
@@ -1302,8 +1392,8 @@ input[type="date"] {
   -webkit-backdrop-filter: blur(12px) saturate(160%);
   background: linear-gradient(
     to bottom,
-    rgba(26, 26, 46, 0.55),
-    rgba(26, 26, 46, 0)
+    rgba(10, 15, 26, 0.55),
+    rgba(10, 15, 26, 0)
   );
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
   -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
@@ -1316,8 +1406,8 @@ input[type="date"] {
   .top-edge-blur {
     background: linear-gradient(
       to bottom,
-      rgba(26, 26, 46, 0.85),
-      rgba(26, 26, 46, 0)
+      rgba(10, 15, 26, 0.85),
+      rgba(10, 15, 26, 0)
     );
   }
 }
@@ -1502,7 +1592,7 @@ input[type="date"] {
 }
 
 .celebration-card__title {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 22px;
   font-weight: 600;
   color: var(--text);
@@ -1511,7 +1601,7 @@ input[type="date"] {
 }
 
 .celebration-card__message {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 15px;
   line-height: 1.5;
   color: var(--sub);
@@ -1522,7 +1612,7 @@ input[type="date"] {
   margin-top: 8px;
   padding: 10px 28px;
   border-radius: 999px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: #1a1626;
