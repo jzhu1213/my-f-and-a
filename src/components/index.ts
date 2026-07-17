@@ -12,4 +12,6 @@ export * from './simplified/DailyAllowanceHero'
 export * from './simplified/AllowanceRing'
 export * from './simplified/QuickLogArea'
 export * from './simplified/CelebrationOverlay'
+export * from './simplified/HistoryScreen'
+export * from './simplified/SettingsScreen'
 

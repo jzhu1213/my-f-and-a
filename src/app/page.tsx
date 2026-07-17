@@ -1,21 +1,22 @@
 "use client"
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Onboarding,
-  TabNavigation,
   Toast,
   ProfileSheet,
   LimitSetupWizard,
-  QuickLogFab,
+  AppShell,
+  HistoryScreen,
+  SettingsScreen,
 } from '@/components'
+import type { AppNavKey } from '@/components/ui/AppShell'
 import type { LimitSetupResult } from '@/components/ui/LimitSetupWizard'
 import { PaycheckSheet } from '@/components/accounting/PaycheckSheet'
 import { computeCategoryBudgets, toMonthString } from '@/lib/budgetUtils'
 import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { TodayView } from '@/components/accounting/TodayView'
-import { HistoryView } from '@/components/accounting/HistoryView'
 import { LimitsView } from '@/components/accounting/LimitsView'
-import { FinanceTab } from '@/components/finance/FinanceTab'
 import { TransactionSheet } from '@/components/accounting/TransactionSheet'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -45,7 +46,6 @@ import type {
   TransactionType,
 } from '@/types'
 
-type Tab = 'today' | 'history' | 'learn' | 'limits'
 type OnboardingStep = 'loading' | 'welcome' | 'limits' | 'done'
 
 export default function FolioApp() {
@@ -53,7 +53,8 @@ export default function FolioApp() {
   const { showToast } = useToast()
 
   const [onboardingStep,        setOnboardingStep]        = useState<OnboardingStep>('loading')
-  const [activeTab,             setActiveTab]             = useState<Tab>('today')
+  const [activeNav,             setActiveNav]             = useState<AppNavKey>('home')
+  const [showLimits,            setShowLimits]            = useState(false)
   const [showTransactionSheet,  setShowTransactionSheet]  = useState(false)
   const [editingTransaction,    setEditingTransaction]    = useState<Transaction | undefined>()
   const [prefilledCategory,     setPrefilledCategory]     = useState<TransactionCategory | undefined>()
@@ -429,61 +430,74 @@ export default function FolioApp() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      {activeTab === 'today' && (
-        <TodayView
-          transactions={transactions}
-          budgets={budgets}
-          isLoading={dataLoading}
-          onLogExpense={cat => handleOpenAddSheet(cat, 'expense')}
-          onLogIncome={() => handleOpenAddSheet(undefined, 'income')}
-          onRepeatLog={handleRepeatLog}
-          onOpenLimits={() => setActiveTab('limits')}
-          onViewHistory={() => setActiveTab('history')}
-          onEditTransaction={handleOpenEditSheet}
-        />
-      )}
-      {activeTab === 'history' && (
-        <HistoryView
-          transactions={transactions}
-          isLoading={dataLoading}
-          onEditTransaction={handleOpenEditSheet}
-          onDeleteTransaction={handleDeleteTransaction}
-        />
-      )}
-      {activeTab === 'limits' && (
-        <LimitsView
-          budgets={budgets}
-          goals={goals}
-          onBack={() => setActiveTab('today')}
-          onUpdateBudget={handleUpdateBudget}
-          onCreateGoal={handleCreateGoal}
-          onUpdateGoal={handleUpdateGoal}
-          onContributeToGoal={handleContributeToGoal}
-          onDeleteGoal={handleDeleteGoal}
-        />
-      )}
-      {activeTab === 'learn' && (
-        <FinanceTab
-          lessonProgress={lessonProgress}
-          onCompleteLesson={handleLessonComplete}
-        />
-      )}
-
-      {/* Bottom nav hidden on limits screen (has its own back nav) */}
-      {activeTab !== 'limits' && (
-        <TabNavigation
-          activeTab={activeTab === 'learn' ? 'learn' : activeTab === 'history' ? 'history' : 'today'}
-          onTabChange={tab => setActiveTab(tab)}
-          onProfileOpen={() => setShowProfile(true)}
-        />
-      )}
-
-      {(activeTab === 'history' || activeTab === 'learn') && (
-        <QuickLogFab
-          onLogExpense={() => handleOpenAddSheet(undefined, 'expense')}
-          onLogIncome={() => handleOpenAddSheet(undefined, 'income')}
-        />
+    <>
+      {showLimits ? (
+        <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+          <LimitsView
+            budgets={budgets}
+            goals={goals}
+            onBack={() => setShowLimits(false)}
+            onUpdateBudget={handleUpdateBudget}
+            onCreateGoal={handleCreateGoal}
+            onUpdateGoal={handleUpdateGoal}
+            onContributeToGoal={handleContributeToGoal}
+            onDeleteGoal={handleDeleteGoal}
+          />
+        </div>
+      ) : (
+        <AppShell
+          activeNav={activeNav}
+          onNavChange={setActiveNav}
+          onOpenSettings={() => setActiveNav('settings')}
+          onOpenProfile={() => setShowProfile(true)}
+          avatarUrl={undefined}
+          avatarInitial={user?.email?.charAt(0)}
+          meshVariant={activeNav === 'home' ? 'home' : 'home'}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeNav}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+            >
+              {activeNav === 'home' && (
+                <TodayView
+                  transactions={transactions}
+                  budgets={budgets}
+                  isLoading={dataLoading}
+                  onLogExpense={cat => handleOpenAddSheet(cat, 'expense')}
+                  onLogIncome={() => handleOpenAddSheet(undefined, 'income')}
+                  onRepeatLog={handleRepeatLog}
+                  onOpenLimits={() => setShowLimits(true)}
+                  onViewHistory={() => setActiveNav('history')}
+                  onEditTransaction={handleOpenEditSheet}
+                />
+              )}
+              {activeNav === 'history' && (
+                <HistoryScreen
+                  transactions={transactions}
+                  isLoading={dataLoading}
+                  onEditTransaction={handleOpenEditSheet}
+                  onDeleteTransaction={handleDeleteTransaction}
+                  onLogExpense={() => handleOpenAddSheet(undefined, 'expense')}
+                />
+              )}
+              {activeNav === 'settings' && (
+                <SettingsScreen
+                  budgets={budgets}
+                  goals={goals}
+                  userEmail={user?.email}
+                  onOpenBudgetSettings={() => setShowLimits(true)}
+                  onOpenGoals={() => setShowLimits(true)}
+                  onOpenLearn={() => setActiveNav('home')}
+                  onSignOut={handleSignOut}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </AppShell>
       )}
 
       <TransactionSheet
@@ -516,6 +530,6 @@ export default function FolioApp() {
       />
 
       <Toast />
-    </div>
+    </>
   )
 }

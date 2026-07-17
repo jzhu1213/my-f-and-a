@@ -1568,3 +1568,53 @@ input[type="date"] {
     transform: none !important;
   }
 }
+
+/* ── History Screen ──────────────────────────────────────────────────
+ *
+ * Layout wrapper for the history view inside AppShell, plus a floating
+ * action button (FAB) to quickly log a new expense from the history screen.
+ *
+ * Requirements: 9.2, 11.1
+ */
+.history-screen {
+  position: relative;
+  min-height: 100%;
+}
+
+.history-screen__fab {
+  position: fixed;
+  bottom: 100px;
+  right: 24px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  box-shadow:
+    0 8px 24px rgba(99, 102, 241, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: box-shadow 0.2s ease;
+}
+
+.history-screen__fab:hover {
+  box-shadow:
+    0 10px 28px rgba(99, 102, 241, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.history-screen__fab:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history-screen__fab {
+    transition: none;
+  }
+}
