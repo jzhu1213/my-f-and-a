@@ -182,7 +182,27 @@ export function AppShell({
 
       {/* ── Floating dock navigation ───────────────────────────── */}
       <nav className="app-dock" aria-label="Primary">
-        <ul className="app-dock__list">
+        <ul
+          className="app-dock__list"
+          onKeyDown={(e) => {
+            const keys = navItems.map(n => n.key)
+            const currentIndex = keys.indexOf(activeNav)
+            let nextIndex = -1
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+              e.preventDefault()
+              nextIndex = currentIndex < keys.length - 1 ? currentIndex + 1 : 0
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+              e.preventDefault()
+              nextIndex = currentIndex > 0 ? currentIndex - 1 : keys.length - 1
+            }
+            if (nextIndex >= 0) {
+              onNavChange(keys[nextIndex])
+              const container = e.currentTarget
+              const buttons = container.querySelectorAll<HTMLButtonElement>('button')
+              buttons[nextIndex]?.focus()
+            }
+          }}
+        >
           {navItems.map(({ key, label, icon }) => {
             const isActive = activeNav === key
             return (
@@ -193,6 +213,7 @@ export function AppShell({
                   onClick={() => onNavChange(key)}
                   aria-label={label}
                   aria-current={isActive ? 'page' : undefined}
+                  tabIndex={isActive ? 0 : -1}
                   animate={
                     prefersReducedMotion
                       ? undefined

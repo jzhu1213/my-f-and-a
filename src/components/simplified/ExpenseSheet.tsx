@@ -319,6 +319,12 @@ export function ExpenseSheet({
                     placeholder="0.00"
                     value={amount}
                     onChange={handleAmountChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && canSubmit) {
+                        e.preventDefault()
+                        handleSubmit()
+                      }
+                    }}
                     aria-label="Expense amount"
                     style={{
                       background: 'transparent',
@@ -356,9 +362,38 @@ export function ExpenseSheet({
                   gap: 10,
                   marginBottom: 24,
                 }}
+                role="group"
+                aria-label="Expense categories"
+                onKeyDown={(e) => {
+                  const currentIndex = category
+                    ? CATEGORY_GRID.findIndex(c => c.category === category)
+                    : -1
+                  let nextIndex = -1
+                  if (e.key === "ArrowRight") {
+                    e.preventDefault()
+                    nextIndex = currentIndex < CATEGORY_GRID.length - 1 ? currentIndex + 1 : 0
+                  } else if (e.key === "ArrowLeft") {
+                    e.preventDefault()
+                    nextIndex = currentIndex > 0 ? currentIndex - 1 : CATEGORY_GRID.length - 1
+                  } else if (e.key === "ArrowDown") {
+                    e.preventDefault()
+                    nextIndex = currentIndex + 3 < CATEGORY_GRID.length ? currentIndex + 3 : currentIndex % 3
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault()
+                    nextIndex = currentIndex - 3 >= 0 ? currentIndex - 3 : CATEGORY_GRID.length - 3 + (currentIndex % 3)
+                  }
+                  if (nextIndex >= 0 && nextIndex < CATEGORY_GRID.length) {
+                    setCategory(CATEGORY_GRID[nextIndex].category)
+                    triggerHaptic('light')
+                    const container = e.currentTarget
+                    const buttons = container.querySelectorAll<HTMLButtonElement>('button')
+                    buttons[nextIndex]?.focus()
+                  }
+                }}
               >
-                {CATEGORY_GRID.map((cat) => {
+                {CATEGORY_GRID.map((cat, index) => {
                   const selected = category === cat.category
+                  const isRovingActive = selected || (category === null && index === 0)
 
                   // Selection lift: slight upward shift + scale
                   const selectionAnimate = prefersReducedMotion
@@ -372,6 +407,7 @@ export function ExpenseSheet({
                       onClick={() => { setCategory(cat.category); triggerHaptic('light') }}
                       aria-label={`Category: ${cat.label}`}
                       aria-pressed={selected}
+                      tabIndex={isRovingActive ? 0 : -1}
                       className="cat-pill"
                       variants={cardTapVariants}
                       initial={false}

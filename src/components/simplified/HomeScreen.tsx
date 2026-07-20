@@ -341,8 +341,31 @@ export function HomeScreen({
             isLoading={isLoading}
             onTapForDetails={onHeroTapDetails}
           />
-          {!isLoading && allowance && (
+          {!isLoading && allowance && allowance.isEstimated && (
+            <motion.p
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              style={{
+                fontSize: 12,
+                color: "var(--sub)",
+                textAlign: "center",
+                fontFamily: "Inter, sans-serif",
+                marginTop: 10,
+                opacity: 0.85,
+                padding: "8px 12px",
+                background: "rgba(255, 255, 255, 0.04)",
+                borderRadius: 8,
+              }}
+              aria-label="Estimated allowance — set budget limits for accuracy"
+            >
+              ✨ This is an estimate — set budget limits for a more accurate daily budget
+            </motion.p>
+          )}
+          {!isLoading && allowance && !allowance.isEstimated && (
             <p
+              role="status"
+              aria-live="polite"
               style={{
                 fontSize: 12,
                 color: "var(--sub)",
@@ -445,6 +468,7 @@ export function HomeScreen({
                     key={`${repeat.category}-${repeat.amount}-${repeat.note ?? ""}`}
                     type="button"
                     onClick={() => onRepeatLog(repeat)}
+                    aria-label={`Log again: ${repeat.label}`}
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.04, duration: 0.3, ease: "easeOut" }}
@@ -528,6 +552,12 @@ export function HomeScreen({
                   ? "var(--warning)"
                   : "var(--success)"
 
+                const budgetLabel = row.hasLimit
+                  ? row.overWeekly
+                    ? `${row.label}: $${Math.abs(Math.round(row.weeklyLeft))} over budget`
+                    : `${row.label}: $${Math.max(0, Math.round(row.weeklyLeft))} left this week`
+                  : `${row.label}: no limit set${row.weeklySpent > 0 ? `, $${Math.round(row.weeklySpent)} spent` : ""}`
+
                 return (
                   <motion.button
                     key={row.category}
@@ -535,6 +565,7 @@ export function HomeScreen({
                     onClick={() => setSelectedRow(row)}
                     whileTap={{ scale: 0.97 }}
                     transition={springs.bouncy}
+                    aria-label={budgetLabel}
                     style={{
                       all: "unset",
                       cursor: "pointer",
@@ -671,6 +702,7 @@ export function HomeScreen({
                   fontFamily: "Inter, sans-serif",
                   opacity: 0.7,
                 }}
+                aria-label="See all transactions"
               >
                 See all →
               </button>
@@ -826,6 +858,7 @@ export function HomeScreen({
                 }}
                 aria-expanded={showMonthSummary}
                 aria-controls="month-summary-details"
+                aria-label={`Monthly summary: ${monthIncome - monthExpenses < 0 ? "−" : "+"}$${Math.abs(monthIncome - monthExpenses).toLocaleString()} net. ${showMonthSummary ? "Collapse" : "Expand"} details.`}
               >
                 <span
                   style={{

@@ -168,6 +168,12 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
                     placeholder="0.00"
                     value={amount}
                     onChange={handleAmountChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && canSubmit) {
+                        e.preventDefault()
+                        handleSubmit()
+                      }
+                    }}
                     aria-label="Income amount"
                     style={{
                       background: 'transparent',

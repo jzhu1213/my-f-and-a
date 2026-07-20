@@ -176,6 +176,7 @@ export function SettingsScreen({
             cursor: "pointer",
             fontFamily: "Inter, sans-serif",
           }}
+          aria-label="Manage budget limits"
         >
           Manage limits →
         </motion.button>
@@ -249,6 +250,7 @@ export function SettingsScreen({
             cursor: "pointer",
             fontFamily: "Inter, sans-serif",
           }}
+          aria-label="Manage savings goals"
         >
           Manage goals →
         </motion.button>
@@ -346,6 +348,7 @@ export function SettingsScreen({
             cursor: "pointer",
             fontFamily: "Inter, sans-serif",
           }}
+          aria-label="Open financial lessons"
         >
           Open lessons →
         </motion.button>
@@ -386,6 +389,7 @@ export function SettingsScreen({
             borderRadius: 10,
             cursor: "pointer",
           }}
+          aria-label="Sign out of your account"
         >
           Sign out
         </motion.button>

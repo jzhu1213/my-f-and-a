@@ -61,6 +61,7 @@ interface CategoryButtonProps {
   isSelected: boolean
   onSelect: () => void
   reducedMotion: boolean
+  tabIndex?: number
 }
 
 /**
@@ -80,6 +81,7 @@ function CategoryButton({
   isSelected,
   onSelect,
   reducedMotion,
+  tabIndex,
 }: CategoryButtonProps) {
   // Variant maps drive the tap gesture. Framer propagates the active gesture
   // variant ("tap") to any child that defines the same key, so the icon
@@ -110,6 +112,7 @@ function CategoryButton({
       transition={springs.snappy}
       aria-pressed={isSelected}
       aria-label={`${label} category${isSelected ? ", selected" : ""}`}
+      tabIndex={tabIndex}
     >
       {/* Expanding backdrop — shared layout element animates between cards */}
       {isSelected && (
@@ -608,8 +611,29 @@ export function QuickLogArea({
         style={{ gridTemplateColumns: `repeat(${sortedCategories.length}, 1fr)` }}
         role="group"
         aria-label="Expense categories"
+        onKeyDown={(e) => {
+          const items = sortedCategories
+          const currentIndex = selectedCategory
+            ? items.findIndex(c => c.category === selectedCategory)
+            : -1
+          let nextIndex = -1
+          if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+            e.preventDefault()
+            nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+          } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+            e.preventDefault()
+            nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
+          }
+          if (nextIndex >= 0) {
+            handleCategorySelect(items[nextIndex].category)
+            // Focus the next button
+            const container = e.currentTarget
+            const buttons = container.querySelectorAll<HTMLButtonElement>('[role="group"] > button, button[aria-pressed]')
+            buttons[nextIndex]?.focus()
+          }
+        }}
       >
-        {sortedCategories.map((cat) => (
+        {sortedCategories.map((cat, index) => (
           <CategoryButton
             key={cat.category}
             category={cat.category}
@@ -618,9 +642,32 @@ export function QuickLogArea({
             isSelected={selectedCategory === cat.category}
             onSelect={() => handleCategorySelect(cat.category)}
             reducedMotion={prefersReducedMotion}
+            tabIndex={
+              selectedCategory === cat.category ? 0
+                : selectedCategory === null && index === 0 ? 0
+                : -1
+            }
           />
         ))}
       </div>
+
+      {/* ── First-time user prompt (Requirement 14.4) ── */}
+      {recentTransactions.length === 0 && !selectedCategory && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+          style={{
+            fontSize: 13,
+            color: "var(--muted)",
+            textAlign: "center",
+            padding: "4px 0",
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          Tap a category to see common amounts and log your first expense
+        </motion.p>
+      )}
 
       {/* ── Suggestions & custom input area (Requirements 3.3, 3.4, 3.5, 3.6) ── */}
       <AnimatePresence mode="wait">
@@ -639,6 +686,20 @@ export function QuickLogArea({
             style={{ overflow: "hidden", touchAction: "none" }}
             aria-label={`Suggestions for ${categoryLabel(selectedCategory)}`}
           >
+            {/* Label: "Common amounts" for presets, hidden for history-based (Requirement 14.4) */}
+            {suggestions.every((s) => s.source === "preset") && (
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--muted)",
+                  fontWeight: 500,
+                  marginBottom: 6,
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Common amounts
+              </p>
+            )}
             <motion.div
               className="flex gap-2 overflow-x-auto pb-1"
               style={{ scrollbarWidth: "none", paddingTop: 4 }}
