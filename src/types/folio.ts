@@ -23,6 +23,8 @@ export interface DailyAllowance {
   message: string
   /** Whether to show celebration animation */
   showCelebration: boolean
+  /** Whether the allowance is an estimate based on income (no budget limits configured) */
+  isEstimated?: boolean
 }
 
 /**

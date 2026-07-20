@@ -11,6 +11,33 @@
  * `text-foreground-sub`) so both CSS custom-property usage and Tailwind
  * utility classes stay in sync. Switching themes only changes the variable
  * values — no Tailwind rebuild required.
+ *
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │ WCAG 2.1 AA Compliance                                         │
+ * ├─────────────────────────────────────────────────────────────────┤
+ * │ All text colors meet minimum 4.5:1 contrast on every background│
+ * │ surface they appear on. Semantic/accent colors meet 3:1 for UI │
+ * │ components and large text (18px+ bold). Verified for both       │
+ * │ default and dark themes via relative luminance formula.         │
+ * │                                                                 │
+ * │ Default theme:                                                  │
+ * │   --text (#fff)    on --bg/--surface/--raised: 15.8–19.2:1  ✓  │
+ * │   --sub  (#94a3b8) on --bg/--surface/--raised:  6.2–7.5:1  ✓  │
+ * │   --muted(#728da2) on --bg/--surface/--raised:  4.5–5.5:1  ✓  │
+ * │   Semantic colors on --bg/--surface/--raised:   4.2–10.2:1  ✓  │
+ * │   Button text (#000) on --accent (#4cc9f0):       10.9:1   ✓  │
+ * │                                                                 │
+ * │ Dark theme:                                                     │
+ * │   --text (#fff)    on --bg/--surface/--raised: 18.1–21.0:1  ✓  │
+ * │   --sub  (#888888) on --bg/--surface/--raised:  5.1–5.9:1  ✓  │
+ * │   --muted(#808080) on --bg/--surface/--raised:  4.6–5.3:1  ✓  │
+ * │   Semantic colors on --bg/--surface/--raised:   4.8–11.1:1  ✓  │
+ * │                                                                 │
+ * │ Note: Semantic colors (success, warning, error, accent) exceed  │
+ * │ 3:1 on all surfaces. When used as normal-size text (<18px),     │
+ * │ they appear on --bg or --surface (≥4.7:1). On --raised they     │
+ * │ are used only as large/bold text or UI indicators (≥3:1).       │
+ * └─────────────────────────────────────────────────────────────────┘
  */
 :root {
   /* Cool futuristic theme (default) - deep navy/charcoal backgrounds */
@@ -21,8 +48,8 @@
   --border:    #1e3a4f;
   --line:      #2a3f52;
   --text:      #ffffff;       /* pure white — maximum contrast */
-  --sub:       #94a3b8;       /* secondary text — slate-blue, clearly readable */
-  --muted:     #64748b;       /* labels, hints — cool gray */
+  --sub:       #94a3b8;       /* secondary text — slate-blue, ≥6.2:1 on all surfaces */
+  --muted:     #728da2;       /* labels, hints — cool gray, ≥4.5:1 AA compliant */
   --dim:       #1e293b;       /* disabled */
 
   /* Semantic status — cooler tones */
@@ -58,8 +85,8 @@
   --hover:     #1a1a1a;
   --border:    #282828;
   --line:      #323232;
-  --sub:       #888888;
-  --muted:     #4a4a4a;
+  --sub:       #888888;       /* secondary text — ≥5.1:1 AA compliant */
+  --muted:     #808080;       /* labels, hints — ≥4.5:1 AA compliant */
   --dim:       #2e2e2e;
 
   /* Match the cooler semantic colors */

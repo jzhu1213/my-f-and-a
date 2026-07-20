@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Transaction, Budget, Goal, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { CelebrationEvent } from "@/types/folio"
@@ -21,7 +21,18 @@ import { HomeScreenSkeleton, FadeInContent } from "@/components/ui/Skeleton"
 import { CategoryDetailSheet } from "@/components/accounting/CategoryDetailSheet"
 import { SwipeableTransactionRow } from "./SwipeableTransactionRow"
 import { PullToRefresh } from "./PullToRefresh"
-import { CelebrationOverlay } from "./CelebrationOverlay"
+import dynamic from "next/dynamic"
+
+// Code-split: celebration animations are heavy (canvas-confetti + framer-motion
+// particle layers) and only needed when a milestone is hit. Lazy-loading keeps
+// them out of the initial bundle entirely. (Requirement 13.6)
+const CelebrationOverlay = dynamic(
+  () =>
+    import("./CelebrationOverlay").then((mod) => ({
+      default: mod.CelebrationOverlay,
+    })),
+  { ssr: false },
+)
 
 // ============================================================================
 // Helpers
@@ -1021,10 +1032,14 @@ export function HomeScreen({
       />
 
       {/* ── Celebration Overlay (Requirements 6.1–6.7) ────────── */}
-      <CelebrationOverlay
-        event={effectiveCelebration ?? null}
-        onDismiss={handleCelebrationDismiss}
-      />
+      {/* Suspense boundary ensures the lazy chunk is silently deferred — no
+          loading indicator needed since celebrations appear post-interaction. */}
+      <Suspense fallback={null}>
+        <CelebrationOverlay
+          event={effectiveCelebration ?? null}
+          onDismiss={handleCelebrationDismiss}
+        />
+      </Suspense>
     </div>
     </PullToRefresh>
     </FadeInContent>

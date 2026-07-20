@@ -564,6 +564,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   /**
    * Daily allowance calculation (memoized)
    * Requirement 13.2: Only recalculate when budgets or transactions change
+   * Requirement 14.2: Use income-based estimation when no budgets are configured
    */
   const allowance = useMemo<DailyAllowance | null>(() => {
     if (budgets.length === 0 && transactions.length === 0 && !isLoading) {
@@ -571,7 +572,13 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       return null
     }
     
-    return computeDailyAllowance(budgets, transactions, new Date())
+    // Calculate monthly income from this month's income transactions
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    const monthlyIncome = transactions
+      .filter(t => t.date.startsWith(currentMonth) && t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0)
+    
+    return computeDailyAllowance(budgets, transactions, new Date(), monthlyIncome)
   }, [budgets, transactions, isLoading])
   
   /**

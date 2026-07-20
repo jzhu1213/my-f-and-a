@@ -126,24 +126,31 @@ function shouldCelebrate(status: AllowanceStatus, spentToday: number, dailyBudge
 /**
  * Computes daily allowance with rollover and status
  * 
- * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5**
+ * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 14.2**
  * 
  * @param budgets - Array of budget limits by category
  * @param transactions - Array of all transactions
  * @param currentDate - Current date (for testing purposes)
+ * @param monthlyIncome - Optional monthly income for estimation when no budgets are configured
  * @returns DailyAllowance object with amount, status, and message
  */
 export function computeDailyAllowance(
   budgets: Budget[],
   transactions: Transaction[],
-  currentDate: Date = new Date()
+  currentDate: Date = new Date(),
+  monthlyIncome?: number
 ): DailyAllowance {
   // Step 1: Calculate total monthly budget from all category limits
   const totalMonthlyBudget = budgets.reduce((sum, budget) => sum + budget.monthlyLimit, 0)
   
+  // If no budgets configured and monthlyIncome is provided, use income-based estimation
+  const isEstimated = budgets.length === 0 && typeof monthlyIncome === 'number' && monthlyIncome > 0
+  
   // Step 2: Calculate daily budget
   const daysInMonth = getDaysInMonth(currentDate)
-  const dailyBudget = totalMonthlyBudget / daysInMonth
+  const dailyBudget = isEstimated
+    ? monthlyIncome! / 30
+    : totalMonthlyBudget / daysInMonth
   
   // Step 3: Calculate spentToday
   const todayStr = formatDateString(currentDate)
@@ -197,6 +204,7 @@ export function computeDailyAllowance(
     rollover,
     status,
     message,
-    showCelebration
+    showCelebration,
+    isEstimated
   }
 }

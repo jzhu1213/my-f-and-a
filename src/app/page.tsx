@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Onboarding,
@@ -7,18 +7,22 @@ import {
   ProfileSheet,
   LimitSetupWizard,
   AppShell,
-  HistoryScreen,
-  SettingsScreen,
 } from '@/components'
 import type { AppNavKey } from '@/components/ui/AppShell'
 import type { LimitSetupResult } from '@/components/ui/LimitSetupWizard'
-import { TodayView } from '@/components/accounting/TodayView'
-import { LimitsView } from '@/components/accounting/LimitsView'
+import { HomeScreen } from '@/components/simplified/HomeScreen'
+import { HistoryScreen } from '@/components/simplified/HistoryScreen'
+import { SettingsScreen } from '@/components/simplified/SettingsScreen'
+import { BudgetSettings } from '@/components/simplified/BudgetSettings'
+import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
+import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { carryForwardBudgetLimits } from '@/lib/supabaseData'
-import type { TransactionCategory } from '@/types'
+import type { TransactionCategory, Transaction } from '@/types'
+import type { CelebrationEvent } from '@/types/folio'
+import type { TransactionRepeat } from '@/lib/transactionUtils'
 
 type OnboardingStep = 'loading' | 'welcome' | 'limits' | 'done'
 
@@ -29,15 +33,30 @@ export default function FolioApp() {
   // ── Routing & UI State ─────────────────────────────────────────
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('loading')
   const [activeNav, setActiveNav] = useState<AppNavKey>('home')
-  const [showLimits, setShowLimits] = useState(false)
+  const [showBudgetSettings, setShowBudgetSettings] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+
+  // ── Sheet State ────────────────────────────────────────────────
+  const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
+  const [incomeSheetOpen, setIncomeSheetOpen] = useState(false)
+  const [defaultExpenseCategory, setDefaultExpenseCategory] = useState<TransactionCategory | undefined>(undefined)
+
+  // ── Celebration State ──────────────────────────────────────────
+  const [celebrationEvent, setCelebrationEvent] = useState<CelebrationEvent | null>(null)
+
+  // ── Last logged expense for undo ───────────────────────────────
+  const [lastLoggedId, setLastLoggedId] = useState<string | null>(null)
 
   // ── Data Layer (consolidated in useHomeData hook) ─────────────
   const {
     transactions,
     budgets,
     goals,
+    allowance,
     isLoading: dataLoading,
+    refresh,
+    addTransaction,
+    deleteTransaction,
     updateBudget,
     createGoal,
     updateGoal,
@@ -55,7 +74,7 @@ export default function FolioApp() {
   // ── Budget limit carry-forward on mount ────────────────────────
   useEffect(() => {
     if (user?.id && !authLoading) {
-      carryForwardBudgetLimits(user.id).catch(err => 
+      carryForwardBudgetLimits(user.id).catch(err =>
         console.error('Error carrying forward budget limits:', err)
       )
     }
@@ -72,11 +91,94 @@ export default function FolioApp() {
     for (const [cat, limit] of entries) {
       if (limit > 0) await updateBudget(cat, limit)
     }
-    if (entries.length > 0) showToast('Limits set — check Today to see what\'s left')
+    if (entries.length > 0) showToast("Limits set — check today's budget")
     finishOnboarding()
   }
 
   const handleLimitSetupSkip = () => finishOnboarding()
+
+  // ── Expense Logging ────────────────────────────────────────────
+  const handleOpenExpenseSheet = useCallback((category?: TransactionCategory) => {
+    setDefaultExpenseCategory(category)
+    setExpenseSheetOpen(true)
+  }, [])
+
+  const handleExpenseSubmit = useCallback(async (data: {
+    amount: number
+    category: TransactionCategory
+    note?: string
+  }) => {
+    if (!user?.id) return
+
+    const today = new Date().toISOString().slice(0, 10)
+    const result = await addTransaction({
+      amount: data.amount,
+      category: data.category,
+      type: 'expense',
+      date: today,
+      note: data.note,
+    })
+
+    if (result) {
+      setLastLoggedId(result.id)
+    } else {
+      showToast('Saved offline — will sync when connected', 'success')
+    }
+  }, [user?.id, addTransaction, showToast])
+
+  const handleExpenseUndo = useCallback(async () => {
+    if (!lastLoggedId) return
+    await deleteTransaction(lastLoggedId)
+    setLastLoggedId(null)
+    showToast('Expense removed')
+  }, [lastLoggedId, deleteTransaction, showToast])
+
+  // ── Income Logging ─────────────────────────────────────────────
+  const handleIncomeSubmit = useCallback(async (data: {
+    amount: number
+    note?: string
+  }) => {
+    if (!user?.id) return
+
+    const today = new Date().toISOString().slice(0, 10)
+    const result = await addTransaction({
+      amount: data.amount,
+      category: 'other',
+      type: 'income',
+      date: today,
+      note: data.note,
+    })
+
+    if (!result) {
+      showToast('Saved offline — will sync when connected', 'success')
+    }
+  }, [user?.id, addTransaction, showToast])
+
+  // ── Repeat Log ─────────────────────────────────────────────────
+  const handleRepeatLog = useCallback(async (repeat: TransactionRepeat) => {
+    if (!user?.id) return
+
+    const today = new Date().toISOString().slice(0, 10)
+    const result = await addTransaction({
+      amount: repeat.amount,
+      category: repeat.category,
+      type: repeat.type,
+      date: today,
+      note: repeat.note,
+    })
+
+    if (result) {
+      showToast(`Logged ${repeat.label} ✓`, 'success')
+      setLastLoggedId(result.id)
+    } else {
+      showToast('Saved offline — will sync when connected', 'success')
+    }
+  }, [user?.id, addTransaction, showToast])
+
+  // ── Transaction Delete ─────────────────────────────────────────
+  const handleDeleteTransaction = useCallback(async (id: string) => {
+    await deleteTransaction(id)
+  }, [deleteTransaction])
 
   // ── Goal Handlers (delegated to useHomeData) ───────────────────
   const handleCreateGoal = async (data: { name: string; targetAmount: number; emoji: string }) => {
@@ -144,78 +246,101 @@ export default function FolioApp() {
     )
   }
 
+  // ── Budget Settings (full-screen overlay) ─────────────────────
+  if (showBudgetSettings) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <BudgetSettings
+          budgets={budgets}
+          onUpdateBudget={handleUpdateBudget}
+          onBack={() => setShowBudgetSettings(false)}
+        />
+      </div>
+    )
+  }
+
   // ── Main App Shell ─────────────────────────────────────────────
   return (
     <>
-      {showLimits ? (
-        <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-          <LimitsView
-            budgets={budgets}
-            goals={goals}
-            onBack={() => setShowLimits(false)}
-            onUpdateBudget={handleUpdateBudget}
-            onCreateGoal={handleCreateGoal}
-            onUpdateGoal={handleUpdateGoal}
-            onContributeToGoal={handleContributeToGoal}
-            onDeleteGoal={handleDeleteGoal}
-          />
-        </div>
-      ) : (
-        <AppShell
-          activeNav={activeNav}
-          onNavChange={setActiveNav}
-          onOpenSettings={() => setActiveNav('settings')}
-          onOpenProfile={() => setShowProfile(true)}
-          avatarUrl={undefined}
-          avatarInitial={user?.email?.charAt(0)}
-          meshVariant={activeNav === 'home' ? 'home' : 'home'}
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeNav}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
-            >
-              {activeNav === 'home' && (
-                <TodayView
-                  transactions={transactions}
-                  budgets={budgets}
-                  isLoading={dataLoading}
-                  onLogExpense={() => {}}
-                  onLogIncome={() => {}}
-                  onRepeatLog={() => {}}
-                  onOpenLimits={() => setShowLimits(true)}
-                  onViewHistory={() => setActiveNav('history')}
-                  onEditTransaction={() => {}}
-                />
-              )}
-              {activeNav === 'history' && (
-                <HistoryScreen
-                  transactions={transactions}
-                  isLoading={dataLoading}
-                  onEditTransaction={() => {}}
-                  onDeleteTransaction={() => {}}
-                  onLogExpense={() => {}}
-                />
-              )}
-              {activeNav === 'settings' && (
-                <SettingsScreen
-                  budgets={budgets}
-                  goals={goals}
-                  userEmail={user?.email}
-                  onOpenBudgetSettings={() => setShowLimits(true)}
-                  onOpenGoals={() => setShowLimits(true)}
-                  onOpenLearn={() => setActiveNav('home')}
-                  onSignOut={handleSignOut}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </AppShell>
-      )}
+      <AppShell
+        activeNav={activeNav}
+        onNavChange={setActiveNav}
+        onOpenSettings={() => setActiveNav('settings')}
+        onOpenProfile={() => setShowProfile(true)}
+        avatarUrl={undefined}
+        avatarInitial={user?.email?.charAt(0)}
+        meshVariant="home"
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeNav}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+          >
+            {activeNav === 'home' && (
+              <HomeScreen
+                allowance={allowance}
+                transactions={transactions}
+                budgets={budgets}
+                goals={goals}
+                userName={user?.email?.split('@')[0]}
+                isLoading={dataLoading}
+                onHeroTapDetails={() => setActiveNav('history')}
+                onLogExpense={handleOpenExpenseSheet}
+                onLogIncome={() => setIncomeSheetOpen(true)}
+                onRepeatLog={handleRepeatLog}
+                onViewTransaction={(_tx: Transaction) => setActiveNav('history')}
+                onViewAllHistory={() => setActiveNav('history')}
+                onDeleteTransaction={handleDeleteTransaction}
+                onRefresh={refresh}
+                celebrationEvent={celebrationEvent}
+                onCelebrationDismiss={() => setCelebrationEvent(null)}
+              />
+            )}
+            {activeNav === 'history' && (
+              <HistoryScreen
+                transactions={transactions}
+                isLoading={dataLoading}
+                onEditTransaction={(_tx: Transaction) => {}}
+                onDeleteTransaction={handleDeleteTransaction}
+                onLogExpense={() => handleOpenExpenseSheet()}
+              />
+            )}
+            {activeNav === 'settings' && (
+              <SettingsScreen
+                budgets={budgets}
+                goals={goals}
+                userEmail={user?.email}
+                onOpenBudgetSettings={() => setShowBudgetSettings(true)}
+                onOpenGoals={() => setShowBudgetSettings(true)}
+                onOpenLearn={() => setActiveNav('home')}
+                onSignOut={handleSignOut}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </AppShell>
 
+      {/* ── Expense Sheet ──────────────────────────────────────── */}
+      <ExpenseSheet
+        isOpen={expenseSheetOpen}
+        onClose={() => setExpenseSheetOpen(false)}
+        onSubmit={handleExpenseSubmit}
+        onUndo={lastLoggedId ? handleExpenseUndo : undefined}
+        defaultCategory={defaultExpenseCategory}
+        transactions={transactions}
+      />
+
+      {/* ── Income Sheet ───────────────────────────────────────── */}
+      <IncomeSheet
+        isOpen={incomeSheetOpen}
+        onClose={() => setIncomeSheetOpen(false)}
+        onSubmit={handleIncomeSubmit}
+      />
+
+      {/* ── Profile Sheet ──────────────────────────────────────── */}
       <ProfileSheet
         isOpen={showProfile}
         onClose={() => setShowProfile(false)}
