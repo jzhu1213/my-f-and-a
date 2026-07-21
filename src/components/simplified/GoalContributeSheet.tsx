@@ -1,0 +1,390 @@
+"use client"
+
+import { useState, useEffect, useRef, useCallback } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { springs, useReducedMotion } from "@/lib/animations"
+import type { Goal } from "@/types"
+
+// ============================================================================
+// Config
+// ============================================================================
+
+/** Quick-add chips tuned for small, frequent student contributions. */
+const QUICK_AMOUNTS = [10, 25, 50, 100]
+
+const MAX_AMOUNT = 99999
+
+interface GoalContributeSheetProps {
+  /** Whether the sheet is visible. Drives enter/exit animation. */
+  isOpen: boolean
+  /** The goal being contributed to. */
+  goal: Goal | null
+  /** Close the sheet without contributing. */
+  onClose: () => void
+  /** Add to a goal's saved amount. Resolves to the updated goal, or null on failure. */
+  onContribute: (id: string, amount: number) => Promise<Goal | null> | void
+}
+
+function formatAmount(value: number): string {
+  return value.toLocaleString("en-US", { maximumFractionDigits: 0 })
+}
+
+// ============================================================================
+// GoalContributeSheet
+// ============================================================================
+
+/**
+ * GoalContributeSheet — warm, glass bottom sheet for adding money to a goal.
+ * Shares the ExpenseSheet / IncomeSheet visual language (Inter font,
+ * `--surface` glass panel, framer-motion slide-up + backdrop, reduced-motion
+ * aware). Offers quick-add chips plus a custom amount entry, and shows the
+ * goal's current progress for context.
+ *
+ * Submission awaits the contribute handler so optimistic updates upstream stay
+ * reversible: a null result is treated as a persistence failure, the sheet
+ * stays open, and an inline error is shown so the user can retry.
+ *
+ * Validates: Requirements 12.4
+ */
+export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: GoalContributeSheetProps) {
+  const { prefersReducedMotion } = useReducedMotion()
+  const amountRef = useRef<HTMLInputElement>(null)
+
+  const [amount, setAmount] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Retain the last non-null goal so its details stay rendered while the sheet
+  // animates out (the parent nulls `goal` the moment it closes).
+  const [displayGoal, setDisplayGoal] = useState<Goal | null>(goal)
+  useEffect(() => {
+    if (goal) setDisplayGoal(goal)
+  }, [goal])
+
+  // Reset entry state each time the sheet opens.
+  useEffect(() => {
+    if (!isOpen) return
+    setAmount("")
+    setSubmitting(false)
+    setError(null)
+  }, [isOpen])
+
+  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9.]/g, "")
+    const parts = raw.split(".")
+    if (parts.length > 2) return
+    if (parts[1] && parts[1].length > 2) return
+    const numeric = parseFloat(raw)
+    if (numeric > MAX_AMOUNT) return
+    setAmount(raw)
+    setError(null)
+  }, [])
+
+  const parsed = parseFloat(amount)
+  const canSubmit = !!parsed && parsed > 0 && parsed <= MAX_AMOUNT && !submitting
+
+  const handleSubmit = useCallback(async () => {
+    const value = parseFloat(amount)
+    if (!value || value <= 0 || value > MAX_AMOUNT || !displayGoal) {
+      setError("Enter an amount above $0.")
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+    try {
+      const result = await Promise.resolve(onContribute(displayGoal.id, value))
+
+      // A null result means the optimistic update was reverted upstream —
+      // keep the sheet open so the user can retry.
+      if (result === null) {
+        setSubmitting(false)
+        setError("Couldn't add that. Check your connection and try again.")
+        return
+      }
+
+      onClose()
+    } catch {
+      setSubmitting(false)
+      setError("Something went wrong. Please try again.")
+    }
+  }, [amount, displayGoal, onContribute, onClose])
+
+  // ── Progress context ────────────────────────────────────────────────────
+  const pct = displayGoal && displayGoal.targetAmount > 0
+    ? Math.min(Math.round((displayGoal.currentAmount / displayGoal.targetAmount) * 100), 100)
+    : 0
+  const remaining = displayGoal ? Math.max(0, displayGoal.targetAmount - displayGoal.currentAmount) : 0
+
+  // ── Animation variants (shared language with ExpenseSheet/IncomeSheet) ──
+  const sheetVariants = prefersReducedMotion
+    ? {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { duration: 0.15 } },
+        exit: { opacity: 0, transition: { duration: 0.1 } },
+      }
+    : {
+        hidden: { y: "100%" },
+        visible: { y: 0, transition: springs.gentle },
+        exit: { y: "100%", transition: { duration: 0.25, ease: [0.32, 0.72, 0, 1] as const } },
+      }
+
+  const backdropVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.2 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && displayGoal && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="goal-contribute-backdrop"
+            variants={backdropVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={submitting ? undefined : onClose}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 40,
+              background: "rgba(0, 0, 0, 0.6)",
+            }}
+          />
+
+          {/* Sheet */}
+          <motion.div
+            key="goal-contribute-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Add money to ${displayGoal.name}`}
+            variants={sheetVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            style={{
+              position: "fixed",
+              insetInline: 0,
+              bottom: 0,
+              zIndex: 50,
+              display: "flex",
+              flexDirection: "column",
+              background: "var(--surface)",
+              borderTop: "1px solid var(--line)",
+              borderRadius: "var(--radius-lg) var(--radius-lg) 0 0",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            {/* Handle */}
+            <div className="sheet-handle" />
+
+            <div style={{ padding: "0 24px 32px" }}>
+              {/* ── Goal header + progress ─────────────────────────── */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                  <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }} aria-hidden="true">
+                    {displayGoal.emoji}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <h2
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 700,
+                        color: "var(--text)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {displayGoal.name}
+                    </h2>
+                    <p style={{ fontSize: 13, color: "var(--sub)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                      ${formatAmount(displayGoal.currentAmount)}
+                      <span style={{ color: "var(--muted)" }}> / ${formatAmount(displayGoal.targetAmount)}</span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={submitting}
+                  aria-label="Close"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 32,
+                    height: 32,
+                    flexShrink: 0,
+                    borderRadius: 999,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid var(--border)",
+                    color: "var(--muted)",
+                    cursor: submitting ? "not-allowed" : "pointer",
+                  }}
+                >
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Progress bar */}
+              <div
+                role="progressbar"
+                aria-valuenow={pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${displayGoal.name} progress: ${pct} percent`}
+                style={{
+                  height: 8,
+                  width: "100%",
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.06)",
+                  overflow: "hidden",
+                  marginBottom: 8,
+                }}
+              >
+                <motion.div
+                  initial={{ width: prefersReducedMotion ? `${pct}%` : 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={prefersReducedMotion ? { duration: 0.15 } : springs.gentle}
+                  style={{ height: "100%", borderRadius: 999, background: "var(--accent)" }}
+                />
+              </div>
+              <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 24, fontVariantNumeric: "tabular-nums" }}>
+                {remaining > 0 ? `$${formatAmount(remaining)} to go` : "Goal reached 🎉"}
+              </p>
+
+              {/* ── Quick-add chips ────────────────────────────────── */}
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 10 }}>Quick add</p>
+              <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                {QUICK_AMOUNTS.map(q => {
+                  const active = amount === String(q)
+                  return (
+                    <motion.button
+                      key={q}
+                      type="button"
+                      onClick={() => { setAmount(String(q)); setError(null) }}
+                      whileTap={{ scale: prefersReducedMotion ? 1 : 0.95 }}
+                      transition={springs.snappy}
+                      aria-label={`Add $${q}`}
+                      aria-pressed={active}
+                      style={{
+                        flex: 1,
+                        padding: "12px 0",
+                        fontSize: 15,
+                        fontWeight: 600,
+                        fontFamily: "Inter, sans-serif",
+                        borderRadius: "var(--radius-md)",
+                        cursor: "pointer",
+                        color: active ? "var(--text)" : "var(--sub)",
+                        ...(active
+                          ? {
+                              background: "rgba(129, 140, 248, 0.08)",
+                              border: "1.5px solid rgba(129, 140, 248, 0.4)",
+                              boxShadow: "0 0 12px rgba(129, 140, 248, 0.15)",
+                            }
+                          : {
+                              background: "rgba(255, 255, 255, 0.03)",
+                              border: "1px solid rgba(255, 255, 255, 0.06)",
+                            }),
+                      }}
+                    >
+                      ${q}
+                    </motion.button>
+                  )
+                })}
+              </div>
+
+              {/* ── Custom amount ──────────────────────────────────── */}
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>Or enter an amount</p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: error ? 12 : 28 }}>
+                <span style={{ fontSize: 24, fontWeight: 300, color: "var(--muted)" }}>$</span>
+                <input
+                  ref={amountRef}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={handleAmountChange}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && canSubmit) {
+                      e.preventDefault()
+                      handleSubmit()
+                    }
+                  }}
+                  aria-label="Contribution amount"
+                  style={{
+                    flex: 1,
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: "1px solid var(--line)",
+                    outline: "none",
+                    fontSize: 32,
+                    fontWeight: 600,
+                    fontFamily: "Inter, sans-serif",
+                    color: "var(--text)",
+                    padding: "4px 0 6px",
+                    caretColor: "var(--text)",
+                    minWidth: 0,
+                  }}
+                />
+              </div>
+
+              {/* ── Inline error (persistence failure / validation) ── */}
+              {error && (
+                <p role="alert" style={{ fontSize: 13, color: "var(--error)", marginBottom: 20, lineHeight: 1.5 }}>
+                  {error}
+                </p>
+              )}
+
+              {/* ── Add button ─────────────────────────────────────── */}
+              <motion.button
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                aria-label="Add money to goal"
+                whileTap={canSubmit && !prefersReducedMotion ? { scale: 0.97 } : undefined}
+                transition={springs.bouncy}
+                style={{
+                  width: "100%",
+                  height: 56,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: canSubmit
+                    ? "linear-gradient(135deg, rgba(129, 140, 248, 1) 0%, rgba(99, 102, 241, 1) 100%)"
+                    : "var(--dim)",
+                  color: canSubmit ? "#fff" : "var(--muted)",
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 17,
+                  fontWeight: 600,
+                  borderRadius: "var(--radius-md)",
+                  border: "none",
+                  cursor: canSubmit ? "pointer" : "not-allowed",
+                  opacity: canSubmit ? 1 : 0.5,
+                  boxShadow: canSubmit ? "0 4px 16px rgba(129, 140, 248, 0.3)" : "none",
+                }}
+              >
+                {submitting ? "Adding…" : parsed > 0 ? `Add $${formatAmount(parsed)}` : "Add money"}
+              </motion.button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}

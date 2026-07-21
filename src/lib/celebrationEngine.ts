@@ -368,22 +368,27 @@ export function clearTriggeredCelebrations(): void {
 }
 
 // ============================================================================
-// Internal: Streak Calculation
+// Public: Streak Calculation
 // ============================================================================
 
 /**
- * Calculates the number of consecutive days (ending yesterday) where spending
- * was under the daily budget. Today is excluded because it's still in progress.
+ * Returns the number of consecutive under-budget days ending yesterday.
+ * Today is excluded because it's still in progress. Looks back up to 30 days.
+ *
+ * Use this to display the user's current streak in tips, UI badges, or
+ * celebration logic.
+ *
+ * **Validates: Requirements 5.4, 6.2**
  *
  * @param budgets - User's budget limits
  * @param transactions - All user transactions
- * @param now - Current date (for testability)
- * @returns Number of consecutive under-budget days
+ * @param now - Current date/time (defaults to now for convenience)
+ * @returns Number of consecutive under-budget days (0–30)
  */
-function calculateStreak(
+export function getUnderBudgetStreak(
   budgets: Budget[],
   transactions: Transaction[],
-  now: Date
+  now: Date = new Date()
 ): number {
   const dailyBudget = getDailyBudget(budgets, now)
   if (dailyBudget <= 0) return 0
@@ -401,4 +406,15 @@ function calculateStreak(
   }
 
   return streak
+}
+
+/**
+ * Internal alias for backward compatibility with celebration checks.
+ */
+function calculateStreak(
+  budgets: Budget[],
+  transactions: Transaction[],
+  now: Date
+): number {
+  return getUnderBudgetStreak(budgets, transactions, now)
 }

@@ -62,6 +62,7 @@ export function ExpenseSheet({
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<TransactionCategory | null>(null)
   const [note, setNote] = useState('')
+  const [showNoteField, setShowNoteField] = useState(false)
 
   // Compute smart suggestions when category is selected
   const suggestions: SmartSuggestion[] = useMemo(() => {
@@ -81,6 +82,7 @@ export function ExpenseSheet({
       setAmount('')
       setCategory(effectiveDefault)
       setNote('')
+      setShowNoteField(false)
       // Auto-focus amount input
       setTimeout(() => amountRef.current?.focus(), 120)
     }
@@ -145,7 +147,11 @@ export function ExpenseSheet({
       .replace(/&[a-z]+;/gi, ' ')
       .slice(0, 60)
     setNote(sanitized)
-  }, [])
+    // Ensure note field stays visible once user starts typing
+    if (sanitized && !showNoteField) {
+      setShowNoteField(true)
+    }
+  }, [showNoteField])
 
   // ── Category button animation variants ──────────────────────────────────
   const cardTapVariants: Variants = prefersReducedMotion
@@ -244,8 +250,22 @@ export function ExpenseSheet({
                         <button
                           key={s.id}
                           type="button"
-                          onClick={() => setAmount(s.amount % 1 === 0 ? s.amount.toString() : s.amount.toFixed(2))}
-                          aria-label={s.label ? `${amountStr} for ${s.label}` : amountStr}
+                          onClick={() => {
+                            // One-tap log: immediately submit with suggested amount (Req 3.4)
+                            onSubmit({
+                              amount: s.amount,
+                              category,
+                              note: s.label || undefined,
+                            })
+                            const categoryLabel = CATEGORY_GRID.find(c => c.category === category)?.label ?? category
+                            showToast(
+                              `Logged ${amountStr} for ${categoryLabel} ✓`,
+                              'success',
+                              onUndo ? { label: 'Undo', onClick: onUndo } : undefined
+                            )
+                            onClose()
+                          }}
+                          aria-label={s.label ? `Log ${amountStr} for ${s.label}` : `Log ${amountStr}`}
                           style={{
                             display: 'flex',
                             flexDirection: 'column',
@@ -464,84 +484,113 @@ export function ExpenseSheet({
                 })}
               </div>
 
-              {/* ── Note Input (optional) ───────────────────────────── */}
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    placeholder="Add a note (optional)"
-                    value={note}
-                    onChange={handleNoteChange}
-                    maxLength={60}
-                    aria-label="Expense note"
+              {/* ── Note Input (optional, hidden unless toggled) ───────────────────────────── */}
+              {!showNoteField && !note ? (
+                <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowNoteField(true)}
+                    aria-label="Add a note"
                     style={{
-                      width: '100%',
                       background: 'transparent',
-                      border: 'none',
-                      borderBottom: '1px solid var(--line)',
-                      outline: 'none',
-                      fontSize: 15,
+                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '10px 16px',
+                      fontSize: 13,
                       fontFamily: 'Inter, sans-serif',
-                      color: 'var(--text)',
-                      padding: '12px 0',
-                      caretColor: 'var(--text)',
-                    }}
-                  />
-                  {/* Character count indicator — shown when 50+ chars */}
-                  {note.length >= 50 && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        bottom: 14,
-                        fontSize: 11,
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 400,
-                        color: 'var(--muted)',
-                      }}
-                    >
-                      {note.length}/60
-                    </span>
-                  )}
-                </div>
-
-                {/* Note suggestion chips */}
-                {category && recentNotes.length > 0 && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 8,
-                      marginTop: 10,
+                      fontWeight: 400,
+                      color: 'var(--sub)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
                     }}
                   >
-                    {recentNotes.map((recentNote) => (
-                      <button
-                        key={recentNote}
-                        type="button"
-                        onClick={() => setNote(recentNote)}
-                        aria-label={`Use note: ${recentNote}`}
+                    <span style={{ fontSize: 16 }}>+</span> Add a note
+                  </button>
+                </div>
+              ) : (
+                <div style={{ marginBottom: 28 }}>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="What's this for?"
+                      value={note}
+                      onChange={handleNoteChange}
+                      maxLength={60}
+                      aria-label="Expense note"
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        borderBottom: '1px solid var(--line)',
+                        outline: 'none',
+                        fontSize: 15,
+                        fontFamily: 'Inter, sans-serif',
+                        color: 'var(--text)',
+                        padding: '12px 0',
+                        caretColor: 'var(--text)',
+                      }}
+                    />
+                    {/* Character count indicator — shown when 50+ chars */}
+                    {note.length >= 50 && (
+                      <span
                         style={{
-                          background: 'rgba(255, 255, 255, 0.04)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          borderRadius: 99,
-                          padding: '5px 12px',
-                          fontSize: 12,
+                          position: 'absolute',
+                          right: 0,
+                          bottom: 14,
+                          fontSize: 11,
                           fontFamily: 'Inter, sans-serif',
                           fontWeight: 400,
-                          color: 'var(--sub)',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
+                          color: 'var(--muted)',
                         }}
                       >
-                        {recentNote.length > 20
-                          ? recentNote.slice(0, 20) + '…'
-                          : recentNote}
-                      </button>
-                    ))}
+                        {note.length}/60
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  {/* Note suggestion chips */}
+                  {category && recentNotes.length > 0 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                        marginTop: 10,
+                      }}
+                    >
+                      {recentNotes.map((recentNote) => (
+                        <button
+                          key={recentNote}
+                          type="button"
+                          onClick={() => {
+                            setNote(recentNote)
+                            setShowNoteField(true)
+                          }}
+                          aria-label={`Use note: ${recentNote}`}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: 99,
+                            padding: '5px 12px',
+                            fontSize: 12,
+                            fontFamily: 'Inter, sans-serif',
+                            fontWeight: 400,
+                            color: 'var(--sub)',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {recentNote.length > 20
+                            ? recentNote.slice(0, 20) + '…'
+                            : recentNote}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ── Log Button ──────────────────────────────────────── */}
               <motion.button

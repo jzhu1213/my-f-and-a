@@ -22,12 +22,14 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
 
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
+  const [showNoteField, setShowNoteField] = useState(false)
 
   // Reset state when opening
   useEffect(() => {
     if (isOpen) {
       setAmount('')
       setNote('')
+      setShowNoteField(false)
       setTimeout(() => amountRef.current?.focus(), 120)
     }
   }, [isOpen])
@@ -51,7 +53,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
       .replace(/&[a-z]+;/gi, ' ')
       .slice(0, 60)
     setNote(sanitized)
-  }, [])
+    // Ensure note field stays visible once user starts typing
+    if (sanitized && !showNoteField) {
+      setShowNoteField(true)
+    }
+  }, [showNoteField])
 
   const handleSubmit = useCallback(() => {
     const parsed = parseFloat(amount)
@@ -203,53 +209,79 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
                 </p>
               </div>
 
-              {/* ── Note Input (optional) ───────────────────────────── */}
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    placeholder="Add a note (optional)"
-                    value={note}
-                    onChange={handleNoteChange}
-                    maxLength={60}
-                    aria-label="Income note"
+              {/* ── Note Input (optional, hidden unless toggled) ───────────────────────────── */}
+              {!showNoteField && !note ? (
+                <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowNoteField(true)}
+                    aria-label="Add a note"
                     style={{
-                      width: '100%',
                       background: 'transparent',
-                      border: 'none',
-                      borderBottom: '1px solid var(--line)',
-                      outline: 'none',
-                      fontSize: 15,
+                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '10px 16px',
+                      fontSize: 13,
                       fontFamily: 'Inter, sans-serif',
-                      color: 'var(--text)',
-                      padding: '12px 0',
-                      caretColor: 'var(--text)',
+                      fontWeight: 400,
+                      color: 'var(--sub)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
                     }}
-                  />
-                  {/* Character count indicator — shown when 50+ chars */}
-                  {note.length >= 50 && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        bottom: 14,
-                        fontSize: 11,
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 400,
-                        color: 'var(--muted)',
-                      }}
-                    >
-                      {note.length}/60
-                    </span>
-                  )}
+                  >
+                    <span style={{ fontSize: 16 }}>+</span> Add a note
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <div style={{ marginBottom: 28 }}>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="What's this for?"
+                      value={note}
+                      onChange={handleNoteChange}
+                      maxLength={60}
+                      aria-label="Income note"
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        borderBottom: '1px solid var(--line)',
+                        outline: 'none',
+                        fontSize: 15,
+                        fontFamily: 'Inter, sans-serif',
+                        color: 'var(--text)',
+                        padding: '12px 0',
+                        caretColor: 'var(--text)',
+                      }}
+                    />
+                    {/* Character count indicator — shown when 50+ chars */}
+                    {note.length >= 50 && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          bottom: 14,
+                          fontSize: 11,
+                          fontFamily: 'Inter, sans-serif',
+                          fontWeight: 400,
+                          color: 'var(--muted)',
+                        }}
+                      >
+                        {note.length}/60
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
-              {/* ── Log Income Button ──────────────────────────────── */}
+              {/* ── Done Button ──────────────────────────────────────── */}
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                aria-label="Log income"
+                aria-label="Done — log income"
                 style={{
                   width: '100%',
                   height: 52,
@@ -270,7 +302,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
                   opacity: canSubmit ? 1 : 0.5,
                 }}
               >
-                Log income
+                Done
               </button>
             </div>
           </motion.div>

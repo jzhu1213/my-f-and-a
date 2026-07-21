@@ -14,8 +14,10 @@ import { HomeScreen } from '@/components/simplified/HomeScreen'
 import { HistoryScreen } from '@/components/simplified/HistoryScreen'
 import { SettingsScreen } from '@/components/simplified/SettingsScreen'
 import { BudgetSettings } from '@/components/simplified/BudgetSettings'
+import { GoalsScreen } from '@/components/simplified/GoalsScreen'
 import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
 import { IncomeSheet } from '@/components/simplified/IncomeSheet'
+import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
@@ -34,11 +36,14 @@ export default function FolioApp() {
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('loading')
   const [activeNav, setActiveNav] = useState<AppNavKey>('home')
   const [showBudgetSettings, setShowBudgetSettings] = useState(false)
+  const [showGoals, setShowGoals] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
 
   // ── Sheet State ────────────────────────────────────────────────
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
   const [incomeSheetOpen, setIncomeSheetOpen] = useState(false)
+  const [paycheckSheetOpen, setPaycheckSheetOpen] = useState(false)
+  const [paycheckAmount, setPaycheckAmount] = useState(0)
   const [defaultExpenseCategory, setDefaultExpenseCategory] = useState<TransactionCategory | undefined>(undefined)
 
   // ── Celebration State ──────────────────────────────────────────
@@ -154,6 +159,15 @@ export default function FolioApp() {
     }
   }, [user?.id, addTransaction, showToast])
 
+  // ── Paycheck Sheet (show after income logged, only if active goals) ──
+  const handleShowPaycheck = useCallback((amount: number) => {
+    const activeGoals = goals.filter(g => g.currentAmount < g.targetAmount)
+    if (activeGoals.length > 0) {
+      setPaycheckAmount(amount)
+      setPaycheckSheetOpen(true)
+    }
+  }, [goals])
+
   // ── Repeat Log ─────────────────────────────────────────────────
   const handleRepeatLog = useCallback(async (repeat: TransactionRepeat) => {
     if (!user?.id) return
@@ -185,24 +199,28 @@ export default function FolioApp() {
     const result = await createGoal(data)
     if (result) showToast('Goal created')
     else showToast('Failed to create goal', 'error')
+    return result
   }
 
   const handleUpdateGoal = async (goalId: string, data: { name: string; targetAmount: number; emoji: string }) => {
     const result = await updateGoal(goalId, data)
     if (result) showToast('Goal updated')
     else showToast('Failed to update goal', 'error')
+    return result
   }
 
   const handleContributeToGoal = async (goalId: string, amount: number) => {
     const result = await contributeToGoal(goalId, amount)
     if (result) showToast(`$${amount} added`)
     else showToast('Failed to update goal', 'error')
+    return result
   }
 
   const handleDeleteGoal = async (goalId: string) => {
     const success = await deleteGoal(goalId)
     if (success) showToast('Goal deleted')
     else showToast('Failed to delete goal', 'error')
+    return success
   }
 
   // ── Budget Handlers (delegated to useHomeData) ─────────────────
@@ -254,6 +272,22 @@ export default function FolioApp() {
           budgets={budgets}
           onUpdateBudget={handleUpdateBudget}
           onBack={() => setShowBudgetSettings(false)}
+        />
+      </div>
+    )
+  }
+
+  // ── Goals (full-screen overlay) ───────────────────────────────
+  if (showGoals) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <GoalsScreen
+          goals={goals}
+          onCreateGoal={handleCreateGoal}
+          onUpdateGoal={handleUpdateGoal}
+          onContributeToGoal={handleContributeToGoal}
+          onDeleteGoal={handleDeleteGoal}
+          onBack={() => setShowGoals(false)}
         />
       </div>
     )
@@ -314,7 +348,7 @@ export default function FolioApp() {
                 goals={goals}
                 userEmail={user?.email}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
-                onOpenGoals={() => setShowBudgetSettings(true)}
+                onOpenGoals={() => setShowGoals(true)}
                 onOpenLearn={() => setActiveNav('home')}
                 onSignOut={handleSignOut}
               />
@@ -338,6 +372,16 @@ export default function FolioApp() {
         isOpen={incomeSheetOpen}
         onClose={() => setIncomeSheetOpen(false)}
         onSubmit={handleIncomeSubmit}
+        onShowPaycheck={handleShowPaycheck}
+      />
+
+      {/* ── Paycheck Sheet ─────────────────────────────────────── */}
+      <PaycheckSheet
+        isOpen={paycheckSheetOpen}
+        amount={paycheckAmount}
+        goals={goals}
+        onContribute={handleContributeToGoal}
+        onClose={() => setPaycheckSheetOpen(false)}
       />
 
       {/* ── Profile Sheet ──────────────────────────────────────── */}

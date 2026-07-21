@@ -11,7 +11,7 @@ import { computeCategoryBudgets } from "@/lib/budgetUtils"
 import type { CategoryBudgetRow } from "@/lib/budgetUtils"
 import { selectContextualTip } from "@/lib/tipUtils"
 import type { UserContext } from "@/lib/tipUtils"
-import { checkAllCelebrations } from "@/lib/celebrationEngine"
+import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
@@ -180,6 +180,12 @@ export function HomeScreen({
     [transactions]
   )
 
+  // ── Streak calculation (memoized) ──────────────────────────────────────────
+  const underBudgetStreak = useMemo(
+    () => getUnderBudgetStreak(budgets, transactions),
+    [budgets, transactions]
+  )
+
   // ── Contextual tip selection ──────────────────────────────────────────────
   const userContext = useMemo((): UserContext => {
     const todayStr = new Date().toISOString().slice(0, 10)
@@ -202,7 +208,7 @@ export function HomeScreen({
     const todaySpentPercent = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0
 
     return {
-      underBudgetStreak: 0, // Placeholder until celebration engine (task 16)
+      underBudgetStreak,
       todaySpentPercent,
       totalTransactions: transactions.length,
       topCategory,
