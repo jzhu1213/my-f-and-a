@@ -399,6 +399,7 @@ export function HomeScreen({
         </section>
 
         {/* ── 1.5. Contextual Tip ─────────────────────────────────── */}
+        {/* TODO(task-38): Wire onLearnMore to Lessons tab once it exists; currently a no-op. */}
         <AnimatePresence>
           {activeTip && (
             <section aria-label="Contextual tip">

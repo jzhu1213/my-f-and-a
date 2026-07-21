@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Onboarding,
   Toast,
-  ProfileSheet,
   LimitSetupWizard,
   AppShell,
 } from '@/components'
@@ -37,7 +36,6 @@ export default function FolioApp() {
   const [activeNav, setActiveNav] = useState<AppNavKey>('home')
   const [showBudgetSettings, setShowBudgetSettings] = useState(false)
   const [showGoals, setShowGoals] = useState(false)
-  const [showProfile, setShowProfile] = useState(false)
 
   // ── Sheet State ────────────────────────────────────────────────
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
@@ -300,7 +298,6 @@ export default function FolioApp() {
         activeNav={activeNav}
         onNavChange={setActiveNav}
         onOpenSettings={() => setActiveNav('settings')}
-        onOpenProfile={() => setShowProfile(true)}
         avatarUrl={undefined}
         avatarInitial={user?.email?.charAt(0)}
         meshVariant="home"
@@ -349,7 +346,6 @@ export default function FolioApp() {
                 userEmail={user?.email}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
                 onOpenGoals={() => setShowGoals(true)}
-                onOpenLearn={() => setActiveNav('home')}
                 onSignOut={handleSignOut}
               />
             )}
@@ -382,14 +378,6 @@ export default function FolioApp() {
         goals={goals}
         onContribute={handleContributeToGoal}
         onClose={() => setPaycheckSheetOpen(false)}
-      />
-
-      {/* ── Profile Sheet ──────────────────────────────────────── */}
-      <ProfileSheet
-        isOpen={showProfile}
-        onClose={() => setShowProfile(false)}
-        userEmail={user?.email}
-        onSignOut={handleSignOut}
       />
 
       <Toast />

@@ -17,7 +17,6 @@ export interface SettingsScreenProps {
   userEmail?: string
   onOpenBudgetSettings: () => void
   onOpenGoals: () => void
-  onOpenLearn: () => void
   onSignOut: () => void
 }
 
@@ -59,7 +58,6 @@ export function SettingsScreen({
   userEmail,
   onOpenBudgetSettings,
   onOpenGoals,
-  onOpenLearn,
   onSignOut,
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
@@ -315,43 +313,6 @@ export function SettingsScreen({
             )
           })}
         </div>
-      </GlassCard>
-
-      {/* ── Learn ──────────────────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 8,
-          }}
-        >
-          Learn
-        </p>
-        <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-          Financial tips and lessons to help you build better money habits.
-        </p>
-
-        <motion.button
-          onClick={onOpenLearn}
-          whileTap={{ scale: 0.97 }}
-          transition={springs.snappy}
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--sub)",
-            cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
-          }}
-          aria-label="Open financial lessons"
-        >
-          Open lessons →
-        </motion.button>
       </GlassCard>
 
       {/* ── Account ────────────────────────────────────────────────────────── */}

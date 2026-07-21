@@ -51,8 +51,6 @@ export interface AppShellProps {
    * `onNavChange('settings')` when omitted.
    */
   onOpenSettings?: () => void
-  /** Optional handler for the top-bar avatar (open profile). */
-  onOpenProfile?: () => void
   /** Optional avatar image URL shown in the top bar. */
   avatarUrl?: string
   /**
@@ -119,7 +117,6 @@ export function AppShell({
   activeNav,
   onNavChange,
   onOpenSettings,
-  onOpenProfile,
   avatarUrl,
   avatarInitial,
   meshVariant = 'home',
@@ -144,12 +141,7 @@ export function AppShell({
       {/* ── Floating glass top bar ─────────────────────────────── */}
       {!hideTopBar && (
         <header className="app-topbar">
-          <button
-            type="button"
-            className="app-topbar__avatar"
-            onClick={onOpenProfile}
-            aria-label="Open your profile"
-          >
+          <div className="app-topbar__avatar">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="" className="app-topbar__avatar-img" />
@@ -160,7 +152,7 @@ export function AppShell({
             ) : (
               <PersonIcon />
             )}
-          </button>
+          </div>
 
           <button
             type="button"

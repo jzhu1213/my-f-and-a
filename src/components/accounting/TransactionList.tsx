@@ -95,6 +95,7 @@ interface TransactionListProps {
 export function TransactionList({ transactions, onDelete, onEdit }: TransactionListProps) {
   const [search,      setSearch]      = useState('')
   const [activeFilter, setActiveFilter] = useState<TransactionCategory | null>(null)
+  const [typeFilter,   setTypeFilter]  = useState<'income' | 'expense' | null>(null)
   const [expandedId,  setExpandedId]  = useState<string | null>(null)
 
   // Build unique category list from actual transactions (preserve order of first appearance)
@@ -109,8 +110,9 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
   // Normalize search: strip leading $ so "$45" finds a $45 transaction
   const searchNorm = search.replace(/^\$/, '').trim().toLowerCase()
 
-  // Filter chain: category first, then search (note, category, or amount)
+  // Filter chain: type first, then category, then search (note, category, or amount)
   const filtered = transactions
+    .filter(t => !typeFilter || t.type === typeFilter)
     .filter(t => !activeFilter || t.category === activeFilter)
     .filter(t => {
       if (!searchNorm) return true
@@ -129,6 +131,23 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
   }, {} as Record<string, Transaction[]>)
 
   const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
+
+  // Helper: get ISO week number for a date string (used for weekly total separators)
+  const getWeekKey = (dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00')
+    const dayOfWeek = d.getDay() // 0=Sun
+    const monday = new Date(d)
+    monday.setDate(d.getDate() - ((dayOfWeek + 6) % 7))
+    return monday.toISOString().slice(0, 10)
+  }
+
+  // Compute weekly totals for filtered transactions
+  const weeklyTotals = filtered.reduce((acc, tx) => {
+    if (tx.type !== 'expense') return acc
+    const wk = getWeekKey(tx.date)
+    acc[wk] = (acc[wk] || 0) + tx.amount
+    return acc
+  }, {} as Record<string, number>)
 
   const getLabel = (cat: Transaction['category']) =>
     TRANSACTION_CATEGORIES.find(c => c.category === cat)?.label ?? cat
@@ -153,6 +172,70 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
           onChange={e => setSearch(e.target.value)}
           className="t-input"
         />
+      </div>
+
+      {/* ── Type filter pills (Income/Expense) ───────────────────── */}
+      <div className="flex gap-2 mb-3">
+        <button
+          onClick={() => setTypeFilter(null)}
+          style={{
+            flexShrink: 0,
+            padding: '5px 12px',
+            fontFamily: 'Space Mono, monospace',
+            fontSize: '11px',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            borderRadius: '4px',
+            border: '1px solid',
+            borderColor: !typeFilter ? 'var(--sub)' : 'var(--border)',
+            color: !typeFilter ? 'var(--text)' : 'var(--muted)',
+            background: !typeFilter ? 'var(--raised)' : 'transparent',
+            transition: 'all 0.15s',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setTypeFilter(typeFilter === 'expense' ? null : 'expense')}
+          style={{
+            flexShrink: 0,
+            padding: '5px 12px',
+            fontFamily: 'Space Mono, monospace',
+            fontSize: '11px',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            borderRadius: '4px',
+            border: '1px solid',
+            borderColor: typeFilter === 'expense' ? 'var(--sub)' : 'var(--border)',
+            color: typeFilter === 'expense' ? 'var(--text)' : 'var(--muted)',
+            background: typeFilter === 'expense' ? 'var(--raised)' : 'transparent',
+            transition: 'all 0.15s',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Expenses
+        </button>
+        <button
+          onClick={() => setTypeFilter(typeFilter === 'income' ? null : 'income')}
+          style={{
+            flexShrink: 0,
+            padding: '5px 12px',
+            fontFamily: 'Space Mono, monospace',
+            fontSize: '11px',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            borderRadius: '4px',
+            border: '1px solid',
+            borderColor: typeFilter === 'income' ? 'var(--sub)' : 'var(--border)',
+            color: typeFilter === 'income' ? 'var(--text)' : 'var(--muted)',
+            background: typeFilter === 'income' ? 'var(--raised)' : 'transparent',
+            transition: 'all 0.15s',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Income
+        </button>
       </div>
 
       {/* ── Category filter pills ────────────────────────────────── */}
@@ -211,9 +294,39 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
       )}
 
       {/* ── Rows ────────────────────────────────────────────────── */}
-      {sortedDates.length > 0 ? sortedDates.map(date => (
-        <div key={date} className="mb-8">
-          <p className="label mb-4" style={{ color: 'var(--sub)' }}>{formatDate(date)}</p>
+      {sortedDates.length > 0 ? (() => {
+        let lastWeekKey = ''
+        return sortedDates.map(date => {
+          const weekKey = getWeekKey(date)
+          const showWeekHeader = weekKey !== lastWeekKey
+          lastWeekKey = weekKey
+
+          const dailyTotal = grouped[date].reduce((sum, tx) => sum + (tx.type === 'expense' ? tx.amount : 0), 0)
+          return (
+          <div key={date} className="mb-8">
+            {/* Weekly total separator */}
+            {showWeekHeader && weeklyTotals[weekKey] != null && (
+              <div
+                className="flex items-center justify-between py-2 mb-4"
+                style={{ borderBottom: '1px solid var(--border)' }}
+              >
+                <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--muted)', letterSpacing: '0.02em' }}>
+                  Week of {new Date(weekKey + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
+                <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
+                  ${weeklyTotals[weekKey].toFixed(2)} spent
+                </p>
+              </div>
+            )}
+
+          <div className="flex items-center justify-between mb-4">
+            <p className="label" style={{ color: 'var(--sub)' }}>{formatDate(date)}</p>
+            {dailyTotal > 0 && (
+              <p className="label" style={{ color: 'var(--muted)' }}>
+                ${dailyTotal.toFixed(2)}
+              </p>
+            )}
+          </div>
 
           {grouped[date].map(tx => {
             const isIncome = tx.type === 'income'
@@ -308,19 +421,21 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
             return <div key={tx.id}>{row}</div>
           })}
         </div>
-      )) : (
+        )
+      })
+      })() : (
         <div className="py-20 text-center">
           <p style={{ fontSize: '15px', color: 'var(--sub)', marginBottom: '8px' }}>
-            {search || activeFilter ? 'No results' : 'No transactions yet'}
+            {search || activeFilter || typeFilter ? 'No results' : 'No transactions yet'}
           </p>
-          {!search && !activeFilter && <p className="label">tap + to add your first</p>}
-          {activeFilter && (
+          {!search && !activeFilter && !typeFilter && <p className="label">tap + to add your first</p>}
+          {(activeFilter || typeFilter) && (
             <button
-              onClick={() => setActiveFilter(null)}
+              onClick={() => { setActiveFilter(null); setTypeFilter(null) }}
               className="label mt-2"
               style={{ color: 'var(--sub)', textDecoration: 'underline' }}
             >
-              clear filter
+              clear filters
             </button>
           )}
         </div>

@@ -3,7 +3,6 @@ export { Onboarding } from './Onboarding'
 export { LimitSetupWizard } from './LimitSetupWizard'
 export type { LimitSetupResult } from './LimitSetupWizard'
 export { Toast } from './Toast'
-export { ProfileSheet } from './ProfileSheet'
 export { GradientMesh } from './GradientMesh'
 export type { GradientMeshVariant, GradientMeshProps } from './GradientMesh'
 export {
