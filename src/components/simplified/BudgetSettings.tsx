@@ -61,6 +61,7 @@ function getDaysInMonth(): number {
 export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettingsProps) {
   const [expandedCategory, setExpandedCategory] = useState<TransactionCategory | null>(null)
   const [localLimits, setLocalLimits] = useState<Record<string, number>>({})
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   // ── Compute total budget and daily allowance ──────────────────────────────
@@ -116,11 +117,32 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
     [localLimits, onUpdateBudget]
   )
 
+  // ── Stepper increment/decrement ───────────────────────────────────────────
+  const handleStepChange = useCallback(
+    (category: TransactionCategory, delta: number) => {
+      const currentLimit = getLimit(category)
+      const newLimit = Math.max(SLIDER_MIN, Math.min(SLIDER_MAX, currentLimit + delta))
+      setLocalLimits(prev => ({ ...prev, [category]: newLimit }))
+      
+      // Immediately persist stepper changes
+      if (debounceRef.current[category]) {
+        clearTimeout(debounceRef.current[category])
+      }
+      debounceRef.current[category] = setTimeout(() => {
+        onUpdateBudget(category, newLimit)
+        delete debounceRef.current[category]
+      }, DEBOUNCE_MS)
+    },
+    [getLimit, onUpdateBudget]
+  )
+
   // ── Remove limit ──────────────────────────────────────────────────────────
   const handleRemoveLimit = useCallback(
     (category: TransactionCategory) => {
-      setLocalLimits(prev => ({ ...prev, [category]: 0 }))
-      onUpdateBudget(category, 0)
+      if (window.confirm(`Remove ${BUDGET_CATEGORIES.find(c => c.category === category)?.label} limit? This will set it to $0.`)) {
+        setLocalLimits(prev => ({ ...prev, [category]: 0 }))
+        onUpdateBudget(category, 0)
+      }
     },
     [onUpdateBudget]
   )
@@ -134,14 +156,25 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
       onUpdateBudget(cat.category, defaultVal)
     }
     setLocalLimits(newLimits)
+    setShowResetConfirm(false)
   }, [onUpdateBudget])
 
-  // ── Toggle row expansion ──────────────────────────────────────────────────
+  // ── Toggle row expansion & persist any pending changes ────────────────────
   const toggleCategory = useCallback(
     (category: TransactionCategory) => {
+      // If collapsing a category with pending changes, persist immediately
+      if (expandedCategory === category && localLimits[category] !== undefined) {
+        const value = localLimits[category]
+        if (debounceRef.current[category]) {
+          clearTimeout(debounceRef.current[category])
+          delete debounceRef.current[category]
+        }
+        onUpdateBudget(category, value)
+      }
+      
       setExpandedCategory(prev => (prev === category ? null : category))
     },
-    []
+    [expandedCategory, localLimits, onUpdateBudget]
   )
 
   return (
@@ -311,6 +344,81 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                         borderBottom: "1px solid var(--border)",
                       }}
                     >
+                      {/* Stepper controls for precise adjustment */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          marginBottom: 16,
+                        }}
+                      >
+                        <motion.button
+                          onClick={() => handleStepChange(cat.category, -50)}
+                          whileTap={{ scale: 0.9 }}
+                          transition={springs.bouncy}
+                          disabled={limit <= SLIDER_MIN}
+                          style={{
+                            width: 36,
+                            height: 36,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: limit > SLIDER_MIN ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 8,
+                            cursor: limit > SLIDER_MIN ? "pointer" : "not-allowed",
+                            color: limit > SLIDER_MIN ? "var(--text)" : "var(--muted)",
+                            fontSize: 18,
+                            fontWeight: 600,
+                          }}
+                          aria-label="Decrease by $50"
+                        >
+                          −
+                        </motion.button>
+                        
+                        <div style={{ flex: 1, textAlign: "center" }}>
+                          <div
+                            style={{
+                              fontSize: 24,
+                              fontWeight: 700,
+                              color: "var(--text)",
+                              fontFamily: "Inter, sans-serif",
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            ${limit}
+                            <span style={{ fontSize: 14, fontWeight: 400, color: "var(--sub)", marginLeft: 4 }}>
+                              /mo
+                            </span>
+                          </div>
+                        </div>
+
+                        <motion.button
+                          onClick={() => handleStepChange(cat.category, 50)}
+                          whileTap={{ scale: 0.9 }}
+                          transition={springs.bouncy}
+                          disabled={limit >= SLIDER_MAX}
+                          style={{
+                            width: 36,
+                            height: 36,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: limit < SLIDER_MAX ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 8,
+                            cursor: limit < SLIDER_MAX ? "pointer" : "not-allowed",
+                            color: limit < SLIDER_MAX ? "var(--text)" : "var(--muted)",
+                            fontSize: 18,
+                            fontWeight: 600,
+                          }}
+                          aria-label="Increase by $50"
+                        >
+                          +
+                        </motion.button>
+                      </div>
+
                       {/* Slider */}
                       <input
                         type="range"
@@ -322,6 +430,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                         onMouseUp={() => handleSliderRelease(cat.category)}
                         onTouchEnd={() => handleSliderRelease(cat.category)}
                         aria-label={`Set ${cat.label} monthly limit`}
+                        className="budget-slider"
                         style={{
                           width: "100%",
                           height: 6,
@@ -345,15 +454,6 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                         }}
                       >
                         <span>$0</span>
-                        <span
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 600,
-                            color: "var(--text)",
-                          }}
-                        >
-                          ${limit}/mo
-                        </span>
                         <span>$2,000</span>
                       </div>
 
@@ -403,29 +503,116 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
       </GlassCard>
 
       {/* ── Reset to Defaults Button (Task 12.1) ──────────────────────────── */}
-      <motion.button
-        onClick={handleResetDefaults}
-        whileTap={{ scale: 0.96 }}
-        transition={springs.bouncy}
-        style={{
-          display: "block",
-          width: "100%",
-          padding: "14px 20px",
-          fontSize: 14,
-          fontFamily: "Inter, sans-serif",
-          fontWeight: 500,
-          color: "var(--sub)",
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid var(--border)",
-          borderRadius: 12,
-          cursor: "pointer",
-          textAlign: "center",
-          marginBottom: 40,
-        }}
-        aria-label="Reset all limits to defaults"
-      >
-        Reset to defaults
-      </motion.button>
+      {!showResetConfirm ? (
+        <motion.button
+          onClick={() => setShowResetConfirm(true)}
+          whileTap={{ scale: 0.96 }}
+          transition={springs.bouncy}
+          style={{
+            display: "block",
+            width: "100%",
+            padding: "14px 20px",
+            fontSize: 14,
+            fontFamily: "Inter, sans-serif",
+            fontWeight: 500,
+            color: "var(--sub)",
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            cursor: "pointer",
+            textAlign: "center",
+            marginBottom: 40,
+          }}
+          aria-label="Reset all limits to defaults"
+        >
+          Reset to defaults
+        </motion.button>
+      ) : (
+        <GlassCard elevation="medium" style={{ padding: "16px 20px", marginBottom: 40 }}>
+          <p
+            style={{
+              fontSize: 14,
+              color: "var(--text)",
+              fontFamily: "Inter, sans-serif",
+              marginBottom: 12,
+            }}
+          >
+            Reset all category limits to default values?
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <motion.button
+              onClick={() => setShowResetConfirm(false)}
+              whileTap={{ scale: 0.96 }}
+              transition={springs.bouncy}
+              style={{
+                flex: 1,
+                padding: "10px 16px",
+                fontSize: 13,
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 500,
+                color: "var(--sub)",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </motion.button>
+            <motion.button
+              onClick={handleResetDefaults}
+              whileTap={{ scale: 0.96 }}
+              transition={springs.bouncy}
+              style={{
+                flex: 1,
+                padding: "10px 16px",
+                fontSize: 13,
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 500,
+                color: "var(--text)",
+                background: "var(--accent)",
+                border: "1px solid var(--accent)",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+            >
+              Reset
+            </motion.button>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── Slider Styles for Cross-Browser Compatibility ──────────────────── */}
+      <style jsx>{`
+        .budget-slider::-webkit-slider-thumb {
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: var(--text);
+          cursor: pointer;
+          border: 2px solid var(--success);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .budget-slider::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: var(--text);
+          cursor: pointer;
+          border: 2px solid var(--success);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .budget-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.1);
+        }
+
+        .budget-slider::-moz-range-thumb:hover {
+          transform: scale(1.1);
+        }
+      `}</style>
     </div>
   )
 }
