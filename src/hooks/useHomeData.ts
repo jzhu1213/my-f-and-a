@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import type { Transaction, Budget, Goal, TransactionCategory, TransactionType } from '@/types'
+import type { Transaction, Budget, Goal, TransactionCategory, TransactionType, UserLessonProgress } from '@/types'
 import type { DailyAllowance } from '@/types/folio'
 import { 
   getTransactions, 
   getBudgets, 
   getGoals,
+  getLessonProgress,
+  updateLessonProgress,
   insertTransaction,
   updateTransaction,
   deleteTransaction,
@@ -113,6 +115,8 @@ export interface UseHomeDataReturn {
   budgets: Budget[]
   /** User savings goals */
   goals: Goal[]
+  /** User lesson progress records */
+  lessonProgress: UserLessonProgress[]
   
   // ── Computed Values (Memoized) ─────────────────────────────────
   /** Daily allowance calculation (Requirement 13.2) */
@@ -184,6 +188,9 @@ export interface UseHomeDataReturn {
   /** Delete a goal */
   deleteGoal: (id: string) => Promise<boolean>
   
+  /** Complete a lesson (persist quiz score) */
+  completeLesson: (lessonId: string, score: number) => Promise<void>
+  
   // Direct state setters (for advanced optimistic updates)
   /** Set transactions directly (for optimistic updates) */
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>
@@ -214,6 +221,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
+  const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
   // ── Data Loading ───────────────────────────────────────────────
@@ -231,15 +239,17 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setIsLoading(true)
       
       // Parallel data fetch for optimal performance (Requirement 13.1)
-      const [txData, budgetData, goalData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
+        getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
       ])
       
       setTransactions(txData)
       setBudgets(budgetData)
       setGoals(goalData)
+      setLessonProgress(lessonData)
     } catch (err) {
       console.error('Error loading home data:', err)
       // Set empty arrays on error to allow app to function
@@ -266,15 +276,17 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     
     try {
       // Parallel refresh for optimal performance
-      const [txData, budgetData, goalData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
+        getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
       ])
       
       setTransactions(txData)
       setBudgets(budgetData)
       setGoals(goalData)
+      setLessonProgress(lessonData)
     } catch (err) {
       console.error('Error refreshing home data:', err)
       // Don't clear existing data on refresh failure
@@ -560,6 +572,30 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     }
   }, [userId])
   
+  // ── Lesson Progress Mutations ──────────────────────────────────
+  /**
+   * Complete a lesson and persist quiz score
+   */
+  const completeLesson = useCallback(async (lessonId: string, score: number) => {
+    if (!userId) return
+    
+    try {
+      const result = await updateLessonProgress(userId, lessonId, score)
+      
+      if (result) {
+        setLessonProgress(prev => {
+          const existing = prev.find(p => p.lessonId === lessonId)
+          if (existing) {
+            return prev.map(p => p.lessonId === lessonId ? result : p)
+          }
+          return [...prev, result]
+        })
+      }
+    } catch (err) {
+      console.error('Error completing lesson:', err)
+    }
+  }, [userId])
+  
   // ── Memoized Computations ──────────────────────────────────────
   /**
    * Daily allowance calculation (memoized)
@@ -613,6 +649,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     transactions,
     budgets,
     goals,
+    lessonProgress,
     
     // Computed values (memoized)
     allowance,
@@ -638,6 +675,9 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     updateGoal: updateGoalFn,
     contributeToGoal,
     deleteGoal: deleteGoalFn,
+    
+    // Lesson progress mutations
+    completeLesson,
     
     // Direct state setters (for advanced optimistic updates)
     setTransactions,

@@ -6,6 +6,15 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal } from "@/types"
+import { FONT_FAMILY } from "@/styles/typography"
+import {
+  CONTENT_MAX_WIDTH,
+  HORIZONTAL_PADDING,
+  DOCK_PADDING_BOTTOM,
+  sectionHeadingStrong,
+  linkButton,
+  listRow,
+} from "@/styles/shared"
 
 // ============================================================================
 // Types
@@ -17,6 +26,7 @@ export interface SettingsScreenProps {
   userEmail?: string
   onOpenBudgetSettings: () => void
   onOpenGoals: () => void
+  onOpenLearn?: () => void
   onSignOut: () => void
 }
 
@@ -58,6 +68,7 @@ export function SettingsScreen({
   userEmail,
   onOpenBudgetSettings,
   onOpenGoals,
+  onOpenLearn,
   onSignOut,
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
@@ -81,10 +92,10 @@ export function SettingsScreen({
   return (
     <div
       style={{
-        maxWidth: 560,
+        maxWidth: CONTENT_MAX_WIDTH,
         margin: "0 auto",
-        padding: "24px 20px 100px",
-        fontFamily: "Inter, sans-serif",
+        padding: `24px ${HORIZONTAL_PADDING}px ${DOCK_PADDING_BOTTOM - 20}px`,
+        fontFamily: FONT_FAMILY,
       }}
     >
       {/* ── Title ──────────────────────────────────────────────────────────── */}
@@ -101,15 +112,7 @@ export function SettingsScreen({
 
       {/* ── Budget Limits ──────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 12,
-          }}
-        >
+        <p style={{ ...sectionHeadingStrong }}>
           Budget Limits
         </p>
 
@@ -134,14 +137,7 @@ export function SettingsScreen({
             {activeLimits.map(cat => (
               <div
                 key={cat.category}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "6px 0",
-                  fontSize: 14,
-                  color: "var(--text)",
-                }}
+                style={listRow}
               >
                 <span>
                   {cat.emoji} {cat.label}
@@ -164,16 +160,7 @@ export function SettingsScreen({
           onClick={onOpenBudgetSettings}
           whileTap={{ scale: 0.97 }}
           transition={springs.snappy}
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--sub)",
-            cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
-          }}
+          style={linkButton}
           aria-label="Manage budget limits"
         >
           Manage limits →
@@ -182,15 +169,7 @@ export function SettingsScreen({
 
       {/* ── Goals ──────────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 12,
-          }}
-        >
+        <p style={{ ...sectionHeadingStrong }}>
           Goals
         </p>
 
@@ -203,14 +182,7 @@ export function SettingsScreen({
               return (
                 <div
                   key={goal.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "6px 0",
-                    fontSize: 14,
-                    color: "var(--text)",
-                  }}
+                  style={listRow}
                 >
                   <span>
                     {goal.emoji} {goal.name}
@@ -238,33 +210,39 @@ export function SettingsScreen({
           onClick={onOpenGoals}
           whileTap={{ scale: 0.97 }}
           transition={springs.snappy}
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--sub)",
-            cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
-          }}
+          style={linkButton}
           aria-label="Manage savings goals"
         >
           Manage goals →
         </motion.button>
       </GlassCard>
 
+      {/* ── Learn ──────────────────────────────────────────────────────────── */}
+      {onOpenLearn && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong }}>
+            Learn
+          </p>
+
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+            Short lessons on budgeting, saving, and growing your money.
+          </p>
+
+          <motion.button
+            onClick={onOpenLearn}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={linkButton}
+            aria-label="Open financial lessons"
+          >
+            Browse lessons →
+          </motion.button>
+        </GlassCard>
+      )}
+
       {/* ── Appearance ─────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 14,
-          }}
-        >
+        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
           Appearance
         </p>
 
@@ -294,7 +272,7 @@ export function SettingsScreen({
                   border: "none",
                   fontSize: 13,
                   fontWeight: 500,
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                   color: isActive ? "var(--text)" : "var(--muted)",
                   background: isActive
@@ -317,15 +295,7 @@ export function SettingsScreen({
 
       {/* ── Account ────────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 10,
-          }}
-        >
+        <p style={{ ...sectionHeadingStrong, marginBottom: 10 }}>
           Account
         </p>
 
@@ -343,7 +313,7 @@ export function SettingsScreen({
             padding: "10px 18px",
             fontSize: 13,
             fontWeight: 500,
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
             color: "var(--error)",
             background: "rgba(248, 113, 113, 0.08)",
             border: "1px solid rgba(248, 113, 113, 0.2)",

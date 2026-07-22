@@ -17,6 +17,7 @@ import { GoalsScreen } from '@/components/simplified/GoalsScreen'
 import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
 import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
+import { LessonsScreen } from '@/components/finance/LessonsScreen'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
@@ -55,6 +56,7 @@ export default function FolioApp() {
     transactions,
     budgets,
     goals,
+    lessonProgress,
     allowance,
     isLoading: dataLoading,
     refresh,
@@ -65,6 +67,7 @@ export default function FolioApp() {
     updateGoal,
     contributeToGoal,
     deleteGoal,
+    completeLesson,
   } = useHomeData(user?.id)
 
   // ── Onboarding Check ───────────────────────────────────────────
@@ -339,6 +342,12 @@ export default function FolioApp() {
                 onLogExpense={() => handleOpenExpenseSheet()}
               />
             )}
+            {activeNav === 'learn' && (
+              <LessonsScreen
+                lessonProgress={lessonProgress}
+                onCompleteLesson={completeLesson}
+              />
+            )}
             {activeNav === 'settings' && (
               <SettingsScreen
                 budgets={budgets}
@@ -346,6 +355,7 @@ export default function FolioApp() {
                 userEmail={user?.email}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
                 onOpenGoals={() => setShowGoals(true)}
+                onOpenLearn={() => setActiveNav('learn')}
                 onSignOut={handleSignOut}
               />
             )}
