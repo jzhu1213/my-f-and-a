@@ -1,5 +1,7 @@
 import type { Budget, Transaction } from '@/types'
 import type { DailyAllowance, AllowanceStatus } from '@/types/folio'
+import type { FixedExpense } from '@/lib/fixedExpenses'
+import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList } from '@/lib/fixedExpenses'
 
 /**
  * Formats a Date object into YYYY-MM-DD string format
@@ -124,7 +126,10 @@ function shouldCelebrate(status: AllowanceStatus, spentToday: number, dailyBudge
 }
 
 /**
- * Computes daily allowance with rollover and status
+ * Computes daily allowance with rollover and status.
+ * 
+ * Fixed monthly obligations (rent, subscriptions, etc.) are subtracted from the
+ * monthly pool up front so only discretionary money is spread across remaining days.
  * 
  * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 14.2**
  * 
@@ -132,13 +137,15 @@ function shouldCelebrate(status: AllowanceStatus, spentToday: number, dailyBudge
  * @param transactions - Array of all transactions
  * @param currentDate - Current date (for testing purposes)
  * @param monthlyIncome - Optional monthly income for estimation when no budgets are configured
+ * @param fixedExpenses - Optional array of fixed monthly obligations to sink before daily division
  * @returns DailyAllowance object with amount, status, and message
  */
 export function computeDailyAllowance(
   budgets: Budget[],
   transactions: Transaction[],
   currentDate: Date = new Date(),
-  monthlyIncome?: number
+  monthlyIncome?: number,
+  fixedExpenses?: FixedExpense[]
 ): DailyAllowance {
   // Step 1: Calculate total monthly budget from all category limits
   const totalMonthlyBudget = budgets.reduce((sum, budget) => sum + budget.monthlyLimit, 0)
@@ -146,16 +153,20 @@ export function computeDailyAllowance(
   // If no budgets configured and monthlyIncome is provided, use income-based estimation
   const isEstimated = budgets.length === 0 && typeof monthlyIncome === 'number' && monthlyIncome > 0
   
-  // Step 2: Calculate daily budget
+  // Step 1b: Subtract fixed monthly obligations up front (rent, subscriptions, etc.)
+  // Only discretionary money is spread across the remaining days.
+  const totalFixed = getTotalFixedMonthly(fixedExpenses ?? [])
+  
+  // Step 2: Calculate daily budget from discretionary pool
   const daysInMonth = getDaysInMonth(currentDate)
   const dailyBudget = isEstimated
-    ? monthlyIncome! / 30
-    : totalMonthlyBudget / daysInMonth
+    ? Math.max(0, monthlyIncome! - totalFixed) / 30
+    : Math.max(0, totalMonthlyBudget - totalFixed) / daysInMonth
   
-  // Step 3: Calculate spentToday
+  // Step 3: Calculate spentToday (exclude fixed/recurring — already sunk in Step 1b)
   const todayStr = formatDateString(currentDate)
   const spentToday = transactions
-    .filter(t => t.date === todayStr && t.type === 'expense')
+    .filter(t => t.date === todayStr && t.type === 'expense' && !isFixedTransaction(t))
     .reduce((sum, t) => sum + t.amount, 0)
   
   // Step 4: Calculate rollover from previous days
@@ -170,13 +181,13 @@ export function computeDailyAllowance(
     // Expected spend up to yesterday
     const expectedSpendToYesterday = dailyBudget * (dayOfMonth - 1)
     
-    // Actual spend up to yesterday
+    // Actual spend up to yesterday (exclude fixed/recurring — already sunk in Step 1b)
     const actualSpendToYesterday = transactions
       .filter(t => {
         const txDate = t.date
         const startDate = formatDateString(monthStart)
         const endDate = formatDateString(yesterday)
-        return txDate >= startDate && txDate <= endDate && t.type === 'expense'
+        return txDate >= startDate && txDate <= endDate && t.type === 'expense' && !isFixedTransaction(t)
       })
       .reduce((sum, t) => sum + t.amount, 0)
     
@@ -196,6 +207,11 @@ export function computeDailyAllowance(
   const message = generateEncouragingMessage(status, amount, spentToday)
   const showCelebration = shouldCelebrate(status, spentToday, dailyBudget)
   
+  // Step 7: Reserve upcoming bills from the spendable pool (informational)
+  const upcomingBills = getUpcomingBillsList(fixedExpenses ?? [], currentDate)
+  const reservedForBills = upcomingBills.reduce((sum, bill) => sum + bill.amount, 0)
+  const upcomingBillCount = upcomingBills.length
+
   // Return valid DailyAllowance
   return {
     amount,
@@ -205,6 +221,8 @@ export function computeDailyAllowance(
     status,
     message,
     showCelebration,
-    isEstimated
+    isEstimated,
+    reservedForBills: reservedForBills > 0 ? reservedForBills : undefined,
+    upcomingBillCount: upcomingBillCount > 0 ? upcomingBillCount : undefined,
   }
 }

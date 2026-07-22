@@ -7,7 +7,7 @@ import { BUDGET_CATEGORIES } from "@/types"
 import type { QuickTransaction, SmartSuggestion } from "@/types/folio"
 import { generateSmartSuggestions } from "@/lib/suggestionUtils"
 import { useToast } from "@/contexts/ToastContext"
-import { springs, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
+import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -656,7 +656,7 @@ export function QuickLogArea({
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.15 }}
+          transition={timings.normal}
           style={{
             fontSize: 13,
             color: "var(--muted)",
@@ -678,7 +678,7 @@ export function QuickLogArea({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            transition={timings.normal}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={0.2}
@@ -744,7 +744,7 @@ export function QuickLogArea({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={timings.fast}
             style={{ textAlign: "center", padding: "8px 0" }}
           >
             <p style={{ fontSize: 13, color: "var(--muted)" }}>
@@ -761,7 +761,7 @@ export function QuickLogArea({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={prefersReducedMotion ? { duration: 0.18 } : springs.gentle}
+            transition={prefersReducedMotion ? timings.fast : springs.gentle}
             style={{
               background: "var(--surface)",
               borderRadius: "var(--radius-md)",

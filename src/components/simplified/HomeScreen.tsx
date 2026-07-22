@@ -14,6 +14,19 @@ import type { UserContext } from "@/lib/tipUtils"
 import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
+import { FONT_FAMILY } from "@/styles/typography"
+import {
+  CONTENT_MAX_WIDTH,
+  HORIZONTAL_PADDING,
+  DOCK_PADDING_BOTTOM,
+  sectionHeading,
+  emptyStateContainer,
+  emptyStateTitle,
+  emptyStateSubtitle,
+  linkButton,
+  chipButton,
+  pillButton,
+} from "@/styles/shared"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
 import { ContextualTipCard } from "./ContextualTipCard"
 import { GlassCard } from "@/components/ui/GlassCard"
@@ -338,13 +351,13 @@ export function HomeScreen({
         className="home-screen__content"
         style={{
           width: "100%",
-          maxWidth: 560,
-          padding: "0 20px",
+          maxWidth: CONTENT_MAX_WIDTH,
+          padding: `0 ${HORIZONTAL_PADDING}px`,
           display: "flex",
           flexDirection: "column",
           gap: 28,
           paddingTop: 16,
-          paddingBottom: 120, // room for dock
+          paddingBottom: DOCK_PADDING_BOTTOM,
         }}
       >
         {/* ── 1. Hero: Daily Allowance ────────────────────────────── */}
@@ -367,7 +380,7 @@ export function HomeScreen({
                 fontSize: 12,
                 color: "var(--sub)",
                 textAlign: "center",
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 marginTop: 10,
                 opacity: 0.85,
                 padding: "8px 12px",
@@ -387,13 +400,28 @@ export function HomeScreen({
                 fontSize: 12,
                 color: "var(--sub)",
                 textAlign: "center",
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 marginTop: 10,
                 opacity: 0.75,
               }}
               aria-label={`Spent today: $${Math.round(allowance.spentToday)}`}
             >
               Spent today: ${Math.round(allowance.spentToday)}
+            </p>
+          )}
+          {!isLoading && allowance && allowance.reservedForBills && allowance.reservedForBills > 0 && (
+            <p
+              style={{
+                fontSize: 11,
+                color: "var(--warning)",
+                textAlign: "center",
+                fontFamily: FONT_FAMILY,
+                marginTop: 6,
+                opacity: 0.85,
+              }}
+              aria-label={`$${Math.round(allowance.reservedForBills)} reserved for ${allowance.upcomingBillCount} upcoming bill${(allowance.upcomingBillCount ?? 0) > 1 ? 's' : ''}`}
+            >
+              💡 ${Math.round(allowance.reservedForBills)} reserved for {allowance.upcomingBillCount} upcoming bill{(allowance.upcomingBillCount ?? 0) > 1 ? 's' : ''}
             </p>
           )}
         </section>
@@ -431,7 +459,7 @@ export function HomeScreen({
                 color: "#fff",
                 fontSize: 16,
                 fontWeight: 600,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 cursor: "pointer",
                 textAlign: "center",
                 boxShadow: "0 4px 20px rgba(124, 58, 237, 0.3)",
@@ -455,7 +483,7 @@ export function HomeScreen({
                 color: "var(--success)",
                 fontSize: 15,
                 fontWeight: 500,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 cursor: "pointer",
                 textAlign: "center",
               }}
@@ -491,23 +519,7 @@ export function HomeScreen({
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.04, duration: 0.3, ease: "easeOut" }}
                     whileTap={{ scale: 0.95 }}
-                    style={{
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "10px 16px",
-                      background: "rgba(255, 255, 255, 0.06)",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      borderRadius: 99,
-                      color: "var(--text)",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      fontFamily: "Inter, sans-serif",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      backdropFilter: "blur(8px)",
-                    }}
+                    style={chipButton}
                   >
                     <span>{emoji}</span>
                     <span>{repeat.label}</span>
@@ -520,15 +532,7 @@ export function HomeScreen({
 
         {/* ── 3. Category Budget Cards ────────────────────────────── */}
         <section aria-label="Budget categories">
-          <h2
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: "var(--sub)",
-              marginBottom: 12,
-              fontFamily: "Inter, sans-serif",
-            }}
-          >
+          <h2 style={{ ...sectionHeading, marginBottom: 12 }}>
             Categories
           </h2>
           {categoryRows.length === 0 ? (
@@ -538,24 +542,12 @@ export function HomeScreen({
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
               <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: 14 }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                <div style={emptyStateContainer}>
                   <span style={{ fontSize: 32 }} aria-hidden="true">🎯</span>
-                  <p style={{
-                    fontSize: 14,
-                    color: "var(--text)",
-                    textAlign: "center",
-                    fontFamily: "Inter, sans-serif",
-                    fontWeight: 500,
-                  }}>
+                  <p style={emptyStateTitle}>
                     Set limits for an accurate daily budget
                   </p>
-                  <p style={{
-                    fontSize: 12,
-                    color: "var(--sub)",
-                    textAlign: "center",
-                    fontFamily: "Inter, sans-serif",
-                    opacity: 0.8,
-                  }}>
+                  <p style={emptyStateSubtitle}>
                     Category limits help Folio calculate what you can spend each day
                   </p>
                 </div>
@@ -611,7 +603,7 @@ export function HomeScreen({
                           fontSize: 12,
                           fontWeight: 500,
                           color: "var(--text)",
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: FONT_FAMILY,
                         }}
                       >
                         {row.label}
@@ -644,7 +636,7 @@ export function HomeScreen({
                             style={{
                               fontSize: 11,
                               color: barColor,
-                              fontFamily: "Inter, sans-serif",
+                              fontFamily: FONT_FAMILY,
                               fontWeight: 500,
                             }}
                           >
@@ -660,7 +652,7 @@ export function HomeScreen({
                               fontSize: 11,
                               color: "var(--sub)",
                               opacity: 0.6,
-                              fontFamily: "Inter, sans-serif",
+                              fontFamily: FONT_FAMILY,
                               marginTop: 2,
                             }}
                           >
@@ -671,7 +663,7 @@ export function HomeScreen({
                               style={{
                                 fontSize: 11,
                                 color: "var(--sub)",
-                                fontFamily: "Inter, sans-serif",
+                                fontFamily: FONT_FAMILY,
                               }}
                             >
                               ${Math.round(row.weeklySpent)} spent
@@ -697,14 +689,7 @@ export function HomeScreen({
               marginBottom: 12,
             }}
           >
-            <h2
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: "var(--sub)",
-                fontFamily: "Inter, sans-serif",
-              }}
-            >
+            <h2 style={sectionHeading}>
               Recent
             </h2>
             {recentTransactions.length > 0 && (
@@ -712,12 +697,8 @@ export function HomeScreen({
                 type="button"
                 onClick={onViewAllHistory}
                 style={{
+                  ...linkButton,
                   fontSize: 12,
-                  color: "var(--sub)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "Inter, sans-serif",
                   opacity: 0.7,
                 }}
                 aria-label="See all transactions"
@@ -734,24 +715,12 @@ export function HomeScreen({
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
               <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: 14 }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                <div style={emptyStateContainer}>
                   <span style={{ fontSize: 32 }} aria-hidden="true">✨</span>
-                  <p style={{
-                    fontSize: 14,
-                    color: "var(--text)",
-                    textAlign: "center",
-                    fontFamily: "Inter, sans-serif",
-                    fontWeight: 500,
-                  }}>
+                  <p style={emptyStateTitle}>
                     Start by logging your first expense!
                   </p>
-                  <p style={{
-                    fontSize: 12,
-                    color: "var(--sub)",
-                    textAlign: "center",
-                    fontFamily: "Inter, sans-serif",
-                    opacity: 0.8,
-                  }}>
+                  <p style={emptyStateSubtitle}>
                     Tap "Log expense" above — it only takes a second
                   </p>
                 </div>
@@ -780,7 +749,7 @@ export function HomeScreen({
                         fontSize: 11,
                         fontWeight: 500,
                         color: "var(--sub)",
-                        fontFamily: "Inter, sans-serif",
+                        fontFamily: FONT_FAMILY,
                         padding: "8px 16px 4px",
                         marginTop: groupIdx > 0 ? 4 : 0,
                         opacity: 0.7,
@@ -824,7 +793,7 @@ export function HomeScreen({
                               style={{
                                 fontSize: 14,
                                 color: "var(--text)",
-                                fontFamily: "Inter, sans-serif",
+                                fontFamily: FONT_FAMILY,
                               }}
                             >
                               {emoji} {label}
@@ -833,7 +802,7 @@ export function HomeScreen({
                               style={{
                                 fontSize: 14,
                                 fontWeight: 500,
-                                fontFamily: "Inter, sans-serif",
+                                fontFamily: FONT_FAMILY,
                                 color:
                                   tx.type === "income"
                                     ? "var(--success)"
@@ -878,14 +847,7 @@ export function HomeScreen({
                 aria-controls="month-summary-details"
                 aria-label={`Monthly summary: ${monthIncome - monthExpenses < 0 ? "−" : "+"}$${Math.abs(monthIncome - monthExpenses).toLocaleString()} net. ${showMonthSummary ? "Collapse" : "Expand"} details.`}
               >
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: "var(--sub)",
-                    fontFamily: "Inter, sans-serif",
-                  }}
-                >
+                <span style={sectionHeading}>
                   This month
                 </span>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -893,7 +855,7 @@ export function HomeScreen({
                     style={{
                       fontSize: 16,
                       fontWeight: 600,
-                      fontFamily: "Inter, sans-serif",
+                      fontFamily: FONT_FAMILY,
                       color:
                         monthIncome - monthExpenses < 0 ? "var(--error)" : "var(--text)",
                     }}
@@ -943,7 +905,7 @@ export function HomeScreen({
                             style={{
                               fontSize: 13,
                               color: "var(--sub)",
-                              fontFamily: "Inter, sans-serif",
+                              fontFamily: FONT_FAMILY,
                               textAlign: "center",
                             }}
                           >
@@ -955,15 +917,8 @@ export function HomeScreen({
                             whileTap={{ scale: 0.96 }}
                             transition={springs.bouncy}
                             style={{
-                              background: "transparent",
-                              border: "1.5px solid rgba(74, 222, 128, 0.4)",
-                              borderRadius: 99,
+                              ...pillButton,
                               padding: "10px 20px",
-                              color: "var(--success)",
-                              fontSize: 13,
-                              fontWeight: 500,
-                              fontFamily: "Inter, sans-serif",
-                              cursor: "pointer",
                             }}
                           >
                             Log income
@@ -977,7 +932,7 @@ export function HomeScreen({
                                 fontSize: 18,
                                 fontWeight: 600,
                                 color: "var(--success)",
-                                fontFamily: "Inter, sans-serif",
+                                fontFamily: FONT_FAMILY,
                               }}
                             >
                               +${monthIncome.toLocaleString()}
@@ -992,7 +947,7 @@ export function HomeScreen({
                                 fontSize: 18,
                                 fontWeight: 600,
                                 color: "var(--error)",
-                                fontFamily: "Inter, sans-serif",
+                                fontFamily: FONT_FAMILY,
                               }}
                             >
                               −${monthExpenses.toLocaleString()}
@@ -1010,7 +965,7 @@ export function HomeScreen({
                                   monthIncome - monthExpenses < 0
                                     ? "var(--error)"
                                     : "var(--text)",
-                                fontFamily: "Inter, sans-serif",
+                                fontFamily: FONT_FAMILY,
                               }}
                             >
                               ${Math.abs(monthIncome - monthExpenses).toLocaleString()}

@@ -10,6 +10,8 @@ export interface UserProfile {
   priority: UserPriority
   hasCompletedOnboarding: boolean
   createdAt: string
+  displayName?: string
+  avatarUrl?: string
 }
 
 // Transaction Types
@@ -59,6 +61,7 @@ export interface Budget {
   monthlyLimit: number
   spent: number
   month: string // YYYY-MM
+  isFixed?: boolean // marks this budget category as a fixed/recurring obligation
 }
 
 export const BUDGET_CATEGORIES: { category: TransactionCategory; emoji: string; label: string }[] = [

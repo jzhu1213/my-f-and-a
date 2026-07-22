@@ -398,7 +398,7 @@ export function DailyAllowanceHero({
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.3 }}
+          transition={timings.normal}
         >
           {message}
         </motion.p>

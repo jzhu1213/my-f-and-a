@@ -35,6 +35,8 @@ interface DbProfile {
   user_type?: string
   priority?: string
   has_completed_onboarding?: boolean
+  display_name?: string
+  avatar_url?: string
   created_at: string
 }
 
@@ -94,6 +96,8 @@ function dbProfileToApp(db: DbProfile): UserProfile {
     userType: (db.user_type || 'student') as UserProfile['userType'],
     priority: (db.priority || 'save') as UserProfile['priority'],
     hasCompletedOnboarding: db.has_completed_onboarding || false,
+    displayName: db.display_name,
+    avatarUrl: db.avatar_url,
     createdAt: db.created_at,
   }
 }
@@ -676,3 +680,37 @@ export async function updateLessonProgress(
 
   return dbProgressToApp(data)
 }
+
+// ============================================
+// PROFILE PREFERENCES FUNCTIONS
+// ============================================
+
+export async function updateProfilePreferences(
+  userId: string,
+  preferences: { displayName?: string; avatarUrl?: string }
+): Promise<UserProfile | null> {
+  const updates: Record<string, any> = {}
+  if (preferences.displayName !== undefined) {
+    updates.display_name = preferences.displayName
+  }
+  if (preferences.avatarUrl !== undefined) {
+    updates.avatar_url = preferences.avatarUrl
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating profile preferences:', error)
+    return null
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const appProfile = dbProfileToApp(data)
+  return { ...appProfile, email: user?.email ?? '' }
+}
+

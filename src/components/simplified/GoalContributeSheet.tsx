@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { springs, useReducedMotion } from "@/lib/animations"
+import { springs, timings, useReducedMotion } from "@/lib/animations"
 import type { Goal } from "@/types"
 
 // ============================================================================
@@ -120,19 +120,19 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
   const sheetVariants = prefersReducedMotion
     ? {
         hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { duration: 0.15 } },
-        exit: { opacity: 0, transition: { duration: 0.1 } },
+        visible: { opacity: 1, transition: timings.fast },
+        exit: { opacity: 0, transition: timings.fast },
       }
     : {
         hidden: { y: "100%" },
         visible: { y: 0, transition: springs.gentle },
-        exit: { y: "100%", transition: { duration: 0.25, ease: [0.32, 0.72, 0, 1] as const } },
+        exit: { y: "100%", transition: timings.normal },
       }
 
   const backdropVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.2 } },
-    exit: { opacity: 0, transition: { duration: 0.15 } },
+    visible: { opacity: 1, transition: timings.fast },
+    exit: { opacity: 0, transition: timings.fast },
   }
 
   return (
@@ -261,7 +261,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                 <motion.div
                   initial={{ width: prefersReducedMotion ? `${pct}%` : 0 }}
                   animate={{ width: `${pct}%` }}
-                  transition={prefersReducedMotion ? { duration: 0.15 } : springs.gentle}
+                  transition={prefersReducedMotion ? timings.fast : springs.gentle}
                   style={{ height: "100%", borderRadius: 999, background: "var(--accent)" }}
                 />
               </div>
@@ -279,7 +279,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                       key={q}
                       type="button"
                       onClick={() => { setAmount(String(q)); setError(null) }}
-                      whileTap={{ scale: prefersReducedMotion ? 1 : 0.95 }}
+                      whileTap={{ scale: prefersReducedMotion ? 1 : 0.96 }}
                       transition={springs.snappy}
                       aria-label={`Add $${q}`}
                       aria-pressed={active}

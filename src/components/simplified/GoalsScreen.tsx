@@ -190,7 +190,7 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
               fontFamily: "Inter, sans-serif",
               color: "var(--accent)",
               background: "var(--accent-muted)",
-              border: "1px solid rgba(76, 201, 240, 0.25)",
+              border: "1px solid rgba(129, 140, 248, 0.25)",
               borderRadius: 10,
               cursor: "pointer",
             }}
@@ -530,7 +530,7 @@ export function GoalsScreen({
             fontFamily: "Inter, sans-serif",
             color: "var(--text)",
             background: "var(--accent-muted)",
-            border: "1px solid rgba(76, 201, 240, 0.25)",
+            border: "1px solid rgba(129, 140, 248, 0.25)",
             borderRadius: 12,
             cursor: "pointer",
           }}

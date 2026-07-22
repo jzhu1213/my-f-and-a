@@ -355,7 +355,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                       >
                         <motion.button
                           onClick={() => handleStepChange(cat.category, -50)}
-                          whileTap={{ scale: 0.9 }}
+                          whileTap={{ scale: 0.96 }}
                           transition={springs.bouncy}
                           disabled={limit <= SLIDER_MIN}
                           style={{
@@ -396,7 +396,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
 
                         <motion.button
                           onClick={() => handleStepChange(cat.category, 50)}
-                          whileTap={{ scale: 0.9 }}
+                          whileTap={{ scale: 0.96 }}
                           transition={springs.bouncy}
                           disabled={limit >= SLIDER_MAX}
                           style={{

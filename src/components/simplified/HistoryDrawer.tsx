@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence, useDragControls, type PanInfo } from 'framer-motion'
-import { springs, useReducedMotion } from '@/lib/animations'
+import { springs, timings, useReducedMotion } from '@/lib/animations'
 import type { Transaction, TransactionCategory } from '@/types'
 import { BUDGET_CATEGORIES } from '@/types'
 import { SwipeableTransactionRow } from './SwipeableTransactionRow'
@@ -229,19 +229,19 @@ export function HistoryDrawer({
   const sheetVariants = prefersReducedMotion
     ? {
         hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { duration: 0.15 } },
-        exit: { opacity: 0, transition: { duration: 0.1 } },
+        visible: { opacity: 1, transition: timings.fast },
+        exit: { opacity: 0, transition: timings.fast },
       }
     : {
         hidden: { y: '100%' },
         visible: { y: 0, transition: springs.gentle },
-        exit: { y: '100%', transition: { duration: 0.25, ease: [0.32, 0.72, 0, 1] as const } },
+        exit: { y: '100%', transition: timings.normal },
       }
   
   const backdropVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.2 } },
-    exit: { opacity: 0, transition: { duration: 0.15 } },
+    visible: { opacity: 1, transition: timings.fast },
+    exit: { opacity: 0, transition: timings.fast },
   }
   
   // Virtualization check (Requirement 11.5, 13.4: virtualize lists > 50 items)

@@ -25,6 +25,10 @@ export interface DailyAllowance {
   showCelebration: boolean
   /** Whether the allowance is an estimate based on income (no budget limits configured) */
   isEstimated?: boolean
+  /** Total amount reserved for upcoming unpaid bills this month */
+  reservedForBills?: number
+  /** Number of upcoming bills still due this month */
+  upcomingBillCount?: number
 }
 
 /**

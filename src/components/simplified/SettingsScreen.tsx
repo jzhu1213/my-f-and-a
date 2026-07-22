@@ -26,6 +26,7 @@ export interface SettingsScreenProps {
   goals: Goal[]
   userEmail?: string
   onOpenBudgetSettings: () => void
+  onOpenRecurringBills?: () => void
   onOpenGoals: () => void
   onOpenLearn?: () => void
   onOpenProfile: () => void
@@ -72,6 +73,7 @@ export function SettingsScreen({
   goals,
   userEmail,
   onOpenBudgetSettings,
+  onOpenRecurringBills,
   onOpenGoals,
   onOpenLearn,
   onOpenProfile,
@@ -177,6 +179,29 @@ export function SettingsScreen({
           Manage limits →
         </motion.button>
       </GlassCard>
+
+      {/* ── Recurring Bills ──────────────────────────────────────────────── */}
+      {onOpenRecurringBills && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong }}>
+            Recurring Bills
+          </p>
+
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+            Track your monthly fixed costs like rent, subscriptions, and utilities.
+          </p>
+
+          <motion.button
+            onClick={onOpenRecurringBills}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={linkButton}
+            aria-label="Manage recurring bills"
+          >
+            Manage bills →
+          </motion.button>
+        </GlassCard>
+      )}
 
       {/* ── Goals ──────────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>

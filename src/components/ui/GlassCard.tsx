@@ -57,7 +57,7 @@ const GLOW_PRESET_COLORS: Record<Exclude<GlowPreset, 'none'>, string> = {
   caution: 'rgba(245, 158, 11, 0.30)',    // --warning amber
   warning: 'rgba(245, 158, 11, 0.40)',    // urgent amber
   over: 'rgba(239, 68, 68, 0.38)',        // --error red
-  celebration: 'rgba(76, 201, 240, 0.40)', // electric blue
+  celebration: 'rgba(129, 140, 248, 0.40)', // warm purple
 }
 
 function resolveGlow(glow: GlassGlow): string | null {

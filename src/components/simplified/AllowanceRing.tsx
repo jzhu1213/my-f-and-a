@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { timings } from "@/lib/animations"
 import type { AllowanceStatus } from "@/types/folio"
 
 interface AllowanceRingProps {
@@ -104,10 +105,7 @@ export function AllowanceRing({
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
-          transition={{
-            duration: 0.8,
-            ease: "easeOut",
-          }}
+          transition={timings.slow}
         />
       </svg>
 
