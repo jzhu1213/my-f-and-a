@@ -1,5 +1,7 @@
 "use client"
 import { useState, useMemo } from 'react'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { FONT_FAMILY } from '@/styles/typography'
 import type { CompoundGrowthResult } from '@/types'
 
 interface CompoundGrowthCalculatorProps {
@@ -51,105 +53,197 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
     <div className="pb-20 px-5 pt-10">
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-xs font-mono tracking-widest text-t-muted hover:text-t-text transition-colors uppercase mb-8"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 13,
+          fontFamily: FONT_FAMILY,
+          fontWeight: 500,
+          color: 'var(--sub)',
+          background: 'transparent',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: 99,
+          padding: '8px 16px',
+          cursor: 'pointer',
+          marginBottom: 32,
+          transition: 'border-color 0.15s, color 0.15s',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = 'var(--text)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = 'var(--sub)' }}
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
         </svg>
-        back
+        Back
       </button>
 
-      <div className="mb-6">
-        <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-1">Calculator</p>
-        <h1 className="text-2xl font-mono text-t-text">Compound Growth</h1>
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 4 }}>Calculator</p>
+        <h1 style={{ fontSize: 28, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--text)' }}>Compound Growth</h1>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border)' }}>
+      <GlassCard elevation="low" style={{ padding: 20, marginBottom: 24 }}>
         {/* Starting Amount */}
-        <div className="py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-2">Starting Amount</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-mono text-t-muted">$</span>
-            <input type="text" inputMode="decimal" placeholder="1000" value={initialAmount}
+        <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
+          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Starting Amount</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: 18, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>$</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="1000"
+              value={initialAmount}
               onChange={handleChange(setInitialAmount)}
-              className="flex-1 bg-transparent text-xl font-mono text-t-text outline-none border-b" style={{ borderColor: 'var(--line)' }} />
+              style={{
+                flex: 1,
+                background: 'transparent',
+                fontSize: 20,
+                fontFamily: 'JetBrains Mono, monospace',
+                fontWeight: 500,
+                color: 'var(--text)',
+                outline: 'none',
+                border: 'none',
+                borderBottom: '1px solid var(--line)',
+                paddingBottom: 4,
+              }}
+            />
           </div>
         </div>
 
         {/* Monthly Contribution */}
-        <div className="py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-2">Monthly Contribution</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-mono text-t-muted">$</span>
-            <input type="text" inputMode="decimal" placeholder="100" value={monthlyContribution}
+        <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
+          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Monthly Contribution</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: 18, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>$</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="100"
+              value={monthlyContribution}
               onChange={handleChange(setMonthlyContribution)}
-              className="flex-1 bg-transparent text-xl font-mono text-t-text outline-none border-b" style={{ borderColor: 'var(--line)' }} />
+              style={{
+                flex: 1,
+                background: 'transparent',
+                fontSize: 20,
+                fontFamily: 'JetBrains Mono, monospace',
+                fontWeight: 500,
+                color: 'var(--text)',
+                outline: 'none',
+                border: 'none',
+                borderBottom: '1px solid var(--line)',
+                paddingBottom: 4,
+              }}
+            />
           </div>
         </div>
 
         {/* Annual Return + Years */}
-        <div className="grid grid-cols-2 gap-4 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
           <div>
-            <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-2">Annual Return</p>
-            <div className="flex items-baseline gap-1">
-              <input type="text" inputMode="decimal" placeholder="7" value={annualReturn}
+            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Annual Return</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="7"
+                value={annualReturn}
                 onChange={handleChange(setAnnualReturn)}
-                className="flex-1 bg-transparent text-xl font-mono text-t-text outline-none border-b" style={{ borderColor: 'var(--line)' }} />
-              <span className="text-sm font-mono text-t-muted">%</span>
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  fontSize: 20,
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontWeight: 500,
+                  color: 'var(--text)',
+                  outline: 'none',
+                  border: 'none',
+                  borderBottom: '1px solid var(--line)',
+                  paddingBottom: 4,
+                }}
+              />
+              <span style={{ fontSize: 14, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>%</span>
             </div>
           </div>
           <div>
-            <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-2">Years</p>
-            <input type="text" inputMode="numeric" placeholder="10" value={years}
+            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Years</p>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="10"
+              value={years}
               onChange={handleChange(setYears)}
-              className="w-full bg-transparent text-xl font-mono text-t-text outline-none border-b" style={{ borderColor: 'var(--line)' }} />
+              style={{
+                width: '100%',
+                background: 'transparent',
+                fontSize: 20,
+                fontFamily: 'JetBrains Mono, monospace',
+                fontWeight: 500,
+                color: 'var(--text)',
+                outline: 'none',
+                border: 'none',
+                borderBottom: '1px solid var(--line)',
+                paddingBottom: 4,
+              }}
+            />
           </div>
         </div>
-      </div>
+      </GlassCard>
 
       {result && (
-        <div className="mt-6 animate-slide-up">
-          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-4">Projection</p>
+        <div style={{ animation: 'slide-up 0.3s ease-out' }}>
+          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 16 }}>Projection</p>
 
-          <div className="mb-4 px-4 py-5" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-            <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-1">Future Value</p>
-            <p className="text-4xl font-mono" style={{ color: 'var(--green)' }}>
+          <GlassCard elevation="medium" glow="healthy" style={{ padding: 24, marginBottom: 16 }}>
+            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Future Value</p>
+            <p style={{ fontSize: 40, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: 'var(--success)' }}>
               ${result.finalAmount.toLocaleString()}
             </p>
-          </div>
+          </GlassCard>
 
-          <div className="grid grid-cols-2 gap-px mb-6" style={{ background: 'var(--border)' }}>
-            <div className="px-4 py-4" style={{ background: 'var(--surface)' }}>
-              <p className="text-xl font-mono text-t-text">${result.totalContributions.toLocaleString()}</p>
-              <p className="text-[10px] font-mono text-t-muted tracking-wider mt-1 uppercase">contributed</p>
-            </div>
-            <div className="px-4 py-4" style={{ background: 'var(--surface)' }}>
-              <p className="text-xl font-mono" style={{ color: 'var(--green)' }}>${result.totalInterest.toLocaleString()}</p>
-              <p className="text-[10px] font-mono text-t-muted tracking-wider mt-1 uppercase">from growth</p>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+            <GlassCard elevation="low" style={{ padding: 16 }}>
+              <p style={{ fontSize: 20, fontFamily: 'JetBrains Mono, monospace', fontWeight: 500, color: 'var(--text)' }}>${result.totalContributions.toLocaleString()}</p>
+              <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>contributed</p>
+            </GlassCard>
+            <GlassCard elevation="low" style={{ padding: 16 }}>
+              <p style={{ fontSize: 20, fontFamily: 'JetBrains Mono, monospace', fontWeight: 500, color: 'var(--success)' }}>${result.totalInterest.toLocaleString()}</p>
+              <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>from growth</p>
+            </GlassCard>
           </div>
 
           {/* Growth chart */}
-          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-3">Year by Year</p>
-          <div style={{ borderTop: '1px solid var(--border)' }}>
-            {displayRows.map(row => (
-              <div key={row.year} className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
-                <span className="text-[10px] font-mono text-t-muted w-12">YR {row.year}</span>
-                <div className="flex-1 h-[2px]" style={{ background: 'var(--border)' }}>
+          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>Year by Year</p>
+          <GlassCard elevation="low" style={{ padding: 16 }}>
+            {displayRows.map((row, idx) => (
+              <div
+                key={row.year}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  paddingTop: idx === 0 ? 0 : 10,
+                  paddingBottom: 10,
+                  borderBottom: idx === displayRows.length - 1 ? 'none' : '1px solid var(--line)',
+                }}
+              >
+                <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)', width: 48 }}>YR {row.year}</span>
+                <div style={{ flex: 1, height: 2, background: 'var(--line)', borderRadius: 99, overflow: 'hidden' }}>
                   <div
-                    className="h-full transition-all duration-700"
                     style={{
+                      height: '100%',
                       width: `${(row.balance / result.finalAmount) * 100}%`,
-                      background: 'var(--green)',
+                      background: 'var(--success)',
+                      transition: 'width 0.7s ease-out',
                     }}
                   />
                 </div>
-                <span className="text-[11px] font-mono text-t-muted w-20 text-right">
+                <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--sub)', width: 80, textAlign: 'right' }}>
                   ${row.balance.toLocaleString()}
                 </span>
               </div>
             ))}
-          </div>
+          </GlassCard>
         </div>
       )}
     </div>

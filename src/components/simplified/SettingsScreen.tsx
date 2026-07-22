@@ -1,11 +1,23 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal } from "@/types"
+import type { SavingsAccount } from "@/types/folio"
+import { FONT_FAMILY } from "@/styles/typography"
+import {
+  CONTENT_MAX_WIDTH,
+  HORIZONTAL_PADDING,
+  DOCK_PADDING_BOTTOM,
+  sectionHeadingStrong,
+  linkButton,
+  listRow,
+} from "@/styles/shared"
+import { SavingsProjection } from "./SavingsProjection"
 
 // ============================================================================
 // Types
@@ -14,11 +26,19 @@ import type { Budget, Goal } from "@/types"
 export interface SettingsScreenProps {
   budgets: Budget[]
   goals: Goal[]
+  savingsAccounts?: SavingsAccount[]
+  totalSetAside?: number
+  savingsRate?: number
   userEmail?: string
   onOpenBudgetSettings: () => void
+  onOpenRecurringBills?: () => void
   onOpenGoals: () => void
-  onOpenLearn: () => void
+  onOpenLearn?: () => void
+  onOpenProfile: () => void
   onSignOut: () => void
+  onResetOnboarding?: () => void
+  onExportData?: () => void
+  onDeleteAccount?: () => void
 }
 
 // ============================================================================
@@ -56,13 +76,23 @@ function getDaysInMonth(): number {
 export function SettingsScreen({
   budgets,
   goals,
+  savingsAccounts,
+  totalSetAside,
+  savingsRate,
   userEmail,
   onOpenBudgetSettings,
+  onOpenRecurringBills,
   onOpenGoals,
   onOpenLearn,
+  onOpenProfile,
   onSignOut,
+  onResetOnboarding,
+  onExportData,
+  onDeleteAccount,
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
 
   // ── Budget summary computations ────────────────────────────────────────────
   const totalMonthly = budgets.reduce((sum, b) => sum + b.monthlyLimit, 0)
@@ -83,10 +113,10 @@ export function SettingsScreen({
   return (
     <div
       style={{
-        maxWidth: 560,
+        maxWidth: CONTENT_MAX_WIDTH,
         margin: "0 auto",
-        padding: "24px 20px 100px",
-        fontFamily: "Inter, sans-serif",
+        padding: `24px ${HORIZONTAL_PADDING}px ${DOCK_PADDING_BOTTOM - 20}px`,
+        fontFamily: FONT_FAMILY,
       }}
     >
       {/* ── Title ──────────────────────────────────────────────────────────── */}
@@ -103,15 +133,7 @@ export function SettingsScreen({
 
       {/* ── Budget Limits ──────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 12,
-          }}
-        >
+        <p style={{ ...sectionHeadingStrong }}>
           Budget Limits
         </p>
 
@@ -136,14 +158,7 @@ export function SettingsScreen({
             {activeLimits.map(cat => (
               <div
                 key={cat.category}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "6px 0",
-                  fontSize: 14,
-                  color: "var(--text)",
-                }}
+                style={listRow}
               >
                 <span>
                   {cat.emoji} {cat.label}
@@ -166,32 +181,73 @@ export function SettingsScreen({
           onClick={onOpenBudgetSettings}
           whileTap={{ scale: 0.97 }}
           transition={springs.snappy}
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--sub)",
-            cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
-          }}
+          style={linkButton}
+          aria-label="Manage budget limits"
         >
           Manage limits →
         </motion.button>
       </GlassCard>
 
+      {/* ── Set Aside This Month ─────────────────────────────────────────── */}
+      {(totalSetAside ?? 0) > 0 && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }} aria-hidden="true">🏦</span>
+            <div>
+              <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>
+                Set aside this month
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+                ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── Savings Rate ──────────────────────────────────────────────────── */}
+      {(savingsRate ?? 0) > 0 && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }} aria-hidden="true">💪</span>
+            <div>
+              <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>
+                Savings rate
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
+                {savingsRate}%
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── Recurring Bills ──────────────────────────────────────────────── */}
+      {onOpenRecurringBills && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong }}>
+            Recurring Bills
+          </p>
+
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+            Track your monthly fixed costs like rent, subscriptions, and utilities.
+          </p>
+
+          <motion.button
+            onClick={onOpenRecurringBills}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={linkButton}
+            aria-label="Manage recurring bills"
+          >
+            Manage bills →
+          </motion.button>
+        </GlassCard>
+      )}
+
       {/* ── Goals ──────────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 12,
-          }}
-        >
+        <p style={{ ...sectionHeadingStrong }}>
           Goals
         </p>
 
@@ -204,14 +260,7 @@ export function SettingsScreen({
               return (
                 <div
                   key={goal.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "6px 0",
-                    fontSize: 14,
-                    color: "var(--text)",
-                  }}
+                  style={listRow}
                 >
                   <span>
                     {goal.emoji} {goal.name}
@@ -239,32 +288,58 @@ export function SettingsScreen({
           onClick={onOpenGoals}
           whileTap={{ scale: 0.97 }}
           transition={springs.snappy}
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--sub)",
-            cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
-          }}
+          style={linkButton}
+          aria-label="Manage savings goals"
         >
           Manage goals →
         </motion.button>
       </GlassCard>
 
+      {/* ── Savings Accounts ─────────────────────────────────────────── */}
+      {savingsAccounts && savingsAccounts.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
+            <p style={{ ...sectionHeadingStrong }}>
+              Savings & Investments
+            </p>
+            <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+              Projected growth based on your current contributions.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {savingsAccounts.map(account => (
+                <SavingsProjection key={account.id} account={account} />
+              ))}
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* ── Learn ──────────────────────────────────────────────────────────── */}
+      {onOpenLearn && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong }}>
+            Learn
+          </p>
+
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+            Short lessons on budgeting, saving, and growing your money.
+          </p>
+
+          <motion.button
+            onClick={onOpenLearn}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={linkButton}
+            aria-label="Open financial lessons"
+          >
+            Browse lessons →
+          </motion.button>
+        </GlassCard>
+      )}
+
       {/* ── Appearance ─────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 14,
-          }}
-        >
+        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
           Appearance
         </p>
 
@@ -294,7 +369,7 @@ export function SettingsScreen({
                   border: "none",
                   fontSize: 13,
                   fontWeight: 500,
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                   color: isActive ? "var(--text)" : "var(--muted)",
                   background: isActive
@@ -315,79 +390,211 @@ export function SettingsScreen({
         </div>
       </GlassCard>
 
-      {/* ── Learn ──────────────────────────────────────────────────────────── */}
+      {/* ── Preferences ────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 8,
-          }}
-        >
-          Learn
-        </p>
-        <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-          Financial tips and lessons to help you build better money habits.
+        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+          Preferences
         </p>
 
-        <motion.button
-          onClick={onOpenLearn}
-          whileTap={{ scale: 0.97 }}
-          transition={springs.snappy}
+        {/* Currency Display (informational for now) */}
+        <div
           style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--sub)",
-            cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "10px 0",
+            borderBottom: "1px solid var(--border)",
           }}
         >
-          Open lessons →
-        </motion.button>
+          <span style={{ fontSize: 14, color: "var(--text)" }}>Currency</span>
+          <span style={{ fontSize: 14, color: "var(--sub)" }}>USD ($)</span>
+        </div>
+
+        {/* Reset Tutorial/Onboarding */}
+        {onResetOnboarding && (
+          <motion.button
+            onClick={onResetOnboarding}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              ...linkButton,
+              marginTop: 14,
+            }}
+            aria-label="Reset onboarding tutorial"
+          >
+            Reset tutorial →
+          </motion.button>
+        )}
+      </GlassCard>
+
+      {/* ── Data & Account Management ──────────────────────────────────── */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+          Data & Account
+        </p>
+
+        {/* Export Data */}
+        {onExportData && (
+          <motion.button
+            onClick={onExportData}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              ...linkButton,
+              marginBottom: 12,
+            }}
+            aria-label="Export your financial data"
+          >
+            Export my data →
+          </motion.button>
+        )}
+
+        {/* Delete Account - Destructive Action */}
+        {onDeleteAccount && !showDeleteConfirm && (
+          <motion.button
+            onClick={() => setShowDeleteConfirm(true)}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              ...linkButton,
+              color: "var(--error)",
+            }}
+            aria-label="Delete account"
+          >
+            Delete account →
+          </motion.button>
+        )}
+
+        {/* Delete Confirmation UI */}
+        {showDeleteConfirm && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: 16,
+              borderRadius: 12,
+              background: "rgba(248, 113, 113, 0.1)",
+              border: "1px solid rgba(248, 113, 113, 0.3)",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--error)",
+                marginBottom: 8,
+              }}
+            >
+              ⚠️ Delete Account
+            </p>
+            <p
+              style={{
+                fontSize: 13,
+                color: "var(--text)",
+                marginBottom: 12,
+                lineHeight: 1.5,
+              }}
+            >
+              This will permanently delete all your data including transactions, budgets, and goals. This cannot be undone.
+            </p>
+            <p
+              style={{
+                fontSize: 13,
+                color: "var(--sub)",
+                marginBottom: 12,
+              }}
+            >
+              Type <strong>DELETE</strong> to confirm:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Type DELETE"
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                marginBottom: 12,
+                fontSize: 14,
+                fontFamily: FONT_FAMILY,
+                color: "var(--text)",
+                background: "rgba(0, 0, 0, 0.2)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                outline: "none",
+              }}
+              aria-label="Type DELETE to confirm account deletion"
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <motion.button
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setDeleteConfirmText("")
+                }}
+                whileTap={{ scale: 0.97 }}
+                transition={springs.snappy}
+                style={{
+                  flex: 1,
+                  padding: "10px 16px",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  fontFamily: FONT_FAMILY,
+                  color: "var(--text)",
+                  background: "rgba(255, 255, 255, 0.06)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+                aria-label="Cancel account deletion"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                onClick={() => {
+                  if (deleteConfirmText === "DELETE" && onDeleteAccount) {
+                    onDeleteAccount()
+                  }
+                }}
+                whileTap={{ scale: deleteConfirmText === "DELETE" ? 0.97 : 1 }}
+                transition={springs.snappy}
+                disabled={deleteConfirmText !== "DELETE"}
+                style={{
+                  flex: 1,
+                  padding: "10px 16px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontFamily: FONT_FAMILY,
+                  color: deleteConfirmText === "DELETE" ? "#fff" : "var(--muted)",
+                  background: deleteConfirmText === "DELETE" 
+                    ? "var(--error)" 
+                    : "rgba(255, 255, 255, 0.03)",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: deleteConfirmText === "DELETE" ? "pointer" : "not-allowed",
+                  opacity: deleteConfirmText === "DELETE" ? 1 : 0.5,
+                }}
+                aria-label="Confirm account deletion"
+              >
+                Delete Forever
+              </motion.button>
+            </div>
+          </div>
+        )}
       </GlassCard>
 
       {/* ── Account ────────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--muted)",
-            letterSpacing: "0.02em",
-            marginBottom: 10,
-          }}
-        >
+        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
           Account
         </p>
 
-        {userEmail && (
-          <p style={{ fontSize: 14, color: "var(--text)", marginBottom: 14 }}>
-            {userEmail}
-          </p>
-        )}
-
         <motion.button
-          onClick={onSignOut}
+          onClick={onOpenProfile}
           whileTap={{ scale: 0.97 }}
           transition={springs.snappy}
-          style={{
-            padding: "10px 18px",
-            fontSize: 13,
-            fontWeight: 500,
-            fontFamily: "Inter, sans-serif",
-            color: "var(--error)",
-            background: "rgba(248, 113, 113, 0.08)",
-            border: "1px solid rgba(248, 113, 113, 0.2)",
-            borderRadius: 10,
-            cursor: "pointer",
-          }}
+          style={linkButton}
+          aria-label="Open account settings"
         >
-          Sign out
+          Manage account →
         </motion.button>
       </GlassCard>
     </div>

@@ -1,5 +1,7 @@
 "use client"
 import { useState, useMemo } from 'react'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { FONT_FAMILY } from '@/styles/typography'
 import type { CreditPayoffResult } from '@/types'
 
 interface CreditPayoffCalculatorProps {
@@ -35,20 +37,30 @@ export function CreditPayoffCalculator({ onBack }: CreditPayoffCalculatorProps) 
     label: string; prefix?: string; suffix?: string;
     value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string
   }) => (
-    <div className="py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-      <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-2">{label}</p>
-      <div className="flex items-baseline gap-2">
-        {prefix && <span className="text-lg font-mono text-t-muted">{prefix}</span>}
+    <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
+      <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>{label}</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        {prefix && <span style={{ fontSize: 18, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>{prefix}</span>}
         <input
           type="text"
           inputMode="decimal"
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          className="flex-1 bg-transparent text-xl font-mono text-t-text outline-none border-b"
-          style={{ borderColor: 'var(--line)' }}
+          style={{
+            flex: 1,
+            background: 'transparent',
+            fontSize: 20,
+            fontFamily: 'JetBrains Mono, monospace',
+            fontWeight: 500,
+            color: 'var(--text)',
+            outline: 'none',
+            border: 'none',
+            borderBottom: '1px solid var(--line)',
+            paddingBottom: 4,
+          }}
         />
-        {suffix && <span className="text-sm font-mono text-t-muted">{suffix}</span>}
+        {suffix && <span style={{ fontSize: 14, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>{suffix}</span>}
       </div>
     </div>
   )
@@ -57,60 +69,73 @@ export function CreditPayoffCalculator({ onBack }: CreditPayoffCalculatorProps) 
     <div className="pb-20 px-5 pt-10">
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-xs font-mono tracking-widest text-t-muted hover:text-t-text transition-colors uppercase mb-8"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 13,
+          fontFamily: FONT_FAMILY,
+          fontWeight: 500,
+          color: 'var(--sub)',
+          background: 'transparent',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: 99,
+          padding: '8px 16px',
+          cursor: 'pointer',
+          marginBottom: 32,
+          transition: 'border-color 0.15s, color 0.15s',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = 'var(--text)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = 'var(--sub)' }}
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
         </svg>
-        back
+        Back
       </button>
 
-      <div className="mb-6">
-        <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-1">Calculator</p>
-        <h1 className="text-2xl font-mono text-t-text">Credit Payoff</h1>
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 4 }}>Calculator</p>
+        <h1 style={{ fontSize: 28, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--text)' }}>Credit Payoff</h1>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border)' }}>
+      <GlassCard elevation="low" style={{ padding: 20, marginBottom: 24 }}>
         <InputRow label="Current Balance" prefix="$" value={balance} onChange={handleChange(setBalance)} placeholder="5000" />
         <InputRow label="APR" suffix="%" value={apr} onChange={handleChange(setApr)} placeholder="18.9" />
         <InputRow label="Monthly Payment" prefix="$" value={monthlyPayment} onChange={handleChange(setMonthlyPayment)} placeholder="200" />
-      </div>
+      </GlassCard>
 
       {result && (
-        <div className="mt-6 animate-slide-up">
-          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-4">Result</p>
-          <div className="grid grid-cols-2 gap-px" style={{ background: 'var(--border)' }}>
+        <div style={{ animation: 'slide-up 0.3s ease-out' }}>
+          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 16 }}>Result</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }}>
             {[
               { label: 'months to payoff', value: result.monthsToPayoff.toString() },
               { label: 'total interest',   value: `$${result.totalInterest.toLocaleString()}` },
               { label: 'total paid',       value: `$${result.totalPaid.toLocaleString()}` },
               { label: 'monthly payment',  value: `$${result.monthlyPayment.toLocaleString()}` },
             ].map(item => (
-              <div key={item.label} className="px-4 py-4" style={{ background: 'var(--surface)' }}>
-                <p className="text-2xl font-mono text-t-text">{item.value}</p>
-                <p className="text-[10px] font-mono text-t-muted tracking-wider mt-1 uppercase">{item.label}</p>
-              </div>
+              <GlassCard key={item.label} elevation="low" style={{ padding: 16 }}>
+                <p style={{ fontSize: 24, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: 'var(--text)' }}>{item.value}</p>
+                <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{item.label}</p>
+              </GlassCard>
             ))}
           </div>
 
-          <div
-            className="mt-4 px-4 py-3"
-            style={{ borderLeft: '2px solid var(--muted)', background: 'var(--surface)' }}
-          >
-            <p className="text-xs text-t-muted">
+          <GlassCard elevation="low" style={{ padding: 16, borderLeft: '2px solid var(--muted)' }}>
+            <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--sub)' }}>
               Paying ${Math.round(result.monthlyPayment * 1.5)}/mo instead saves ~${Math.round(result.totalInterest * 0.4)} in interest.
             </p>
-          </div>
+          </GlassCard>
         </div>
       )}
 
       {balance && apr && monthlyPayment && !result && (
-        <div
-          className="mt-6 px-4 py-3"
-          style={{ borderLeft: '2px solid var(--red)', background: 'var(--surface)' }}
-        >
-          <p className="text-xs font-mono text-t-red">Payment too low — must exceed the monthly interest charge.</p>
-        </div>
+        <GlassCard elevation="low" glow="over" style={{ padding: 16, borderLeft: '2px solid var(--error)' }}>
+          <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--error)' }}>
+            Payment too low — must exceed the monthly interest charge.
+          </p>
+        </GlassCard>
       )}
     </div>
   )

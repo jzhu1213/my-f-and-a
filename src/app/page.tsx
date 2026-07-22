@@ -1,418 +1,322 @@
 "use client"
-import { useState, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Onboarding,
   Toast,
-  ProfileSheet,
-  LimitSetupWizard,
   AppShell,
-  HistoryScreen,
-  SettingsScreen,
 } from '@/components'
 import type { AppNavKey } from '@/components/ui/AppShell'
-import type { LimitSetupResult } from '@/components/ui/LimitSetupWizard'
-import { PaycheckSheet } from '@/components/accounting/PaycheckSheet'
-import { computeCategoryBudgets, toMonthString } from '@/lib/budgetUtils'
-import type { TransactionRepeat } from '@/lib/transactionUtils'
-import { TodayView } from '@/components/accounting/TodayView'
-import { LimitsView } from '@/components/accounting/LimitsView'
-import { TransactionSheet } from '@/components/accounting/TransactionSheet'
+import { HomeScreen } from '@/components/simplified/HomeScreen'
+import { HistoryScreen } from '@/components/simplified/HistoryScreen'
+import { SettingsScreen } from '@/components/simplified/SettingsScreen'
+import { BudgetSettings } from '@/components/simplified/BudgetSettings'
+import { GoalsScreen } from '@/components/simplified/GoalsScreen'
+import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
+import { IncomeSheet } from '@/components/simplified/IncomeSheet'
+import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
+import { OnboardingTutorial } from '@/components/simplified/OnboardingTutorial'
+import { ProfileSheet } from '@/components/ui/ProfileSheet'
+import { TutorialSetupStepRenderer, TUTORIAL_FEATURE_STEPS, TUTORIAL_SETUP_STEPS, TutorialSetupState, buildOnboardingResult, computeDailyAllowance } from '@/components/simplified/TutorialSteps'
+import { LessonsScreen } from '@/components/finance/LessonsScreen'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
-import {
-  getTransactions,
-  insertTransaction,
-  updateTransaction,
-  deleteTransaction,
-  getBudgets,
-  upsertBudget,
-  updateBudgetSpent,
-  carryForwardBudgetLimits,
-  getGoals,
-  createGoal,
-  updateGoal,
-  updateGoalProgress,
-  deleteGoal,
-  getLessonProgress,
-  updateLessonProgress,
-} from '@/lib/supabaseData'
-import type {
-  Transaction,
-  Budget,
-  Goal,
-  UserLessonProgress,
-  TransactionCategory,
-  TransactionType,
-} from '@/types'
-import { triggerHaptic } from '@/lib/haptics'
+import { useHomeData } from '@/hooks/useHomeData'
+import { carryForwardBudgetLimits, insertAllocation } from '@/lib/supabaseData'
+import { exportUserData, deleteUserAccount } from '@/lib/accountUtils'
+import type { TransactionCategory, Transaction } from '@/types'
+import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation } from '@/types/folio'
+import type { TransactionRepeat } from '@/lib/transactionUtils'
 
-type OnboardingStep = 'loading' | 'welcome' | 'limits' | 'done'
+type OnboardingStep = 'loading' | 'tutorial' | 'done'
 
 export default function FolioApp() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, refreshUser } = useAuth()
   const { showToast } = useToast()
 
-  const [onboardingStep,        setOnboardingStep]        = useState<OnboardingStep>('loading')
-  const [activeNav,             setActiveNav]             = useState<AppNavKey>('home')
-  const [showLimits,            setShowLimits]            = useState(false)
-  const [showTransactionSheet,  setShowTransactionSheet]  = useState(false)
-  const [editingTransaction,    setEditingTransaction]    = useState<Transaction | undefined>()
-  const [prefilledCategory,     setPrefilledCategory]     = useState<TransactionCategory | undefined>()
-  const [prefilledType,         setPrefilledType]         = useState<TransactionType | undefined>()
-  const [prefilledAmount,       setPrefilledAmount]       = useState<number | undefined>()
-  const [prefilledNote,         setPrefilledNote]         = useState<string | undefined>()
-  const [paycheckAmount,        setPaycheckAmount]        = useState<number | null>(null)
-  const [showProfile,           setShowProfile]           = useState(false)
+  // ── Routing & UI State ─────────────────────────────────────────
+  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('loading')
+  const [activeNav, setActiveNav] = useState<AppNavKey>('home')
+  const [showBudgetSettings, setShowBudgetSettings] = useState(false)
+  const [showGoals, setShowGoals] = useState(false)
+  const [profileSheetOpen, setProfileSheetOpen] = useState(false)
 
-  const [transactions,   setTransactions]   = useState<Transaction[]>([])
-  const [budgets,        setBudgets]        = useState<Budget[]>([])
-  const [goals,          setGoals]          = useState<Goal[]>([])
-  const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([])
-  const [dataLoading,    setDataLoading]    = useState(true)
+  // ── Tutorial Setup State ───────────────────────────────────────
+  const [tutorialSetupState, setTutorialSetupState] = useState<TutorialSetupState>({
+    monthlyIncome: 2000,
+    budgetPreset: 'student_moderate' as BudgetPreset,
+    categoryLimits: {},
+  })
 
-  // ── Onboarding ─────────────────────────────────────────────────
+  // ── Sheet State ────────────────────────────────────────────────
+  const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
+  const [incomeSheetOpen, setIncomeSheetOpen] = useState(false)
+  const [paycheckSheetOpen, setPaycheckSheetOpen] = useState(false)
+  const [paycheckAmount, setPaycheckAmount] = useState(0)
+  const [defaultExpenseCategory, setDefaultExpenseCategory] = useState<TransactionCategory | undefined>(undefined)
+
+  // ── Celebration State ──────────────────────────────────────────
+  const [celebrationEvent, setCelebrationEvent] = useState<CelebrationEvent | null>(null)
+
+  // ── Last logged expense for undo ───────────────────────────────
+  const [lastLoggedId, setLastLoggedId] = useState<string | null>(null)
+
+  // ── Data Layer (consolidated in useHomeData hook) ─────────────
+  const {
+    transactions,
+    budgets,
+    goals,
+    lessonProgress,
+    allowance,
+    totalSetAside,
+    savingsRate,
+    isLoading: dataLoading,
+    refresh,
+    addTransaction,
+    deleteTransaction,
+    updateBudget,
+    createGoal,
+    updateGoal,
+    contributeToGoal,
+    deleteGoal,
+    completeLesson,
+  } = useHomeData(user?.id)
+
+  // ── Onboarding Check ───────────────────────────────────────────
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setOnboardingStep(localStorage.getItem('folio-onboarded') === 'true' ? 'done' : 'welcome')
+      setOnboardingStep(localStorage.getItem('folio-onboarded') === 'true' ? 'done' : 'tutorial')
     }
   }, [])
 
-  // ── Data loading ────────────────────────────────────────────────
-  const loadData = async () => {
-    if (!user) { setDataLoading(false); return }
-    try {
-      // Carry forward budget limits from previous month before fetching
-      await carryForwardBudgetLimits(user.id)
-
-      const [txData, budgetData, goalData, progressData] = await Promise.all([
-        getTransactions(user.id),
-        getBudgets(user.id),
-        getGoals(user.id),
-        getLessonProgress(user.id),
-      ])
-      setTransactions(txData)
-      setBudgets(budgetData)
-      setGoals(goalData)
-      setLessonProgress(progressData)
-    } catch (err) {
-      console.error('Error loading data:', err)
-    } finally {
-      setDataLoading(false)
-    }
-  }
-
+  // ── Budget limit carry-forward on mount ────────────────────────
   useEffect(() => {
-    if (!authLoading) loadData()
-  }, [user, authLoading])
+    if (user?.id && !authLoading) {
+      carryForwardBudgetLimits(user.id).catch(err =>
+        console.error('Error carrying forward budget limits:', err)
+      )
+    }
+  }, [user?.id, authLoading])
 
-  /** Pull-to-refresh handler: refetches transactions and budgets from Supabase */
-  const handleRefresh = async () => {
-    if (!user) return
-    try {
-      const [txData, budgetData] = await Promise.all([
-        getTransactions(user.id),
-        getBudgets(user.id),
-      ])
-      setTransactions(txData)
-      setBudgets(budgetData)
-    } catch (err) {
-      console.error('Error refreshing data:', err)
+  // ── Onboarding Handlers ────────────────────────────────────────
+  const handleTutorialComplete = async () => {
+    // Build the onboarding result from tutorial setup state
+    const result: OnboardingResult = buildOnboardingResult(tutorialSetupState)
+    
+    // Apply initial limits/income via updateBudget
+    if (result.customLimits) {
+      const entries = Object.entries(result.customLimits) as [TransactionCategory, number][]
+      for (const [cat, limit] of entries) {
+        if (limit > 0) await updateBudget(cat, limit)
+      }
+    }
+    
+    // Persist tutorial completion flag
+    localStorage.setItem('folio-onboarded', 'true')
+    setOnboardingStep('done')
+    
+    if (result.customLimits && Object.keys(result.customLimits).length > 0) {
+      showToast("Tutorial complete — check today's budget")
     }
   }
 
-  // ── Onboarding & limit setup ────────────────────────────────────
-  const finishOnboarding = () => {
+  const handleTutorialSkip = () => {
     localStorage.setItem('folio-onboarded', 'true')
     setOnboardingStep('done')
   }
 
-  const applyInitialLimits = async (limits: LimitSetupResult) => {
-    const entries = Object.entries(limits) as [TransactionCategory, number][]
-    for (const [cat, limit] of entries) {
-      if (limit > 0) await handleUpdateBudget(cat, limit, true)
+  // ── Expense Logging ────────────────────────────────────────────
+  const handleOpenExpenseSheet = useCallback((category?: TransactionCategory) => {
+    setDefaultExpenseCategory(category)
+    setExpenseSheetOpen(true)
+  }, [])
+
+  const handleExpenseSubmit = useCallback(async (data: {
+    amount: number
+    category: TransactionCategory
+    note?: string
+  }) => {
+    if (!user?.id) return
+
+    const today = new Date().toISOString().slice(0, 10)
+    const result = await addTransaction({
+      amount: data.amount,
+      category: data.category,
+      type: 'expense',
+      date: today,
+      note: data.note,
+    })
+
+    if (result) {
+      setLastLoggedId(result.id)
+    } else {
+      showToast('Saved offline — will sync when connected', 'success')
     }
-    if (entries.length > 0) showToast('Limits set — check Today to see what\'s left')
-    finishOnboarding()
-  }
+  }, [user?.id, addTransaction, showToast])
 
-  const handleLimitSetupSkip = () => finishOnboarding()
+  const handleExpenseUndo = useCallback(async () => {
+    if (!lastLoggedId) return
+    await deleteTransaction(lastLoggedId)
+    setLastLoggedId(null)
+    showToast('Expense removed')
+  }, [lastLoggedId, deleteTransaction, showToast])
 
-  // ── Budget recalculation helper ─────────────────────────────────
-  const recalculateBudgetSpent = async (updatedTxs: Transaction[], category?: TransactionCategory) => {
-    const currentMonth  = new Date().toISOString().slice(0, 7)
-    const monthExpenses = updatedTxs.filter(t => t.date.startsWith(currentMonth) && t.type === 'expense')
-    const cats = category
-      ? [category]
-      : Array.from(new Set(monthExpenses.map(t => t.category)))
+  // ── Income Logging ─────────────────────────────────────────────
+  const handleIncomeSubmit = useCallback(async (data: {
+    amount: number
+    note?: string
+  }) => {
+    if (!user?.id) return
 
-    for (const cat of cats) {
-      const spent = monthExpenses.filter(t => t.category === cat).reduce((s, t) => s + t.amount, 0)
-      if (!user) {
-        setBudgets(prev => {
-          const existing = prev.find(b => b.category === cat && b.month === currentMonth)
-          if (existing) return prev.map(b => b.category === cat && b.month === currentMonth ? { ...b, spent } : b)
-          return [...prev, { id: Date.now().toString(), userId: 'local', category: cat as TransactionCategory, monthlyLimit: 0, spent, month: currentMonth }]
-        })
-      } else {
-        const result = await updateBudgetSpent(user.id, cat as TransactionCategory, spent)
-        if (result) setBudgets(prev => prev.some(b => b.id === result.id) ? prev.map(b => b.id === result.id ? result : b) : [...prev, result])
-      }
+    const today = new Date().toISOString().slice(0, 10)
+    const result = await addTransaction({
+      amount: data.amount,
+      category: 'other',
+      type: 'income',
+      date: today,
+      note: data.note,
+    })
+
+    if (!result) {
+      showToast('Saved offline — will sync when connected', 'success')
     }
-  }
+  }, [user?.id, addTransaction, showToast])
 
-  // ── Transaction sheet open ──────────────────────────────────────
-  const handleOpenAddSheet = (
-    category?: TransactionCategory,
-    type: TransactionType = 'expense',
-    amount?: number,
-    note?: string,
-  ) => {
-    setEditingTransaction(undefined)
-    setPrefilledCategory(category)
-    setPrefilledType(type)
-    setPrefilledAmount(amount)
-    setPrefilledNote(note)
-    setShowTransactionSheet(true)
-  }
+  // ── Paycheck Sheet (show after income logged, only if active goals) ──
+  const handleShowPaycheck = useCallback((amount: number) => {
+    setPaycheckAmount(amount)
+    setPaycheckSheetOpen(true)
+  }, [])
 
-  const handleOpenEditSheet = (tx: Transaction) => {
-    setEditingTransaction(tx)
-    setPrefilledCategory(undefined)
-    setPrefilledType(undefined)
-    setPrefilledAmount(undefined)
-    setPrefilledNote(undefined)
-    setShowTransactionSheet(true)
-  }
+  // ── Income Allocation (optimistic, reversible on persistence failure) ──
+  const handleAllocateIncome = useCallback(async (allocation: IncomeAllocation) => {
+    if (!user?.id) return
 
-  const handleCloseSheet = () => {
-    setShowTransactionSheet(false)
-    setEditingTransaction(undefined)
-    setPrefilledCategory(undefined)
-    setPrefilledType(undefined)
-    setPrefilledAmount(undefined)
-    setPrefilledNote(undefined)
-  }
+    // Persist to Supabase
+    const result = await insertAllocation(user.id, allocation)
 
-  const handleRepeatLog = async (repeat: TransactionRepeat) => {
-    const today = new Date().toISOString().split('T')[0]
-    await handleAddTransaction({
+    if (result) {
+      // Trigger a refresh to pick up the new allocation and recalculate totalSetAside
+      await refresh()
+    } else {
+      showToast('Allocation saved locally — will sync when connected', 'success')
+    }
+  }, [user?.id, refresh, showToast])
+
+  // ── Repeat Log ─────────────────────────────────────────────────
+  const handleRepeatLog = useCallback(async (repeat: TransactionRepeat) => {
+    if (!user?.id) return
+
+    const today = new Date().toISOString().slice(0, 10)
+    const result = await addTransaction({
       amount: repeat.amount,
       category: repeat.category,
       type: repeat.type,
       date: today,
       note: repeat.note,
-    }, { silent: true })
-    showToast(repeat.type === 'income' ? 'Income logged' : 'Expense logged')
-  }
-
-  const getBudgetRemaining = (cat?: TransactionCategory): number | undefined => {
-    if (!cat) return undefined
-    const row = computeCategoryBudgets(budgets, transactions, toMonthString(new Date()), true)
-      .find(r => r.category === cat)
-    return row?.hasLimit ? row.weeklyLeft : undefined
-  }
-
-  // ── Add transaction ─────────────────────────────────────────────
-  const handleAddTransaction = async (
-    data: { amount: number; category: TransactionCategory; type: TransactionType; date: string; note?: string },
-    opts?: { silent?: boolean },
-  ) => {
-    if (!user) {
-      const newTx: Transaction = {
-        id: Date.now().toString(), userId: 'local',
-        date: data.date, amount: data.amount, type: data.type,
-        category: data.category, note: data.note,
-        accountType: 'personal', createdAt: new Date().toISOString(),
-      }
-      const updated = [newTx, ...transactions]
-      setTransactions(updated)
-      if (data.type === 'expense') await recalculateBudgetSpent(updated, data.category)
-      if (!opts?.silent) showToast('Transaction added')
-      if (data.type === 'income') setPaycheckAmount(data.amount)
-      triggerHaptic('medium')
-      return
-    }
-    const result = await insertTransaction(user.id, data)
-    if (result) {
-      const updated = [result, ...transactions]
-      setTransactions(updated)
-      if (data.type === 'expense') await recalculateBudgetSpent(updated, data.category)
-      if (!opts?.silent) showToast('Transaction added')
-      if (data.type === 'income') setPaycheckAmount(data.amount)
-      triggerHaptic('medium')
-    } else {
-      showToast('Failed to add transaction', 'error')
-    }
-  }
-
-  // ── Edit transaction ────────────────────────────────────────────
-  const handleEditTransaction = async (data: {
-    amount: number; category: TransactionCategory; type: TransactionType; date: string; note?: string
-  }) => {
-    if (!editingTransaction) return
-    const oldCategory = editingTransaction.category
-    const oldType     = editingTransaction.type
-
-    if (!user) {
-      const updated = transactions.map(t =>
-        t.id === editingTransaction.id
-          ? { ...t, amount: data.amount, category: data.category, type: data.type, date: data.date, note: data.note }
-          : t
-      )
-      setTransactions(updated)
-      // Recalculate both old and new category if they differ
-      const affectedCats = new Set<TransactionCategory>()
-      if (oldType === 'expense') affectedCats.add(oldCategory)
-      if (data.type === 'expense') affectedCats.add(data.category)
-      for (const cat of affectedCats) await recalculateBudgetSpent(updated, cat)
-      showToast('Transaction updated')
-      return
-    }
-
-    const result = await updateTransaction(user.id, editingTransaction.id, data)
-    if (result) {
-      const updated = transactions.map(t => t.id === result.id ? result : t)
-      setTransactions(updated)
-      const affectedCats = new Set<TransactionCategory>()
-      if (oldType === 'expense') affectedCats.add(oldCategory)
-      if (data.type === 'expense') affectedCats.add(data.category)
-      for (const cat of affectedCats) await recalculateBudgetSpent(updated, cat)
-      showToast('Transaction updated')
-    } else {
-      showToast('Failed to update transaction', 'error')
-    }
-  }
-
-  // ── Delete transaction (optimistic + 3.5 s undo window) ────────
-  const handleDeleteTransaction = (id: string) => {
-    const tx = transactions.find(t => t.id === id)
-    if (!tx) return
-
-    // Optimistically remove from UI immediately
-    const restored = [...transactions]
-    const updated  = transactions.filter(t => t.id !== id)
-    setTransactions(updated)
-    if (tx.type === 'expense') recalculateBudgetSpent(updated, tx.category)
-
-    let undone = false
-
-    showToast('Transaction deleted', 'info', {
-      label: 'Undo',
-      onClick: () => {
-        undone = true
-        setTransactions(restored)
-        if (tx.type === 'expense') recalculateBudgetSpent(restored, tx.category)
-      },
     })
 
-    // After toast duration: commit delete to backend (unless undone)
-    setTimeout(async () => {
-      if (undone || !user) return
-      const ok = await deleteTransaction(user.id, id)
-      if (!ok) {
-        setTransactions(restored)
-        if (tx.type === 'expense') recalculateBudgetSpent(restored, tx.category)
-        showToast('Failed to delete transaction', 'error')
-      }
-    }, 3500)
-  }
-
-  // ── Budget ──────────────────────────────────────────────────────
-  const handleUpdateBudget = async (category: TransactionCategory, limit: number, quiet = false) => {
-    if (!user) {
-      const currentMonth = new Date().toISOString().slice(0, 7)
-      setBudgets(prev => {
-        const existing = prev.find(b => b.category === category && b.month === currentMonth)
-        if (existing) return prev.map(b => b.category === category && b.month === currentMonth ? { ...b, monthlyLimit: limit } : b)
-        return [...prev, { id: Date.now().toString(), userId: 'local', category, monthlyLimit: limit, spent: 0, month: currentMonth }]
-      })
-      if (!quiet) showToast('Budget updated')
-      return
-    }
-    const result = await upsertBudget(user.id, category, limit)
     if (result) {
-      setBudgets(prev => prev.some(b => b.category === category && b.month === result.month)
-        ? prev.map(b => b.id === result.id ? result : b)
-        : [...prev, result])
-      if (!quiet) showToast('Budget updated')
-    } else if (!quiet) {
-      showToast('Failed to update budget', 'error')
+      showToast(`Logged ${repeat.label} ✓`, 'success')
+      setLastLoggedId(result.id)
+    } else {
+      showToast('Saved offline — will sync when connected', 'success')
     }
-  }
+  }, [user?.id, addTransaction, showToast])
 
-  // ── Goals ───────────────────────────────────────────────────────
+  // ── Transaction Delete ─────────────────────────────────────────
+  const handleDeleteTransaction = useCallback(async (id: string) => {
+    await deleteTransaction(id)
+  }, [deleteTransaction])
+
+  // ── Goal Handlers (delegated to useHomeData) ───────────────────
   const handleCreateGoal = async (data: { name: string; targetAmount: number; emoji: string }) => {
-    if (!user) {
-      setGoals(prev => [{ id: Date.now().toString(), userId: 'local', currentAmount: 0, createdAt: new Date().toISOString(), ...data }, ...prev])
-      showToast('Goal created')
-      return
-    }
-    const result = await createGoal(user.id, data)
-    if (result) { setGoals(prev => [result, ...prev]); showToast('Goal created') }
+    const result = await createGoal(data)
+    if (result) showToast('Goal created')
     else showToast('Failed to create goal', 'error')
+    return result
   }
 
   const handleUpdateGoal = async (goalId: string, data: { name: string; targetAmount: number; emoji: string }) => {
-    if (!user) {
-      setGoals(prev => prev.map(g => g.id === goalId ? { ...g, ...data } : g))
-      showToast('Goal updated')
-      return
-    }
-    const result = await updateGoal(user.id, goalId, data)
-    if (result) { setGoals(prev => prev.map(g => g.id === goalId ? result : g)); showToast('Goal updated') }
+    const result = await updateGoal(goalId, data)
+    if (result) showToast('Goal updated')
     else showToast('Failed to update goal', 'error')
+    return result
   }
 
-  const handleContributeToGoal = async (goalId: string, amount: number, quiet = false) => {
-    const goal = goals.find(g => g.id === goalId)
-    if (!goal) return
-    const newAmount = goal.currentAmount + amount
-    if (!user) {
-      setGoals(prev => prev.map(g => g.id === goalId ? { ...g, currentAmount: newAmount } : g))
-      if (!quiet) showToast(`$${amount} added to goal`)
-      return
-    }
-    const result = await updateGoalProgress(user.id, goalId, newAmount)
-    if (result) {
-      setGoals(prev => prev.map(g => g.id === goalId ? result : g))
-      if (!quiet) showToast(`$${amount} added`)
-    } else if (!quiet) {
-      showToast('Failed to update goal', 'error')
-    }
+  const handleContributeToGoal = async (goalId: string, amount: number) => {
+    const result = await contributeToGoal(goalId, amount)
+    if (result) showToast(`$${amount} added`)
+    else showToast('Failed to update goal', 'error')
+    return result
   }
 
   const handleDeleteGoal = async (goalId: string) => {
-    if (!user) { setGoals(prev => prev.filter(g => g.id !== goalId)); showToast('Goal deleted'); return }
-    const ok = await deleteGoal(user.id, goalId)
-    if (ok) { setGoals(prev => prev.filter(g => g.id !== goalId)); showToast('Goal deleted') }
+    const success = await deleteGoal(goalId)
+    if (success) showToast('Goal deleted')
     else showToast('Failed to delete goal', 'error')
+    return success
   }
 
-  // ── Lessons ─────────────────────────────────────────────────────
-  const handleLessonComplete = async (lessonId: string, score: number) => {
-    if (!user) {
-      setLessonProgress(prev => [
-        ...prev.filter(p => p.lessonId !== lessonId),
-        { id: Date.now().toString(), userId: 'local', lessonId, completed: true, quizScore: score, completedAt: new Date().toISOString() },
-      ])
-      return
-    }
-    const result = await updateLessonProgress(user.id, lessonId, score)
-    if (result) setLessonProgress(prev => [...prev.filter(p => p.lessonId !== lessonId), result])
+  // ── Budget Handlers (delegated to useHomeData) ─────────────────
+  const handleUpdateBudget = async (category: TransactionCategory, limit: number) => {
+    const result = await updateBudget(category, limit)
+    if (result) showToast('Budget updated')
+    else showToast('Failed to update budget', 'error')
   }
 
-  // ── Sign out ────────────────────────────────────────────────────
+  // ── Sign Out ───────────────────────────────────────────────────
   const handleSignOut = () => {
-    setTransactions([])
-    setBudgets([])
-    setGoals([])
-    setLessonProgress([])
     localStorage.removeItem('folio-onboarded')
-    setOnboardingStep('welcome')
+    setOnboardingStep('tutorial')
   }
 
-  // ── Loading state ───────────────────────────────────────────────
+  // ── Reset Onboarding ───────────────────────────────────────────
+  const handleResetOnboarding = () => {
+    localStorage.removeItem('folio-onboarding')
+    setOnboardingStep('tutorial')
+    showToast('Tutorial reset - starting fresh')
+  }
+
+  // ── Export Data ────────────────────────────────────────────────
+  const handleExportData = async () => {
+    if (!user?.id) return
+    
+    try {
+      await exportUserData(user.id, transactions, budgets, goals, user.email)
+      showToast('Data exported successfully', 'success')
+    } catch (error) {
+      console.error('Error exporting data:', error)
+      showToast('Failed to export data', 'error')
+    }
+  }
+
+  // ── Delete Account ─────────────────────────────────────────────
+  const handleDeleteAccount = async () => {
+    if (!user?.id) return
+    
+    const result = await deleteUserAccount(user.id)
+    
+    if (result.success) {
+      showToast('Account deleted', 'success')
+      // Sign out and reset
+      localStorage.removeItem('folio-onboarded')
+      setOnboardingStep('tutorial')
+    } else {
+      showToast(result.error || 'Failed to delete account', 'error')
+    }
+  }
+
+  // ── Profile Handlers ───────────────────────────────────────────
+  const handleOpenProfile = () => {
+    setProfileSheetOpen(true)
+  }
+
+  const handleProfileUpdate = async () => {
+    await refreshUser()
+    showToast('Profile updated')
+  }
+
+  // ── Auth & Onboarding Gating ───────────────────────────────────
   if (authLoading || onboardingStep === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
@@ -427,125 +331,181 @@ export default function FolioApp() {
     )
   }
 
-  if (onboardingStep === 'welcome') {
-    return <Onboarding onComplete={() => setOnboardingStep('limits')} />
-  }
+  if (onboardingStep === 'tutorial') {
+    const allSteps = [...TUTORIAL_FEATURE_STEPS, ...TUTORIAL_SETUP_STEPS]
 
-  if (onboardingStep === 'limits') {
     return (
-      <LimitSetupWizard
-        onComplete={applyInitialLimits}
-        onSkip={handleLimitSetupSkip}
+      <OnboardingTutorial
+        steps={allSteps}
+        onComplete={handleTutorialComplete}
+        onSkip={handleTutorialSkip}
+        renderStep={(step, completeInteraction) => (
+          <TutorialSetupStepRenderer
+            step={step}
+            completeInteraction={completeInteraction}
+            setupState={tutorialSetupState}
+            onIncomeChange={(value) =>
+              setTutorialSetupState(prev => ({ ...prev, monthlyIncome: value }))
+            }
+            onPresetChange={(preset) =>
+              setTutorialSetupState(prev => ({ ...prev, budgetPreset: preset }))
+            }
+            onLimitChange={(key, value) =>
+              setTutorialSetupState(prev => ({
+                ...prev,
+                categoryLimits: { ...prev.categoryLimits, [key]: value },
+              }))
+            }
+          />
+        )}
       />
     )
   }
 
-  // Transaction sheet submit handler — route to add or edit
-  const handleSheetSubmit = (data: {
-    amount: number; category: TransactionCategory; type: TransactionType; date: string; note?: string
-  }) => {
-    if (editingTransaction) handleEditTransaction(data)
-    else handleAddTransaction(data)
+  // ── Budget Settings (full-screen overlay) ─────────────────────
+  if (showBudgetSettings) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <BudgetSettings
+          budgets={budgets}
+          onUpdateBudget={handleUpdateBudget}
+          onBack={() => setShowBudgetSettings(false)}
+        />
+      </div>
+    )
   }
 
+  // ── Goals (full-screen overlay) ───────────────────────────────
+  if (showGoals) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <GoalsScreen
+          goals={goals}
+          onCreateGoal={handleCreateGoal}
+          onUpdateGoal={handleUpdateGoal}
+          onContributeToGoal={handleContributeToGoal}
+          onDeleteGoal={handleDeleteGoal}
+          onBack={() => setShowGoals(false)}
+        />
+      </div>
+    )
+  }
+
+  // ── Main App Shell ─────────────────────────────────────────────
   return (
     <>
-      {showLimits ? (
-        <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-          <LimitsView
-            budgets={budgets}
-            goals={goals}
-            onBack={() => setShowLimits(false)}
-            onUpdateBudget={handleUpdateBudget}
-            onCreateGoal={handleCreateGoal}
-            onUpdateGoal={handleUpdateGoal}
-            onContributeToGoal={handleContributeToGoal}
-            onDeleteGoal={handleDeleteGoal}
-          />
-        </div>
-      ) : (
-        <AppShell
-          activeNav={activeNav}
-          onNavChange={setActiveNav}
-          onOpenSettings={() => setActiveNav('settings')}
-          onOpenProfile={() => setShowProfile(true)}
-          avatarUrl={undefined}
-          avatarInitial={user?.email?.charAt(0)}
-          meshVariant={activeNav === 'home' ? 'home' : 'home'}
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeNav}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
-            >
-              {activeNav === 'home' && (
-                <TodayView
-                  transactions={transactions}
-                  budgets={budgets}
-                  isLoading={dataLoading}
-                  onLogExpense={cat => handleOpenAddSheet(cat, 'expense')}
-                  onLogIncome={() => handleOpenAddSheet(undefined, 'income')}
-                  onRepeatLog={handleRepeatLog}
-                  onOpenLimits={() => setShowLimits(true)}
-                  onViewHistory={() => setActiveNav('history')}
-                  onEditTransaction={handleOpenEditSheet}
-                />
-              )}
-              {activeNav === 'history' && (
-                <HistoryScreen
-                  transactions={transactions}
-                  isLoading={dataLoading}
-                  onEditTransaction={handleOpenEditSheet}
-                  onDeleteTransaction={handleDeleteTransaction}
-                  onLogExpense={() => handleOpenAddSheet(undefined, 'expense')}
-                />
-              )}
-              {activeNav === 'settings' && (
-                <SettingsScreen
-                  budgets={budgets}
-                  goals={goals}
-                  userEmail={user?.email}
-                  onOpenBudgetSettings={() => setShowLimits(true)}
-                  onOpenGoals={() => setShowLimits(true)}
-                  onOpenLearn={() => setActiveNav('home')}
-                  onSignOut={handleSignOut}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </AppShell>
-      )}
+      <AppShell
+        activeNav={activeNav}
+        onNavChange={setActiveNav}
+        onOpenSettings={() => setActiveNav('settings')}
+        avatarUrl={undefined}
+        avatarInitial={user?.email?.charAt(0)}
+        meshVariant="home"
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeNav}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+          >
+            {activeNav === 'home' && (
+              <HomeScreen
+                allowance={allowance}
+                transactions={transactions}
+                budgets={budgets}
+                goals={goals}
+                totalSetAside={totalSetAside}
+                savingsRate={savingsRate}
+                userName={user?.email?.split('@')[0]}
+                isLoading={dataLoading}
+                onHeroTapDetails={() => setActiveNav('history')}
+                onLogExpense={handleOpenExpenseSheet}
+                onLogIncome={() => setIncomeSheetOpen(true)}
+                onRepeatLog={handleRepeatLog}
+                onViewTransaction={(_tx: Transaction) => setActiveNav('history')}
+                onViewAllHistory={() => setActiveNav('history')}
+                onDeleteTransaction={handleDeleteTransaction}
+                onRefresh={refresh}
+                celebrationEvent={celebrationEvent}
+                onCelebrationDismiss={() => setCelebrationEvent(null)}
+              />
+            )}
+            {activeNav === 'history' && (
+              <HistoryScreen
+                transactions={transactions}
+                isLoading={dataLoading}
+                onEditTransaction={(_tx: Transaction) => {}}
+                onDeleteTransaction={handleDeleteTransaction}
+                onLogExpense={() => handleOpenExpenseSheet()}
+              />
+            )}
+            {activeNav === 'learn' && (
+              <LessonsScreen
+                lessonProgress={lessonProgress}
+                onCompleteLesson={completeLesson}
+              />
+            )}
+            {activeNav === 'settings' && (
+              <SettingsScreen
+                budgets={budgets}
+                goals={goals}
+                totalSetAside={totalSetAside}
+                savingsRate={savingsRate}
+                userEmail={user?.email}
+                onOpenBudgetSettings={() => setShowBudgetSettings(true)}
+                onOpenGoals={() => setShowGoals(true)}
+                onOpenLearn={() => setActiveNav('learn')}
+                onOpenProfile={handleOpenProfile}
+                onSignOut={handleSignOut}
+                onResetOnboarding={handleResetOnboarding}
+                onExportData={handleExportData}
+                onDeleteAccount={handleDeleteAccount}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </AppShell>
 
-      <TransactionSheet
-        isOpen={showTransactionSheet}
-        onClose={handleCloseSheet}
-        onSubmit={handleSheetSubmit}
-        onRepeatLog={handleRepeatLog}
-        prefilledCategory={prefilledCategory}
-        prefilledType={prefilledType}
-        prefilledAmount={prefilledAmount}
-        prefilledNote={prefilledNote}
-        budgetRemaining={getBudgetRemaining(prefilledCategory)}
-        editTransaction={editingTransaction}
+      {/* ── Expense Sheet ──────────────────────────────────────── */}
+      <ExpenseSheet
+        isOpen={expenseSheetOpen}
+        onClose={() => setExpenseSheetOpen(false)}
+        onSubmit={handleExpenseSubmit}
+        onUndo={lastLoggedId ? handleExpenseUndo : undefined}
+        defaultCategory={defaultExpenseCategory}
         transactions={transactions}
       />
 
-      <PaycheckSheet
-        isOpen={paycheckAmount !== null}
-        amount={paycheckAmount ?? 0}
-        goals={goals}
-        onContribute={(goalId, amount) => handleContributeToGoal(goalId, amount, true)}
-        onClose={() => setPaycheckAmount(null)}
+      {/* ── Income Sheet ───────────────────────────────────────── */}
+      <IncomeSheet
+        isOpen={incomeSheetOpen}
+        onClose={() => setIncomeSheetOpen(false)}
+        onSubmit={handleIncomeSubmit}
+        onShowPaycheck={handleShowPaycheck}
       />
 
+      {/* ── Paycheck Sheet ─────────────────────────────────────── */}
+      <PaycheckSheet
+        isOpen={paycheckSheetOpen}
+        amount={paycheckAmount}
+        goals={goals}
+        onContribute={handleContributeToGoal}
+        onAllocate={handleAllocateIncome}
+        onClose={() => setPaycheckSheetOpen(false)}
+      />
+
+      {/* ── Profile Sheet ──────────────────────────────────────── */}
       <ProfileSheet
-        isOpen={showProfile}
-        onClose={() => setShowProfile(false)}
+        isOpen={profileSheetOpen}
+        onClose={() => setProfileSheetOpen(false)}
         userEmail={user?.email}
+        displayName={user?.displayName}
+        avatarUrl={user?.avatarUrl}
+        userId={user?.id}
         onSignOut={handleSignOut}
+        onProfileUpdate={handleProfileUpdate}
       />
 
       <Toast />

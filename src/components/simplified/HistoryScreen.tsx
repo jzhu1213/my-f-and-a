@@ -55,7 +55,7 @@ export function HistoryScreen({
         type="button"
         className="history-screen__fab"
         onClick={onLogExpense}
-        whileTap={{ scale: 0.9 }}
+        whileTap={{ scale: 0.96 }}
         transition={springs.snappy}
         aria-label="Log new expense"
       >

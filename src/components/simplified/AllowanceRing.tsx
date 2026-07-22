@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { timings } from "@/lib/animations"
 import type { AllowanceStatus } from "@/types/folio"
 
 interface AllowanceRingProps {
@@ -39,7 +40,7 @@ function getStatusStrokeColor(status: AllowanceStatus): string {
  * Uses framer-motion's motion.circle for GPU-accelerated stroke-dashoffset
  * animation, ensuring smooth 60fps transitions via CSS transforms.
  *
- * Validates: Requirements 2.2, 13.5
+ * Validates: Requirements 2.2, 13.5, 15.2
  */
 export function AllowanceRing({
   progress,
@@ -59,10 +60,17 @@ export function AllowanceRing({
 
   const strokeColor = getStatusStrokeColor(status)
 
+  const percentUsed = Math.round(clampedProgress * 100)
+
   return (
     <div
       className="relative inline-flex items-center justify-center"
       style={{ width: size, height: size }}
+      role="progressbar"
+      aria-valuenow={percentUsed}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={`Budget usage: ${percentUsed}% spent today`}
     >
       <svg
         width={size}
@@ -97,10 +105,7 @@ export function AllowanceRing({
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
-          transition={{
-            duration: 0.8,
-            ease: "easeOut",
-          }}
+          transition={timings.slow}
         />
       </svg>
 

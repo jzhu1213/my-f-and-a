@@ -1,8 +1,11 @@
 "use client"
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { TransactionList } from './TransactionList'
 import type { Transaction } from '@/types'
 import { shiftMonth, toMonthString } from '@/lib/budgetUtils'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { springs } from '@/lib/animations'
 
 interface HistoryViewProps {
   transactions: Transaction[]
@@ -22,43 +25,117 @@ export function HistoryView({
   const monthTxs       = transactions.filter(t => t.date.startsWith(selectedMonth))
 
   return (
-    <div className="pb-24">
-      <div className="px-6 pt-12 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
-        <p className="label mb-6">history</p>
-
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setSelectedMonth(m => shiftMonth(m, -1))}
-            style={{ color: 'var(--muted)', padding: '4px 6px' }}
-            aria-label="Previous month"
+    <div className="pb-24" style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 560,
+          padding: "0 20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 24,
+          paddingTop: 16,
+          paddingBottom: 120, // room for dock
+        }}
+      >
+        {/* Month selector card */}
+        <GlassCard elevation="low" style={{ padding: "20px", borderRadius: 14 }}>
+          <h2
+            style={{
+              fontSize: 12,
+              fontWeight: 500,
+              color: "var(--sub)",
+              fontFamily: "Inter, sans-serif",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 16,
+            }}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <p style={{ fontSize: '15px', color: 'var(--text)' }}>{monthLabel}</p>
-          <button
-            onClick={() => setSelectedMonth(m => shiftMonth(m, 1))}
-            disabled={isCurrentMonth}
-            style={{ color: isCurrentMonth ? 'var(--border)' : 'var(--muted)', padding: '4px 6px' }}
-            aria-label="Next month"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      </div>
+            History
+          </h2>
 
-      <div className="px-6 pt-6">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div
-              className="w-6 h-6 animate-spin"
-              style={{ border: '1px solid var(--line)', borderTopColor: 'var(--sub)', borderRadius: '50%' }}
-            />
-            <p className="label">loading</p>
+          <div className="flex items-center justify-between">
+            <motion.button
+              type="button"
+              onClick={() => setSelectedMonth(m => shiftMonth(m, -1))}
+              whileTap={{ scale: 0.9 }}
+              transition={springs.snappy}
+              style={{
+                color: 'var(--sub)',
+                padding: '8px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                borderRadius: 8,
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+              aria-label="Previous month"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </motion.button>
+
+            <p
+              style={{
+                fontSize: '16px',
+                fontWeight: 500,
+                color: 'var(--text)',
+                fontFamily: 'Inter, sans-serif',
+              }}
+            >
+              {monthLabel}
+            </p>
+
+            <motion.button
+              type="button"
+              onClick={() => setSelectedMonth(m => shiftMonth(m, 1))}
+              disabled={isCurrentMonth}
+              whileTap={{ scale: isCurrentMonth ? 1 : 0.9 }}
+              transition={springs.snappy}
+              style={{
+                color: isCurrentMonth ? 'var(--border)' : 'var(--sub)',
+                padding: '8px',
+                background: isCurrentMonth ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.04)',
+                borderRadius: 8,
+                border: `1px solid ${isCurrentMonth ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.08)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: isCurrentMonth ? 'not-allowed' : 'pointer',
+                opacity: isCurrentMonth ? 0.4 : 1,
+              }}
+              aria-label="Next month"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </motion.button>
           </div>
+        </GlassCard>
+
+        {/* Transaction list */}
+        {isLoading ? (
+          <GlassCard elevation="low" style={{ padding: "32px 20px", borderRadius: 14 }}>
+            <div className="flex flex-col items-center justify-center gap-4">
+              <div
+                className="w-6 h-6 animate-spin"
+                style={{ border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent)', borderRadius: '50%' }}
+              />
+              <p
+                style={{
+                  fontSize: 13,
+                  color: 'var(--sub)',
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 500,
+                }}
+              >
+                Loading...
+              </p>
+            </div>
+          </GlassCard>
         ) : (
           <TransactionList
             transactions={monthTxs}

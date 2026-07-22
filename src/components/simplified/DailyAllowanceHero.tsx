@@ -161,7 +161,7 @@ function AnimatedAmount({
 }
 
 /** Number of twinkle particles arranged around the ring when healthy. */
-const SHIMMER_PARTICLE_COUNT = 8
+const SHIMMER_PARTICLE_COUNT = 4
 
 /**
  * ShimmerParticles — a barely-visible ring of twinkling dots positioned
@@ -344,6 +344,8 @@ export function DailyAllowanceHero({
         onClick={handleTap}
         aria-label={`Daily allowance: ${formatCurrency(allowanceLeft)}. ${message}. Tap for details.`}
         aria-expanded={showBreakdown}
+        aria-live="polite"
+        aria-atomic="true"
         initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 12 }}
         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
         transition={prefersReducedMotion ? timings.fast : timings.slow}
@@ -389,10 +391,14 @@ export function DailyAllowanceHero({
         {/* Encouraging message */}
         <motion.p
           className="text-center text-sm"
-          style={{ color: "var(--sub)", maxWidth: 280 }}
+          style={{
+            color: status === "over" ? "var(--error)" : "var(--sub)",
+            maxWidth: 280,
+            fontWeight: status === "over" ? 500 : undefined,
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.3 }}
+          transition={timings.normal}
         >
           {message}
         </motion.p>

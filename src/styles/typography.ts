@@ -13,7 +13,7 @@
  * directly into inline styles or CSS-in-JS alongside the existing Tailwind
  * usage across the app.
  *
- * Requirements: 8.2 (Plus Jakarta Sans font family), 8.4 (friendlier visual hierarchy),
+ * Requirements: 8.2 (Inter font family), 8.4 (friendlier visual hierarchy),
  * 15.5 (scalable text via rem-based sizing).
  */
 
@@ -25,10 +25,10 @@ import type { CSSProperties } from 'react'
 
 /**
  * Body/display font stack. Matches `body` in `globals.css` (Requirement 8.2).
- * Plus Jakarta Sans — geometric, modern, clean.
+ * Inter — highly legible, designed for UI, friendly and modern.
  */
 export const FONT_FAMILY =
-  "'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" as const
+  "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" as const
 
 /**
  * Monospace font for amounts/numbers — crisp, wide, technical feel.
@@ -55,7 +55,7 @@ export function pxToRem(px: number): string {
 // ============================================================================
 
 /**
- * Named font-weight constants for Plus Jakarta Sans's variable weight axis.
+ * Named font-weight constants for Inter's variable weight axis.
  * Exposed so animated numbers can interpolate between concrete weight values.
  */
 export const fontWeights = {

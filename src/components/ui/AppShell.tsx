@@ -36,8 +36,8 @@ import { motion } from 'framer-motion'
 import { GradientMesh, type GradientMeshVariant } from './GradientMesh'
 import { useReducedMotion, springs, timings } from '@/lib/animations'
 
-/** The three primary destinations reachable from the dock. */
-export type AppNavKey = 'home' | 'history' | 'settings'
+/** The four primary destinations reachable from the dock. */
+export type AppNavKey = 'home' | 'history' | 'learn' | 'settings'
 
 export interface AppShellProps {
   /** The current screen content rendered in the scrollable area. */
@@ -51,8 +51,6 @@ export interface AppShellProps {
    * `onNavChange('settings')` when omitted.
    */
   onOpenSettings?: () => void
-  /** Optional handler for the top-bar avatar (open profile). */
-  onOpenProfile?: () => void
   /** Optional avatar image URL shown in the top bar. */
   avatarUrl?: string
   /**
@@ -105,6 +103,17 @@ function SettingsIcon() {
   )
 }
 
+function LearnIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+      <path d="M8 7h8" />
+      <path d="M8 11h6" />
+    </svg>
+  )
+}
+
 function PersonIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -119,7 +128,6 @@ export function AppShell({
   activeNav,
   onNavChange,
   onOpenSettings,
-  onOpenProfile,
   avatarUrl,
   avatarInitial,
   meshVariant = 'home',
@@ -131,6 +139,7 @@ export function AppShell({
   const navItems: NavItem[] = [
     { key: 'home', label: 'Home', icon: <HomeIcon /> },
     { key: 'history', label: 'History', icon: <HistoryIcon /> },
+    { key: 'learn', label: 'Learn', icon: <LearnIcon /> },
     { key: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ]
 
@@ -144,12 +153,7 @@ export function AppShell({
       {/* ── Floating glass top bar ─────────────────────────────── */}
       {!hideTopBar && (
         <header className="app-topbar">
-          <button
-            type="button"
-            className="app-topbar__avatar"
-            onClick={onOpenProfile}
-            aria-label="Open your profile"
-          >
+          <div className="app-topbar__avatar">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="" className="app-topbar__avatar-img" />
@@ -160,7 +164,7 @@ export function AppShell({
             ) : (
               <PersonIcon />
             )}
-          </button>
+          </div>
 
           <button
             type="button"
@@ -182,7 +186,27 @@ export function AppShell({
 
       {/* ── Floating dock navigation ───────────────────────────── */}
       <nav className="app-dock" aria-label="Primary">
-        <ul className="app-dock__list">
+        <ul
+          className="app-dock__list"
+          onKeyDown={(e) => {
+            const keys = navItems.map(n => n.key)
+            const currentIndex = keys.indexOf(activeNav)
+            let nextIndex = -1
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+              e.preventDefault()
+              nextIndex = currentIndex < keys.length - 1 ? currentIndex + 1 : 0
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+              e.preventDefault()
+              nextIndex = currentIndex > 0 ? currentIndex - 1 : keys.length - 1
+            }
+            if (nextIndex >= 0) {
+              onNavChange(keys[nextIndex])
+              const container = e.currentTarget
+              const buttons = container.querySelectorAll<HTMLButtonElement>('button')
+              buttons[nextIndex]?.focus()
+            }
+          }}
+        >
           {navItems.map(({ key, label, icon }) => {
             const isActive = activeNav === key
             return (
@@ -193,6 +217,7 @@ export function AppShell({
                   onClick={() => onNavChange(key)}
                   aria-label={label}
                   aria-current={isActive ? 'page' : undefined}
+                  tabIndex={isActive ? 0 : -1}
                   animate={
                     prefersReducedMotion
                       ? undefined

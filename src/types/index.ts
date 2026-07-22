@@ -10,6 +10,8 @@ export interface UserProfile {
   priority: UserPriority
   hasCompletedOnboarding: boolean
   createdAt: string
+  displayName?: string
+  avatarUrl?: string
 }
 
 // Transaction Types
@@ -59,6 +61,7 @@ export interface Budget {
   monthlyLimit: number
   spent: number
   month: string // YYYY-MM
+  isFixed?: boolean // marks this budget category as a fixed/recurring obligation
 }
 
 export const BUDGET_CATEGORIES: { category: TransactionCategory; emoji: string; label: string }[] = [
@@ -93,6 +96,26 @@ export interface Goal {
 }
 
 // Finance Lesson Types
+
+// Topic grouping so lessons can be organized by subject area.
+export type LessonTopic =
+  | 'budgeting'
+  | 'saving'      // savings / Roth / IRA accounts
+  | 'credit'      // credit cards
+  | 'investing'   // investing fundamentals
+  | 'stocks'      // stocks specifically
+  | 'loans'       // loans / bonds
+
+// Friendly metadata for each topic, used for grouping and display.
+export const LESSON_TOPICS: { topic: LessonTopic; emoji: string; label: string }[] = [
+  { topic: 'budgeting', emoji: '📊', label: 'Budgeting' },
+  { topic: 'saving', emoji: '🏦', label: 'Saving' },
+  { topic: 'credit', emoji: '💳', label: 'Credit' },
+  { topic: 'investing', emoji: '📈', label: 'Investing' },
+  { topic: 'stocks', emoji: '📉', label: 'Stocks' },
+  { topic: 'loans', emoji: '🧾', label: 'Loans & Bonds' },
+]
+
 export interface Lesson {
   id: string
   title: string
@@ -100,6 +123,7 @@ export interface Lesson {
   content: string // 3 paragraphs max
   example: string // College student example
   quizQuestions: QuizQuestion[]
+  topic: LessonTopic // Topic grouping for organizing lessons
   actionLink?: string // Links to Accounting tab feature
   order: number
 }

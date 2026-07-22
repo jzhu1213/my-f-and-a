@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
-import { springs, useReducedMotion } from '@/lib/animations'
+import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
 import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
@@ -62,6 +62,7 @@ export function ExpenseSheet({
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<TransactionCategory | null>(null)
   const [note, setNote] = useState('')
+  const [showNoteField, setShowNoteField] = useState(false)
 
   // Compute smart suggestions when category is selected
   const suggestions: SmartSuggestion[] = useMemo(() => {
@@ -81,6 +82,7 @@ export function ExpenseSheet({
       setAmount('')
       setCategory(effectiveDefault)
       setNote('')
+      setShowNoteField(false)
       // Auto-focus amount input
       setTimeout(() => amountRef.current?.focus(), 120)
     }
@@ -145,7 +147,11 @@ export function ExpenseSheet({
       .replace(/&[a-z]+;/gi, ' ')
       .slice(0, 60)
     setNote(sanitized)
-  }, [])
+    // Ensure note field stays visible once user starts typing
+    if (sanitized && !showNoteField) {
+      setShowNoteField(true)
+    }
+  }, [showNoteField])
 
   // ── Category button animation variants ──────────────────────────────────
   const cardTapVariants: Variants = prefersReducedMotion
@@ -160,19 +166,19 @@ export function ExpenseSheet({
   const sheetVariants = prefersReducedMotion
     ? {
         hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { duration: 0.15 } },
-        exit: { opacity: 0, transition: { duration: 0.1 } },
+        visible: { opacity: 1, transition: timings.fast },
+        exit: { opacity: 0, transition: timings.fast },
       }
     : {
         hidden: { y: '100%' },
         visible: { y: 0, transition: springs.gentle },
-        exit: { y: '100%', transition: { duration: 0.25, ease: [0.32, 0.72, 0, 1] as const } },
+        exit: { y: '100%', transition: timings.normal },
       }
 
   const backdropVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.2 } },
-    exit: { opacity: 0, transition: { duration: 0.15 } },
+    visible: { opacity: 1, transition: timings.fast },
+    exit: { opacity: 0, transition: timings.fast },
   }
 
   return (
@@ -244,8 +250,22 @@ export function ExpenseSheet({
                         <button
                           key={s.id}
                           type="button"
-                          onClick={() => setAmount(s.amount % 1 === 0 ? s.amount.toString() : s.amount.toFixed(2))}
-                          aria-label={s.label ? `${amountStr} for ${s.label}` : amountStr}
+                          onClick={() => {
+                            // One-tap log: immediately submit with suggested amount (Req 3.4)
+                            onSubmit({
+                              amount: s.amount,
+                              category,
+                              note: s.label || undefined,
+                            })
+                            const categoryLabel = CATEGORY_GRID.find(c => c.category === category)?.label ?? category
+                            showToast(
+                              `Logged ${amountStr} for ${categoryLabel} ✓`,
+                              'success',
+                              onUndo ? { label: 'Undo', onClick: onUndo } : undefined
+                            )
+                            onClose()
+                          }}
+                          aria-label={s.label ? `Log ${amountStr} for ${s.label}` : `Log ${amountStr}`}
                           style={{
                             display: 'flex',
                             flexDirection: 'column',
@@ -319,6 +339,12 @@ export function ExpenseSheet({
                     placeholder="0.00"
                     value={amount}
                     onChange={handleAmountChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && canSubmit) {
+                        e.preventDefault()
+                        handleSubmit()
+                      }
+                    }}
                     aria-label="Expense amount"
                     style={{
                       background: 'transparent',
@@ -356,9 +382,38 @@ export function ExpenseSheet({
                   gap: 10,
                   marginBottom: 24,
                 }}
+                role="group"
+                aria-label="Expense categories"
+                onKeyDown={(e) => {
+                  const currentIndex = category
+                    ? CATEGORY_GRID.findIndex(c => c.category === category)
+                    : -1
+                  let nextIndex = -1
+                  if (e.key === "ArrowRight") {
+                    e.preventDefault()
+                    nextIndex = currentIndex < CATEGORY_GRID.length - 1 ? currentIndex + 1 : 0
+                  } else if (e.key === "ArrowLeft") {
+                    e.preventDefault()
+                    nextIndex = currentIndex > 0 ? currentIndex - 1 : CATEGORY_GRID.length - 1
+                  } else if (e.key === "ArrowDown") {
+                    e.preventDefault()
+                    nextIndex = currentIndex + 3 < CATEGORY_GRID.length ? currentIndex + 3 : currentIndex % 3
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault()
+                    nextIndex = currentIndex - 3 >= 0 ? currentIndex - 3 : CATEGORY_GRID.length - 3 + (currentIndex % 3)
+                  }
+                  if (nextIndex >= 0 && nextIndex < CATEGORY_GRID.length) {
+                    setCategory(CATEGORY_GRID[nextIndex].category)
+                    triggerHaptic('light')
+                    const container = e.currentTarget
+                    const buttons = container.querySelectorAll<HTMLButtonElement>('button')
+                    buttons[nextIndex]?.focus()
+                  }
+                }}
               >
-                {CATEGORY_GRID.map((cat) => {
+                {CATEGORY_GRID.map((cat, index) => {
                   const selected = category === cat.category
+                  const isRovingActive = selected || (category === null && index === 0)
 
                   // Selection lift: slight upward shift + scale
                   const selectionAnimate = prefersReducedMotion
@@ -372,6 +427,7 @@ export function ExpenseSheet({
                       onClick={() => { setCategory(cat.category); triggerHaptic('light') }}
                       aria-label={`Category: ${cat.label}`}
                       aria-pressed={selected}
+                      tabIndex={isRovingActive ? 0 : -1}
                       className="cat-pill"
                       variants={cardTapVariants}
                       initial={false}
@@ -428,84 +484,113 @@ export function ExpenseSheet({
                 })}
               </div>
 
-              {/* ── Note Input (optional) ───────────────────────────── */}
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    placeholder="Add a note (optional)"
-                    value={note}
-                    onChange={handleNoteChange}
-                    maxLength={60}
-                    aria-label="Expense note"
+              {/* ── Note Input (optional, hidden unless toggled) ───────────────────────────── */}
+              {!showNoteField && !note ? (
+                <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowNoteField(true)}
+                    aria-label="Add a note"
                     style={{
-                      width: '100%',
                       background: 'transparent',
-                      border: 'none',
-                      borderBottom: '1px solid var(--line)',
-                      outline: 'none',
-                      fontSize: 15,
+                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '10px 16px',
+                      fontSize: 13,
                       fontFamily: 'Inter, sans-serif',
-                      color: 'var(--text)',
-                      padding: '12px 0',
-                      caretColor: 'var(--text)',
-                    }}
-                  />
-                  {/* Character count indicator — shown when 50+ chars */}
-                  {note.length >= 50 && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        bottom: 14,
-                        fontSize: 11,
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 400,
-                        color: 'var(--muted)',
-                      }}
-                    >
-                      {note.length}/60
-                    </span>
-                  )}
-                </div>
-
-                {/* Note suggestion chips */}
-                {category && recentNotes.length > 0 && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 8,
-                      marginTop: 10,
+                      fontWeight: 400,
+                      color: 'var(--sub)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
                     }}
                   >
-                    {recentNotes.map((recentNote) => (
-                      <button
-                        key={recentNote}
-                        type="button"
-                        onClick={() => setNote(recentNote)}
-                        aria-label={`Use note: ${recentNote}`}
+                    <span style={{ fontSize: 16 }}>+</span> Add a note
+                  </button>
+                </div>
+              ) : (
+                <div style={{ marginBottom: 28 }}>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="What's this for?"
+                      value={note}
+                      onChange={handleNoteChange}
+                      maxLength={60}
+                      aria-label="Expense note"
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        borderBottom: '1px solid var(--line)',
+                        outline: 'none',
+                        fontSize: 15,
+                        fontFamily: 'Inter, sans-serif',
+                        color: 'var(--text)',
+                        padding: '12px 0',
+                        caretColor: 'var(--text)',
+                      }}
+                    />
+                    {/* Character count indicator — shown when 50+ chars */}
+                    {note.length >= 50 && (
+                      <span
                         style={{
-                          background: 'rgba(255, 255, 255, 0.04)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          borderRadius: 99,
-                          padding: '5px 12px',
-                          fontSize: 12,
+                          position: 'absolute',
+                          right: 0,
+                          bottom: 14,
+                          fontSize: 11,
                           fontFamily: 'Inter, sans-serif',
                           fontWeight: 400,
-                          color: 'var(--sub)',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
+                          color: 'var(--muted)',
                         }}
                       >
-                        {recentNote.length > 20
-                          ? recentNote.slice(0, 20) + '…'
-                          : recentNote}
-                      </button>
-                    ))}
+                        {note.length}/60
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  {/* Note suggestion chips */}
+                  {category && recentNotes.length > 0 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                        marginTop: 10,
+                      }}
+                    >
+                      {recentNotes.map((recentNote) => (
+                        <button
+                          key={recentNote}
+                          type="button"
+                          onClick={() => {
+                            setNote(recentNote)
+                            setShowNoteField(true)
+                          }}
+                          aria-label={`Use note: ${recentNote}`}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: 99,
+                            padding: '5px 12px',
+                            fontSize: 12,
+                            fontFamily: 'Inter, sans-serif',
+                            fontWeight: 400,
+                            color: 'var(--sub)',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {recentNote.length > 20
+                            ? recentNote.slice(0, 20) + '…'
+                            : recentNote}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ── Log Button ──────────────────────────────────────── */}
               <motion.button

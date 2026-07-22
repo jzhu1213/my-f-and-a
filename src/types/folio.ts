@@ -23,6 +23,34 @@ export interface DailyAllowance {
   message: string
   /** Whether to show celebration animation */
   showCelebration: boolean
+  /** Whether the allowance is an estimate based on income (no budget limits configured) */
+  isEstimated?: boolean
+  /** Source of income used for the discretionary pool calculation */
+  incomeSource?: 'budget' | 'transactions' | 'estimate'
+  /** Total amount reserved for upcoming unpaid bills this month */
+  reservedForBills?: number
+  /** Number of upcoming bills still due this month */
+  upcomingBillCount?: number
+  /** Month-boundary carryover info (only present when carryoverEnabled is true and it's the 1st) */
+  monthBoundaryCarryover?: MonthBoundaryCarryover
+}
+
+/**
+ * Information about leftover savings at a month boundary.
+ * When a user underspends their daily budget consistently, the raw rollover can exceed
+ * the ±2-day cap. The excess is the "carryover" — money that could be routed to savings.
+ *
+ * Requirements: 1.2, new
+ */
+export interface MonthBoundaryCarryover {
+  /** Amount available to route to savings (excess beyond the ±2-day rollover cap) */
+  amount: number
+  /** The raw uncapped rollover from the previous month */
+  rawRollover: number
+  /** The capped rollover that was actually applied */
+  cappedRollover: number
+  /** Whether carryover is enabled */
+  enabled: boolean
 }
 
 /**
@@ -219,6 +247,47 @@ export interface ThemeSpacing {
 }
 
 // ============================================================================
+// Income Smoothing Types (Requirement 1.1)
+// ============================================================================
+
+/**
+ * Configuration for income smoothing strategy.
+ * Gig workers with variable income benefit from trailing_average to stabilize
+ * the daily budget calculation across irregular pay periods.
+ */
+export interface IncomeSmoothing {
+  /** Strategy: 'current_month' uses only this month, 'trailing_average' smooths over recent months */
+  strategy: 'current_month' | 'trailing_average'
+  /** Number of months to average for trailing_average (default: 3) */
+  windowMonths?: number
+}
+
+// ============================================================================
+// Income Allocation Types (Requirement 3.1)
+// ============================================================================
+
+/**
+ * Income allocation breakdown across four buckets.
+ * Amounts represent dollar values summing to the total income logged.
+ */
+export interface IncomeAllocation {
+  spend: number
+  save: number
+  invest: number
+  setAside: number
+}
+
+/**
+ * Preset for quickly splitting income into buckets.
+ * The split array represents percentages for [spend, save, invest, setAside].
+ */
+export interface AllocationPreset {
+  label: string
+  emoji: string
+  split: [number, number, number, number]
+}
+
+// ============================================================================
 // Quick Transaction Types (Requirement 7.3)
 // ============================================================================
 
@@ -274,4 +343,33 @@ export interface OnboardingOption {
   label: string
   emoji: string
   description: string
+}
+
+// ============================================================================
+// Savings/Investment Account Types (Requirement 13.7)
+// ============================================================================
+
+/** Type of savings/investment account */
+export type SavingsAccountType = 'hysa' | 'roth_ira' | '401k' | 'brokerage' | 'savings' | 'other'
+
+/** Metadata for each account type */
+export const SAVINGS_ACCOUNT_TYPES: { type: SavingsAccountType; label: string; emoji: string; defaultReturn: number }[] = [
+  { type: 'hysa', label: 'High-Yield Savings', emoji: '🏦', defaultReturn: 4.5 },
+  { type: 'roth_ira', label: 'Roth IRA', emoji: '🌱', defaultReturn: 7 },
+  { type: '401k', label: '401(k)', emoji: '🏢', defaultReturn: 7 },
+  { type: 'brokerage', label: 'Brokerage', emoji: '📊', defaultReturn: 8 },
+  { type: 'savings', label: 'Savings Account', emoji: '💰', defaultReturn: 0.5 },
+  { type: 'other', label: 'Other', emoji: '📁', defaultReturn: 0 },
+]
+
+/** A tracked savings/investment account */
+export interface SavingsAccount {
+  id: string
+  userId: string
+  type: SavingsAccountType
+  name: string
+  balance: number
+  monthlyContribution: number
+  expectedAnnualReturn: number
+  createdAt: string
 }
