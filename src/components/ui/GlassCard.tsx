@@ -2,7 +2,7 @@
  * GlassCard
  *
  * A reusable frosted-glass surface for the premium Folio UI. It renders a
- * translucent, blurred panel (`backdrop-filter: blur(8px) saturate(160%)`)
+ * translucent, blurred panel (`backdrop-filter: blur(6px) saturate(140%)`)
  * over the animated mesh background, with a 0.5px gradient rim (cyan-tinted
  * glow at top, fading to near-transparent) and a drop-shadow.
  *

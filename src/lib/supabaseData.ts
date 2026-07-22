@@ -9,6 +9,8 @@ import type {
   TransactionType,
   AccountType,
 } from '@/types'
+import type { SavingsAccount, SavingsAccountType } from '@/types/folio'
+import type { IncomeAllocation } from '@/types/folio'
 
 // ============================================
 // DATABASE TYPES (matching Supabase schema)
@@ -66,6 +68,28 @@ interface DbLessonProgress {
   completed: boolean
   quiz_score?: number
   completed_at?: string
+}
+
+interface DbSavingsAccount {
+  id: string
+  user_id: string
+  type: string
+  name: string
+  balance: number
+  monthly_contribution: number
+  expected_annual_return: number
+  created_at: string
+}
+
+interface DbAllocation {
+  id: string
+  user_id: string
+  date: string
+  spend: number
+  save: number
+  invest: number
+  set_aside: number
+  created_at: string
 }
 
 // ============================================
@@ -133,6 +157,19 @@ function dbProgressToApp(db: DbLessonProgress): UserLessonProgress {
     completed: db.completed,
     quizScore: db.quiz_score,
     completedAt: db.completed_at,
+  }
+}
+
+function dbSavingsAccountToApp(db: DbSavingsAccount): SavingsAccount {
+  return {
+    id: db.id,
+    userId: db.user_id,
+    type: db.type as SavingsAccountType,
+    name: db.name,
+    balance: db.balance,
+    monthlyContribution: db.monthly_contribution,
+    expectedAnnualReturn: db.expected_annual_return,
+    createdAt: db.created_at,
   }
 }
 
@@ -714,3 +751,227 @@ export async function updateProfilePreferences(
   return { ...appProfile, email: user?.email ?? '' }
 }
 
+
+// ============================================
+// ALLOCATION FUNCTIONS
+// ============================================
+
+/** App-level allocation record */
+export interface AppAllocation {
+  id: string
+  userId: string
+  date: string
+  spend: number
+  save: number
+  invest: number
+  setAside: number
+  createdAt: string
+}
+
+function dbAllocationToApp(db: DbAllocation): AppAllocation {
+  return {
+    id: db.id,
+    userId: db.user_id,
+    date: db.date,
+    spend: db.spend,
+    save: db.save,
+    invest: db.invest,
+    setAside: db.set_aside,
+    createdAt: db.created_at,
+  }
+}
+
+/**
+ * Insert an income allocation record.
+ */
+export async function insertAllocation(
+  userId: string,
+  allocation: IncomeAllocation,
+  date?: string
+): Promise<AppAllocation | null> {
+  const { data, error } = await supabase
+    .from('allocations')
+    .insert({
+      user_id: userId,
+      date: date ?? new Date().toISOString().slice(0, 10),
+      spend: allocation.spend,
+      save: allocation.save,
+      invest: allocation.invest,
+      set_aside: allocation.setAside,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error inserting allocation:', error)
+    return null
+  }
+
+  return dbAllocationToApp(data)
+}
+
+/**
+ * Get all allocations for a user within a given month (YYYY-MM format).
+ */
+export async function getMonthAllocations(
+  userId: string,
+  month: string
+): Promise<AppAllocation[]> {
+  const [year, monthNum] = month.split('-').map(Number)
+  const nextMonth = monthNum === 12
+    ? `${year + 1}-01`
+    : `${year}-${String(monthNum + 1).padStart(2, '0')}`
+
+  const { data, error } = await supabase
+    .from('allocations')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', `${month}-01`)
+    .lt('date', `${nextMonth}-01`)
+    .order('date', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching month allocations:', error)
+    return []
+  }
+
+  return (data || []).map(dbAllocationToApp)
+}
+
+// ============================================
+// SAVINGS ACCOUNT FUNCTIONS
+// ============================================
+
+export async function getSavingsAccounts(userId: string): Promise<SavingsAccount[]> {
+  const { data, error } = await supabase
+    .from('savings_accounts')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching savings accounts:', error)
+    return []
+  }
+
+  return (data || []).map(dbSavingsAccountToApp)
+}
+
+export async function createSavingsAccount(
+  userId: string,
+  account: {
+    type: SavingsAccountType
+    name: string
+    balance: number
+    monthlyContribution: number
+    expectedAnnualReturn: number
+  }
+): Promise<SavingsAccount | null> {
+  const { data, error } = await supabase
+    .from('savings_accounts')
+    .insert({
+      user_id: userId,
+      type: account.type,
+      name: account.name,
+      balance: account.balance,
+      monthly_contribution: account.monthlyContribution,
+      expected_annual_return: account.expectedAnnualReturn,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating savings account:', error)
+    return null
+  }
+
+  return dbSavingsAccountToApp(data)
+}
+
+export async function updateSavingsAccount(
+  userId: string,
+  id: string,
+  updates: {
+    type?: SavingsAccountType
+    name?: string
+    balance?: number
+    monthlyContribution?: number
+    expectedAnnualReturn?: number
+  }
+): Promise<SavingsAccount | null> {
+  const dbUpdates: Record<string, unknown> = {}
+  if (updates.type !== undefined) dbUpdates.type = updates.type
+  if (updates.name !== undefined) dbUpdates.name = updates.name
+  if (updates.balance !== undefined) dbUpdates.balance = updates.balance
+  if (updates.monthlyContribution !== undefined) dbUpdates.monthly_contribution = updates.monthlyContribution
+  if (updates.expectedAnnualReturn !== undefined) dbUpdates.expected_annual_return = updates.expectedAnnualReturn
+
+  const { data, error } = await supabase
+    .from('savings_accounts')
+    .update(dbUpdates)
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating savings account:', error)
+    return null
+  }
+
+  return dbSavingsAccountToApp(data)
+}
+
+export async function deleteSavingsAccount(
+  userId: string,
+  id: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('savings_accounts')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error deleting savings account:', error)
+    return false
+  }
+
+  return true
+}
+
+export async function updateSavingsAccountBalance(
+  userId: string,
+  id: string,
+  amount: number
+): Promise<SavingsAccount | null> {
+  // First fetch the current balance
+  const { data: current, error: fetchError } = await supabase
+    .from('savings_accounts')
+    .select('balance')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single()
+
+  if (fetchError || !current) {
+    console.error('Error fetching savings account balance:', fetchError)
+    return null
+  }
+
+  const newBalance = current.balance + amount
+
+  const { data, error } = await supabase
+    .from('savings_accounts')
+    .update({ balance: newBalance })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating savings account balance:', error)
+    return null
+  }
+
+  return dbSavingsAccountToApp(data)
+}

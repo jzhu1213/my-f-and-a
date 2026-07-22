@@ -74,6 +74,10 @@ export interface HomeScreenProps {
   budgets: Budget[]
   /** User savings goals */
   goals: Goal[]
+  /** Total set aside (reserved) this month */
+  totalSetAside?: number
+  /** Savings rate percentage (0-100) */
+  savingsRate?: number
   /** User display name (for greeting) */
   userName?: string
   /** Whether data is still loading */
@@ -126,6 +130,8 @@ export function HomeScreen({
   transactions,
   budgets,
   goals,
+  totalSetAside,
+  savingsRate,
   userName,
   isLoading,
   onHeroTapDetails,
@@ -425,6 +431,44 @@ export function HomeScreen({
             </p>
           )}
         </section>
+
+        {/* ── 1.25. Set Aside Stat ────────────────────────────────── */}
+        {(totalSetAside ?? 0) > 0 && (
+          <section aria-label="Set aside this month">
+            <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 20 }} aria-hidden="true">🏦</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY, marginBottom: 2 }}>
+                    Set aside this month
+                  </p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", fontFamily: FONT_FAMILY, fontVariantNumeric: "tabular-nums" }}>
+                    ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          </section>
+        )}
+
+        {/* ── 1.3. Savings Rate Stat ──────────────────────────────── */}
+        {(savingsRate ?? 0) > 0 && (
+          <section aria-label="Savings rate">
+            <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 20 }} aria-hidden="true">💪</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY, marginBottom: 2 }}>
+                    Savings rate
+                  </p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", fontFamily: FONT_FAMILY, fontVariantNumeric: "tabular-nums" }}>
+                    {savingsRate}%
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          </section>
+        )}
 
         {/* ── 1.5. Contextual Tip ─────────────────────────────────── */}
         {/* TODO(task-38): Wire onLearnMore to Lessons tab once it exists; currently a no-op. */}

@@ -161,7 +161,7 @@ function AnimatedAmount({
 }
 
 /** Number of twinkle particles arranged around the ring when healthy. */
-const SHIMMER_PARTICLE_COUNT = 8
+const SHIMMER_PARTICLE_COUNT = 4
 
 /**
  * ShimmerParticles — a barely-visible ring of twinkling dots positioned

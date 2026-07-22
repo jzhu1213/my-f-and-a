@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import type { Transaction, Budget, Goal, TransactionCategory, TransactionType, UserLessonProgress } from '@/types'
-import type { DailyAllowance } from '@/types/folio'
+import type { DailyAllowance, SavingsAccount, SavingsAccountType } from '@/types/folio'
 import { 
   getTransactions, 
   getBudgets, 
@@ -16,9 +16,19 @@ import {
   updateGoal,
   updateGoalProgress,
   deleteGoal,
+  getMonthAllocations,
+  getSavingsAccounts,
+  createSavingsAccount as createSavingsAccountApi,
+  updateSavingsAccount as updateSavingsAccountApi,
+  deleteSavingsAccount as deleteSavingsAccountApi,
+  updateSavingsAccountBalance,
 } from '@/lib/supabaseData'
+import type { AppAllocation } from '@/lib/supabaseData'
+import { computeTotalSetAside, computeSavingsRate } from '@/lib/allocationUtils'
+import type { IncomeAllocation } from '@/types/folio'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
 import { computeCategoryBudgets } from '@/lib/budgetUtils'
+import { computeTotalSavingsBalance, computeMonthlyContributions } from '@/lib/savingsAccountUtils'
 import type { CategoryBudgetRow } from '@/lib/budgetUtils'
 
 /**
@@ -117,12 +127,20 @@ export interface UseHomeDataReturn {
   goals: Goal[]
   /** User lesson progress records */
   lessonProgress: UserLessonProgress[]
+  /** Tracked savings/investment accounts */
+  savingsAccounts: SavingsAccount[]
   
   // ── Computed Values (Memoized) ─────────────────────────────────
   /** Daily allowance calculation (Requirement 13.2) */
   allowance: DailyAllowance | null
   /** Category budget rows with weekly spending (Requirement 13.2) */
   categoryRows: CategoryBudgetRow[]
+  /** Total reserved (non-spendable) money set aside this month */
+  totalSetAside: number
+  /** Total balance across all savings/investment accounts */
+  totalSavingsBalance: number
+  /** Savings rate as a percentage (0-100) — percent of income saved */
+  savingsRate: number
   
   // ── Loading State ──────────────────────────────────────────────
   /** Whether initial data is still loading */
@@ -191,6 +209,34 @@ export interface UseHomeDataReturn {
   /** Complete a lesson (persist quiz score) */
   completeLesson: (lessonId: string, score: number) => Promise<void>
   
+  // Savings account mutations
+  /** Create a new savings/investment account */
+  createSavingsAccount: (data: {
+    type: SavingsAccountType
+    name: string
+    balance: number
+    monthlyContribution: number
+    expectedAnnualReturn: number
+  }) => Promise<SavingsAccount | null>
+  
+  /** Update an existing savings account */
+  updateSavingsAccount: (
+    id: string,
+    data: {
+      type?: SavingsAccountType
+      name?: string
+      balance?: number
+      monthlyContribution?: number
+      expectedAnnualReturn?: number
+    }
+  ) => Promise<SavingsAccount | null>
+  
+  /** Delete a savings account */
+  deleteSavingsAccount: (id: string) => Promise<boolean>
+  
+  /** Contribute to a savings account (add to balance) */
+  contributeToSavingsAccount: (id: string, amount: number) => Promise<SavingsAccount | null>
+  
   // Direct state setters (for advanced optimistic updates)
   /** Set transactions directly (for optimistic updates) */
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>
@@ -222,6 +268,8 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
   const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([])
+  const [allocations, setAllocations] = useState<AppAllocation[]>([])
+  const [savingsAccounts, setSavingsAccounts] = useState<SavingsAccount[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
   // ── Data Loading ───────────────────────────────────────────────
@@ -238,24 +286,31 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     try {
       setIsLoading(true)
       
+      const currentMonth = new Date().toISOString().slice(0, 7)
+      
       // Parallel data fetch for optimal performance (Requirement 13.1)
-      const [txData, budgetData, goalData, lessonData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData, allocationData, savingsData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
         getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
+        getMonthAllocations(userId, currentMonth).catch(() => [] as AppAllocation[]),
+        getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
       ])
       
       setTransactions(txData)
       setBudgets(budgetData)
       setGoals(goalData)
       setLessonProgress(lessonData)
+      setAllocations(allocationData)
+      setSavingsAccounts(savingsData)
     } catch (err) {
       console.error('Error loading home data:', err)
       // Set empty arrays on error to allow app to function
       setTransactions([])
       setBudgets([])
       setGoals([])
+      setAllocations([])
     } finally {
       setIsLoading(false)
     }
@@ -275,18 +330,24 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     if (!userId) return
     
     try {
+      const currentMonth = new Date().toISOString().slice(0, 7)
+      
       // Parallel refresh for optimal performance
-      const [txData, budgetData, goalData, lessonData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData, allocationData, savingsData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
         getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
+        getMonthAllocations(userId, currentMonth).catch(() => [] as AppAllocation[]),
+        getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
       ])
       
       setTransactions(txData)
       setBudgets(budgetData)
       setGoals(goalData)
       setLessonProgress(lessonData)
+      setAllocations(allocationData)
+      setSavingsAccounts(savingsData)
     } catch (err) {
       console.error('Error refreshing home data:', err)
       // Don't clear existing data on refresh failure
@@ -596,6 +657,105 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     }
   }, [userId])
   
+  // ── Savings Account Mutations ──────────────────────────────────
+  /**
+   * Create a new savings/investment account
+   */
+  const createSavingsAccountFn = useCallback(async (data: {
+    type: SavingsAccountType
+    name: string
+    balance: number
+    monthlyContribution: number
+    expectedAnnualReturn: number
+  }) => {
+    if (!userId) return null
+    
+    try {
+      const result = await createSavingsAccountApi(userId, data)
+      
+      if (result) {
+        setSavingsAccounts(prev => [result, ...prev])
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error creating savings account:', err)
+      return null
+    }
+  }, [userId])
+  
+  /**
+   * Update an existing savings account
+   */
+  const updateSavingsAccountFn = useCallback(async (
+    id: string,
+    data: {
+      type?: SavingsAccountType
+      name?: string
+      balance?: number
+      monthlyContribution?: number
+      expectedAnnualReturn?: number
+    }
+  ) => {
+    if (!userId) return null
+    
+    try {
+      const result = await updateSavingsAccountApi(userId, id, data)
+      
+      if (result) {
+        setSavingsAccounts(prev => prev.map(a => a.id === id ? result : a))
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error updating savings account:', err)
+      return null
+    }
+  }, [userId])
+  
+  /**
+   * Delete a savings account
+   */
+  const deleteSavingsAccountFn = useCallback(async (id: string) => {
+    if (!userId) return false
+    
+    try {
+      const success = await deleteSavingsAccountApi(userId, id)
+      
+      if (success) {
+        setSavingsAccounts(prev => prev.filter(a => a.id !== id))
+      }
+      
+      return success
+    } catch (err) {
+      console.error('Error deleting savings account:', err)
+      return false
+    }
+  }, [userId])
+  
+  /**
+   * Contribute to a savings account (add to balance)
+   */
+  const contributeToSavingsAccount = useCallback(async (
+    id: string,
+    amount: number
+  ) => {
+    if (!userId) return null
+    
+    try {
+      const result = await updateSavingsAccountBalance(userId, id, amount)
+      
+      if (result) {
+        setSavingsAccounts(prev => prev.map(a => a.id === id ? result : a))
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error contributing to savings account:', err)
+      return null
+    }
+  }, [userId])
+  
   // ── Memoized Computations ──────────────────────────────────────
   /**
    * Daily allowance calculation (memoized)
@@ -643,6 +803,41 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     })
   }, [budgets, transactions])
   
+  /**
+   * Total set-aside (reserved, non-spendable) money this month.
+   * Sums save + invest + setAside from all allocations in the current month.
+   */
+  const totalSetAside = useMemo<number>(() => {
+    const asIncomeAllocations: IncomeAllocation[] = allocations.map(a => ({
+      spend: a.spend,
+      save: a.save,
+      invest: a.invest,
+      setAside: a.setAside,
+    }))
+    return computeTotalSetAside(asIncomeAllocations)
+  }, [allocations])
+  
+  /**
+   * Total savings balance (memoized)
+   * Sum of all savings/investment account balances
+   */
+  const totalSavingsBalance = useMemo<number>(() => {
+    return computeTotalSavingsBalance(savingsAccounts)
+  }, [savingsAccounts])
+  
+  /**
+   * Savings rate (memoized)
+   * Percent of income saved = (totalSetAside + monthly contributions) / total monthly income * 100
+   */
+  const savingsRate = useMemo<number>(() => {
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    const totalMonthlyIncome = transactions
+      .filter(t => t.date.startsWith(currentMonth) && t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0)
+    const monthlyContributions = computeMonthlyContributions(savingsAccounts)
+    return computeSavingsRate(totalSetAside, monthlyContributions, totalMonthlyIncome)
+  }, [transactions, savingsAccounts, totalSetAside])
+  
   // ── Return Hook Interface ──────────────────────────────────────
   return {
     // Core data
@@ -650,10 +845,14 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     budgets,
     goals,
     lessonProgress,
+    savingsAccounts,
     
     // Computed values (memoized)
     allowance,
     categoryRows,
+    totalSetAside,
+    totalSavingsBalance,
+    savingsRate,
     
     // Loading state
     isLoading,
@@ -678,6 +877,12 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     
     // Lesson progress mutations
     completeLesson,
+    
+    // Savings account mutations
+    createSavingsAccount: createSavingsAccountFn,
+    updateSavingsAccount: updateSavingsAccountFn,
+    deleteSavingsAccount: deleteSavingsAccountFn,
+    contributeToSavingsAccount,
     
     // Direct state setters (for advanced optimistic updates)
     setTransactions,

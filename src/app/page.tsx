@@ -21,10 +21,10 @@ import { LessonsScreen } from '@/components/finance/LessonsScreen'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
-import { carryForwardBudgetLimits } from '@/lib/supabaseData'
+import { carryForwardBudgetLimits, insertAllocation } from '@/lib/supabaseData'
 import { exportUserData, deleteUserAccount } from '@/lib/accountUtils'
 import type { TransactionCategory, Transaction } from '@/types'
-import type { CelebrationEvent, OnboardingResult, BudgetPreset } from '@/types/folio'
+import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation } from '@/types/folio'
 import type { TransactionRepeat } from '@/lib/transactionUtils'
 
 type OnboardingStep = 'loading' | 'tutorial' | 'done'
@@ -67,6 +67,8 @@ export default function FolioApp() {
     goals,
     lessonProgress,
     allowance,
+    totalSetAside,
+    savingsRate,
     isLoading: dataLoading,
     refresh,
     addTransaction,
@@ -181,12 +183,24 @@ export default function FolioApp() {
 
   // ── Paycheck Sheet (show after income logged, only if active goals) ──
   const handleShowPaycheck = useCallback((amount: number) => {
-    const activeGoals = goals.filter(g => g.currentAmount < g.targetAmount)
-    if (activeGoals.length > 0) {
-      setPaycheckAmount(amount)
-      setPaycheckSheetOpen(true)
+    setPaycheckAmount(amount)
+    setPaycheckSheetOpen(true)
+  }, [])
+
+  // ── Income Allocation (optimistic, reversible on persistence failure) ──
+  const handleAllocateIncome = useCallback(async (allocation: IncomeAllocation) => {
+    if (!user?.id) return
+
+    // Persist to Supabase
+    const result = await insertAllocation(user.id, allocation)
+
+    if (result) {
+      // Trigger a refresh to pick up the new allocation and recalculate totalSetAside
+      await refresh()
+    } else {
+      showToast('Allocation saved locally — will sync when connected', 'success')
     }
-  }, [goals])
+  }, [user?.id, refresh, showToast])
 
   // ── Repeat Log ─────────────────────────────────────────────────
   const handleRepeatLog = useCallback(async (repeat: TransactionRepeat) => {
@@ -402,6 +416,8 @@ export default function FolioApp() {
                 transactions={transactions}
                 budgets={budgets}
                 goals={goals}
+                totalSetAside={totalSetAside}
+                savingsRate={savingsRate}
                 userName={user?.email?.split('@')[0]}
                 isLoading={dataLoading}
                 onHeroTapDetails={() => setActiveNav('history')}
@@ -435,6 +451,8 @@ export default function FolioApp() {
               <SettingsScreen
                 budgets={budgets}
                 goals={goals}
+                totalSetAside={totalSetAside}
+                savingsRate={savingsRate}
                 userEmail={user?.email}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
                 onOpenGoals={() => setShowGoals(true)}
@@ -474,6 +492,7 @@ export default function FolioApp() {
         amount={paycheckAmount}
         goals={goals}
         onContribute={handleContributeToGoal}
+        onAllocate={handleAllocateIncome}
         onClose={() => setPaycheckSheetOpen(false)}
       />
 

@@ -7,6 +7,7 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal } from "@/types"
+import type { SavingsAccount } from "@/types/folio"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -16,6 +17,7 @@ import {
   linkButton,
   listRow,
 } from "@/styles/shared"
+import { SavingsProjection } from "./SavingsProjection"
 
 // ============================================================================
 // Types
@@ -24,6 +26,9 @@ import {
 export interface SettingsScreenProps {
   budgets: Budget[]
   goals: Goal[]
+  savingsAccounts?: SavingsAccount[]
+  totalSetAside?: number
+  savingsRate?: number
   userEmail?: string
   onOpenBudgetSettings: () => void
   onOpenRecurringBills?: () => void
@@ -71,6 +76,9 @@ function getDaysInMonth(): number {
 export function SettingsScreen({
   budgets,
   goals,
+  savingsAccounts,
+  totalSetAside,
+  savingsRate,
   userEmail,
   onOpenBudgetSettings,
   onOpenRecurringBills,
@@ -180,6 +188,40 @@ export function SettingsScreen({
         </motion.button>
       </GlassCard>
 
+      {/* ── Set Aside This Month ─────────────────────────────────────────── */}
+      {(totalSetAside ?? 0) > 0 && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }} aria-hidden="true">🏦</span>
+            <div>
+              <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>
+                Set aside this month
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+                ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── Savings Rate ──────────────────────────────────────────────────── */}
+      {(savingsRate ?? 0) > 0 && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }} aria-hidden="true">💪</span>
+            <div>
+              <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>
+                Savings rate
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
+                {savingsRate}%
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
       {/* ── Recurring Bills ──────────────────────────────────────────────── */}
       {onOpenRecurringBills && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
@@ -252,6 +294,25 @@ export function SettingsScreen({
           Manage goals →
         </motion.button>
       </GlassCard>
+
+      {/* ── Savings Accounts ─────────────────────────────────────────── */}
+      {savingsAccounts && savingsAccounts.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
+            <p style={{ ...sectionHeadingStrong }}>
+              Savings & Investments
+            </p>
+            <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+              Projected growth based on your current contributions.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {savingsAccounts.map(account => (
+                <SavingsProjection key={account.id} account={account} />
+              ))}
+            </div>
+          </GlassCard>
+        </div>
+      )}
 
       {/* ── Learn ──────────────────────────────────────────────────────────── */}
       {onOpenLearn && (
