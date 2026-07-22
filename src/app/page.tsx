@@ -2,13 +2,10 @@
 import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Onboarding,
   Toast,
-  LimitSetupWizard,
   AppShell,
 } from '@/components'
 import type { AppNavKey } from '@/components/ui/AppShell'
-import type { LimitSetupResult } from '@/components/ui/LimitSetupWizard'
 import { HomeScreen } from '@/components/simplified/HomeScreen'
 import { HistoryScreen } from '@/components/simplified/HistoryScreen'
 import { SettingsScreen } from '@/components/simplified/SettingsScreen'
@@ -17,19 +14,23 @@ import { GoalsScreen } from '@/components/simplified/GoalsScreen'
 import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
 import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
+import { OnboardingTutorial } from '@/components/simplified/OnboardingTutorial'
+import { ProfileSheet } from '@/components/ui/ProfileSheet'
+import { TutorialSetupStepRenderer, TUTORIAL_FEATURE_STEPS, TUTORIAL_SETUP_STEPS, TutorialSetupState, buildOnboardingResult, computeDailyAllowance } from '@/components/simplified/TutorialSteps'
 import { LessonsScreen } from '@/components/finance/LessonsScreen'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { carryForwardBudgetLimits } from '@/lib/supabaseData'
+import { exportUserData, deleteUserAccount } from '@/lib/accountUtils'
 import type { TransactionCategory, Transaction } from '@/types'
-import type { CelebrationEvent } from '@/types/folio'
+import type { CelebrationEvent, OnboardingResult, BudgetPreset } from '@/types/folio'
 import type { TransactionRepeat } from '@/lib/transactionUtils'
 
-type OnboardingStep = 'loading' | 'welcome' | 'limits' | 'done'
+type OnboardingStep = 'loading' | 'tutorial' | 'done'
 
 export default function FolioApp() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, refreshUser } = useAuth()
   const { showToast } = useToast()
 
   // ── Routing & UI State ─────────────────────────────────────────
@@ -37,6 +38,14 @@ export default function FolioApp() {
   const [activeNav, setActiveNav] = useState<AppNavKey>('home')
   const [showBudgetSettings, setShowBudgetSettings] = useState(false)
   const [showGoals, setShowGoals] = useState(false)
+  const [profileSheetOpen, setProfileSheetOpen] = useState(false)
+
+  // ── Tutorial Setup State ───────────────────────────────────────
+  const [tutorialSetupState, setTutorialSetupState] = useState<TutorialSetupState>({
+    monthlyIncome: 2000,
+    budgetPreset: 'student_moderate' as BudgetPreset,
+    categoryLimits: {},
+  })
 
   // ── Sheet State ────────────────────────────────────────────────
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
@@ -73,7 +82,7 @@ export default function FolioApp() {
   // ── Onboarding Check ───────────────────────────────────────────
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setOnboardingStep(localStorage.getItem('folio-onboarded') === 'true' ? 'done' : 'welcome')
+      setOnboardingStep(localStorage.getItem('folio-onboarded') === 'true' ? 'done' : 'tutorial')
     }
   }, [])
 
@@ -87,21 +96,31 @@ export default function FolioApp() {
   }, [user?.id, authLoading])
 
   // ── Onboarding Handlers ────────────────────────────────────────
-  const finishOnboarding = () => {
+  const handleTutorialComplete = async () => {
+    // Build the onboarding result from tutorial setup state
+    const result: OnboardingResult = buildOnboardingResult(tutorialSetupState)
+    
+    // Apply initial limits/income via updateBudget
+    if (result.customLimits) {
+      const entries = Object.entries(result.customLimits) as [TransactionCategory, number][]
+      for (const [cat, limit] of entries) {
+        if (limit > 0) await updateBudget(cat, limit)
+      }
+    }
+    
+    // Persist tutorial completion flag
+    localStorage.setItem('folio-onboarded', 'true')
+    setOnboardingStep('done')
+    
+    if (result.customLimits && Object.keys(result.customLimits).length > 0) {
+      showToast("Tutorial complete — check today's budget")
+    }
+  }
+
+  const handleTutorialSkip = () => {
     localStorage.setItem('folio-onboarded', 'true')
     setOnboardingStep('done')
   }
-
-  const applyInitialLimits = async (limits: LimitSetupResult) => {
-    const entries = Object.entries(limits) as [TransactionCategory, number][]
-    for (const [cat, limit] of entries) {
-      if (limit > 0) await updateBudget(cat, limit)
-    }
-    if (entries.length > 0) showToast("Limits set — check today's budget")
-    finishOnboarding()
-  }
-
-  const handleLimitSetupSkip = () => finishOnboarding()
 
   // ── Expense Logging ────────────────────────────────────────────
   const handleOpenExpenseSheet = useCallback((category?: TransactionCategory) => {
@@ -234,7 +253,53 @@ export default function FolioApp() {
   // ── Sign Out ───────────────────────────────────────────────────
   const handleSignOut = () => {
     localStorage.removeItem('folio-onboarded')
-    setOnboardingStep('welcome')
+    setOnboardingStep('tutorial')
+  }
+
+  // ── Reset Onboarding ───────────────────────────────────────────
+  const handleResetOnboarding = () => {
+    localStorage.removeItem('folio-onboarding')
+    setOnboardingStep('tutorial')
+    showToast('Tutorial reset - starting fresh')
+  }
+
+  // ── Export Data ────────────────────────────────────────────────
+  const handleExportData = async () => {
+    if (!user?.id) return
+    
+    try {
+      await exportUserData(user.id, transactions, budgets, goals, user.email)
+      showToast('Data exported successfully', 'success')
+    } catch (error) {
+      console.error('Error exporting data:', error)
+      showToast('Failed to export data', 'error')
+    }
+  }
+
+  // ── Delete Account ─────────────────────────────────────────────
+  const handleDeleteAccount = async () => {
+    if (!user?.id) return
+    
+    const result = await deleteUserAccount(user.id)
+    
+    if (result.success) {
+      showToast('Account deleted', 'success')
+      // Sign out and reset
+      localStorage.removeItem('folio-onboarded')
+      setOnboardingStep('tutorial')
+    } else {
+      showToast(result.error || 'Failed to delete account', 'error')
+    }
+  }
+
+  // ── Profile Handlers ───────────────────────────────────────────
+  const handleOpenProfile = () => {
+    setProfileSheetOpen(true)
+  }
+
+  const handleProfileUpdate = async () => {
+    await refreshUser()
+    showToast('Profile updated')
   }
 
   // ── Auth & Onboarding Gating ───────────────────────────────────
@@ -252,15 +317,33 @@ export default function FolioApp() {
     )
   }
 
-  if (onboardingStep === 'welcome') {
-    return <Onboarding onComplete={() => setOnboardingStep('limits')} />
-  }
+  if (onboardingStep === 'tutorial') {
+    const allSteps = [...TUTORIAL_FEATURE_STEPS, ...TUTORIAL_SETUP_STEPS]
 
-  if (onboardingStep === 'limits') {
     return (
-      <LimitSetupWizard
-        onComplete={applyInitialLimits}
-        onSkip={handleLimitSetupSkip}
+      <OnboardingTutorial
+        steps={allSteps}
+        onComplete={handleTutorialComplete}
+        onSkip={handleTutorialSkip}
+        renderStep={(step, completeInteraction) => (
+          <TutorialSetupStepRenderer
+            step={step}
+            completeInteraction={completeInteraction}
+            setupState={tutorialSetupState}
+            onIncomeChange={(value) =>
+              setTutorialSetupState(prev => ({ ...prev, monthlyIncome: value }))
+            }
+            onPresetChange={(preset) =>
+              setTutorialSetupState(prev => ({ ...prev, budgetPreset: preset }))
+            }
+            onLimitChange={(key, value) =>
+              setTutorialSetupState(prev => ({
+                ...prev,
+                categoryLimits: { ...prev.categoryLimits, [key]: value },
+              }))
+            }
+          />
+        )}
       />
     )
   }
@@ -356,7 +439,11 @@ export default function FolioApp() {
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
                 onOpenGoals={() => setShowGoals(true)}
                 onOpenLearn={() => setActiveNav('learn')}
+                onOpenProfile={handleOpenProfile}
                 onSignOut={handleSignOut}
+                onResetOnboarding={handleResetOnboarding}
+                onExportData={handleExportData}
+                onDeleteAccount={handleDeleteAccount}
               />
             )}
           </motion.div>
@@ -388,6 +475,18 @@ export default function FolioApp() {
         goals={goals}
         onContribute={handleContributeToGoal}
         onClose={() => setPaycheckSheetOpen(false)}
+      />
+
+      {/* ── Profile Sheet ──────────────────────────────────────── */}
+      <ProfileSheet
+        isOpen={profileSheetOpen}
+        onClose={() => setProfileSheetOpen(false)}
+        userEmail={user?.email}
+        displayName={user?.displayName}
+        avatarUrl={user?.avatarUrl}
+        userId={user?.id}
+        onSignOut={handleSignOut}
+        onProfileUpdate={handleProfileUpdate}
       />
 
       <Toast />

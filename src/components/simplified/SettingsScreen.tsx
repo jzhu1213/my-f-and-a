@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
@@ -27,7 +28,11 @@ export interface SettingsScreenProps {
   onOpenBudgetSettings: () => void
   onOpenGoals: () => void
   onOpenLearn?: () => void
+  onOpenProfile: () => void
   onSignOut: () => void
+  onResetOnboarding?: () => void
+  onExportData?: () => void
+  onDeleteAccount?: () => void
 }
 
 // ============================================================================
@@ -69,9 +74,15 @@ export function SettingsScreen({
   onOpenBudgetSettings,
   onOpenGoals,
   onOpenLearn,
+  onOpenProfile,
   onSignOut,
+  onResetOnboarding,
+  onExportData,
+  onDeleteAccount,
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
 
   // ── Budget summary computations ────────────────────────────────────────────
   const totalMonthly = budgets.reduce((sum, b) => sum + b.monthlyLimit, 0)
@@ -293,36 +304,211 @@ export function SettingsScreen({
         </div>
       </GlassCard>
 
+      {/* ── Preferences ────────────────────────────────────────────────── */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+          Preferences
+        </p>
+
+        {/* Currency Display (informational for now) */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "10px 0",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <span style={{ fontSize: 14, color: "var(--text)" }}>Currency</span>
+          <span style={{ fontSize: 14, color: "var(--sub)" }}>USD ($)</span>
+        </div>
+
+        {/* Reset Tutorial/Onboarding */}
+        {onResetOnboarding && (
+          <motion.button
+            onClick={onResetOnboarding}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              ...linkButton,
+              marginTop: 14,
+            }}
+            aria-label="Reset onboarding tutorial"
+          >
+            Reset tutorial →
+          </motion.button>
+        )}
+      </GlassCard>
+
+      {/* ── Data & Account Management ──────────────────────────────────── */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+          Data & Account
+        </p>
+
+        {/* Export Data */}
+        {onExportData && (
+          <motion.button
+            onClick={onExportData}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              ...linkButton,
+              marginBottom: 12,
+            }}
+            aria-label="Export your financial data"
+          >
+            Export my data →
+          </motion.button>
+        )}
+
+        {/* Delete Account - Destructive Action */}
+        {onDeleteAccount && !showDeleteConfirm && (
+          <motion.button
+            onClick={() => setShowDeleteConfirm(true)}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              ...linkButton,
+              color: "var(--error)",
+            }}
+            aria-label="Delete account"
+          >
+            Delete account →
+          </motion.button>
+        )}
+
+        {/* Delete Confirmation UI */}
+        {showDeleteConfirm && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: 16,
+              borderRadius: 12,
+              background: "rgba(248, 113, 113, 0.1)",
+              border: "1px solid rgba(248, 113, 113, 0.3)",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--error)",
+                marginBottom: 8,
+              }}
+            >
+              ⚠️ Delete Account
+            </p>
+            <p
+              style={{
+                fontSize: 13,
+                color: "var(--text)",
+                marginBottom: 12,
+                lineHeight: 1.5,
+              }}
+            >
+              This will permanently delete all your data including transactions, budgets, and goals. This cannot be undone.
+            </p>
+            <p
+              style={{
+                fontSize: 13,
+                color: "var(--sub)",
+                marginBottom: 12,
+              }}
+            >
+              Type <strong>DELETE</strong> to confirm:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Type DELETE"
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                marginBottom: 12,
+                fontSize: 14,
+                fontFamily: FONT_FAMILY,
+                color: "var(--text)",
+                background: "rgba(0, 0, 0, 0.2)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                outline: "none",
+              }}
+              aria-label="Type DELETE to confirm account deletion"
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <motion.button
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setDeleteConfirmText("")
+                }}
+                whileTap={{ scale: 0.97 }}
+                transition={springs.snappy}
+                style={{
+                  flex: 1,
+                  padding: "10px 16px",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  fontFamily: FONT_FAMILY,
+                  color: "var(--text)",
+                  background: "rgba(255, 255, 255, 0.06)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+                aria-label="Cancel account deletion"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                onClick={() => {
+                  if (deleteConfirmText === "DELETE" && onDeleteAccount) {
+                    onDeleteAccount()
+                  }
+                }}
+                whileTap={{ scale: deleteConfirmText === "DELETE" ? 0.97 : 1 }}
+                transition={springs.snappy}
+                disabled={deleteConfirmText !== "DELETE"}
+                style={{
+                  flex: 1,
+                  padding: "10px 16px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontFamily: FONT_FAMILY,
+                  color: deleteConfirmText === "DELETE" ? "#fff" : "var(--muted)",
+                  background: deleteConfirmText === "DELETE" 
+                    ? "var(--error)" 
+                    : "rgba(255, 255, 255, 0.03)",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: deleteConfirmText === "DELETE" ? "pointer" : "not-allowed",
+                  opacity: deleteConfirmText === "DELETE" ? 1 : 0.5,
+                }}
+                aria-label="Confirm account deletion"
+              >
+                Delete Forever
+              </motion.button>
+            </div>
+          </div>
+        )}
+      </GlassCard>
+
       {/* ── Account ────────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-        <p style={{ ...sectionHeadingStrong, marginBottom: 10 }}>
+        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
           Account
         </p>
 
-        {userEmail && (
-          <p style={{ fontSize: 14, color: "var(--text)", marginBottom: 14 }}>
-            {userEmail}
-          </p>
-        )}
-
         <motion.button
-          onClick={onSignOut}
+          onClick={onOpenProfile}
           whileTap={{ scale: 0.97 }}
           transition={springs.snappy}
-          style={{
-            padding: "10px 18px",
-            fontSize: 13,
-            fontWeight: 500,
-            fontFamily: FONT_FAMILY,
-            color: "var(--error)",
-            background: "rgba(248, 113, 113, 0.08)",
-            border: "1px solid rgba(248, 113, 113, 0.2)",
-            borderRadius: 10,
-            cursor: "pointer",
-          }}
-          aria-label="Sign out of your account"
+          style={linkButton}
+          aria-label="Open account settings"
         >
-          Sign out
+          Manage account →
         </motion.button>
       </GlassCard>
     </div>
