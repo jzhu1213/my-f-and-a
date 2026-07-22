@@ -1,5 +1,7 @@
 "use client"
 import { useState } from 'react'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { FONT_FAMILY } from '@/styles/typography'
 import type { Lesson } from '@/types'
 
 interface LessonCardProps {
@@ -9,11 +11,57 @@ interface LessonCardProps {
   onBack: () => void
 }
 
+// ============================================================================
+// Shared inline styles
+// ============================================================================
+
+const sectionLabel: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 500,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  color: 'var(--muted)',
+  fontFamily: FONT_FAMILY,
+  marginBottom: 4,
+}
+
+const primaryButton: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '12px 24px',
+  borderRadius: 99,
+  border: 'none',
+  background: 'var(--success)',
+  color: '#fff',
+  fontSize: 14,
+  fontWeight: 500,
+  fontFamily: FONT_FAMILY,
+  cursor: 'pointer',
+  transition: 'opacity 0.2s ease',
+}
+
+const ghostButton: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '12px 24px',
+  borderRadius: 99,
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  background: 'transparent',
+  color: 'var(--sub)',
+  fontSize: 14,
+  fontWeight: 500,
+  fontFamily: FONT_FAMILY,
+  cursor: 'pointer',
+  transition: 'opacity 0.2s ease',
+}
+
 export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCardProps) {
-  const [showQuiz,         setShowQuiz]         = useState(false)
-  const [currentQuestion,  setCurrentQuestion]  = useState(0)
-  const [answers,          setAnswers]          = useState<number[]>([])
-  const [showResults,      setShowResults]      = useState(false)
+  const [showQuiz, setShowQuiz] = useState(false)
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [answers, setAnswers] = useState<number[]>([])
+  const [showResults, setShowResults] = useState(false)
 
   const handleAnswer = (answerIndex: number) => {
     const newAnswers = [...answers, answerIndex]
@@ -31,7 +79,22 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
   const BackBtn = ({ label }: { label: string }) => (
     <button
       onClick={showResults ? onBack : () => { setShowQuiz(false); setShowResults(false); setCurrentQuestion(0); setAnswers([]) }}
-      className="flex items-center gap-2 text-xs font-mono tracking-widest text-t-muted hover:text-t-text transition-colors uppercase mb-8"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '8px 14px',
+        borderRadius: 99,
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        background: 'transparent',
+        color: 'var(--sub)',
+        fontSize: 12,
+        fontWeight: 500,
+        fontFamily: FONT_FAMILY,
+        cursor: 'pointer',
+        marginBottom: 32,
+        transition: 'border-color 0.2s ease',
+      }}
     >
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
@@ -40,87 +103,130 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
     </button>
   )
 
+  // --------------------------------------------------------------------------
+  // Results screen
+  // --------------------------------------------------------------------------
+
   if (showResults) {
     const passed = score >= Math.ceil(lesson.quizQuestions.length / 2)
     return (
-      <div className="pb-20 px-5 pt-10">
+      <div style={{ paddingBottom: 80, padding: '40px 20px 80px', fontFamily: FONT_FAMILY }}>
         <BackBtn label="back to lessons" />
 
-        <div className="mb-6">
-          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-1">Result</p>
-          <h2 className="text-2xl font-mono text-t-text">{passed ? 'Passed' : 'Not quite'}</h2>
-          <p className="text-sm font-mono mt-1" style={{ color: passed ? 'var(--green)' : 'var(--amber)' }}>
+        <div style={{ marginBottom: 24 }}>
+          <p style={sectionLabel}>Result</p>
+          <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY, margin: '4px 0' }}>
+            {passed ? 'Great job!' : 'Almost there!'}
+          </h2>
+          <p style={{ fontSize: 14, fontFamily: FONT_FAMILY, marginTop: 4, color: passed ? 'var(--success)' : 'var(--warning)' }}>
             {score}/{lesson.quizQuestions.length} correct
           </p>
         </div>
 
-        <div style={{ borderTop: '1px solid var(--border)' }} className="mb-6">
-          {lesson.quizQuestions.map((q, idx) => {
-            const correct = answers[idx] === q.correctIndex
-            return (
-              <div key={q.id} className="py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-                <p className="text-xs text-t-text mb-2">{q.question}</p>
-                <p className="text-xs font-mono" style={{ color: correct ? 'var(--green)' : 'var(--red)' }}>
-                  {correct ? '✓' : '✗'} {q.options[answers[idx]]}
-                </p>
-                {!correct && (
-                  <p className="text-xs font-mono text-t-muted mt-0.5">
-                    → {q.options[q.correctIndex]}
+        <GlassCard elevation="low" style={{ marginBottom: 24 }}>
+          <div style={{ padding: 16 }}>
+            {lesson.quizQuestions.map((q, idx) => {
+              const correct = answers[idx] === q.correctIndex
+              return (
+                <div
+                  key={q.id}
+                  style={{
+                    padding: '14px 0',
+                    borderBottom: idx < lesson.quizQuestions.length - 1 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
+                  }}
+                >
+                  <p style={{ fontSize: 13, color: 'var(--text)', fontFamily: FONT_FAMILY, marginBottom: 6 }}>{q.question}</p>
+                  <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: correct ? 'var(--success)' : 'var(--error)' }}>
+                    {correct ? '✓' : '✗'} {q.options[answers[idx]]}
                   </p>
-                )}
-              </div>
-            )
-          })}
-        </div>
+                  {!correct && (
+                    <p style={{ fontSize: 12, fontFamily: FONT_FAMILY, color: 'var(--muted)', marginTop: 4 }}>
+                      → {q.options[q.correctIndex]}
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </GlassCard>
 
-        <div className="flex gap-3">
-          <button onClick={onBack} className="flex-1 btn-ghost">LESSONS</button>
-          <button onClick={() => onComplete(score)} className="flex-1 btn-primary">
-            {passed ? 'COMPLETE' : 'DONE'}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button onClick={onBack} style={{ ...ghostButton, flex: 1 }}>Lessons</button>
+          <button onClick={() => onComplete(score)} style={{ ...primaryButton, flex: 1 }}>
+            {passed ? 'Complete' : 'Done'}
           </button>
         </div>
       </div>
     )
   }
 
+  // --------------------------------------------------------------------------
+  // Quiz screen
+  // --------------------------------------------------------------------------
+
   if (showQuiz) {
     const question = lesson.quizQuestions[currentQuestion]
     return (
-      <div className="pb-20 px-5 pt-10">
+      <div style={{ paddingBottom: 80, padding: '40px 20px 80px', fontFamily: FONT_FAMILY }}>
         <BackBtn label="back to lesson" />
 
-        <div className="mb-6">
-          <div className="flex items-center gap-1 mb-4">
+        <div style={{ marginBottom: 24 }}>
+          {/* Progress dots */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
             {lesson.quizQuestions.map((_, idx) => (
               <div
                 key={idx}
-                className="flex-1 h-[2px] transition-colors"
                 style={{
+                  flex: 1,
+                  height: 2,
+                  borderRadius: 99,
+                  transition: 'background 0.3s ease',
                   background: idx < currentQuestion
-                    ? (answers[idx] === lesson.quizQuestions[idx].correctIndex ? 'var(--green)' : 'var(--red)')
+                    ? (answers[idx] === lesson.quizQuestions[idx].correctIndex ? 'var(--success)' : 'var(--error)')
                     : idx === currentQuestion
                       ? 'var(--muted)'
-                      : 'var(--border)',
+                      : 'rgba(255, 255, 255, 0.08)',
                 }}
               />
             ))}
           </div>
-          <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase">
+          <p style={sectionLabel}>
             {currentQuestion + 1} / {lesson.quizQuestions.length}
           </p>
         </div>
 
-        <h3 className="text-base text-t-text mb-6 leading-relaxed">{question.question}</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY, marginBottom: 24, lineHeight: 1.5 }}>
+          {question.question}
+        </h3>
 
-        <div style={{ borderTop: '1px solid var(--border)' }}>
+        <div>
           {question.options.map((option, idx) => (
             <button
               key={idx}
               onClick={() => handleAnswer(idx)}
-              className="w-full flex items-center gap-4 py-4 text-left text-sm text-t-text transition-colors hover:bg-t-hover"
-              style={{ borderBottom: '1px solid var(--border)' }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                padding: '14px 12px',
+                textAlign: 'left',
+                fontSize: 14,
+                color: 'var(--text)',
+                fontFamily: FONT_FAMILY,
+                background: 'transparent',
+                border: 'none',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                cursor: 'pointer',
+                borderRadius: 8,
+                transition: 'background 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              <span className="text-[10px] font-mono text-t-muted w-4">{String.fromCharCode(65 + idx)}</span>
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', width: 16, fontFamily: FONT_FAMILY }}>
+                {String.fromCharCode(65 + idx)}
+              </span>
               {option}
             </button>
           ))}
@@ -129,39 +235,49 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
     )
   }
 
+  // --------------------------------------------------------------------------
+  // Lesson content screen
+  // --------------------------------------------------------------------------
+
   return (
-    <div className="pb-20 px-5 pt-10">
+    <div style={{ paddingBottom: 80, padding: '40px 20px 80px', fontFamily: FONT_FAMILY }}>
       <BackBtn label="back to lessons" />
 
-      <div className="mb-6">
-        <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-2">Lesson {lesson.order}</p>
-        <h1 className="text-2xl font-mono text-t-text mb-1">{lesson.title}</h1>
-        <div className="w-8 h-[2px]" style={{ background: 'var(--muted)' }} />
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ ...sectionLabel, marginBottom: 8 }}>Lesson {lesson.order}</p>
+        <h1 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY, margin: '0 0 8px' }}>
+          {lesson.title}
+        </h1>
+        <div style={{ width: 32, height: 2, borderRadius: 99, background: 'var(--muted)' }} />
       </div>
 
-      <div className="space-y-4 mb-8" style={{ borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
+      <div style={{ marginBottom: 32, paddingTop: 24, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
         {lesson.content.split('\n\n').map((para, idx) => (
-          <p key={idx} className="text-sm text-t-text leading-relaxed">
+          <p key={idx} style={{ fontSize: 14, color: 'var(--text)', fontFamily: FONT_FAMILY, lineHeight: 1.6, marginBottom: 16 }}>
             {para}
           </p>
         ))}
       </div>
 
-      <div
-        className="px-4 py-4 mb-8"
-        style={{ borderLeft: '2px solid var(--muted)', background: 'var(--surface)' }}
-      >
-        <p className="text-[10px] font-mono tracking-widest text-t-muted uppercase mb-2">Real Example</p>
-        <p className="text-xs text-t-text leading-relaxed">{lesson.example}</p>
-      </div>
+      <GlassCard elevation="low" style={{ marginBottom: 32 }}>
+        <div style={{ padding: 16 }}>
+          <p style={{ ...sectionLabel, marginBottom: 8 }}>Real Example</p>
+          <p style={{ fontSize: 13, color: 'var(--text)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
+            {lesson.example}
+          </p>
+        </div>
+      </GlassCard>
 
-      <button onClick={() => setShowQuiz(true)} className="w-full btn-primary">
-        TAKE QUIZ · {lesson.quizQuestions.length} QUESTIONS
+      <button
+        onClick={() => setShowQuiz(true)}
+        style={{ ...primaryButton, width: '100%' }}
+      >
+        Take quiz · {lesson.quizQuestions.length} questions
       </button>
 
       {isCompleted && (
-        <p className="text-center text-xs font-mono text-t-muted mt-4 uppercase tracking-widest">
-          ✓ completed
+        <p style={{ textAlign: 'center', fontSize: 12, fontFamily: FONT_FAMILY, color: 'var(--muted)', marginTop: 16 }}>
+          ✓ Completed
         </p>
       )}
     </div>
