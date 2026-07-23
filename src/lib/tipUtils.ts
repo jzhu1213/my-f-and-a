@@ -24,6 +24,17 @@ export interface UserContext {
   daysRemainingInMonth?: number
   /** Bills due within the next 3 days (for bill-due reminders) */
   upcomingBills?: { label: string; amount: number; dueDay: number }[]
+  /**
+   * Whether the projected balance is expected to dip below the configured
+   * minimum-balance buffer before the next payday (overdraft-risk signal).
+   */
+  willDipBelowBuffer?: boolean
+  /** The lowest projected balance between now and the next payday. */
+  projectedLowBalance?: number
+  /** The configured minimum-balance buffer the projection is compared against. */
+  minBalanceBuffer?: number
+  /** Whole days until the balance is first projected to fall below the buffer. */
+  daysUntilBalanceDip?: number
 }
 
 /**
@@ -101,6 +112,33 @@ export function selectContextualTip(
         },
       })
     }
+  }
+
+  // Step 2c-lb: Low-balance / overdraft heads-up — projected dip below the
+  // configured buffer before payday (medium priority). Warm and non-shaming:
+  // it's a gentle nudge to plan ahead, not a scolding about being "low".
+  if (
+    context.willDipBelowBuffer === true &&
+    context.projectedLowBalance != null &&
+    context.minBalanceBuffer != null
+  ) {
+    candidates.push({
+      id: 'low-balance-until-payday',
+      type: 'gentle_nudge',
+      title: 'Heads up',
+      message:
+        "Money's a little tight until payday. No stress — spacing things out a bit will keep you comfortable.",
+      emoji: '🫶',
+      priority: 'medium',
+      actionLabel: 'See breakdown',
+      actionType: 'view_insight',
+      triggerCondition: {
+        type: 'low_balance_warning',
+        projectedLowBalance: context.projectedLowBalance,
+        buffer: context.minBalanceBuffer,
+        daysUntilDip: context.daysUntilBalanceDip,
+      },
+    })
   }
 
   // Step 2c: Bill due-date reminder — soonest bill due within 3 days (medium priority)

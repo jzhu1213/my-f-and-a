@@ -11,6 +11,7 @@ import { HistoryScreen } from '@/components/simplified/HistoryScreen'
 import { SettingsScreen } from '@/components/simplified/SettingsScreen'
 import { BudgetSettings } from '@/components/simplified/BudgetSettings'
 import { GoalsScreen } from '@/components/simplified/GoalsScreen'
+import { SinkingFundsScreen } from '@/components/simplified/SinkingFundsScreen'
 import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
 import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
@@ -38,6 +39,7 @@ export default function FolioApp() {
   const [activeNav, setActiveNav] = useState<AppNavKey>('home')
   const [showBudgetSettings, setShowBudgetSettings] = useState(false)
   const [showGoals, setShowGoals] = useState(false)
+  const [showSinkingFunds, setShowSinkingFunds] = useState(false)
   const [profileSheetOpen, setProfileSheetOpen] = useState(false)
 
   // ── Tutorial Setup State ───────────────────────────────────────
@@ -69,6 +71,7 @@ export default function FolioApp() {
     allowance,
     totalSetAside,
     savingsRate,
+    paySchedule,
     isLoading: dataLoading,
     refresh,
     addTransaction,
@@ -79,6 +82,11 @@ export default function FolioApp() {
     contributeToGoal,
     deleteGoal,
     completeLesson,
+    sinkingFunds,
+    addSinkingFund,
+    updateSinkingFund,
+    deleteSinkingFund,
+    setDisbursementBonus,
   } = useHomeData(user?.id)
 
   // ── Onboarding Check ───────────────────────────────────────────
@@ -391,6 +399,22 @@ export default function FolioApp() {
     )
   }
 
+  // ── Sinking Funds (full-screen overlay) ────────────────────────
+  if (showSinkingFunds) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <SinkingFundsScreen
+          funds={sinkingFunds}
+          onAddFund={async (data) => { await addSinkingFund(data) }}
+          onUpdateFund={async (id, updates) => { await updateSinkingFund(id, updates) }}
+          onDeleteFund={async (id) => { await deleteSinkingFund(id) }}
+          onClose={() => setShowSinkingFunds(false)}
+          onSetDisbursement={(monthly) => setDisbursementBonus(monthly)}
+        />
+      </div>
+    )
+  }
+
   // ── Main App Shell ─────────────────────────────────────────────
   return (
     <>
@@ -418,6 +442,7 @@ export default function FolioApp() {
                 goals={goals}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
+                paySchedule={paySchedule}
                 userName={user?.email?.split('@')[0]}
                 isLoading={dataLoading}
                 onHeroTapDetails={() => setActiveNav('history')}
@@ -455,6 +480,7 @@ export default function FolioApp() {
                 savingsRate={savingsRate}
                 userEmail={user?.email}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
+                onOpenSinkingFunds={() => setShowSinkingFunds(true)}
                 onOpenGoals={() => setShowGoals(true)}
                 onOpenLearn={() => setActiveNav('learn')}
                 onOpenProfile={handleOpenProfile}

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
+import { computeSplitAmount } from '@/lib/splitUtils'
 import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { TransactionCategory, Transaction } from '@/types'
@@ -63,6 +64,8 @@ export function ExpenseSheet({
   const [category, setCategory] = useState<TransactionCategory | null>(null)
   const [note, setNote] = useState('')
   const [showNoteField, setShowNoteField] = useState(false)
+  const [splitEnabled, setSplitEnabled] = useState(false)
+  const [splitCount, setSplitCount] = useState(2)
 
   // Compute smart suggestions when category is selected
   const suggestions: SmartSuggestion[] = useMemo(() => {
@@ -83,6 +86,8 @@ export function ExpenseSheet({
       setCategory(effectiveDefault)
       setNote('')
       setShowNoteField(false)
+      setSplitEnabled(false)
+      setSplitCount(2)
       // Auto-focus amount input
       setTimeout(() => amountRef.current?.focus(), 120)
     }
@@ -103,25 +108,38 @@ export function ExpenseSheet({
   const handleSubmit = useCallback(() => {
     const parsed = parseFloat(amount)
     if (!parsed || parsed <= 0 || !category) return
+
+    // When split is enabled, submit the user's share instead of the full amount
+    const submittedAmount = splitEnabled ? computeSplitAmount(parsed, splitCount) : parsed
+
+    // Validate the computed share is within bounds
+    if (submittedAmount <= 0 || submittedAmount > MAX_AMOUNT) return
+
     onSubmit({
-      amount: parsed,
+      amount: submittedAmount,
       category,
       note: note.trim() || undefined,
     })
     // Show success toast with optional undo action
     const categoryLabel = CATEGORY_GRID.find(c => c.category === category)?.label ?? category
-    const amountStr = parsed % 1 === 0 ? `$${parsed}` : `$${parsed.toFixed(2)}`
+    const amountStr = submittedAmount % 1 === 0 ? `$${submittedAmount}` : `$${submittedAmount.toFixed(2)}`
+    const splitSuffix = splitEnabled ? ` (your share of $${parsed % 1 === 0 ? parsed : parsed.toFixed(2)})` : ''
     showToast(
-      `Logged ${amountStr} for ${categoryLabel} ✓`,
+      `Logged ${amountStr}${splitSuffix} for ${categoryLabel} ✓`,
       'success',
       onUndo ? { label: 'Undo', onClick: onUndo } : undefined
     )
     onClose()
-  }, [amount, category, note, onSubmit, onClose, onUndo, showToast])
+  }, [amount, category, note, splitEnabled, splitCount, onSubmit, onClose, onUndo, showToast])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
-    return !!parsed && parsed > 0 && parsed <= MAX_AMOUNT && !!category
+    if (!parsed || parsed <= 0 || parsed > MAX_AMOUNT || !category) return false
+    if (splitEnabled) {
+      const share = computeSplitAmount(parsed, splitCount)
+      return share > 0 && share <= MAX_AMOUNT && splitCount >= 2
+    }
+    return true
   })()
 
   // Compute recent notes for selected category (up to 4 unique)
@@ -591,6 +609,204 @@ export function ExpenseSheet({
                   )}
                 </div>
               )}
+
+              {/* ── Split Toggle (optional, between note and Log button) ────── */}
+              <div style={{ marginBottom: 20 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSplitEnabled((prev) => !prev)
+                    triggerHaptic('light')
+                  }}
+                  aria-pressed={splitEnabled}
+                  aria-label="Split this expense"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: splitEnabled
+                      ? 'rgba(129, 140, 248, 0.06)'
+                      : 'transparent',
+                    border: splitEnabled
+                      ? '1px solid rgba(129, 140, 248, 0.3)'
+                      : '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {/* Toggle indicator */}
+                  <span
+                    style={{
+                      width: 36,
+                      height: 20,
+                      borderRadius: 10,
+                      background: splitEnabled
+                        ? 'rgba(129, 140, 248, 0.8)'
+                        : 'rgba(255, 255, 255, 0.12)',
+                      position: 'relative',
+                      flexShrink: 0,
+                      transition: 'background 0.15s ease',
+                    }}
+                    aria-hidden="true"
+                  >
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: 2,
+                        left: splitEnabled ? 18 : 2,
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: '#fff',
+                        transition: 'left 0.15s ease',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                      }}
+                    />
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: splitEnabled ? 'var(--text)' : 'var(--sub)',
+                    }}
+                  >
+                    Split this
+                  </span>
+                </button>
+
+                {/* Split controls — shown when toggle is on */}
+                <AnimatePresence>
+                  {splitEnabled && (
+                    <motion.div
+                      key="split-controls"
+                      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                      animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
+                      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                      transition={springs.snappy}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '14px 4px 4px',
+                          gap: 12,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: 13,
+                            color: 'var(--sub)',
+                          }}
+                        >
+                          Split between
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button
+                            type="button"
+                            onClick={() => setSplitCount((c) => Math.max(2, c - 1))}
+                            disabled={splitCount <= 2}
+                            aria-label="Decrease split count"
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: '50%',
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              color: splitCount <= 2 ? 'var(--muted)' : 'var(--text)',
+                              fontSize: 18,
+                              fontFamily: 'Inter, sans-serif',
+                              cursor: splitCount <= 2 ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: splitCount <= 2 ? 0.4 : 1,
+                            }}
+                          >
+                            −
+                          </button>
+                          <span
+                            style={{
+                              fontFamily: 'Inter, sans-serif',
+                              fontSize: 18,
+                              fontWeight: 600,
+                              color: 'var(--text)',
+                              minWidth: 50,
+                              textAlign: 'center',
+                            }}
+                            aria-live="polite"
+                            aria-label={`${splitCount} people`}
+                          >
+                            {splitCount} 👥
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setSplitCount((c) => Math.min(20, c + 1))}
+                            disabled={splitCount >= 20}
+                            aria-label="Increase split count"
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: '50%',
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              color: splitCount >= 20 ? 'var(--muted)' : 'var(--text)',
+                              fontSize: 18,
+                              fontFamily: 'Inter, sans-serif',
+                              cursor: splitCount >= 20 ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: splitCount >= 20 ? 0.4 : 1,
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Computed share display */}
+                      {(() => {
+                        const parsed = parseFloat(amount)
+                        if (!parsed || parsed <= 0) return null
+                        const share = computeSplitAmount(parsed, splitCount)
+                        const shareStr = share % 1 === 0 ? `$${share}` : `$${share.toFixed(2)}`
+                        return (
+                          <div
+                            style={{
+                              textAlign: 'center',
+                              padding: '10px 0 4px',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontFamily: 'Inter, sans-serif',
+                                fontSize: 14,
+                                fontWeight: 500,
+                                color: 'var(--text)',
+                                background: 'rgba(129, 140, 248, 0.08)',
+                                border: '1px solid rgba(129, 140, 248, 0.2)',
+                                borderRadius: 99,
+                                padding: '6px 14px',
+                                display: 'inline-block',
+                              }}
+                              aria-live="polite"
+                            >
+                              Your share: {shareStr}
+                            </span>
+                          </div>
+                        )
+                      })()}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* ── Log Button ──────────────────────────────────────── */}
               <motion.button

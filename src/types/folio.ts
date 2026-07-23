@@ -125,6 +125,7 @@ export type TipTrigger =
   | { type: 'payday_detected' }
   | { type: 'burn_rate_warning'; projectedOverspend: number }
   | { type: 'bill_due_soon'; label: string; dueDay: number; daysUntil: number }
+  | { type: 'low_balance_warning'; projectedLowBalance: number; buffer: number; daysUntilDip?: number }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)
@@ -403,3 +404,9 @@ export interface Debt {
   minimumPayment: number
   createdAt: string
 }
+
+// ============================================================================
+// Reimbursement / IOU Types (Requirements 12.3, 13.7)
+// ============================================================================
+
+export type { Reimbursement, ReimbursementDirection } from '@/lib/reimbursements'

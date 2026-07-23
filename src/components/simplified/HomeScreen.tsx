@@ -12,6 +12,9 @@ import type { CategoryBudgetRow } from "@/lib/budgetUtils"
 import { selectContextualTip } from "@/lib/tipUtils"
 import type { UserContext } from "@/lib/tipUtils"
 import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
+import type { PaySchedule } from "@/lib/paySchedule"
+import { getDaysUntilPayday, computeSafeToSpendUntilPayday, projectBalanceUntilPayday } from "@/lib/paySchedule"
+import { getMinBalanceBuffer } from "@/lib/minBalanceBuffer"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -79,6 +82,12 @@ export interface HomeScreenProps {
   totalSetAside?: number
   /** Savings rate percentage (0-100) */
   savingsRate?: number
+  /**
+   * The user's persisted pay schedule (or null when none is set). When absent,
+   * HomeScreen falls back to a flexible default so the payday-aware stat still
+   * shows something useful for variable-income students / young adults.
+   */
+  paySchedule?: PaySchedule | null
   /** User display name (for greeting) */
   userName?: string
   /** Whether data is still loading */
@@ -137,6 +146,7 @@ export function HomeScreen({
   goals,
   totalSetAside,
   savingsRate,
+  paySchedule,
   userName,
   isLoading,
   onHeroTapDetails,
@@ -158,6 +168,14 @@ export function HomeScreen({
   const [celebrationQueue, setCelebrationQueue] = useState<CelebrationEvent[]>([])
   const prevTxCountRef = useRef<number>(transactions.length)
   const prevGoalsRef = useRef<string>("")
+
+  // ── Minimum-balance buffer (user preference, persisted in localStorage) ────
+  // Hydrated after mount to stay SSR-safe; the projection falls back to the
+  // sensible default until then.
+  const [minBalanceBuffer, setMinBalanceBufferState] = useState<number | undefined>(undefined)
+  useEffect(() => {
+    setMinBalanceBufferState(getMinBalanceBuffer())
+  }, [])
 
   // ── Dismissed tips (persisted in localStorage) ────────────────────────────
   const [dismissedTips, setDismissedTips] = useState<Set<string>>(() => {
@@ -181,6 +199,32 @@ export function HomeScreen({
     .reduce((sum, t) => sum + t.amount, 0)
 
   const recentTransactions = transactions.slice(0, 5)
+
+  // ── Safe-to-spend-until-payday (Theme F, task 51.2) ───────────────────────
+  // Spread the remaining discretionary pool across the days until the next
+  // paycheck for a warm, low-pressure per-day figure. Falls back to a flexible
+  // `irregular` schedule (anchored today) when the user hasn't set one — its
+  // rhythm is estimated from their income history, so it still adapts.
+  const safeToSpendPerDay = useMemo<number | null>(() => {
+    const dailyBudget = allowance?.dailyBudget ?? 0
+    // Nothing meaningful to show until we have a daily budget to work from.
+    if (dailyBudget <= 0) return null
+
+    const now = new Date()
+    const daysRemainingInMonth =
+      new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1
+
+    // Remaining discretionary money for the rest of the period — consumes the
+    // DailyAllowance output rather than recomputing budgeting logic here.
+    const discretionaryAvailable = dailyBudget * daysRemainingInMonth
+
+    const schedule: PaySchedule =
+      paySchedule ?? { cadence: "irregular", anchorDate: now.toISOString().slice(0, 10) }
+
+    const daysUntilPayday = getDaysUntilPayday(schedule, now, transactions)
+
+    return computeSafeToSpendUntilPayday(discretionaryAvailable, daysUntilPayday)
+  }, [allowance, paySchedule, transactions])
 
   // ── Category budget rows (sorted) ────────────────────────────────────────
   const categoryRows = useMemo(() => {
@@ -266,6 +310,33 @@ export function HomeScreen({
     const discretionaryPoolRemaining =
       dailyBudget > 0 ? dailyBudget * daysRemainingInMonth : undefined
 
+    // ── Low-balance / overdraft projection (task 51.3) ─────────────────────
+    // Project the discretionary pool forward at the recent burn rate until the
+    // next payday and flag if it would dip below the user's comfort buffer.
+    // Reuses the figures above rather than recomputing budgeting logic.
+    let willDipBelowBuffer: boolean | undefined
+    let projectedLowBalance: number | undefined
+    let daysUntilBalanceDip: number | undefined
+    if (
+      discretionaryPoolRemaining != null &&
+      recentBurnRate != null &&
+      recentBurnRate > 0 &&
+      minBalanceBuffer != null
+    ) {
+      const schedule: PaySchedule =
+        paySchedule ?? { cadence: "irregular", anchorDate: todayStr }
+      const daysUntilPayday = getDaysUntilPayday(schedule, now, transactions)
+      const projection = projectBalanceUntilPayday(
+        discretionaryPoolRemaining,
+        daysUntilPayday,
+        recentBurnRate,
+        minBalanceBuffer
+      )
+      willDipBelowBuffer = projection.willDipBelowBuffer
+      projectedLowBalance = projection.projectedLowBalance
+      daysUntilBalanceDip = projection.daysUntilDip
+    }
+
     return {
       underBudgetStreak,
       todaySpentPercent,
@@ -279,8 +350,12 @@ export function HomeScreen({
       discretionaryPoolRemaining,
       daysRemainingInMonth,
       upcomingBills,
+      willDipBelowBuffer,
+      projectedLowBalance,
+      minBalanceBuffer,
+      daysUntilBalanceDip,
     }
-  }, [transactions, allowance, underBudgetStreak, upcomingBills])
+  }, [transactions, allowance, underBudgetStreak, upcomingBills, paySchedule, minBalanceBuffer])
 
   const activeTip = useMemo(
     () => selectContextualTip(userContext, dismissedTips),
@@ -473,6 +548,40 @@ export function HomeScreen({
             >
               💡 ${Math.round(allowance.reservedForBills)} reserved for {allowance.upcomingBillCount} upcoming bill{(allowance.upcomingBillCount ?? 0) > 1 ? 's' : ''}
             </p>
+          )}
+
+          {/* Safe-to-spend-until-payday — compact, warm secondary stat (task 51.2) */}
+          {!isLoading && safeToSpendPerDay !== null && safeToSpendPerDay > 0 && (
+            <motion.p
+              role="status"
+              aria-live="polite"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              style={{
+                fontSize: 13,
+                color: "var(--sub)",
+                textAlign: "center",
+                fontFamily: FONT_FAMILY,
+                marginTop: 10,
+                opacity: 0.9,
+                padding: "8px 14px",
+                background: "rgba(167, 139, 250, 0.10)",
+                borderRadius: 999,
+                display: "block",
+                marginLeft: "auto",
+                marginRight: "auto",
+                width: "fit-content",
+                maxWidth: "100%",
+              }}
+              aria-label={`You've got room to spend about $${Math.round(safeToSpendPerDay)} a day until your next paycheck`}
+            >
+              🗓️ You&rsquo;ve got room for{" "}
+              <strong style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+                ~${Math.round(safeToSpendPerDay).toLocaleString("en-US")}/day
+              </strong>{" "}
+              until payday
+            </motion.p>
           )}
         </section>
 

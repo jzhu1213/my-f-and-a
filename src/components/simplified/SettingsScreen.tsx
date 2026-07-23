@@ -18,6 +18,7 @@ import {
   listRow,
 } from "@/styles/shared"
 import { SavingsProjection } from "./SavingsProjection"
+import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 
 // ============================================================================
 // Types
@@ -32,8 +33,10 @@ export interface SettingsScreenProps {
   userEmail?: string
   onOpenBudgetSettings: () => void
   onOpenRecurringBills?: () => void
+  onOpenSinkingFunds?: () => void
   onOpenGoals: () => void
   onOpenLearn?: () => void
+  onOpenReimbursements?: () => void
   onOpenProfile: () => void
   onSignOut: () => void
   onResetOnboarding?: () => void
@@ -82,8 +85,10 @@ export function SettingsScreen({
   userEmail,
   onOpenBudgetSettings,
   onOpenRecurringBills,
+  onOpenSinkingFunds,
   onOpenGoals,
   onOpenLearn,
+  onOpenReimbursements,
   onOpenProfile,
   onSignOut,
   onResetOnboarding,
@@ -245,6 +250,29 @@ export function SettingsScreen({
         </GlassCard>
       )}
 
+      {/* ── Sinking Funds ────────────────────────────────────────────────── */}
+      {onOpenSinkingFunds && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong }}>
+            Sinking Funds
+          </p>
+
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+            Save gradually for predictable large expenses like insurance, tuition, or travel.
+          </p>
+
+          <motion.button
+            onClick={onOpenSinkingFunds}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={linkButton}
+            aria-label="Manage sinking funds"
+          >
+            Manage funds →
+          </motion.button>
+        </GlassCard>
+      )}
+
       {/* ── Goals ──────────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
         <p style={{ ...sectionHeadingStrong }}>
@@ -312,6 +340,29 @@ export function SettingsScreen({
             </div>
           </GlassCard>
         </div>
+      )}
+
+      {/* ── IOUs & Reimbursements ────────────────────────────────────── */}
+      {onOpenReimbursements && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong }}>
+            IOUs & Reimbursements
+          </p>
+
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+            Track money friends owe you — or that you owe them.
+          </p>
+
+          <motion.button
+            onClick={onOpenReimbursements}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={linkButton}
+            aria-label="Manage IOUs and reimbursements"
+          >
+            Manage IOUs →
+          </motion.button>
+        </GlassCard>
       )}
 
       {/* ── Learn ──────────────────────────────────────────────────────────── */}
@@ -426,6 +477,11 @@ export function SettingsScreen({
           </motion.button>
         )}
       </GlassCard>
+
+      {/* ── Low-Balance Buffer ─────────────────────────────────────────── */}
+      <div style={{ marginBottom: 20 }}>
+        <MinBalanceBufferSetting />
+      </div>
 
       {/* ── Data & Account Management ──────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>

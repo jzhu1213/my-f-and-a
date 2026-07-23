@@ -23,14 +23,23 @@ import {
   deleteSavingsAccount as deleteSavingsAccountApi,
   updateSavingsAccountBalance,
   getDebts,
+  getPaySchedule,
+  getSinkingFunds,
+  createSinkingFund as createSinkingFundApi,
+  updateSinkingFund as updateSinkingFundApi,
+  deleteSinkingFund as deleteSinkingFundApi,
 } from '@/lib/supabaseData'
 import type { AppAllocation } from '@/lib/supabaseData'
+import type { PaySchedule } from '@/lib/paySchedule'
+import type { SinkingFund } from '@/lib/sinkingFunds'
+import { getTotalMonthlyReserve } from '@/lib/sinkingFunds'
 import { computeTotalSetAside, computeSavingsRate } from '@/lib/allocationUtils'
 import type { IncomeAllocation } from '@/types/folio'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
 import { computeCategoryBudgets } from '@/lib/budgetUtils'
 import { computeTotalSavingsBalance, computeMonthlyContributions } from '@/lib/savingsAccountUtils'
 import { debtsToFixedExpenses } from '@/lib/debtUtils'
+import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { CategoryBudgetRow } from '@/lib/budgetUtils'
 
 /**
@@ -131,6 +140,13 @@ export interface UseHomeDataReturn {
   lessonProgress: UserLessonProgress[]
   /** Tracked savings/investment accounts */
   savingsAccounts: SavingsAccount[]
+  /**
+   * The user's persisted pay schedule, or `null` when none is set. Callers fall
+   * back to a flexible default so payday-aware features still work out of the box.
+   */
+  paySchedule: PaySchedule | null
+  /** User sinking funds for periodic large costs */
+  sinkingFunds: SinkingFund[]
   
   // ── Computed Values (Memoized) ─────────────────────────────────
   /** Daily allowance calculation (Requirement 13.2) */
@@ -239,11 +255,21 @@ export interface UseHomeDataReturn {
   /** Contribute to a savings account (add to balance) */
   contributeToSavingsAccount: (id: string, amount: number) => Promise<SavingsAccount | null>
   
+  // Sinking fund mutations
+  /** Add a new sinking fund */
+  addSinkingFund: (data: Omit<SinkingFund, 'id' | 'userId' | 'createdAt'>) => Promise<SinkingFund | null>
+  /** Update an existing sinking fund */
+  updateSinkingFund: (id: string, updates: Partial<SinkingFund>) => Promise<SinkingFund | null>
+  /** Delete a sinking fund */
+  deleteSinkingFund: (id: string) => Promise<boolean>
+  
   // Direct state setters (for advanced optimistic updates)
   /** Set transactions directly (for optimistic updates) */
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>
   /** Set budgets directly (for optimistic updates) */
   setBudgets: React.Dispatch<React.SetStateAction<Budget[]>>
+  /** Set disbursement bonus (monthly income boost from lump-sum aid/refunds) */
+  setDisbursementBonus: React.Dispatch<React.SetStateAction<number>>
   /** Set goals directly (for optimistic updates) */
   setGoals: React.Dispatch<React.SetStateAction<Goal[]>>
 }
@@ -273,6 +299,9 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   const [allocations, setAllocations] = useState<AppAllocation[]>([])
   const [savingsAccounts, setSavingsAccounts] = useState<SavingsAccount[]>([])
   const [debts, setDebts] = useState<Debt[]>([])
+  const [paySchedule, setPaySchedule] = useState<PaySchedule | null>(null)
+  const [sinkingFunds, setSinkingFunds] = useState<SinkingFund[]>([])
+  const [disbursementBonus, setDisbursementBonus] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   
   // ── Data Loading ───────────────────────────────────────────────
@@ -292,7 +321,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       const currentMonth = new Date().toISOString().slice(0, 7)
       
       // Parallel data fetch for optimal performance (Requirement 13.1)
-      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, debtData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, debtData, payScheduleData, sinkingFundsData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
@@ -300,6 +329,8 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
         getMonthAllocations(userId, currentMonth).catch(() => [] as AppAllocation[]),
         getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
         getDebts(userId).catch(() => [] as Debt[]),
+        getPaySchedule(userId).catch(() => null),
+        getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
       ])
       
       setTransactions(txData)
@@ -309,6 +340,8 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setAllocations(allocationData)
       setSavingsAccounts(savingsData)
       setDebts(debtData)
+      setPaySchedule(payScheduleData)
+      setSinkingFunds(sinkingFundsData)
     } catch (err) {
       console.error('Error loading home data:', err)
       // Set empty arrays on error to allow app to function
@@ -338,13 +371,15 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       const currentMonth = new Date().toISOString().slice(0, 7)
       
       // Parallel refresh for optimal performance
-      const [txData, budgetData, goalData, lessonData, allocationData, savingsData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, payScheduleData, sinkingFundsData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
         getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
         getMonthAllocations(userId, currentMonth).catch(() => [] as AppAllocation[]),
         getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
+        getPaySchedule(userId).catch(() => null),
+        getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
       ])
       
       setTransactions(txData)
@@ -353,6 +388,8 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setLessonProgress(lessonData)
       setAllocations(allocationData)
       setSavingsAccounts(savingsData)
+      setPaySchedule(payScheduleData)
+      setSinkingFunds(sinkingFundsData)
     } catch (err) {
       console.error('Error refreshing home data:', err)
       // Don't clear existing data on refresh failure
@@ -761,6 +798,72 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     }
   }, [userId])
   
+  // ── Sinking Fund Mutations ─────────────────────────────────────
+  /**
+   * Add a new sinking fund
+   */
+  const addSinkingFund = useCallback(async (
+    data: Omit<SinkingFund, 'id' | 'userId' | 'createdAt'>
+  ): Promise<SinkingFund | null> => {
+    if (!userId) return null
+    
+    try {
+      const result = await createSinkingFundApi(userId, data)
+      
+      if (result) {
+        setSinkingFunds(prev => [...prev, result])
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error creating sinking fund:', err)
+      return null
+    }
+  }, [userId])
+  
+  /**
+   * Update an existing sinking fund
+   */
+  const updateSinkingFundFn = useCallback(async (
+    id: string,
+    updates: Partial<SinkingFund>
+  ): Promise<SinkingFund | null> => {
+    if (!userId) return null
+    
+    try {
+      const result = await updateSinkingFundApi(userId, id, updates)
+      
+      if (result) {
+        setSinkingFunds(prev => prev.map(f => f.id === id ? result : f))
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error updating sinking fund:', err)
+      return null
+    }
+  }, [userId])
+  
+  /**
+   * Delete a sinking fund
+   */
+  const deleteSinkingFundFn = useCallback(async (id: string): Promise<boolean> => {
+    if (!userId) return false
+    
+    try {
+      const success = await deleteSinkingFundApi(userId, id)
+      
+      if (success) {
+        setSinkingFunds(prev => prev.filter(f => f.id !== id))
+      }
+      
+      return success
+    } catch (err) {
+      console.error('Error deleting sinking fund:', err)
+      return false
+    }
+  }, [userId])
+  
   // ── Memoized Computations ──────────────────────────────────────
   /**
    * Daily allowance calculation (memoized)
@@ -782,9 +885,25 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     // Convert debt minimum payments into fixed expenses so they are
     // sunk before computing the daily discretionary allowance.
     const debtFixedExpenses = debtsToFixedExpenses(debts)
+
+    // Include sinking-fund monthly reserves as a fixed expense
+    const reserveAmount = getTotalMonthlyReserve(sinkingFunds)
+    const sinkingFundFixedExpense: FixedExpense = {
+      id: 'sinking-funds-reserve',
+      userId: '',
+      category: 'other',
+      label: 'Sinking Funds',
+      amount: reserveAmount,
+      dueDay: 1,
+      recurringId: 'sinking-funds-reserve',
+      isActive: true,
+    }
+    const allFixedExpenses = reserveAmount > 0
+      ? [...debtFixedExpenses, sinkingFundFixedExpense]
+      : debtFixedExpenses
     
-    return computeDailyAllowance(budgets, transactions, new Date(), monthlyIncome, debtFixedExpenses)
-  }, [budgets, transactions, debts, isLoading])
+    return computeDailyAllowance(budgets, transactions, new Date(), (monthlyIncome ?? 0) + disbursementBonus, allFixedExpenses)
+  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, isLoading])
   
   /**
    * Category budget rows (memoized)
@@ -855,6 +974,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     goals,
     lessonProgress,
     savingsAccounts,
+    paySchedule,
     
     // Computed values (memoized)
     allowance,
@@ -893,9 +1013,16 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     deleteSavingsAccount: deleteSavingsAccountFn,
     contributeToSavingsAccount,
     
+    // Sinking fund mutations
+    sinkingFunds,
+    addSinkingFund,
+    updateSinkingFund: updateSinkingFundFn,
+    deleteSinkingFund: deleteSinkingFundFn,
+    
     // Direct state setters (for advanced optimistic updates)
     setTransactions,
     setBudgets,
     setGoals,
+    setDisbursementBonus,
   }
 }

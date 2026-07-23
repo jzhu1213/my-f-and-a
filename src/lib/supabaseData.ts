@@ -11,6 +11,8 @@ import type {
 } from '@/types'
 import type { SavingsAccount, SavingsAccountType, Debt, DebtType } from '@/types/folio'
 import type { IncomeAllocation } from '@/types/folio'
+import type { SinkingFund } from './sinkingFunds'
+import type { PaySchedule, PayCadence } from './paySchedule'
 
 // ============================================
 // DATABASE TYPES (matching Supabase schema)
@@ -92,6 +94,18 @@ interface DbDebt {
   created_at: string
 }
 
+interface DbSinkingFund {
+  id: string
+  user_id: string
+  label: string
+  category: string
+  target_amount: number
+  due_date: string | null
+  saved_amount: number
+  monthly_reserve: number
+  created_at: string
+}
+
 interface DbAllocation {
   id: string
   user_id: string
@@ -100,6 +114,15 @@ interface DbAllocation {
   save: number
   invest: number
   set_aside: number
+  created_at: string
+}
+
+interface DbPaySchedule {
+  id: string
+  user_id: string
+  cadence: string
+  anchor_date: string
+  amount?: number | null
   created_at: string
 }
 
@@ -180,6 +203,20 @@ function dbSavingsAccountToApp(db: DbSavingsAccount): SavingsAccount {
     balance: db.balance,
     monthlyContribution: db.monthly_contribution,
     expectedAnnualReturn: db.expected_annual_return,
+    createdAt: db.created_at,
+  }
+}
+
+function dbSinkingFundToApp(db: DbSinkingFund): SinkingFund {
+  return {
+    id: db.id,
+    userId: db.user_id,
+    label: db.label,
+    category: db.category as TransactionCategory,
+    targetAmount: db.target_amount,
+    dueDate: db.due_date ?? '',
+    savedAmount: db.saved_amount,
+    monthlyReserve: db.monthly_reserve,
     createdAt: db.created_at,
   }
 }
@@ -1096,6 +1133,318 @@ export async function deleteDebt(
 
   if (error) {
     console.error('Error deleting debt:', error)
+    return false
+  }
+
+  return true
+}
+
+// ============================================
+// SINKING FUND CRUD
+// ============================================
+
+export async function getSinkingFunds(userId: string): Promise<SinkingFund[]> {
+  const { data, error } = await supabase
+    .from('sinking_funds')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching sinking funds:', error)
+    return []
+  }
+
+  return (data || []).map(dbSinkingFundToApp)
+}
+
+export async function createSinkingFund(
+  userId: string,
+  fund: {
+    label: string
+    category: TransactionCategory
+    targetAmount: number
+    dueDate: string
+    savedAmount: number
+    monthlyReserve: number
+  }
+): Promise<SinkingFund | null> {
+  const { data, error } = await supabase
+    .from('sinking_funds')
+    .insert({
+      user_id: userId,
+      label: fund.label,
+      category: fund.category,
+      target_amount: fund.targetAmount,
+      due_date: fund.dueDate || null,
+      saved_amount: fund.savedAmount,
+      monthly_reserve: fund.monthlyReserve,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating sinking fund:', error)
+    return null
+  }
+
+  return dbSinkingFundToApp(data)
+}
+
+export async function updateSinkingFund(
+  userId: string,
+  id: string,
+  updates: {
+    label?: string
+    category?: TransactionCategory
+    targetAmount?: number
+    dueDate?: string
+    savedAmount?: number
+    monthlyReserve?: number
+  }
+): Promise<SinkingFund | null> {
+  const dbUpdates: Record<string, unknown> = {}
+  if (updates.label !== undefined) dbUpdates.label = updates.label
+  if (updates.category !== undefined) dbUpdates.category = updates.category
+  if (updates.targetAmount !== undefined) dbUpdates.target_amount = updates.targetAmount
+  if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate || null
+  if (updates.savedAmount !== undefined) dbUpdates.saved_amount = updates.savedAmount
+  if (updates.monthlyReserve !== undefined) dbUpdates.monthly_reserve = updates.monthlyReserve
+
+  const { data, error } = await supabase
+    .from('sinking_funds')
+    .update(dbUpdates)
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating sinking fund:', error)
+    return null
+  }
+
+  return dbSinkingFundToApp(data)
+}
+
+export async function deleteSinkingFund(
+  userId: string,
+  id: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('sinking_funds')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error deleting sinking fund:', error)
+    return false
+  }
+
+  return true
+}
+
+// ============================================
+// PAY SCHEDULE FUNCTIONS
+// ============================================
+
+function dbPayScheduleToApp(db: DbPaySchedule): PaySchedule {
+  return {
+    cadence: (db.cadence || 'irregular') as PayCadence,
+    anchorDate: db.anchor_date,
+    amount: db.amount ?? undefined,
+  }
+}
+
+/**
+ * Get the user's saved pay schedule, or null if none has been set yet.
+ * Returns null (rather than throwing) when no row exists so callers can fall
+ * back to a flexible default.
+ */
+export async function getPaySchedule(userId: string): Promise<PaySchedule | null> {
+  const { data, error } = await supabase
+    .from('pay_schedules')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  if (error) {
+    // PGRST116 = no rows found; that's an expected "not set yet" state.
+    if (error.code !== 'PGRST116') {
+      console.error('Error fetching pay schedule:', error)
+    }
+    return null
+  }
+
+  return dbPayScheduleToApp(data)
+}
+
+/**
+ * Create or update the user's pay schedule (one schedule per user).
+ * Follows the existing upsert-on-user pattern used elsewhere in this module.
+ */
+export async function upsertPaySchedule(
+  userId: string,
+  schedule: PaySchedule
+): Promise<PaySchedule | null> {
+  const { data, error } = await supabase
+    .from('pay_schedules')
+    .upsert({
+      user_id: userId,
+      cadence: schedule.cadence,
+      anchor_date: schedule.anchorDate,
+      amount: schedule.amount ?? null,
+    }, {
+      onConflict: 'user_id'
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error upserting pay schedule:', error)
+    return null
+  }
+
+  return dbPayScheduleToApp(data)
+}
+
+// ============================================
+// REIMBURSEMENT / IOU FUNCTIONS
+// ============================================
+
+import type { Reimbursement, ReimbursementDirection } from '@/lib/reimbursements'
+
+interface DbReimbursement {
+  id: string
+  user_id: string
+  person_name: string
+  direction: string
+  amount: number
+  note: string
+  settled: boolean
+  settled_at: string | null
+  created_at: string
+}
+
+function dbReimbursementToApp(db: DbReimbursement): Reimbursement {
+  return {
+    id: db.id,
+    userId: db.user_id,
+    personName: db.person_name,
+    direction: db.direction as ReimbursementDirection,
+    amount: db.amount,
+    note: db.note || '',
+    settled: db.settled,
+    settledAt: db.settled_at,
+    createdAt: db.created_at,
+  }
+}
+
+export async function getReimbursements(userId: string): Promise<Reimbursement[]> {
+  const { data, error } = await supabase
+    .from('reimbursements')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching reimbursements:', error)
+    return []
+  }
+
+  return (data || []).map(dbReimbursementToApp)
+}
+
+export async function createReimbursement(
+  userId: string,
+  iou: {
+    personName: string
+    direction: ReimbursementDirection
+    amount: number
+    note?: string
+  }
+): Promise<Reimbursement | null> {
+  const { data, error } = await supabase
+    .from('reimbursements')
+    .insert({
+      user_id: userId,
+      person_name: iou.personName.trim(),
+      direction: iou.direction,
+      amount: iou.amount,
+      note: iou.note?.trim() ?? '',
+      settled: false,
+      settled_at: null,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating reimbursement:', error)
+    return null
+  }
+
+  return dbReimbursementToApp(data)
+}
+
+export async function settleReimbursement(
+  userId: string,
+  id: string
+): Promise<Reimbursement | null> {
+  const { data, error } = await supabase
+    .from('reimbursements')
+    .update({
+      settled: true,
+      settled_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error settling reimbursement:', error)
+    return null
+  }
+
+  return dbReimbursementToApp(data)
+}
+
+export async function unsettleReimbursement(
+  userId: string,
+  id: string
+): Promise<Reimbursement | null> {
+  const { data, error } = await supabase
+    .from('reimbursements')
+    .update({
+      settled: false,
+      settled_at: null,
+    })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error unsettling reimbursement:', error)
+    return null
+  }
+
+  return dbReimbursementToApp(data)
+}
+
+export async function deleteReimbursement(
+  userId: string,
+  id: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('reimbursements')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error deleting reimbursement:', error)
     return false
   }
 
