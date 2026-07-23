@@ -9,7 +9,7 @@ import type {
   TransactionType,
   AccountType,
 } from '@/types'
-import type { SavingsAccount, SavingsAccountType } from '@/types/folio'
+import type { SavingsAccount, SavingsAccountType, Debt, DebtType } from '@/types/folio'
 import type { IncomeAllocation } from '@/types/folio'
 
 // ============================================
@@ -78,6 +78,17 @@ interface DbSavingsAccount {
   balance: number
   monthly_contribution: number
   expected_annual_return: number
+  created_at: string
+}
+
+interface DbDebt {
+  id: string
+  user_id: string
+  type: string
+  name: string
+  balance: number
+  apr: number
+  minimum_payment: number
   created_at: string
 }
 
@@ -169,6 +180,19 @@ function dbSavingsAccountToApp(db: DbSavingsAccount): SavingsAccount {
     balance: db.balance,
     monthlyContribution: db.monthly_contribution,
     expectedAnnualReturn: db.expected_annual_return,
+    createdAt: db.created_at,
+  }
+}
+
+function dbDebtToApp(db: DbDebt): Debt {
+  return {
+    id: db.id,
+    userId: db.user_id,
+    type: db.type as DebtType,
+    name: db.name,
+    balance: db.balance,
+    apr: db.apr,
+    minimumPayment: db.minimum_payment,
     createdAt: db.created_at,
   }
 }
@@ -974,4 +998,106 @@ export async function updateSavingsAccountBalance(
   }
 
   return dbSavingsAccountToApp(data)
+}
+
+// ============================================
+// DEBT CRUD
+// ============================================
+
+export async function getDebts(userId: string): Promise<Debt[]> {
+  const { data, error } = await supabase
+    .from('debts')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching debts:', error)
+    return []
+  }
+
+  return (data || []).map(dbDebtToApp)
+}
+
+export async function createDebt(
+  userId: string,
+  debt: {
+    type: DebtType
+    name: string
+    balance: number
+    apr: number
+    minimumPayment: number
+  }
+): Promise<Debt | null> {
+  const { data, error } = await supabase
+    .from('debts')
+    .insert({
+      user_id: userId,
+      type: debt.type,
+      name: debt.name,
+      balance: debt.balance,
+      apr: debt.apr,
+      minimum_payment: debt.minimumPayment,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating debt:', error)
+    return null
+  }
+
+  return dbDebtToApp(data)
+}
+
+export async function updateDebt(
+  userId: string,
+  id: string,
+  updates: {
+    type?: DebtType
+    name?: string
+    balance?: number
+    apr?: number
+    minimumPayment?: number
+  }
+): Promise<Debt | null> {
+  const dbUpdates: Record<string, unknown> = {}
+  if (updates.type !== undefined) dbUpdates.type = updates.type
+  if (updates.name !== undefined) dbUpdates.name = updates.name
+  if (updates.balance !== undefined) dbUpdates.balance = updates.balance
+  if (updates.apr !== undefined) dbUpdates.apr = updates.apr
+  if (updates.minimumPayment !== undefined) dbUpdates.minimum_payment = updates.minimumPayment
+
+  const { data, error } = await supabase
+    .from('debts')
+    .update(dbUpdates)
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating debt:', error)
+    return null
+  }
+
+  return dbDebtToApp(data)
+}
+
+export async function deleteDebt(
+  userId: string,
+  id: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('debts')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error deleting debt:', error)
+    return false
+  }
+
+  return true
 }

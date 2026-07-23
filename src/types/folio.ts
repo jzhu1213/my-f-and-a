@@ -123,6 +123,8 @@ export type TipTrigger =
   | { type: 'first_goal_progress' }
   | { type: 'weekly_summary' }
   | { type: 'payday_detected' }
+  | { type: 'burn_rate_warning'; projectedOverspend: number }
+  | { type: 'bill_due_soon'; label: string; dueDay: number; daysUntil: number }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)
@@ -371,5 +373,33 @@ export interface SavingsAccount {
   balance: number
   monthlyContribution: number
   expectedAnnualReturn: number
+  createdAt: string
+}
+
+// ============================================================================
+// Debt Tracking Types
+// ============================================================================
+
+/** Type of debt */
+export type DebtType = 'student_loan' | 'credit_card' | 'personal_loan' | 'car_loan' | 'other'
+
+/** Metadata for each debt type */
+export const DEBT_TYPES: { type: DebtType; label: string; emoji: string }[] = [
+  { type: 'student_loan', label: 'Student Loan', emoji: '🎓' },
+  { type: 'credit_card', label: 'Credit Card', emoji: '💳' },
+  { type: 'personal_loan', label: 'Personal Loan', emoji: '🤝' },
+  { type: 'car_loan', label: 'Car Loan', emoji: '🚗' },
+  { type: 'other', label: 'Other', emoji: '📄' },
+]
+
+/** A tracked debt (student loan, credit card, etc.) */
+export interface Debt {
+  id: string
+  userId: string
+  type: DebtType
+  name: string
+  balance: number
+  apr: number // Annual percentage rate (e.g., 6.5 for 6.5%)
+  minimumPayment: number
   createdAt: string
 }

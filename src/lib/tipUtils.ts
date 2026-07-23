@@ -16,6 +16,14 @@ export interface UserContext {
   topCategory: TransactionCategory
   /** Current allowance state */
   allowance: { amount: number; dailyBudget: number }
+  /** Average daily discretionary spending over the last 7 days (or days available) */
+  recentBurnRate?: number
+  /** How much discretionary money is left for the rest of the month */
+  discretionaryPoolRemaining?: number
+  /** Days left in the current month */
+  daysRemainingInMonth?: number
+  /** Bills due within the next 3 days (for bill-due reminders) */
+  upcomingBills?: { label: string; amount: number; dueDay: number }[]
 }
 
 /**
@@ -65,6 +73,59 @@ export function selectContextualTip(
       actionType: 'view_insight',
       triggerCondition: { type: 'category_spike', category: context.topCategory, percentIncrease: 80 },
     })
+  }
+
+  // Step 2b: Burn-rate velocity warning — spending pace would exhaust pool early (medium priority)
+  if (
+    context.recentBurnRate != null &&
+    context.discretionaryPoolRemaining != null &&
+    context.daysRemainingInMonth != null &&
+    context.daysRemainingInMonth > 0 &&
+    context.recentBurnRate > 0
+  ) {
+    const projectedSpend = context.recentBurnRate * context.daysRemainingInMonth
+    if (projectedSpend > context.discretionaryPoolRemaining * 1.2) {
+      candidates.push({
+        id: 'burn-rate-warning',
+        type: 'gentle_nudge',
+        title: 'Pacing check',
+        message:
+          "At your recent pace, things might get tight before month-end. No stress — just a heads up so you can plan ahead.",
+        emoji: '📊',
+        priority: 'medium',
+        actionLabel: 'See breakdown',
+        actionType: 'view_insight',
+        triggerCondition: {
+          type: 'burn_rate_warning',
+          projectedOverspend: projectedSpend - context.discretionaryPoolRemaining,
+        },
+      })
+    }
+  }
+
+  // Step 2c: Bill due-date reminder — soonest bill due within 3 days (medium priority)
+  if (context.upcomingBills && context.upcomingBills.length > 0) {
+    // Pick the soonest bill (lowest dueDay relative to today)
+    const today = new Date()
+    const currentDay = today.getDate()
+    const sorted = [...context.upcomingBills].sort((a, b) => a.dueDay - b.dueDay)
+    const soonest = sorted[0]
+    const daysUntil = soonest.dueDay - currentDay
+
+    if (daysUntil >= 0 && daysUntil <= 3) {
+      const dayLabel = daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`
+      candidates.push({
+        id: `bill-due-${soonest.label}-${soonest.dueDay}`,
+        type: 'gentle_nudge',
+        title: 'Bill reminder',
+        message: `Reminder — ${soonest.label} ($${soonest.amount}) is due ${dayLabel}. You've got this! 📬`,
+        emoji: '📬',
+        priority: 'medium',
+        actionLabel: 'View details',
+        actionType: 'view_insight',
+        triggerCondition: { type: 'bill_due_soon', label: soonest.label, dueDay: soonest.dueDay, daysUntil },
+      })
+    }
   }
 
   // Step 3: Educational trigger — fewer than 10 total transactions (low priority)

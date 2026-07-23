@@ -88,7 +88,7 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
         <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
           <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Starting Amount</p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 18, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>$</span>
+            <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>$</span>
             <input
               type="text"
               inputMode="decimal"
@@ -99,7 +99,7 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
                 flex: 1,
                 background: 'transparent',
                 fontSize: 20,
-                fontFamily: 'JetBrains Mono, monospace',
+                fontFamily: FONT_FAMILY,
                 fontWeight: 500,
                 color: 'var(--text)',
                 outline: 'none',
@@ -115,7 +115,7 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
         <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
           <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Monthly Contribution</p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 18, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>$</span>
+            <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>$</span>
             <input
               type="text"
               inputMode="decimal"
@@ -126,7 +126,7 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
                 flex: 1,
                 background: 'transparent',
                 fontSize: 20,
-                fontFamily: 'JetBrains Mono, monospace',
+                fontFamily: FONT_FAMILY,
                 fontWeight: 500,
                 color: 'var(--text)',
                 outline: 'none',
@@ -153,7 +153,7 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
                   flex: 1,
                   background: 'transparent',
                   fontSize: 20,
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: FONT_FAMILY,
                   fontWeight: 500,
                   color: 'var(--text)',
                   outline: 'none',
@@ -162,7 +162,7 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
                   paddingBottom: 4,
                 }}
               />
-              <span style={{ fontSize: 14, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>%</span>
+              <span style={{ fontSize: 14, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>%</span>
             </div>
           </div>
           <div>
@@ -177,7 +177,7 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
                 width: '100%',
                 background: 'transparent',
                 fontSize: 20,
-                fontFamily: 'JetBrains Mono, monospace',
+                fontFamily: FONT_FAMILY,
                 fontWeight: 500,
                 color: 'var(--text)',
                 outline: 'none',
@@ -196,18 +196,18 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
 
           <GlassCard elevation="medium" glow="healthy" style={{ padding: 24, marginBottom: 16 }}>
             <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Future Value</p>
-            <p style={{ fontSize: 40, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: 'var(--success)' }}>
+            <p style={{ fontSize: 40, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--success)' }}>
               ${result.finalAmount.toLocaleString()}
             </p>
           </GlassCard>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
             <GlassCard elevation="low" style={{ padding: 16 }}>
-              <p style={{ fontSize: 20, fontFamily: 'JetBrains Mono, monospace', fontWeight: 500, color: 'var(--text)' }}>${result.totalContributions.toLocaleString()}</p>
+              <p style={{ fontSize: 20, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--text)' }}>${result.totalContributions.toLocaleString()}</p>
               <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>contributed</p>
             </GlassCard>
             <GlassCard elevation="low" style={{ padding: 16 }}>
-              <p style={{ fontSize: 20, fontFamily: 'JetBrains Mono, monospace', fontWeight: 500, color: 'var(--success)' }}>${result.totalInterest.toLocaleString()}</p>
+              <p style={{ fontSize: 20, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--success)' }}>${result.totalInterest.toLocaleString()}</p>
               <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>from growth</p>
             </GlassCard>
           </div>
@@ -227,7 +227,7 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
                   borderBottom: idx === displayRows.length - 1 ? 'none' : '1px solid var(--line)',
                 }}
               >
-                <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)', width: 48 }}>YR {row.year}</span>
+                <span style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', width: 48 }}>YR {row.year}</span>
                 <div style={{ flex: 1, height: 2, background: 'var(--line)', borderRadius: 99, overflow: 'hidden' }}>
                   <div
                     style={{
@@ -238,7 +238,7 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
                     }}
                   />
                 </div>
-                <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--sub)', width: 80, textAlign: 'right' }}>
+                <span style={{ fontSize: 12, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--sub)', width: 80, textAlign: 'right' }}>
                   ${row.balance.toLocaleString()}
                 </span>
               </div>

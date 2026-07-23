@@ -2,13 +2,16 @@
 import { useState, useMemo } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { FONT_FAMILY } from '@/styles/typography'
+import { getPayoffMonths, getTotalInterestPaid } from '@/lib/debtUtils'
 import type { CreditPayoffResult } from '@/types'
+import type { Debt } from '@/types/folio'
 
 interface CreditPayoffCalculatorProps {
   onBack: () => void
+  debts?: Debt[]
 }
 
-export function CreditPayoffCalculator({ onBack }: CreditPayoffCalculatorProps) {
+export function CreditPayoffCalculator({ onBack, debts }: CreditPayoffCalculatorProps) {
   const [balance,        setBalance]        = useState('')
   const [apr,            setApr]            = useState('')
   const [monthlyPayment, setMonthlyPayment] = useState('')
@@ -29,6 +32,30 @@ export function CreditPayoffCalculator({ onBack }: CreditPayoffCalculatorProps) 
     }
   }, [balance, apr, monthlyPayment])
 
+  /** Compute payoff info for each tracked debt */
+  const debtResults = useMemo(() => {
+    if (!debts || debts.length === 0) return []
+    return debts.map((debt) => {
+      const months = getPayoffMonths(debt.balance, debt.apr, debt.minimumPayment)
+      const totalInterest = getTotalInterestPaid(debt.balance, debt.apr, debt.minimumPayment)
+      const totalPaid = months === Infinity ? Infinity : debt.minimumPayment * months
+      const payoffResult: CreditPayoffResult = {
+        monthsToPayoff: months,
+        totalInterest: months === Infinity ? Infinity : Math.round(totalInterest * 100) / 100,
+        totalPaid: months === Infinity ? Infinity : Math.round(totalPaid * 100) / 100,
+        monthlyPayment: debt.minimumPayment,
+      }
+      return { debt, payoffResult }
+    })
+  }, [debts])
+
+  /** Pre-fill the calculator inputs from a tracked debt */
+  const handleSelectDebt = (debt: Debt) => {
+    setBalance(debt.balance.toString())
+    setApr(debt.apr.toString())
+    setMonthlyPayment(debt.minimumPayment.toString())
+  }
+
   const handleChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setter(e.target.value.replace(/[^0-9.]/g, ''))
   }
@@ -40,7 +67,7 @@ export function CreditPayoffCalculator({ onBack }: CreditPayoffCalculatorProps) 
     <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
       <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>{label}</p>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        {prefix && <span style={{ fontSize: 18, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>{prefix}</span>}
+        {prefix && <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>{prefix}</span>}
         <input
           type="text"
           inputMode="decimal"
@@ -51,7 +78,7 @@ export function CreditPayoffCalculator({ onBack }: CreditPayoffCalculatorProps) 
             flex: 1,
             background: 'transparent',
             fontSize: 20,
-            fontFamily: 'JetBrains Mono, monospace',
+            fontFamily: FONT_FAMILY,
             fontWeight: 500,
             color: 'var(--text)',
             outline: 'none',
@@ -60,7 +87,7 @@ export function CreditPayoffCalculator({ onBack }: CreditPayoffCalculatorProps) 
             paddingBottom: 4,
           }}
         />
-        {suffix && <span style={{ fontSize: 14, fontFamily: 'JetBrains Mono, monospace', fontWeight: 400, color: 'var(--muted)' }}>{suffix}</span>}
+        {suffix && <span style={{ fontSize: 14, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>{suffix}</span>}
       </div>
     </div>
   )
@@ -99,6 +126,41 @@ export function CreditPayoffCalculator({ onBack }: CreditPayoffCalculatorProps) 
         <h1 style={{ fontSize: 28, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--text)' }}>Credit Payoff</h1>
       </div>
 
+      {/* Tracked debts summary */}
+      {debtResults.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>Your Debts</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {debtResults.map(({ debt, payoffResult }) => (
+              <GlassCard
+                key={debt.id}
+                elevation="low"
+                style={{ padding: 16, cursor: 'pointer', transition: 'transform 0.15s, border-color 0.15s' }}
+                onClick={() => handleSelectDebt(debt)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <p style={{ fontSize: 15, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--text)' }}>{debt.name}</p>
+                  <p style={{ fontSize: 15, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--text)' }}>${debt.balance.toLocaleString()}</p>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <p style={{ fontSize: 12, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>
+                    {debt.apr}% APR · ${debt.minimumPayment}/mo
+                  </p>
+                  <p style={{ fontSize: 12, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--sub)' }}>
+                    {payoffResult.monthsToPayoff === Infinity
+                      ? 'Won\u2019t pay off'
+                      : `${payoffResult.monthsToPayoff} mo · $${payoffResult.totalInterest.toLocaleString()} interest`}
+                  </p>
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 8, textAlign: 'center' }}>
+            Tap a debt to explore payoff scenarios below
+          </p>
+        </div>
+      )}
+
       <GlassCard elevation="low" style={{ padding: 20, marginBottom: 24 }}>
         <InputRow label="Current Balance" prefix="$" value={balance} onChange={handleChange(setBalance)} placeholder="5000" />
         <InputRow label="APR" suffix="%" value={apr} onChange={handleChange(setApr)} placeholder="18.9" />
@@ -116,7 +178,7 @@ export function CreditPayoffCalculator({ onBack }: CreditPayoffCalculatorProps) 
               { label: 'monthly payment',  value: `$${result.monthlyPayment.toLocaleString()}` },
             ].map(item => (
               <GlassCard key={item.label} elevation="low" style={{ padding: 16 }}>
-                <p style={{ fontSize: 24, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: 'var(--text)' }}>{item.value}</p>
+                <p style={{ fontSize: 24, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--text)' }}>{item.value}</p>
                 <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{item.label}</p>
               </GlassCard>
             ))}

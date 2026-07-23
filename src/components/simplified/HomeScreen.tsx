@@ -29,6 +29,7 @@ import {
 } from "@/styles/shared"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
 import { ContextualTipCard } from "./ContextualTipCard"
+import { InsightCard } from "./InsightCard"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { HomeScreenSkeleton, FadeInContent } from "@/components/ui/Skeleton"
 import { CategoryDetailSheet } from "@/components/accounting/CategoryDetailSheet"
@@ -106,6 +107,10 @@ export interface HomeScreenProps {
   celebrationEvent?: CelebrationEvent | null
   /** Called when the celebration overlay is dismissed (auto-timeout or user tap) */
   onCelebrationDismiss?: () => void
+
+  // ── Bill reminders ─────────────────────────────────────────────────────────
+  /** Bills due within the next 3 days — used for contextual bill-due tips */
+  upcomingBills?: { label: string; amount: number; dueDay: number }[]
 }
 
 // ============================================================================
@@ -144,6 +149,7 @@ export function HomeScreen({
   onRefresh,
   celebrationEvent: externalCelebration,
   onCelebrationDismiss,
+  upcomingBills,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -226,6 +232,40 @@ export function HomeScreen({
     const spentToday = allowance?.spentToday ?? 0
     const todaySpentPercent = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0
 
+    // ── Burn-rate velocity fields ──────────────────────────────────────────
+    const now = new Date()
+    const daysRemainingInMonth =
+      new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate()
+
+    // Average daily discretionary spending over the last 7 days
+    let recentBurnRate: number | undefined
+    const sevenDaysAgo = new Date(now)
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10)
+    const recentExpenses = transactions.filter(
+      (t) => t.type === "expense" && t.date >= sevenDaysAgoStr && t.date <= todayStr
+    )
+    if (recentExpenses.length > 0) {
+      const totalRecentSpend = recentExpenses.reduce((sum, t) => sum + t.amount, 0)
+      // Use min(7, days since first expense in range) to avoid divide by too large a window
+      const firstExpenseDate = recentExpenses.reduce(
+        (min, t) => (t.date < min ? t.date : min),
+        recentExpenses[0].date
+      )
+      const daysInRange = Math.max(
+        1,
+        Math.ceil(
+          (new Date(todayStr).getTime() - new Date(firstExpenseDate).getTime()) /
+            86_400_000
+        ) + 1
+      )
+      recentBurnRate = totalRecentSpend / daysInRange
+    }
+
+    // Discretionary pool remaining = daily budget * days remaining (approximate)
+    const discretionaryPoolRemaining =
+      dailyBudget > 0 ? dailyBudget * daysRemainingInMonth : undefined
+
     return {
       underBudgetStreak,
       todaySpentPercent,
@@ -235,8 +275,12 @@ export function HomeScreen({
         amount: allowance?.amount ?? 0,
         dailyBudget,
       },
+      recentBurnRate,
+      discretionaryPoolRemaining,
+      daysRemainingInMonth,
+      upcomingBills,
     }
-  }, [transactions, allowance])
+  }, [transactions, allowance, underBudgetStreak, upcomingBills])
 
   const activeTip = useMemo(
     () => selectContextualTip(userContext, dismissedTips),
@@ -484,6 +528,12 @@ export function HomeScreen({
             </section>
           )}
         </AnimatePresence>
+
+        {/* ── 1.6. End-of-Month Projection Insight ─────────────── */}
+        <InsightCard
+          transactions={transactions}
+          budgets={budgets}
+        />
 
         {/* ── 2. Quick Actions ────────────────────────────────────── */}
         <section aria-label="Quick actions">

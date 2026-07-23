@@ -152,18 +152,16 @@ export function ProfileSheet({
                   marginBottom: 24,
                 }}
               >
-                <span
+                <h2
                   style={{
                     fontFamily: 'Inter, sans-serif',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    letterSpacing: '0.02em',
-                    textTransform: 'uppercase',
-                    color: 'var(--sub)',
+                    fontSize: 20,
+                    fontWeight: 600,
+                    color: 'var(--text)',
                   }}
                 >
                   Account
-                </span>
+                </h2>
                 <button
                   onClick={onClose}
                   aria-label="Close"
@@ -175,7 +173,7 @@ export function ProfileSheet({
                     border: 'none',
                   }}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -235,10 +233,11 @@ export function ProfileSheet({
                           fontWeight: 500,
                           color: 'var(--text)',
                           background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid var(--border)',
-                          borderRadius: 8,
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: 'var(--radius-sm)',
                           padding: '8px 12px',
                           marginBottom: 6,
+                          outline: 'none',
                         }}
                       />
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -254,7 +253,7 @@ export function ProfileSheet({
                             color: 'var(--text)',
                             background: 'rgba(251, 146, 60, 0.15)',
                             border: '1px solid rgba(251, 146, 60, 0.3)',
-                            borderRadius: 6,
+                            borderRadius: 'var(--radius-sm)',
                             padding: '4px 12px',
                             cursor: isSaving ? 'not-allowed' : 'pointer',
                             opacity: isSaving ? 0.6 : 1,
@@ -272,8 +271,8 @@ export function ProfileSheet({
                             fontWeight: 500,
                             color: 'var(--muted)',
                             background: 'transparent',
-                            border: '1px solid var(--border)',
-                            borderRadius: 6,
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: 'var(--radius-sm)',
                             padding: '4px 12px',
                             cursor: 'pointer',
                           }}
@@ -335,7 +334,7 @@ export function ProfileSheet({
                     fontSize: 14,
                     fontWeight: 500,
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
                     cursor: 'pointer',
                     marginBottom: 12,
                     transition: 'all 0.15s',
@@ -370,16 +369,16 @@ export function ProfileSheet({
                     fontSize: 15,
                     fontWeight: 500,
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    border: '1px solid rgba(248, 113, 113, 0.3)',
                     cursor: 'pointer',
                     transition: 'all 0.15s',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = 'var(--error)'
-                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'
+                    e.currentTarget.style.background = 'rgba(248, 113, 113, 0.08)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'
+                    e.currentTarget.style.borderColor = 'rgba(248, 113, 113, 0.3)'
                     e.currentTarget.style.background = 'transparent'
                   }}
                 >

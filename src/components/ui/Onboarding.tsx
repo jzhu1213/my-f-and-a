@@ -1,4 +1,5 @@
 "use client"
+import { FONT_FAMILY } from '@/styles/typography'
 import type { OnboardingData } from '@/types'
 
 interface OnboardingProps {
@@ -12,7 +13,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
         {/* Logo */}
         <div className="mb-14">
-          <span style={{ fontSize: '52px', fontFamily: 'Space Mono, monospace', fontWeight: 300, color: 'var(--text)', letterSpacing: '-0.03em', display: 'block', lineHeight: 1 }}>
+          <span style={{ fontSize: '52px', fontFamily: FONT_FAMILY, fontWeight: 300, color: 'var(--text)', letterSpacing: '-0.03em', display: 'block', lineHeight: 1 }}>
             folio
           </span>
           <div className="flex items-center gap-2.5 mt-3">
@@ -33,7 +34,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               className="flex items-center gap-4 py-4"
               style={{ borderBottom: '1px solid var(--border)' }}
             >
-              <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '14px', color: 'var(--muted)', flexShrink: 0, width: '20px', textAlign: 'center' }}>
+              <span style={{ fontFamily: FONT_FAMILY, fontSize: '14px', color: 'var(--muted)', flexShrink: 0, width: '20px', textAlign: 'center' }}>
                 {icon}
               </span>
               <span style={{ fontSize: '15px', color: 'var(--sub)' }}>{text}</span>

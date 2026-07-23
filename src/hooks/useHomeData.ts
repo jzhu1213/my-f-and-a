@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import type { Transaction, Budget, Goal, TransactionCategory, TransactionType, UserLessonProgress } from '@/types'
-import type { DailyAllowance, SavingsAccount, SavingsAccountType } from '@/types/folio'
+import type { DailyAllowance, Debt, SavingsAccount, SavingsAccountType } from '@/types/folio'
 import { 
   getTransactions, 
   getBudgets, 
@@ -22,6 +22,7 @@ import {
   updateSavingsAccount as updateSavingsAccountApi,
   deleteSavingsAccount as deleteSavingsAccountApi,
   updateSavingsAccountBalance,
+  getDebts,
 } from '@/lib/supabaseData'
 import type { AppAllocation } from '@/lib/supabaseData'
 import { computeTotalSetAside, computeSavingsRate } from '@/lib/allocationUtils'
@@ -29,6 +30,7 @@ import type { IncomeAllocation } from '@/types/folio'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
 import { computeCategoryBudgets } from '@/lib/budgetUtils'
 import { computeTotalSavingsBalance, computeMonthlyContributions } from '@/lib/savingsAccountUtils'
+import { debtsToFixedExpenses } from '@/lib/debtUtils'
 import type { CategoryBudgetRow } from '@/lib/budgetUtils'
 
 /**
@@ -270,6 +272,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([])
   const [allocations, setAllocations] = useState<AppAllocation[]>([])
   const [savingsAccounts, setSavingsAccounts] = useState<SavingsAccount[]>([])
+  const [debts, setDebts] = useState<Debt[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
   // ── Data Loading ───────────────────────────────────────────────
@@ -289,13 +292,14 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       const currentMonth = new Date().toISOString().slice(0, 7)
       
       // Parallel data fetch for optimal performance (Requirement 13.1)
-      const [txData, budgetData, goalData, lessonData, allocationData, savingsData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, debtData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
         getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
         getMonthAllocations(userId, currentMonth).catch(() => [] as AppAllocation[]),
         getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
+        getDebts(userId).catch(() => [] as Debt[]),
       ])
       
       setTransactions(txData)
@@ -304,6 +308,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setLessonProgress(lessonData)
       setAllocations(allocationData)
       setSavingsAccounts(savingsData)
+      setDebts(debtData)
     } catch (err) {
       console.error('Error loading home data:', err)
       // Set empty arrays on error to allow app to function
@@ -774,8 +779,12 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       .filter(t => t.date.startsWith(currentMonth) && t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0)
     
-    return computeDailyAllowance(budgets, transactions, new Date(), monthlyIncome)
-  }, [budgets, transactions, isLoading])
+    // Convert debt minimum payments into fixed expenses so they are
+    // sunk before computing the daily discretionary allowance.
+    const debtFixedExpenses = debtsToFixedExpenses(debts)
+    
+    return computeDailyAllowance(budgets, transactions, new Date(), monthlyIncome, debtFixedExpenses)
+  }, [budgets, transactions, debts, isLoading])
   
   /**
    * Category budget rows (memoized)

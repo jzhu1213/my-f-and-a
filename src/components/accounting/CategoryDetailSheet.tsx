@@ -3,6 +3,7 @@ import { TRANSACTION_CATEGORIES } from '@/types'
 import type { Transaction, TransactionCategory } from '@/types'
 import type { CategoryBudgetRow } from '@/lib/budgetUtils'
 import { weekStart } from '@/lib/budgetUtils'
+import { FONT_FAMILY } from '@/styles/typography'
 
 interface CategoryDetailSheetProps {
   isOpen: boolean
@@ -54,7 +55,7 @@ export function CategoryDetailSheet({
             <div>
               <p style={{ fontSize: '17px', color: 'var(--text)' }}>{row.label}</p>
               <p style={{
-                fontFamily: 'Space Mono, monospace', fontSize: '14px',
+                fontFamily: FONT_FAMILY, fontSize: '14px',
                 color: statusColor, marginTop: '4px',
               }}>
                 {leftLabel}
@@ -73,7 +74,7 @@ export function CategoryDetailSheet({
             <div>
               <div className="flex justify-between mb-2">
                 <span className="label">Weekly progress</span>
-                <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', color: 'var(--muted)' }}>
+                <span style={{ fontFamily: FONT_FAMILY, fontSize: '12px', color: 'var(--muted)' }}>
                   ${row.weeklySpent.toFixed(0)} / ${row.weeklyLimit.toFixed(0)}
                 </span>
               </div>
@@ -87,7 +88,7 @@ export function CategoryDetailSheet({
                 />
               </div>
               {row.monthlyLimit > 0 && (
-                <p style={{ fontFamily: 'Space Mono, monospace', fontSize: '11px', color: 'var(--muted)', marginTop: '8px', textAlign: 'right' }}>
+                <p style={{ fontFamily: FONT_FAMILY, fontSize: '11px', color: 'var(--muted)', marginTop: '8px', textAlign: 'right' }}>
                   ${row.monthlySpent.toFixed(0)} / ${row.monthlyLimit.toFixed(0)} this month
                 </p>
               )}
@@ -106,7 +107,7 @@ export function CategoryDetailSheet({
                   <span style={{ fontSize: '14px', color: 'var(--text)' }} className="truncate flex-1 mr-4">
                     {tx.note || getLabel(tx.category)}
                   </span>
-                  <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '14px', color: 'var(--sub)', flexShrink: 0 }}>
+                  <span style={{ fontFamily: FONT_FAMILY, fontSize: '14px', color: 'var(--sub)', flexShrink: 0 }}>
                     −${tx.amount.toFixed(2)}
                   </span>
                 </div>

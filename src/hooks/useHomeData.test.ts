@@ -162,8 +162,8 @@ describe('useHomeData', () => {
     expect(result.current.categoryRows.length).toBeGreaterThan(0)
     
     // Should include our mock categories
-    const foodRow = result.current.categoryRows.find(r => r.category === 'food')
-    const transportRow = result.current.categoryRows.find(r => r.category === 'transport')
+    const foodRow = result.current.categoryRows.find((r) => r.category === 'food')
+    const transportRow = result.current.categoryRows.find((r) => r.category === 'transport')
     
     expect(foodRow).toBeDefined()
     expect(transportRow).toBeDefined()
@@ -184,12 +184,12 @@ describe('useHomeData', () => {
     vi.clearAllMocks()
     
     // Setup new mock data for refresh
-    const newTransactions = [...mockTransactions, {
+    const newTransactions: Transaction[] = [...mockTransactions, {
       id: '3',
       userId: mockUserId,
       date: new Date().toISOString().slice(0, 10),
       amount: 10,
-      type: 'expense',
+      type: 'expense' as const,
       category: 'fun',
       accountType: 'personal',
       createdAt: new Date().toISOString(),
@@ -266,7 +266,7 @@ describe('useHomeData', () => {
       createdAt: new Date().toISOString(),
     }
     
-    result.current.setTransactions(prev => [newTransaction, ...prev])
+    result.current.setTransactions((prev: Transaction[]) => [newTransaction, ...prev])
     
     // Should have new transaction
     expect(result.current.transactions[0]).toEqual(newTransaction)
@@ -299,7 +299,7 @@ describe('useHomeData', () => {
       createdAt: new Date().toISOString(),
     }
     
-    result.current.setTransactions(prev => [newTransaction, ...prev])
+    result.current.setTransactions((prev: Transaction[]) => [newTransaction, ...prev])
     
     // Allowance should recalculate with new transaction
     await waitFor(() => {
@@ -330,11 +330,11 @@ describe('useHomeData', () => {
       month: new Date().toISOString().slice(0, 7),
     }
     
-    result.current.setBudgets(prev => [...prev, newBudget])
+    result.current.setBudgets((prev: Budget[]) => [...prev, newBudget])
     
     // Category rows should include new category
     await waitFor(() => {
-      const funRow = result.current.categoryRows.find(r => r.category === 'fun')
+      const funRow = result.current.categoryRows.find((r) => r.category === 'fun')
       expect(funRow).toBeDefined()
     })
   })
@@ -353,7 +353,7 @@ describe('useHomeData', () => {
     const allowance1 = result.current.allowance
     
     // Update goals (shouldn't affect allowance)
-    result.current.setGoals(prev => [...prev, {
+    result.current.setGoals((prev: Goal[]) => [...prev, {
       id: '999',
       userId: mockUserId,
       name: 'New Goal',
