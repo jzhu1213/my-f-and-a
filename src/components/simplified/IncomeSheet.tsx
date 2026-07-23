@@ -9,8 +9,8 @@ interface IncomeSheetProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: { amount: number; note?: string }) => void
-  /** Called after successful submit to show PaycheckSheet. Receives the logged amount. */
-  onShowPaycheck?: (amount: number) => void
+  /** Called after successful submit to show PaycheckSheet. Receives the logged amount and gig flag. */
+  onShowPaycheck?: (amount: number, isGigIncome?: boolean) => void
 }
 
 const MAX_AMOUNT = 99999
@@ -23,6 +23,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
   const [showNoteField, setShowNoteField] = useState(false)
+  const [isGigIncome, setIsGigIncome] = useState(false)
 
   // Reset state when opening
   useEffect(() => {
@@ -30,6 +31,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
       setAmount('')
       setNote('')
       setShowNoteField(false)
+      setIsGigIncome(false)
       setTimeout(() => amountRef.current?.focus(), 120)
     }
   }, [isOpen])
@@ -72,11 +74,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
 
     // Trigger PaycheckSheet if handler provided
     if (onShowPaycheck) {
-      onShowPaycheck(parsed)
+      onShowPaycheck(parsed, isGigIncome || undefined)
     }
 
     onClose()
-  }, [amount, note, onSubmit, onClose, showToast, onShowPaycheck])
+  }, [amount, note, isGigIncome, onSubmit, onClose, showToast, onShowPaycheck])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -276,6 +278,38 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
                   </div>
                 </div>
               )}
+
+              {/* ── Gig / Freelance Income Toggle ─────────────────────────── */}
+              <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsGigIncome(!isGigIncome)}
+                  aria-label={isGigIncome ? 'Marked as gig income' : 'Mark as gig or freelance income'}
+                  aria-pressed={isGigIncome}
+                  style={{
+                    background: isGigIncome
+                      ? 'rgba(251, 191, 36, 0.15)'
+                      : 'transparent',
+                    border: isGigIncome
+                      ? '1px solid rgba(251, 191, 36, 0.4)'
+                      : '1px dashed rgba(255, 255, 255, 0.15)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '10px 16px',
+                    fontSize: 13,
+                    fontFamily: 'Inter, sans-serif',
+                    fontWeight: isGigIncome ? 500 : 400,
+                    color: isGigIncome ? '#fbbf24' : 'var(--sub)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span style={{ fontSize: 14 }}>{isGigIncome ? '✓' : '💼'}</span>
+                  {isGigIncome ? 'Gig / freelance income' : 'This is gig / freelance income'}
+                </button>
+              </div>
 
               {/* ── Done Button ──────────────────────────────────────── */}
               <button

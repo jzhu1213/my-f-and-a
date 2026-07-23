@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useCallback, useRef, useMemo } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { isCategoryRolloverEnabled, setCategoryRolloverEnabled } from "@/lib/budgetUtils"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, TransactionCategory } from "@/types"
 
@@ -62,7 +63,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
   const [expandedCategory, setExpandedCategory] = useState<TransactionCategory | null>(null)
   const [localLimits, setLocalLimits] = useState<Record<string, number>>({})
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [rolloverEnabled, setRolloverEnabled] = useState(false)
   const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  // Hydrate rollover toggle from localStorage
+  useEffect(() => {
+    setRolloverEnabled(isCategoryRolloverEnabled())
+  }, [])
 
   // ── Compute total budget and daily allowance ──────────────────────────────
   const { totalMonthly, dailyBudget } = useMemo(() => {
@@ -158,6 +165,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
     setLocalLimits(newLimits)
     setShowResetConfirm(false)
   }, [onUpdateBudget])
+
+  // ── Toggle category rollover ──────────────────────────────────────────────
+  const handleRolloverToggle = useCallback(() => {
+    const next = !rolloverEnabled
+    setRolloverEnabled(next)
+    setCategoryRolloverEnabled(next)
+  }, [rolloverEnabled])
 
   // ── Toggle row expansion & persist any pending changes ────────────────────
   const toggleCategory = useCallback(
@@ -581,6 +595,97 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
           </div>
         </GlassCard>
       )}
+
+      {/* ── Category Rollover Toggle ──────────────────────────────────────── */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 40 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 8,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: "var(--text)",
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            Roll unused budget to next week
+          </span>
+
+          {/* Toggle switch */}
+          <motion.button
+            onClick={handleRolloverToggle}
+            whileTap={{ scale: 0.95 }}
+            transition={springs.bouncy}
+            role="switch"
+            aria-checked={rolloverEnabled}
+            aria-label="Toggle category budget rollover"
+            style={{
+              position: "relative",
+              width: 48,
+              height: 28,
+              borderRadius: 14,
+              border: "none",
+              cursor: "pointer",
+              background: rolloverEnabled
+                ? "var(--success)"
+                : "rgba(255, 255, 255, 0.12)",
+              transition: "background 0.2s",
+              padding: 0,
+            }}
+          >
+            <motion.span
+              animate={{ x: rolloverEnabled ? 22 : 2 }}
+              transition={springs.bouncy}
+              style={{
+                display: "block",
+                position: "absolute",
+                top: 2,
+                left: 0,
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                background: "#fff",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+              }}
+            />
+          </motion.button>
+        </div>
+
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--sub)",
+            lineHeight: 1.5,
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          Unspent category budget carries over (up to 50%)
+        </p>
+
+        {rolloverEnabled && (
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--muted)",
+              lineHeight: 1.5,
+              fontFamily: "Inter, sans-serif",
+              marginTop: 8,
+              padding: "8px 12px",
+              borderRadius: 8,
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            Turn off anytime to reset — your base budget stays the same.
+          </p>
+        )}
+      </GlassCard>
 
       {/* ── Slider Styles for Cross-Browser Compatibility ──────────────────── */}
       <style jsx>{`

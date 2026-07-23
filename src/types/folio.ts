@@ -126,6 +126,7 @@ export type TipTrigger =
   | { type: 'burn_rate_warning'; projectedOverspend: number }
   | { type: 'bill_due_soon'; label: string; dueDay: number; daysUntil: number }
   | { type: 'low_balance_warning'; projectedLowBalance: number; buffer: number; daysUntilDip?: number }
+  | { type: 'subscription_audit'; count: number; monthlyTotal: number }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)
@@ -156,6 +157,8 @@ export type CelebrationType =
   | 'goal_complete'
   | 'first_transaction'
   | 'weekly_win'
+  | 'no_spend_streak'
+  | 'no_spend_weekend'
 
 /**
  * Animation style for celebrations
@@ -402,6 +405,22 @@ export interface Debt {
   balance: number
   apr: number // Annual percentage rate (e.g., 6.5 for 6.5%)
   minimumPayment: number
+  createdAt: string
+}
+
+// ============================================================================
+// Custom Category Types (Requirements 3.1, 12.3, new)
+// ============================================================================
+
+/**
+ * User-defined spending category layered on top of the fixed TransactionCategory enum.
+ * Custom categories map to 'other' for underlying accounting/budget logic.
+ */
+export interface CustomCategory {
+  id: string
+  label: string
+  emoji: string
+  userId: string
   createdAt: string
 }
 

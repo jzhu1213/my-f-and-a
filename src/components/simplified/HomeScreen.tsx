@@ -33,11 +33,15 @@ import {
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
 import { ContextualTipCard } from "./ContextualTipCard"
 import { InsightCard } from "./InsightCard"
+import { InsightTrendCard } from "./InsightTrendCard"
+import { NoSpendChallengeCard } from "./NoSpendChallengeCard"
+import { InsightBreakdownCard } from "./InsightBreakdownCard"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { HomeScreenSkeleton, FadeInContent } from "@/components/ui/Skeleton"
 import { CategoryDetailSheet } from "@/components/accounting/CategoryDetailSheet"
 import { SwipeableTransactionRow } from "./SwipeableTransactionRow"
 import { PullToRefresh } from "./PullToRefresh"
+import { AffordabilitySheet } from "./AffordabilitySheet"
 import dynamic from "next/dynamic"
 
 // Code-split: celebration animations are heavy (canvas-confetti + framer-motion
@@ -166,6 +170,7 @@ export function HomeScreen({
   const [showMonthSummary, setShowMonthSummary] = useState(false)
   const [localCelebration, setLocalCelebration] = useState<CelebrationEvent | null>(null)
   const [celebrationQueue, setCelebrationQueue] = useState<CelebrationEvent[]>([])
+  const [showAffordabilitySheet, setShowAffordabilitySheet] = useState(false)
   const prevTxCountRef = useRef<number>(transactions.length)
   const prevGoalsRef = useRef<string>("")
 
@@ -583,6 +588,33 @@ export function HomeScreen({
               until payday
             </motion.p>
           )}
+
+          {/* "Can I afford...?" quick check button (task 56.3) */}
+          {!isLoading && allowance && (
+            <div style={{ textAlign: "center", marginTop: 10 }}>
+              <motion.button
+                type="button"
+                onClick={() => setShowAffordabilitySheet(true)}
+                whileTap={{ scale: 0.96 }}
+                transition={springs.bouncy}
+                aria-label="Can I afford this? Quick purchase check"
+                style={{
+                  background: "transparent",
+                  border: "1px solid rgba(167, 139, 250, 0.3)",
+                  borderRadius: 999,
+                  padding: "8px 16px",
+                  color: "var(--sub)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontFamily: FONT_FAMILY,
+                  cursor: "pointer",
+                  opacity: 0.85,
+                }}
+              >
+                💭 Can I afford...?
+              </motion.button>
+            </div>
+          )}
         </section>
 
         {/* ── 1.25. Set Aside Stat ────────────────────────────────── */}
@@ -643,6 +675,15 @@ export function HomeScreen({
           transactions={transactions}
           budgets={budgets}
         />
+
+        {/* ── 1.7. Month-over-Month Trend Insight ──────────────── */}
+        <InsightTrendCard transactions={transactions} />
+
+        {/* ── 1.8. No-Spend Challenge / Streak Card ───────────────── */}
+        <NoSpendChallengeCard transactions={transactions} />
+
+        {/* ── 1.9. Spending Breakdown Insight ──────────────────── */}
+        <InsightBreakdownCard transactions={transactions} />
 
         {/* ── 2. Quick Actions ────────────────────────────────────── */}
         <section aria-label="Quick actions">
@@ -1194,6 +1235,14 @@ export function HomeScreen({
         row={selectedRow}
         transactions={transactions}
         onLogHere={(cat) => { setSelectedRow(null); onLogExpense(cat) }}
+      />
+
+      {/* ── Affordability Sheet (task 56.3) ────────────────────── */}
+      <AffordabilitySheet
+        isOpen={showAffordabilitySheet}
+        onClose={() => setShowAffordabilitySheet(false)}
+        budgets={budgets}
+        transactions={transactions}
       />
 
       {/* ── Celebration Overlay (Requirements 6.1–6.7) ────────── */}

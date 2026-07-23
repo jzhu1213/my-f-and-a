@@ -5,10 +5,13 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
 import { computeSplitAmount } from '@/lib/splitUtils'
+import { autoCategorize } from '@/lib/autoCategorize'
 import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { TransactionCategory, Transaction } from '@/types'
-import type { SmartSuggestion } from '@/types/folio'
+import type { SmartSuggestion, CustomCategory } from '@/types/folio'
+import type { CategoryDisplayItem } from '@/lib/customCategories'
+import { mergeCategories } from '@/lib/customCategories'
 
 interface ExpenseSheetProps {
   isOpen: boolean
@@ -17,6 +20,7 @@ interface ExpenseSheetProps {
   onUndo?: () => void
   defaultCategory?: TransactionCategory
   transactions?: Transaction[]
+  customCategories?: CustomCategory[]
 }
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
@@ -55,6 +59,7 @@ export function ExpenseSheet({
   onUndo,
   defaultCategory,
   transactions,
+  customCategories = [],
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
@@ -66,12 +71,21 @@ export function ExpenseSheet({
   const [showNoteField, setShowNoteField] = useState(false)
   const [splitEnabled, setSplitEnabled] = useState(false)
   const [splitCount, setSplitCount] = useState(2)
+  // Tracks whether category was manually selected (true) or auto-suggested (false)
+  const [manualCategorySelection, setManualCategorySelection] = useState(false)
+  // Tracks whether the current category was auto-suggested
+  const [isAutoSuggested, setIsAutoSuggested] = useState(false)
 
   // Compute smart suggestions when category is selected
   const suggestions: SmartSuggestion[] = useMemo(() => {
     if (!category || !transactions || transactions.length === 0) return []
     return generateSmartSuggestions(category, transactions)
   }, [category, transactions])
+
+  // Merged display list: built-in categories + user custom categories
+  const displayCategories: CategoryDisplayItem[] = useMemo(() => {
+    return mergeCategories(customCategories)
+  }, [customCategories])
 
   // Compute effective default: explicit prop > most recently used > null
   const effectiveDefault = useMemo(() => {
@@ -88,6 +102,8 @@ export function ExpenseSheet({
       setShowNoteField(false)
       setSplitEnabled(false)
       setSplitCount(2)
+      setManualCategorySelection(!!effectiveDefault)
+      setIsAutoSuggested(false)
       // Auto-focus amount input
       setTimeout(() => amountRef.current?.focus(), 120)
     }
@@ -121,7 +137,7 @@ export function ExpenseSheet({
       note: note.trim() || undefined,
     })
     // Show success toast with optional undo action
-    const categoryLabel = CATEGORY_GRID.find(c => c.category === category)?.label ?? category
+    const categoryLabel = displayCategories.find(c => c.categoryValue === category)?.label ?? category
     const amountStr = submittedAmount % 1 === 0 ? `$${submittedAmount}` : `$${submittedAmount.toFixed(2)}`
     const splitSuffix = splitEnabled ? ` (your share of $${parsed % 1 === 0 ? parsed : parsed.toFixed(2)})` : ''
     showToast(
@@ -169,7 +185,20 @@ export function ExpenseSheet({
     if (sanitized && !showNoteField) {
       setShowNoteField(true)
     }
-  }, [showNoteField])
+
+    // Auto-categorize: only apply if user hasn't manually picked a category
+    if (!manualCategorySelection) {
+      const result = autoCategorize(sanitized)
+      if (result) {
+        setCategory(result.category)
+        setIsAutoSuggested(true)
+      } else {
+        // If no match, revert to effective default and clear suggestion indicator
+        setCategory(effectiveDefault)
+        setIsAutoSuggested(false)
+      }
+    }
+  }, [showNoteField, manualCategorySelection, effectiveDefault])
 
   // ── Category button animation variants ──────────────────────────────────
   const cardTapVariants: Variants = prefersReducedMotion
@@ -275,7 +304,7 @@ export function ExpenseSheet({
                               category,
                               note: s.label || undefined,
                             })
-                            const categoryLabel = CATEGORY_GRID.find(c => c.category === category)?.label ?? category
+                            const categoryLabel = displayCategories.find(c => c.categoryValue === category)?.label ?? category
                             showToast(
                               `Logged ${amountStr} for ${categoryLabel} ✓`,
                               'success',
@@ -404,24 +433,26 @@ export function ExpenseSheet({
                 aria-label="Expense categories"
                 onKeyDown={(e) => {
                   const currentIndex = category
-                    ? CATEGORY_GRID.findIndex(c => c.category === category)
+                    ? displayCategories.findIndex(c => c.categoryValue === category)
                     : -1
                   let nextIndex = -1
                   if (e.key === "ArrowRight") {
                     e.preventDefault()
-                    nextIndex = currentIndex < CATEGORY_GRID.length - 1 ? currentIndex + 1 : 0
+                    nextIndex = currentIndex < displayCategories.length - 1 ? currentIndex + 1 : 0
                   } else if (e.key === "ArrowLeft") {
                     e.preventDefault()
-                    nextIndex = currentIndex > 0 ? currentIndex - 1 : CATEGORY_GRID.length - 1
+                    nextIndex = currentIndex > 0 ? currentIndex - 1 : displayCategories.length - 1
                   } else if (e.key === "ArrowDown") {
                     e.preventDefault()
-                    nextIndex = currentIndex + 3 < CATEGORY_GRID.length ? currentIndex + 3 : currentIndex % 3
+                    nextIndex = currentIndex + 3 < displayCategories.length ? currentIndex + 3 : currentIndex % 3
                   } else if (e.key === "ArrowUp") {
                     e.preventDefault()
-                    nextIndex = currentIndex - 3 >= 0 ? currentIndex - 3 : CATEGORY_GRID.length - 3 + (currentIndex % 3)
+                    nextIndex = currentIndex - 3 >= 0 ? currentIndex - 3 : displayCategories.length - 3 + (currentIndex % 3)
                   }
-                  if (nextIndex >= 0 && nextIndex < CATEGORY_GRID.length) {
-                    setCategory(CATEGORY_GRID[nextIndex].category)
+                  if (nextIndex >= 0 && nextIndex < displayCategories.length) {
+                    setCategory(displayCategories[nextIndex].categoryValue as TransactionCategory)
+                    setManualCategorySelection(true)
+                    setIsAutoSuggested(false)
                     triggerHaptic('light')
                     const container = e.currentTarget
                     const buttons = container.querySelectorAll<HTMLButtonElement>('button')
@@ -429,8 +460,8 @@ export function ExpenseSheet({
                   }
                 }}
               >
-                {CATEGORY_GRID.map((cat, index) => {
-                  const selected = category === cat.category
+                {displayCategories.map((cat, index) => {
+                  const selected = category === cat.categoryValue
                   const isRovingActive = selected || (category === null && index === 0)
 
                   // Selection lift: slight upward shift + scale
@@ -440,9 +471,9 @@ export function ExpenseSheet({
 
                   return (
                     <motion.button
-                      key={cat.category}
+                      key={cat.isCustom ? `custom-${cat.customId}` : cat.categoryValue}
                       type="button"
-                      onClick={() => { setCategory(cat.category); triggerHaptic('light') }}
+                      onClick={() => { setCategory(cat.categoryValue as TransactionCategory); setManualCategorySelection(true); setIsAutoSuggested(false); triggerHaptic('light') }}
                       aria-label={`Category: ${cat.label}`}
                       aria-pressed={selected}
                       tabIndex={isRovingActive ? 0 : -1}
@@ -501,6 +532,32 @@ export function ExpenseSheet({
                   )
                 })}
               </div>
+
+              {/* ── Auto-category suggestion indicator ──────────────── */}
+              {isAutoSuggested && category && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    marginTop: -16,
+                    marginBottom: 16,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 400,
+                      color: 'var(--muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                    aria-live="polite"
+                  >
+                    <span aria-hidden="true">✨</span> suggested from note
+                  </span>
+                </div>
+              )}
 
               {/* ── Note Input (optional, hidden unless toggled) ───────────────────────────── */}
               {!showNoteField && !note ? (

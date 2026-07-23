@@ -66,6 +66,7 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
   const [name, setName] = useState("")
   const [targetAmount, setTargetAmount] = useState("")
   const [selectedEmoji, setSelectedEmoji] = useState(EMOJI_OPTIONS[0])
+  const [targetDate, setTargetDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -83,10 +84,12 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
       setName(goal.name)
       setTargetAmount(goal.targetAmount > 0 ? String(goal.targetAmount) : "")
       setSelectedEmoji(goal.emoji || EMOJI_OPTIONS[0])
+      setTargetDate(goal.targetDate || "")
     } else {
       setName("")
       setTargetAmount("")
       setSelectedEmoji(EMOJI_OPTIONS[0])
+      setTargetDate("")
     }
     // Focus the name field once the sheet has settled.
     const t = setTimeout(() => nameRef.current?.focus(), 140)
@@ -122,7 +125,7 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
       return
     }
 
-    const payload: GoalFormData = { name: cleanName, targetAmount: target, emoji: selectedEmoji }
+    const payload: GoalFormData = { name: cleanName, targetAmount: target, emoji: selectedEmoji, targetDate: targetDate || undefined }
 
     setSubmitting(true)
     setError(null)
@@ -359,6 +362,57 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
                     minWidth: 0,
                   }}
                 />
+              </div>
+
+              {/* ── Target date (optional) ─────────────────────────── */}
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>
+                Target date <span style={{ fontWeight: 400 }}>(optional)</span>
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+                <input
+                  type="date"
+                  value={targetDate}
+                  onChange={e => { setTargetDate(e.target.value); setError(null) }}
+                  min={new Date().toISOString().split("T")[0]}
+                  aria-label="Target date"
+                  style={{
+                    flex: 1,
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: "1px solid var(--line)",
+                    outline: "none",
+                    fontSize: 15,
+                    fontFamily: "Inter, sans-serif",
+                    color: targetDate ? "var(--text)" : "var(--muted)",
+                    padding: "10px 0",
+                    caretColor: "var(--text)",
+                    colorScheme: "dark",
+                  }}
+                />
+                {targetDate && (
+                  <button
+                    type="button"
+                    onClick={() => setTargetDate("")}
+                    aria-label="Clear target date"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 28,
+                      height: 28,
+                      borderRadius: 999,
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid var(--border)",
+                      color: "var(--muted)",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
               {/* ── Inline error (persistence failure / validation) ── */}

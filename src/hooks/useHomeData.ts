@@ -206,6 +206,7 @@ export interface UseHomeDataReturn {
     name: string
     targetAmount: number
     emoji: string
+    targetDate?: string
   }) => Promise<Goal | null>
   
   /** Update an existing goal */
@@ -215,6 +216,7 @@ export interface UseHomeDataReturn {
       name: string
       targetAmount: number
       emoji: string
+      targetDate?: string
     }
   ) => Promise<Goal | null>
   
@@ -584,6 +586,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     name: string
     targetAmount: number
     emoji: string
+    targetDate?: string
   }) => {
     if (!userId) return null
     
@@ -610,6 +613,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       name: string
       targetAmount: number
       emoji: string
+      targetDate?: string
     }
   ) => {
     if (!userId) return null

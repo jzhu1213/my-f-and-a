@@ -1,6 +1,91 @@
 import { BUDGET_CATEGORIES } from '@/types'
 import type { Budget, Transaction, TransactionCategory } from '@/types'
 
+// ============================================================================
+// Category Budget Rollover — Pure Utility
+// ============================================================================
+
+const CATEGORY_ROLLOVER_STORAGE_KEY = 'folio_category_rollover_enabled'
+
+export interface CategoryRolloverInput {
+  category: TransactionCategory
+  monthlyLimit: number
+  spentLastPeriod: number
+  periodLength: 'weekly' | 'monthly'
+  rolloverEnabled: boolean
+  /** Cap rollover at this percentage of the base budget. Default 50%. */
+  maxRolloverPercent?: number
+}
+
+export interface CategoryRolloverResult {
+  /** Base period budget without rollover */
+  baseBudget: number
+  /** Amount rolled over from previous period (0 if disabled or nothing saved) */
+  rolloverAmount: number
+  /** Effective budget for this period (base + rollover) */
+  effectiveBudget: number
+  /** Whether rollover is active */
+  isRolloverActive: boolean
+}
+
+/**
+ * Computes the effective category budget for the current period, optionally
+ * carrying unused budget from the previous period.
+ *
+ * Pure function — no side effects.
+ *
+ * Math is reversible: disabling rollover immediately returns `effectiveBudget`
+ * to the base amount with no residual state.
+ */
+export function computeCategoryRollover(opts: CategoryRolloverInput): CategoryRolloverResult {
+  const { monthlyLimit, spentLastPeriod, periodLength, rolloverEnabled, maxRolloverPercent = 50 } = opts
+
+  // Base period budget
+  const baseBudget = periodLength === 'weekly' ? monthlyLimit / 4.33 : monthlyLimit
+
+  // If rollover is disabled, return simple values
+  if (!rolloverEnabled || baseBudget <= 0) {
+    return {
+      baseBudget,
+      rolloverAmount: 0,
+      effectiveBudget: baseBudget,
+      isRolloverActive: false,
+    }
+  }
+
+  // Unused from last period (only positive values — overspending doesn't carry as debt)
+  const unused = Math.max(0, baseBudget - spentLastPeriod)
+
+  // Cap at maxRolloverPercent of the base budget
+  const cap = baseBudget * (maxRolloverPercent / 100)
+  const rolloverAmount = Math.min(unused, cap)
+
+  return {
+    baseBudget,
+    rolloverAmount,
+    effectiveBudget: baseBudget + rolloverAmount,
+    isRolloverActive: rolloverAmount > 0,
+  }
+}
+
+/**
+ * Checks whether category budget rollover is enabled.
+ * Reads from localStorage. Defaults to false (simple behavior).
+ */
+export function isCategoryRolloverEnabled(): boolean {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem(CATEGORY_ROLLOVER_STORAGE_KEY) === 'true'
+}
+
+/**
+ * Persists the category rollover toggle state to localStorage.
+ * Reversible: disabling stops future rollovers with no residual effect.
+ */
+export function setCategoryRolloverEnabled(enabled: boolean): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(CATEGORY_ROLLOVER_STORAGE_KEY, String(enabled))
+}
+
 export function toMonthString(d: Date): string {
   return d.toISOString().slice(0, 7)
 }

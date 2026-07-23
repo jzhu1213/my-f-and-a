@@ -85,6 +85,8 @@ export const TRANSACTION_CATEGORIES: { category: TransactionCategory; emoji: str
 ]
 
 // Goal Types
+export type GoalType = 'savings' | 'emergency_fund'
+
 export interface Goal {
   id: string
   userId: string
@@ -93,6 +95,10 @@ export interface Goal {
   currentAmount: number
   emoji: string
   createdAt: string
+  /** Optional goal classification; defaults to 'savings' when absent */
+  type?: GoalType
+  /** Optional target date (ISO date string, e.g. "2025-09-01") for reaching the goal */
+  targetDate?: string
 }
 
 // Finance Lesson Types

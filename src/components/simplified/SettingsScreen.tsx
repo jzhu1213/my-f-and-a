@@ -34,6 +34,7 @@ export interface SettingsScreenProps {
   onOpenBudgetSettings: () => void
   onOpenRecurringBills?: () => void
   onOpenSinkingFunds?: () => void
+  onOpenSubscriptions?: () => void
   onOpenGoals: () => void
   onOpenLearn?: () => void
   onOpenReimbursements?: () => void
@@ -86,6 +87,7 @@ export function SettingsScreen({
   onOpenBudgetSettings,
   onOpenRecurringBills,
   onOpenSinkingFunds,
+  onOpenSubscriptions,
   onOpenGoals,
   onOpenLearn,
   onOpenReimbursements,
@@ -246,6 +248,29 @@ export function SettingsScreen({
             aria-label="Manage recurring bills"
           >
             Manage bills →
+          </motion.button>
+        </GlassCard>
+      )}
+
+      {/* ── Subscriptions ─────────────────────────────────────────────── */}
+      {onOpenSubscriptions && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong }}>
+            Subscriptions
+          </p>
+
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+            Review detected recurring charges and make sure they&apos;re all worth keeping.
+          </p>
+
+          <motion.button
+            onClick={onOpenSubscriptions}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={linkButton}
+            aria-label="Review subscriptions"
+          >
+            Review subscriptions →
           </motion.button>
         </GlassCard>
       )}

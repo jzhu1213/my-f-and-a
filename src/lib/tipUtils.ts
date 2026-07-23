@@ -35,6 +35,8 @@ export interface UserContext {
   minBalanceBuffer?: number
   /** Whole days until the balance is first projected to fall below the buffer. */
   daysUntilBalanceDip?: number
+  /** Detected subscriptions summary for subscription audit nudge */
+  detectedSubscriptions?: { count: number; monthlyTotal: number }
 }
 
 /**
@@ -164,6 +166,26 @@ export function selectContextualTip(
         triggerCondition: { type: 'bill_due_soon', label: soonest.label, dueDay: soonest.dueDay, daysUntil },
       })
     }
+  }
+
+  // Step 2d: Subscription audit nudge — detected subscriptions the user hasn't reviewed (medium priority)
+  if (
+    context.detectedSubscriptions &&
+    context.detectedSubscriptions.count > 0 &&
+    context.detectedSubscriptions.monthlyTotal > 0
+  ) {
+    const { count, monthlyTotal } = context.detectedSubscriptions
+    candidates.push({
+      id: 'subscription-audit-nudge',
+      type: 'gentle_nudge',
+      title: 'Subscription check-in',
+      message: `You have ${count} subscription${count !== 1 ? 's' : ''} totaling $${Math.round(monthlyTotal)}/mo — want to check they're all worth keeping?`,
+      emoji: '🔄',
+      priority: 'medium',
+      actionLabel: 'Review subscriptions',
+      actionType: 'view_insight',
+      triggerCondition: { type: 'subscription_audit', count, monthlyTotal },
+    })
   }
 
   // Step 3: Educational trigger — fewer than 10 total transactions (low priority)

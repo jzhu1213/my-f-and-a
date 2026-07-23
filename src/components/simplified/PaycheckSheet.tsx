@@ -5,6 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { useToast } from '@/contexts/ToastContext'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { computeTaxSetAside, DEFAULT_GIG_TAX_RATE } from '@/lib/taxSetAside'
+import {
+  loadAutoContributeRules,
+  computeAutoContributions,
+  computeAutoContributeTotal,
+  type AutoContribution,
+} from '@/lib/autoContributeUtils'
 import type { Goal, IncomeAllocation, AllocationPreset } from '@/types'
 
 // ── Default presets ──────────────────────────────────────────────────────────
@@ -34,6 +41,8 @@ interface PaycheckSheetProps {
   /** Called with the final allocation; parent can roll back on persistence failure */
   onAllocate?: (allocation: IncomeAllocation) => void
   onClose: () => void
+  /** When true, shows a tax set-aside suggestion for gig/freelance income */
+  isGigIncome?: boolean
 }
 
 // ── Helper: round to 2 decimal places ────────────────────────────────────────
@@ -51,6 +60,7 @@ export function PaycheckSheet({
   onContribute,
   onAllocate,
   onClose,
+  isGigIncome,
 }: PaycheckSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
@@ -60,6 +70,20 @@ export function PaycheckSheet({
   const [activePreset, setActivePreset] = useState<number | null>(0) // index into ALLOCATION_PRESETS or null for custom
   const [showGoalContributions, setShowGoalContributions] = useState(false)
   const [contributed, setContributed] = useState(0)
+  const [taxSuggestionDismissed, setTaxSuggestionDismissed] = useState(false)
+
+  // ── Auto-contribute state ─────────────────────────────────────
+  const [autoContributions, setAutoContributions] = useState<AutoContribution[]>([])
+  const [autoContributeSkipped, setAutoContributeSkipped] = useState(false)
+  const [autoContributeApplied, setAutoContributeApplied] = useState(false)
+
+  // ── Tax set-aside suggestion for gig income ───────────────────
+  const taxInfo = useMemo(() => {
+    if (!isGigIncome || amount <= 0) return null
+    return computeTaxSetAside(amount, DEFAULT_GIG_TAX_RATE)
+  }, [isGigIncome, amount])
+
+  const showTaxSuggestion = !!taxInfo && !taxSuggestionDismissed
 
   // Reset when sheet opens
   useEffect(() => {
@@ -68,8 +92,21 @@ export function PaycheckSheet({
       setActivePreset(0)
       setShowGoalContributions(false)
       setContributed(0)
+      setTaxSuggestionDismissed(false)
+      setAutoContributeSkipped(false)
+      setAutoContributeApplied(false)
+
+      // Compute auto-contributions from persisted rules
+      const rules = loadAutoContributeRules()
+      const activeRules = rules.filter(r => r.enabled)
+      if (activeRules.length > 0 && goals.length > 0 && amount > 0) {
+        const contributions = computeAutoContributions(activeRules, goals, amount)
+        setAutoContributions(contributions)
+      } else {
+        setAutoContributions([])
+      }
     }
-  }, [isOpen, amount])
+  }, [isOpen, amount, goals])
 
   // ── Derived values ────────────────────────────────────────────
   const allocation: IncomeAllocation = useMemo(() => ({
@@ -82,7 +119,19 @@ export function PaycheckSheet({
   const totalPercent = percentages[0] + percentages[1] + percentages[2] + percentages[3]
   const isValid = totalPercent === 100
 
-  const activeGoals = goals.filter(g => g.currentAmount < g.targetAmount)
+  const activeGoals = goals
+    .filter(g => g.currentAmount < g.targetAmount)
+    .sort((a, b) => {
+      // Emergency fund goals surface first so they get funded before discretionary savings
+      const aIsEF = a.type === 'emergency_fund' ? 0 : 1
+      const bIsEF = b.type === 'emergency_fund' ? 0 : 1
+      return aIsEF - bIsEF
+    })
+
+  // Auto-contribute: show the banner when there are pending contributions
+  const showAutoContributeBanner =
+    autoContributions.length > 0 && !autoContributeSkipped && !autoContributeApplied
+  const autoContributeTotal = computeAutoContributeTotal(autoContributions)
 
   // ── Handlers ──────────────────────────────────────────────────
 
@@ -104,6 +153,15 @@ export function PaycheckSheet({
   const handleConfirm = useCallback(() => {
     if (!isValid) return
 
+    // Apply auto-contributions optimistically if banner is active
+    if (showAutoContributeBanner && autoContributions.length > 0) {
+      for (const contrib of autoContributions) {
+        onContribute(contrib.goalId, contrib.amount)
+      }
+      setAutoContributeApplied(true)
+      showToast(`Auto-saved $${autoContributeTotal} toward your goals ✓`, 'success')
+    }
+
     // Notify parent with optimistic allocation data
     if (onAllocate) {
       onAllocate(allocation)
@@ -117,7 +175,7 @@ export function PaycheckSheet({
 
     showToast('Income allocated ✓', 'success')
     onClose()
-  }, [isValid, allocation, onAllocate, activeGoals, showToast, onClose])
+  }, [isValid, allocation, onAllocate, activeGoals, showToast, onClose, showAutoContributeBanner, autoContributions, autoContributeTotal, onContribute])
 
   const handleContribute = useCallback((goalId: string, goalName: string, amt: number) => {
     onContribute(goalId, amt)
@@ -234,6 +292,151 @@ export function PaycheckSheet({
                     : 'Split it up — pick a preset or customize'}
                 </p>
               </div>
+
+              {/* ── Tax Set-Aside Suggestion (gig income) ─────────── */}
+              {showTaxSuggestion && taxInfo && (
+                <div
+                  style={{
+                    background: 'rgba(251, 191, 36, 0.1)',
+                    border: '1px solid rgba(251, 191, 36, 0.25)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '14px 16px',
+                    marginBottom: 16,
+                    position: 'relative',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 18, lineHeight: 1.3 }}>💡</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          fontSize: 13,
+                          fontFamily: 'Inter, sans-serif',
+                          fontWeight: 500,
+                          color: '#fbbf24',
+                          marginBottom: 4,
+                        }}
+                      >
+                        Tax heads-up
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          fontFamily: 'Inter, sans-serif',
+                          color: 'var(--sub)',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Since this is gig income, consider setting aside ~{Math.round(taxInfo.rate * 100)}% (${taxInfo.suggestedReserve.toLocaleString()}) for taxes in your Set Aside bucket.
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 11,
+                          fontFamily: 'Inter, sans-serif',
+                          color: 'var(--muted)',
+                          marginTop: 4,
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {taxInfo.rationale}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTaxSuggestionDismissed(true)}
+                      aria-label="Dismiss tax suggestion"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--muted)',
+                        fontSize: 16,
+                        cursor: 'pointer',
+                        padding: 4,
+                        lineHeight: 1,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Auto-Contribute Banner ─────────────────────── */}
+              {showAutoContributeBanner && (
+                <div
+                  style={{
+                    background: 'rgba(74, 222, 128, 0.08)',
+                    border: '1px solid rgba(74, 222, 128, 0.2)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '14px 16px',
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 18, lineHeight: 1.3 }}>🎯</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          fontSize: 13,
+                          fontFamily: 'Inter, sans-serif',
+                          fontWeight: 500,
+                          color: '#4ade80',
+                          marginBottom: 4,
+                        }}
+                      >
+                        Auto-saving to goals
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          fontFamily: 'Inter, sans-serif',
+                          color: 'var(--sub)',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        ${autoContributeTotal} will go toward {autoContributions.length === 1
+                          ? autoContributions[0].goalName
+                          : `${autoContributions.length} goals`} when you confirm.
+                      </p>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                        {autoContributions.map(c => (
+                          <span
+                            key={c.goalId}
+                            style={{
+                              fontSize: 11,
+                              fontFamily: 'Inter, sans-serif',
+                              color: 'var(--muted)',
+                              background: 'rgba(255,255,255,0.05)',
+                              borderRadius: 6,
+                              padding: '3px 8px',
+                            }}
+                          >
+                            {c.goalEmoji} {c.goalName}: +${c.amount}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAutoContributeSkipped(true)}
+                      aria-label="Skip auto-contributions this time"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--muted)',
+                        fontSize: 12,
+                        fontFamily: 'Inter, sans-serif',
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: 2,
+                      }}
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <AnimatePresence mode="wait">
                 {!showGoalContributions ? (

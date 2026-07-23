@@ -1,5 +1,6 @@
 import type { Transaction, Budget, Goal } from '@/types'
 import type { CelebrationEvent, CelebrationType, AnimationType } from '@/types/folio'
+import { getNoSpendStreak, isNoSpendWeekend } from '@/lib/noSpendChallenge'
 
 // ============================================================================
 // Celebration Engine (Requirements 6.1–6.6)
@@ -316,6 +317,89 @@ export function checkFirstTransaction(
 }
 
 /**
+ * Checks if a no-spend streak or no-spend weekend celebration should trigger.
+ *
+ * **Validates: Requirements 5.4, 6.2**
+ *
+ * Fires when:
+ * - The user has 3+ consecutive no-spend days (no expenses at all)
+ * - The user completed a full no-spend weekend (Saturday + Sunday)
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date (for testability)
+ * @returns Array of CelebrationEvents
+ */
+export function checkNoSpendStreak(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent[] {
+  const events: CelebrationEvent[] = []
+
+  // ── No-spend streak (3+ days) ──────────────────────────────────────────
+  const yesterday = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1
+  ))
+  const yesterdayStr = formatDate(yesterday)
+
+  const streak = getNoSpendStreak(transactions, yesterdayStr)
+  if (streak >= 3) {
+    const id = `no_spend_streak_${streak}_${yesterdayStr}`
+    if (!hasBeenTriggered(id)) {
+      markTriggered(id)
+      events.push(createEvent(
+        id,
+        'no_spend_streak',
+        `${streak}-day no-spend streak!`,
+        streak >= 7
+          ? "A whole week with no spending — that's some serious willpower. 🌟"
+          : "You're on a roll — no spending for " + streak + " days straight.",
+        '🌿',
+        'sparkle',
+        3500,
+        'subtle'
+      ))
+    }
+  }
+
+  // ── No-spend weekend ───────────────────────────────────────────────────
+  // Check if the most recent past weekend was a no-spend weekend
+  const dayOfWeek = now.getUTCDay() // 0=Sun, 6=Sat
+  // Find last Sunday (or today if it's Monday, meaning weekend just ended)
+  let lastSunday: Date
+  if (dayOfWeek === 0) {
+    // Today is Sunday — check last weekend (the one before)
+    lastSunday = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7
+    ))
+  } else {
+    // Most recent Sunday
+    lastSunday = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayOfWeek
+    ))
+  }
+  const lastSundayStr = formatDate(lastSunday)
+
+  if (isNoSpendWeekend(transactions, lastSundayStr)) {
+    const weekendId = `no_spend_weekend_${lastSundayStr}`
+    if (!hasBeenTriggered(weekendId)) {
+      markTriggered(weekendId)
+      events.push(createEvent(
+        weekendId,
+        'no_spend_weekend',
+        'No-spend weekend!',
+        "You made it through the whole weekend without spending — nice one!",
+        '🎯',
+        'bounce',
+        3500,
+        'subtle'
+      ))
+    }
+  }
+
+  return events
+}
+
+/**
  * Runs all celebration checks and returns any newly triggered events.
  *
  * **Validates: Requirements 6.1–6.6**
@@ -350,6 +434,10 @@ export function checkAllCelebrations(
 
   const firstTx = checkFirstTransaction(transactions)
   if (firstTx) events.push(firstTx)
+
+  // No-spend streak and weekend celebrations
+  const noSpendEvents = checkNoSpendStreak(transactions, now)
+  events.push(...noSpendEvents)
 
   return events
 }
