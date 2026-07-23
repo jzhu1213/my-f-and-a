@@ -144,16 +144,18 @@ body {
 
 /* ── Label utility ──────────────────────────────────────────────── */
 .label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 11px;
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-/* ── Mono utility for amounts/numbers ───────────────────────────── */
+/* ── Mono utility for tabular numbers ───────────────────────────── */
 .font-mono {
-  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Progress track ─────────────────────────────────────────────── */
@@ -290,9 +292,10 @@ input[type="date"] {
 }
 
 .t-tab-item .tab-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 10px;
-  letter-spacing: 0.14em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 

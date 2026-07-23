@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { FONT_FAMILY, MONO_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY } from '@/styles/typography'
 import { computeProjectionHorizons } from '@/lib/compoundGrowthUtils'
 import type { SavingsAccount } from '@/types/folio'
 
@@ -81,7 +81,7 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
             fontSize: 14,
             fontWeight: 500,
             color: 'var(--sub)',
-            fontFamily: MONO_FAMILY,
+            fontFamily: FONT_FAMILY,
             fontVariantNumeric: 'tabular-nums',
           }}
         >
@@ -125,7 +125,7 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
                 fontSize: 13,
                 fontWeight: 600,
                 color: 'var(--success)',
-                fontFamily: MONO_FAMILY,
+                fontFamily: FONT_FAMILY,
                 fontVariantNumeric: 'tabular-nums',
               }}
             >

@@ -5,6 +5,7 @@ import { CreditPayoffCalculator } from './CreditPayoffCalculator'
 import { CompoundGrowthCalculator } from './CompoundGrowthCalculator'
 import type { Lesson, UserLessonProgress } from '@/types'
 import { LESSONS } from '@/lib/lessonsContent'
+import { FONT_FAMILY } from '@/styles/typography'
 
 const SAMPLE_LESSONS: Lesson[] = LESSONS
 
@@ -42,13 +43,13 @@ export function FinanceTab({ lessonProgress, onCompleteLesson }: FinanceTabProps
         <p className="label mb-8">learn</p>
         <div className="flex items-end justify-between">
           <div>
-            <h1 style={{ fontSize: '36px', fontFamily: 'Space Mono, monospace', fontWeight: 300, color: 'var(--text)', lineHeight: 1 }}>
+            <h1 style={{ fontSize: '36px', fontFamily: FONT_FAMILY, fontWeight: 300, color: 'var(--text)', lineHeight: 1 }}>
               Finance
             </h1>
             <p style={{ marginTop: '10px', fontSize: '14px', color: 'var(--sub)' }}>bite-sized financial literacy</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p style={{ fontFamily: 'Space Mono, monospace', fontSize: '28px', color: 'var(--text)', lineHeight: 1 }}>
+            <p style={{ fontFamily: FONT_FAMILY, fontSize: '28px', color: 'var(--text)', lineHeight: 1 }}>
               {completedCount}<span style={{ color: 'var(--muted)' }}>/{totalLessons}</span>
             </p>
             <p className="label mt-1">completed</p>
@@ -99,11 +100,11 @@ export function FinanceTab({ lessonProgress, onCompleteLesson }: FinanceTabProps
                   style={{
                     border: '1px solid',
                     borderColor: done ? 'var(--green)' : 'var(--border)',
-                    borderRadius: '4px',
+                    borderRadius: '8px',
                   }}
                 >
                   <span style={{
-                    fontFamily: 'Space Mono, monospace',
+                    fontFamily: FONT_FAMILY,
                     fontSize: '12px',
                     color: done ? 'var(--green)' : 'var(--muted)',
                   }}>

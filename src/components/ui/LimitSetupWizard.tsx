@@ -109,7 +109,7 @@ export function LimitSetupWizard({ onComplete, onSkip }: LimitSetupWizardProps) 
         </p>
 
         <div className="flex items-baseline gap-2 mb-2">
-          <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '28px', color: 'var(--muted)' }}>$</span>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '28px', fontWeight: 300, color: 'var(--muted)' }}>$</span>
           <input
             type="text"
             inputMode="decimal"
@@ -119,7 +119,7 @@ export function LimitSetupWizard({ onComplete, onSkip }: LimitSetupWizardProps) 
             autoFocus
             style={{
               flex: 1, background: 'transparent', outline: 'none',
-              fontSize: '48px', fontFamily: 'Space Mono, monospace',
+              fontSize: '48px', fontFamily: "'Inter', sans-serif", fontWeight: 300,
               color: 'var(--text)',
               borderBottom: '1px solid var(--line)',
               paddingBottom: '8px',
@@ -132,7 +132,7 @@ export function LimitSetupWizard({ onComplete, onSkip }: LimitSetupWizardProps) 
         </div>
 
         {weeklyHint && (
-          <p style={{ fontFamily: 'Space Mono, monospace', fontSize: '12px', color: 'var(--muted)', marginBottom: '24px' }}>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 500, color: 'var(--muted)', marginBottom: '24px' }}>
             {weeklyHint}
           </p>
         )}
