@@ -159,13 +159,89 @@ export function computeSmoothedIncome(
 }
 
 /**
- * Computes daily allowance with rollover and status.
- * 
- * Fixed monthly obligations (rent, subscriptions, etc.) are subtracted from the
- * monthly pool up front so only discretionary money is spread across remaining days.
- * 
+ * Computes the user's daily discretionary allowance — the single number answering
+ * "Can I afford this today?"
+ *
+ * ─────────────────────────────────────────────────────────────────────────────────
+ * SOURCE-OF-TRUTH: Daily Allowance Formula
+ * ─────────────────────────────────────────────────────────────────────────────────
+ *
+ * The formula follows these steps in order:
+ *
+ *   1. Determine the monthly discretionary pool:
+ *        pool = incomeOrBudget − totalFixedExpenses
+ *
+ *      Income source priority:
+ *        a) Budget limits (sum of all category monthlyLimit values)
+ *        b) Actual income transactions this month (optionally smoothed)
+ *        c) User-provided estimate (monthlyIncome param)
+ *
+ *   2. Compute daily budget:
+ *        • Budget/Transactions source: pool / effectiveDays
+ *          where effectiveDays = daysRemainingFrom(setupDate) or daysInMonth
+ *        • Estimate source: pool / 30
+ *          (intentionally uses a fixed 30-day divisor for a simpler, rougher
+ *           number — this matches the onboarding tutorial formula and avoids
+ *           confusing fluctuations between 28–31 day months when the user
+ *           hasn't set precise budgets)
+ *
+ *   3. Compute spentToday:
+ *        Sum of today's expense transactions, EXCLUDING fixed/recurring
+ *        (those are already sunk in Step 1)
+ *
+ *   4. Compute rollover (savings/deficit from prior days this month):
+ *        rawRollover = expectedSpend(setupDay→yesterday) − actualSpend(setupDay→yesterday)
+ *        rollover = clamp(rawRollover, −2×dailyBudget, +2×dailyBudget)
+ *
+ *      The ±2-day cap prevents extreme accumulation or debt spiraling.
+ *      On the first day of a new month, daysElapsed = 0, so rollover is always 0
+ *      — the month boundary naturally resets the rollover scope.
+ *
+ *   5. Final allowance:
+ *        amount = max(0, dailyBudget + rollover − spentToday)
+ *
+ *   6. Status & messaging derived from rawAmount vs dailyBudget.
+ *
+ *   7. reservedForBills (INFORMATIONAL ONLY — see note below):
+ *        Sum of upcoming unpaid fixed bills remaining this month.
+ *        ⚠️  This value is for UI display purposes only. It does NOT further
+ *        reduce the daily allowance — those bills are already subtracted from
+ *        the monthly pool in Step 1 via totalFixedExpenses.
+ *
+ *   8. Month-boundary carryover (optional):
+ *        On the 1st of the month with carryoverEnabled, computes excess savings
+ *        from the previous month beyond the ±2-day cap as advisory savings info.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────────
+ * Edge Cases & Invariants
+ * ─────────────────────────────────────────────────────────────────────────────────
+ *
+ * • Month boundaries: Rollover resets naturally because the calculation scope
+ *   (setupDay→yesterday) is bounded to the current month. On day 1, there are
+ *   no prior days in scope, so rollover = 0.
+ *
+ * • Mid-month setup: When setupDate is within the current month, the pool is
+ *   divided only by the days remaining from that date, not the full month.
+ *   Rollover also only considers days from setupDate onward.
+ *
+ * • Fixed expenses vs category budgets: Fixed expenses (debts, recurring bills)
+ *   are subtracted from the income pool up front. If a user ALSO has a budget
+ *   category for the same expense (e.g., "rent" budget AND "rent" fixed expense),
+ *   the budget limit includes that amount while fixed subtraction removes it —
+ *   effectively zeroing it out of the discretionary pool. This is intentional:
+ *   fixed transactions are also excluded from spentToday and rollover calculations,
+ *   keeping the system internally consistent.
+ *
+ * • reservedForBills double-count appearance: The UI may show "$X reserved for
+ *   N upcoming bills" alongside the daily allowance. This is purely informational —
+ *   the daily allowance already accounts for ALL fixed bills via the pool subtraction.
+ *   The UI tip helps users understand why their allowance is what it is, not that
+ *   an additional reduction is happening.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────────
+ *
  * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 14.2**
- * 
+ *
  * @param budgets - Array of budget limits by category
  * @param transactions - Array of all transactions
  * @param currentDate - Current date (for testing purposes)
@@ -226,6 +302,13 @@ export function computeDailyAllowance(
   
   // Step 1b: Subtract fixed monthly obligations up front (rent, subscriptions, etc.)
   // Only discretionary money is spread across the remaining days.
+  //
+  // Relationship with category budgets: If a user has BOTH a budget category for an
+  // expense (e.g., "rent" at $1500) AND a corresponding fixed expense entry ($1500),
+  // the budget limit includes the amount while this subtraction removes it — effectively
+  // zeroing it from the discretionary pool. This is intentional and internally consistent
+  // because isFixedTransaction() also excludes those transactions from spentToday and
+  // rollover calculations in Steps 3–4.
   const totalFixed = getTotalFixedMonthly(fixedExpenses ?? [])
   
   // Step 2: Calculate daily budget from discretionary pool
@@ -251,6 +334,11 @@ export function computeDailyAllowance(
       dailyBudget = Math.max(0, smoothedIncome - totalFixed) / effectiveDays
       break
     case 'estimate':
+      // Intentionally uses a fixed 30-day divisor (not daysInMonth) for estimates.
+      // This matches the onboarding tutorial formula and provides a stable, simpler
+      // number when the user hasn't configured precise budgets. The slight inaccuracy
+      // (±1 day) is acceptable for a rough estimate and avoids confusing month-to-month
+      // fluctuations for users who haven't opted into detailed budget tracking.
       dailyBudget = hasEstimate ? Math.max(0, monthlyIncome! - totalFixed) / 30 : 0
       break
   }
@@ -262,7 +350,13 @@ export function computeDailyAllowance(
     .reduce((sum, t) => sum + t.amount, 0)
   
   // Step 4: Calculate rollover from previous days
-  // Rollover = what was saved/overspent from setupDate (or day 1) to yesterday
+  // Rollover = what was saved/overspent from setupDate (or day 1) to yesterday.
+  //
+  // Month boundary behavior: On day 1 of a new month, daysElapsedSinceSetup = 0
+  // because dayOfMonth (1) - setupDay (1) = 0. This means rollover is always 0 on
+  // the first day — the month boundary resets naturally without special-case logic.
+  // On day 2, rollover only reflects day 1's delta, which is inherently within the
+  // ±2-day cap since it's a single day's variance.
   const dayOfMonth = currentDate.getUTCDate()
   
   // When mid-month setup, rollover only covers days from setupDate to yesterday
@@ -305,7 +399,11 @@ export function computeDailyAllowance(
   const message = generateEncouragingMessage(status, amount, spentToday)
   const showCelebration = shouldCelebrate(status, spentToday, dailyBudget)
   
-  // Step 7: Reserve upcoming bills from the spendable pool (informational)
+  // Step 7: Reserve upcoming bills — DISPLAY ONLY, does NOT reduce the allowance.
+  // ⚠️  These bills are already fully accounted for in Step 1b (totalFixed subtraction
+  // from the monthly pool). The reservedForBills value exists solely so the UI can
+  // show the user WHY their daily budget is what it is ("$X reserved for N upcoming
+  // bills"). It does NOT further reduce `amount` above.
   const upcomingBills = getUpcomingBillsList(fixedExpenses ?? [], currentDate)
   const reservedForBills = upcomingBills.reduce((sum, bill) => sum + bill.amount, 0)
   const upcomingBillCount = upcomingBills.length
