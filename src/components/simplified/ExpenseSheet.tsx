@@ -31,11 +31,11 @@ interface ExpenseSheetProps {
 }
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food & Coffee' },
+  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food' },
   { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Transport' },
-  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Fun & Social' },
+  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Social' },
   { category: 'school', emoji: getCategoryEmoji('school'), label: 'School' },
-  { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent & Bills' },
+  { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent' },
   { category: 'other', emoji: getCategoryEmoji('other'), label: 'Other' },
 ]
 

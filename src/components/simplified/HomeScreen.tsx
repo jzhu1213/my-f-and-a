@@ -1133,6 +1133,7 @@ export function HomeScreen({
 
         {/* ── 2.7. Contextual Tip (secondary — after primary actions) ── */}
         {/* TODO(task-38): Wire onLearnMore to Lessons tab once it exists; currently a no-op. */}
+        {/* Commented out to reduce home screen clutter — re-enable when needed
         <AnimatePresence>
           {activeTip && (
             <section aria-label="Contextual tip">
@@ -1145,6 +1146,7 @@ export function HomeScreen({
             </section>
           )}
         </AnimatePresence>
+        */}
 
         {/* ── 2.8. End-of-Month Projection Insight ─────────────── */}
         <InsightCard
@@ -1156,7 +1158,9 @@ export function HomeScreen({
         <InsightTrendCard transactions={transactions} />
 
         {/* ── 2.10. No-Spend Challenge / Streak Card ──────────────── */}
+        {/* Commented out to reduce home screen clutter — re-enable when needed
         <NoSpendChallengeCard transactions={transactions} />
+        */}
 
         {/* ── 2.11. Spending Breakdown Insight ─────────────────── */}
         <InsightBreakdownCard transactions={transactions} />
