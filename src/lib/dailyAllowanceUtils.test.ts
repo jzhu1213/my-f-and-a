@@ -188,9 +188,15 @@ describe('computeDailyAllowance', () => {
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
-    expect(result.dailyBudget).toBe(0)
-    expect(result.amount).toBe(0)
-    expect(result.rollover).toBe(0)
+    // Task 66: With no budgets, no transactions, and no income estimate,
+    // the system now provides a sensible fallback ($1500/30 = $50/day)
+    // so brand-new users always see a useful number.
+    expect(result.dailyBudget).toBe(50)
+    // amount = dailyBudget + rollover - spentToday
+    // On Jan 15: rawRollover = 50*14 = 700, capped at ±2 days = 100
+    // amount = 50 + 100 - 0 = 150
+    expect(result.amount).toBe(150)
+    expect(result.isEstimated).toBe(true)
   })
 
   it('should handle empty transactions array', () => {

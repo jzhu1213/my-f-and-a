@@ -7,7 +7,6 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal } from "@/types"
-import type { SavingsAccount } from "@/types/folio"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -17,7 +16,6 @@ import {
   linkButton,
   listRow,
 } from "@/styles/shared"
-import { SavingsProjection } from "./SavingsProjection"
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 
 // ============================================================================
@@ -27,16 +25,13 @@ import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 export interface SettingsScreenProps {
   budgets: Budget[]
   goals: Goal[]
-  savingsAccounts?: SavingsAccount[]
   totalSetAside?: number
   savingsRate?: number
   userEmail?: string
   onOpenBudgetSettings: () => void
   onOpenRecurringBills?: () => void
-  onOpenSinkingFunds?: () => void
-  onOpenSubscriptions?: () => void
   onOpenGoals: () => void
-  onOpenLearn?: () => void
+  onOpenTools?: () => void
   onOpenReimbursements?: () => void
   onOpenProfile: () => void
   onSignOut: () => void
@@ -80,16 +75,13 @@ function getDaysInMonth(): number {
 export function SettingsScreen({
   budgets,
   goals,
-  savingsAccounts,
   totalSetAside,
   savingsRate,
   userEmail,
   onOpenBudgetSettings,
   onOpenRecurringBills,
-  onOpenSinkingFunds,
-  onOpenSubscriptions,
   onOpenGoals,
-  onOpenLearn,
+  onOpenTools,
   onOpenReimbursements,
   onOpenProfile,
   onSignOut,
@@ -252,48 +244,25 @@ export function SettingsScreen({
         </GlassCard>
       )}
 
-      {/* ── Subscriptions ─────────────────────────────────────────────── */}
-      {onOpenSubscriptions && (
+      {/* ── Tools & Calculators ─────────────────────────────────────── */}
+      {onOpenTools && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
           <p style={{ ...sectionHeadingStrong }}>
-            Subscriptions
+            Tools & Calculators
           </p>
 
           <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
-            Review detected recurring charges and make sure they&apos;re all worth keeping.
+            Advanced tools — compound growth, credit payoff, subscriptions, sinking funds, and more.
           </p>
 
           <motion.button
-            onClick={onOpenSubscriptions}
+            onClick={onOpenTools}
             whileTap={{ scale: 0.97 }}
             transition={springs.snappy}
             style={linkButton}
-            aria-label="Review subscriptions"
+            aria-label="Open tools and calculators"
           >
-            Review subscriptions →
-          </motion.button>
-        </GlassCard>
-      )}
-
-      {/* ── Sinking Funds ────────────────────────────────────────────────── */}
-      {onOpenSinkingFunds && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>
-            Sinking Funds
-          </p>
-
-          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
-            Save gradually for predictable large expenses like insurance, tuition, or travel.
-          </p>
-
-          <motion.button
-            onClick={onOpenSinkingFunds}
-            whileTap={{ scale: 0.97 }}
-            transition={springs.snappy}
-            style={linkButton}
-            aria-label="Manage sinking funds"
-          >
-            Manage funds →
+            Open tools →
           </motion.button>
         </GlassCard>
       )}
@@ -348,25 +317,6 @@ export function SettingsScreen({
         </motion.button>
       </GlassCard>
 
-      {/* ── Savings Accounts ─────────────────────────────────────────── */}
-      {savingsAccounts && savingsAccounts.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-            <p style={{ ...sectionHeadingStrong }}>
-              Savings & Investments
-            </p>
-            <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
-              Projected growth based on your current contributions.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {savingsAccounts.map(account => (
-                <SavingsProjection key={account.id} account={account} />
-              ))}
-            </div>
-          </GlassCard>
-        </div>
-      )}
-
       {/* ── IOUs & Reimbursements ────────────────────────────────────── */}
       {onOpenReimbursements && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
@@ -386,29 +336,6 @@ export function SettingsScreen({
             aria-label="Manage IOUs and reimbursements"
           >
             Manage IOUs →
-          </motion.button>
-        </GlassCard>
-      )}
-
-      {/* ── Learn ──────────────────────────────────────────────────────────── */}
-      {onOpenLearn && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>
-            Learn
-          </p>
-
-          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
-            Short lessons on budgeting, saving, and growing your money.
-          </p>
-
-          <motion.button
-            onClick={onOpenLearn}
-            whileTap={{ scale: 0.97 }}
-            transition={springs.snappy}
-            style={linkButton}
-            aria-label="Open financial lessons"
-          >
-            Browse lessons →
           </motion.button>
         </GlassCard>
       )}

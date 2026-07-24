@@ -916,8 +916,23 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
    */
   const allowance = useMemo<DailyAllowance | null>(() => {
     if (budgets.length === 0 && transactions.length === 0 && !isLoading) {
-      // No data yet - return null to indicate uninitialized state
-      return null
+      // Task 66: Brand-new user with zero setup — provide a sensible fallback
+      // daily allowance ($50/day, ~$1500/month) so the app delivers value
+      // immediately. The number is clearly marked as estimated with a gentle
+      // prompt to personalize. This replaces the old null/empty state that
+      // showed $0 and felt broken.
+      const FALLBACK_DAILY = 50
+      return {
+        amount: FALLBACK_DAILY,
+        dailyBudget: FALLBACK_DAILY,
+        spentToday: 0,
+        rollover: 0,
+        status: 'healthy' as const,
+        message: "You're all set — start logging when you spend something.",
+        showCelebration: false,
+        isEstimated: true,
+        incomeSource: 'estimate' as const,
+      }
     }
     
     // Calculate monthly income from this month's income transactions

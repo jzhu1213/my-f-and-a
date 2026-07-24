@@ -298,7 +298,7 @@ export function computeDailyAllowance(
     ? computeSmoothedIncome(transactions, currentDate, incomeSmoothing)
     : actualMonthlyIncome
 
-  const isEstimated = incomeSource === 'estimate' && hasEstimate
+  const isEstimated = incomeSource === 'estimate'
   
   // Step 1b: Subtract fixed monthly obligations up front (rent, subscriptions, etc.)
   // Only discretionary money is spread across the remaining days.
@@ -339,7 +339,17 @@ export function computeDailyAllowance(
       // number when the user hasn't configured precise budgets. The slight inaccuracy
       // (±1 day) is acceptable for a rough estimate and avoids confusing month-to-month
       // fluctuations for users who haven't opted into detailed budget tracking.
-      dailyBudget = hasEstimate ? Math.max(0, monthlyIncome! - totalFixed) / 30 : 0
+      //
+      // Task 66: When estimate is provided, use it. When it's 0, fall back to a
+      // sensible default ($1500/month ≈ $50/day) so new users always see a useful
+      // number rather than $0. The fallback is clearly signaled via isEstimated.
+      if (hasEstimate) {
+        dailyBudget = Math.max(0, monthlyIncome! - totalFixed) / 30
+      } else {
+        // Sensible fallback for zero-setup users (~$50/day)
+        const FALLBACK_MONTHLY = 1500
+        dailyBudget = Math.max(0, FALLBACK_MONTHLY - totalFixed) / 30
+      }
       break
   }
   

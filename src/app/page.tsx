@@ -9,6 +9,7 @@ import type { AppNavKey } from '@/components/ui/AppShell'
 import { HomeScreen } from '@/components/simplified/HomeScreen'
 import { HistoryScreen } from '@/components/simplified/HistoryScreen'
 import { SettingsScreen } from '@/components/simplified/SettingsScreen'
+import { ToolsScreen } from '@/components/simplified/ToolsScreen'
 import { BudgetSettings } from '@/components/simplified/BudgetSettings'
 import { GoalsScreen } from '@/components/simplified/GoalsScreen'
 import { SinkingFundsScreen } from '@/components/simplified/SinkingFundsScreen'
@@ -17,6 +18,7 @@ import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
 import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
 import { EditTransactionSheet } from '@/components/simplified/EditTransactionSheet'
+import { RecurringBillsScreen } from '@/components/simplified/RecurringBillsScreen'
 import { RefundSheet } from '@/components/simplified/RefundSheet'
 import { OnboardingTutorial } from '@/components/simplified/OnboardingTutorial'
 import { ProfileSheet } from '@/components/ui/ProfileSheet'
@@ -34,6 +36,7 @@ import type { TransactionCategory, Transaction } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation } from '@/types/folio'
 import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { createRefundTransaction } from '@/lib/refundUtils'
+import { useRecurringBills } from '@/hooks/useRecurringBills'
 
 type OnboardingStep = 'loading' | 'tutorial' | 'done'
 
@@ -48,6 +51,8 @@ export default function FolioApp() {
   const [showGoals, setShowGoals] = useState(false)
   const [showSinkingFunds, setShowSinkingFunds] = useState(false)
   const [showSubscriptionAudit, setShowSubscriptionAudit] = useState(false)
+  const [showRecurringBills, setShowRecurringBills] = useState(false)
+  const [showLearn, setShowLearn] = useState(false)
   const [profileSheetOpen, setProfileSheetOpen] = useState(false)
 
   // ── Tutorial Setup State ───────────────────────────────────────
@@ -64,6 +69,7 @@ export default function FolioApp() {
   const [paycheckAmount, setPaycheckAmount] = useState(0)
   const [paycheckIsGigIncome, setPaycheckIsGigIncome] = useState(false)
   const [defaultExpenseCategory, setDefaultExpenseCategory] = useState<TransactionCategory | undefined>(undefined)
+  const [splitPreEnabled, setSplitPreEnabled] = useState(false)
 
   // ── Edit/Refund Sheet State ────────────────────────────────────
   const [editSheetOpen, setEditSheetOpen] = useState(false)
@@ -110,6 +116,9 @@ export default function FolioApp() {
   // ── Custom Categories ──────────────────────────────────────────
   const { customCategories } = useCustomCategories(user?.id)
 
+  // ── Recurring Bills (task 65 — set-and-forget bills) ───────────
+  const { bills: recurringBills, addBill, updateBill, deleteBill } = useRecurringBills(user?.id)
+
   // ── Subscription Detection ─────────────────────────────────────
   const [dismissedSubscriptions, setDismissedSubscriptions] = useState<Set<string>>(new Set())
   const detectedSubscriptions = useMemo(
@@ -130,9 +139,16 @@ export default function FolioApp() {
   }, [])
 
   // ── Onboarding Check ───────────────────────────────────────────
+  // Task 66: Skip the onboarding gate — new users go straight to the Home Screen.
+  // The tutorial remains accessible from settings but never blocks value.
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setOnboardingStep(localStorage.getItem('folio-onboarded') === 'true' ? 'done' : 'tutorial')
+      // Always resolve to 'done' so new users land on the Home Screen immediately.
+      // Mark as onboarded so subsequent loads skip any legacy gate check.
+      if (localStorage.getItem('folio-onboarded') !== 'true') {
+        localStorage.setItem('folio-onboarded', 'true')
+      }
+      setOnboardingStep('done')
     }
   }, [])
 
@@ -175,6 +191,14 @@ export default function FolioApp() {
   // ── Expense Logging ────────────────────────────────────────────
   const handleOpenExpenseSheet = useCallback((category?: TransactionCategory) => {
     setDefaultExpenseCategory(category)
+    setSplitPreEnabled(false)
+    setExpenseSheetOpen(true)
+  }, [])
+
+  // Opens expense sheet with split toggle pre-enabled (task 65 — one-tap split)
+  const handleOpenSplitExpense = useCallback(() => {
+    setDefaultExpenseCategory(undefined)
+    setSplitPreEnabled(true)
     setExpenseSheetOpen(true)
   }, [])
 
@@ -539,6 +563,50 @@ export default function FolioApp() {
     )
   }
 
+  // ── Recurring Bills (full-screen overlay, task 65) ─────────────
+  if (showRecurringBills) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <RecurringBillsScreen
+          bills={recurringBills}
+          onAddBill={addBill}
+          onUpdateBill={updateBill}
+          onDeleteBill={deleteBill}
+          onClose={() => setShowRecurringBills(false)}
+        />
+      </div>
+    )
+  }
+
+  // ── Learn / Lessons (full-screen overlay) ──────────────────────
+  if (showLearn) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <div style={{ padding: '0 16px' }}>
+          <button
+            onClick={() => setShowLearn(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--sub)',
+              fontSize: 14,
+              cursor: 'pointer',
+              marginBottom: 16,
+              padding: '8px 0',
+            }}
+            aria-label="Go back"
+          >
+            ← Back
+          </button>
+        </div>
+        <LessonsScreen
+          lessonProgress={lessonProgress}
+          onCompleteLesson={completeLesson}
+        />
+      </div>
+    )
+  }
+
   // ── Main App Shell ─────────────────────────────────────────────
   return (
     <>
@@ -582,6 +650,8 @@ export default function FolioApp() {
                 onRefresh={refresh}
                 celebrationEvent={celebrationEvent}
                 onCelebrationDismiss={() => setCelebrationEvent(null)}
+                onSplitExpense={handleOpenSplitExpense}
+                onOpenBills={() => setShowRecurringBills(true)}
               />
             )}
             {activeNav === 'history' && (
@@ -593,10 +663,14 @@ export default function FolioApp() {
                 onLogExpense={() => handleOpenExpenseSheet()}
               />
             )}
-            {activeNav === 'learn' && (
-              <LessonsScreen
-                lessonProgress={lessonProgress}
-                onCompleteLesson={completeLesson}
+            {activeNav === 'tools' && (
+              <ToolsScreen
+                onOpenCompoundGrowth={undefined}
+                onOpenCreditPayoff={undefined}
+                onOpenSubscriptions={() => setShowSubscriptionAudit(true)}
+                onOpenSinkingFunds={() => setShowSinkingFunds(true)}
+                onOpenLearn={() => setShowLearn(true)}
+                onOpenSavingsProjections={undefined}
               />
             )}
             {activeNav === 'settings' && (
@@ -607,10 +681,9 @@ export default function FolioApp() {
                 savingsRate={savingsRate}
                 userEmail={user?.email}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
-                onOpenSinkingFunds={() => setShowSinkingFunds(true)}
-                onOpenSubscriptions={() => setShowSubscriptionAudit(true)}
+                onOpenRecurringBills={() => setShowRecurringBills(true)}
                 onOpenGoals={() => setShowGoals(true)}
-                onOpenLearn={() => setActiveNav('learn')}
+                onOpenTools={() => setActiveNav('tools')}
                 onOpenProfile={handleOpenProfile}
                 onSignOut={handleSignOut}
                 onResetOnboarding={handleResetOnboarding}
@@ -625,12 +698,13 @@ export default function FolioApp() {
       {/* ── Expense Sheet ──────────────────────────────────────── */}
       <ExpenseSheet
         isOpen={expenseSheetOpen}
-        onClose={() => setExpenseSheetOpen(false)}
+        onClose={() => { setExpenseSheetOpen(false); setSplitPreEnabled(false) }}
         onSubmit={handleExpenseSubmit}
         onUndo={lastLoggedId ? handleExpenseUndo : undefined}
         defaultCategory={defaultExpenseCategory}
         transactions={transactions}
         customCategories={customCategories}
+        splitPreEnabled={splitPreEnabled}
       />
 
       {/* ── Income Sheet ───────────────────────────────────────── */}

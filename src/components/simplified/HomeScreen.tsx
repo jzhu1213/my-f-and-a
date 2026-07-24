@@ -133,6 +133,12 @@ export interface HomeScreenProps {
   // ── Bill reminders ─────────────────────────────────────────────────────────
   /** Bills due within the next 3 days — used for contextual bill-due tips */
   upcomingBills?: { label: string; amount: number; dueDay: number }[]
+
+  // ── Quick action shortcuts for core money events (task 65) ─────────────────
+  /** Called when user taps "Split" quick action — opens expense sheet with split pre-enabled */
+  onSplitExpense?: () => void
+  /** Called when user taps "Bills" quick action — opens recurring bills screen */
+  onOpenBills?: () => void
 }
 
 // ============================================================================
@@ -175,6 +181,8 @@ export function HomeScreen({
   celebrationEvent: externalCelebration,
   onCelebrationDismiss,
   upcomingBills,
+  onSplitExpense,
+  onOpenBills,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -550,25 +558,45 @@ export function HomeScreen({
             onTapForDetails={onHeroTapDetails}
           />
           {!isLoading && allowance && allowance.isEstimated && (
-            <motion.p
+            <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
               style={{
-                fontSize: 12,
+                fontSize: 13,
                 color: "var(--sub)",
                 textAlign: "center",
                 fontFamily: FONT_FAMILY,
                 marginTop: 10,
-                opacity: 0.85,
-                padding: "8px 12px",
-                background: "rgba(255, 255, 255, 0.04)",
-                borderRadius: 8,
+                padding: "12px 16px",
+                background: "rgba(167, 139, 250, 0.08)",
+                borderRadius: 12,
+                lineHeight: 1.5,
               }}
-              aria-label="Estimated allowance — set budget limits for accuracy"
+              aria-label="This is an estimated daily budget. Tap to personalize it."
             >
-              ✨ This is an estimate — set budget limits for a more accurate daily budget
-            </motion.p>
+              <p style={{ margin: 0, fontSize: 13, opacity: 0.95 }}>
+                ✨ This is a starting estimate — no setup needed
+              </p>
+              <button
+                type="button"
+                onClick={onLogIncome}
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: "var(--accent)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  textUnderlineOffset: "2px",
+                  fontFamily: FONT_FAMILY,
+                }}
+                aria-label="Set your income for a more accurate daily budget"
+              >
+                Want a more accurate number? Log your income →
+              </button>
+            </motion.div>
           )}
           {!isLoading && allowance && !allowance.isEstimated && (
             <p
@@ -714,6 +742,69 @@ export function HomeScreen({
             >
               Log income
             </motion.button>
+          </div>
+
+          {/* Secondary row: Split + Bills shortcuts (task 65 — core money events) */}
+          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+            {/* Split: opens expense sheet with split pre-enabled */}
+            {onSplitExpense && (
+              <motion.button
+                type="button"
+                onClick={onSplitExpense}
+                whileTap={{ scale: 0.96 }}
+                transition={springs.bouncy}
+                aria-label="Split an expense with friends"
+                style={{
+                  flex: 1,
+                  background: "rgba(129, 140, 248, 0.06)",
+                  border: "1px solid rgba(129, 140, 248, 0.25)",
+                  borderRadius: 99,
+                  padding: "12px 16px",
+                  color: "var(--text)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontFamily: FONT_FAMILY,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <span aria-hidden="true">👥</span> Split
+              </motion.button>
+            )}
+
+            {/* Bills: opens recurring bills setup */}
+            {onOpenBills && (
+              <motion.button
+                type="button"
+                onClick={onOpenBills}
+                whileTap={{ scale: 0.96 }}
+                transition={springs.bouncy}
+                aria-label="Manage recurring bills"
+                style={{
+                  flex: 1,
+                  background: "rgba(251, 191, 36, 0.06)",
+                  border: "1px solid rgba(251, 191, 36, 0.25)",
+                  borderRadius: 99,
+                  padding: "12px 16px",
+                  color: "var(--text)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontFamily: FONT_FAMILY,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <span aria-hidden="true">🔁</span> Bills
+              </motion.button>
+            )}
           </div>
         </section>
 
