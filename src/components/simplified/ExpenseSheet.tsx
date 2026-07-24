@@ -24,14 +24,18 @@ interface ExpenseSheetProps {
   defaultCategory?: TransactionCategory
   transactions?: Transaction[]
   customCategories?: CustomCategory[]
+  /** Callback to create a new custom category inline (task 69) */
+  onAddCustomCategory?: (label: string, emoji: string) => Promise<CustomCategory | null>
+  /** When true, the split toggle starts enabled (task 65 — one-tap split flow) */
+  splitPreEnabled?: boolean
 }
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food' },
+  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food & Coffee' },
   { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Transport' },
-  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Fun' },
+  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Fun & Social' },
   { category: 'school', emoji: getCategoryEmoji('school'), label: 'School' },
-  { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent' },
+  { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent & Bills' },
   { category: 'other', emoji: getCategoryEmoji('other'), label: 'Other' },
 ]
 
@@ -63,6 +67,8 @@ export function ExpenseSheet({
   defaultCategory,
   transactions,
   customCategories = [],
+  onAddCustomCategory,
+  splitPreEnabled = false,
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
@@ -78,6 +84,15 @@ export function ExpenseSheet({
   const [manualCategorySelection, setManualCategorySelection] = useState(false)
   // Tracks whether the current category was auto-suggested
   const [isAutoSuggested, setIsAutoSuggested] = useState(false)
+
+  // ── Inline "Add custom category" form state (task 69) ───────────────────
+  const [showAddCategoryForm, setShowAddCategoryForm] = useState(false)
+  const [newCategoryLabel, setNewCategoryLabel] = useState('')
+  const [newCategoryEmoji, setNewCategoryEmoji] = useState('✨')
+  const [isAddingCategory, setIsAddingCategory] = useState(false)
+
+  // Quick-pick emoji palette for the inline add form
+  const EMOJI_PALETTE = ['🛒', '☕', '🍜', '🎓', '🏋️', '💇', '🎁', '🐾', '💊', '🧴', '✈️', '🎨', '🎶', '📱', '🪴']
 
   // Compute smart suggestions when category is selected
   const suggestions: SmartSuggestion[] = useMemo(() => {
@@ -120,14 +135,39 @@ export function ExpenseSheet({
       setCategory(prefillCategory)
       setNote('')
       setShowNoteField(false)
-      setSplitEnabled(false)
+      setSplitEnabled(splitPreEnabled)
       setSplitCount(2)
       setManualCategorySelection(!!effectiveDefault)
       setIsAutoSuggested(!!(!defaultCategory && !effectiveDefault && habitPrediction))
+      setShowAddCategoryForm(false)
+      setNewCategoryLabel('')
+      setNewCategoryEmoji('✨')
+      setIsAddingCategory(false)
       // Auto-focus amount input
       setTimeout(() => amountRef.current?.focus(), 120)
     }
-  }, [isOpen, effectiveDefault, defaultCategory, habitPrediction])
+  }, [isOpen, effectiveDefault, defaultCategory, habitPrediction, splitPreEnabled])
+
+  // ── Inline add-category submit handler (task 69) ────────────────────────
+  const handleAddCategorySubmit = useCallback(async () => {
+    const trimmedLabel = newCategoryLabel.trim()
+    if (!trimmedLabel || !onAddCustomCategory) return
+    setIsAddingCategory(true)
+    try {
+      const created = await onAddCustomCategory(trimmedLabel, newCategoryEmoji)
+      if (created) {
+        // Select the newly created category and close the form
+        setCategory('other')
+        setManualCategorySelection(true)
+        setIsAutoSuggested(false)
+        setShowAddCategoryForm(false)
+        setNewCategoryLabel('')
+        setNewCategoryEmoji('✨')
+      }
+    } finally {
+      setIsAddingCategory(false)
+    }
+  }, [newCategoryLabel, newCategoryEmoji, onAddCustomCategory])
 
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '')
@@ -634,7 +674,185 @@ export function ExpenseSheet({
                     </motion.button>
                   )
                 })}
+
+                {/* ── "+ Add" button — only shown when onAddCustomCategory is wired up (task 69) ── */}
+                {onAddCustomCategory && !showAddCategoryForm && (
+                  <motion.button
+                    type="button"
+                    onClick={() => { setShowAddCategoryForm(true); triggerHaptic('light') }}
+                    aria-label="Add a custom category"
+                    tabIndex={-1}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.94 }}
+                    transition={springs.snappy}
+                    style={{
+                      minHeight: 72,
+                      borderRadius: 'var(--radius-md)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      cursor: 'pointer',
+                      background: 'transparent',
+                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                    }}
+                  >
+                    <span style={{ fontSize: 20, lineHeight: 1 }} aria-hidden="true">+</span>
+                    <span
+                      style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: 'var(--muted)',
+                      }}
+                    >
+                      Add
+                    </span>
+                  </motion.button>
+                )}
               </div>
+
+              {/* ── Inline "Add custom category" form (task 69) ─────────────────── */}
+              <AnimatePresence>
+                {showAddCategoryForm && onAddCustomCategory && (
+                  <motion.div
+                    key="add-category-form"
+                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                    transition={springs.gentle}
+                    style={{
+                      overflow: 'hidden',
+                      marginBottom: 16,
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '14px 14px 12px',
+                    }}
+                  >
+                    {/* Emoji palette */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 6,
+                        marginBottom: 12,
+                      }}
+                      role="group"
+                      aria-label="Choose an emoji for your category"
+                    >
+                      {EMOJI_PALETTE.map((em) => (
+                        <button
+                          key={em}
+                          type="button"
+                          onClick={() => setNewCategoryEmoji(em)}
+                          aria-label={`Use emoji ${em}`}
+                          aria-pressed={newCategoryEmoji === em}
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 'var(--radius-sm)',
+                            border: newCategoryEmoji === em
+                              ? '1.5px solid rgba(129, 140, 248, 0.6)'
+                              : '1px solid rgba(255, 255, 255, 0.08)',
+                            background: newCategoryEmoji === em
+                              ? 'rgba(129, 140, 248, 0.1)'
+                              : 'transparent',
+                            fontSize: 18,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {em}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Label input + action row */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span
+                        style={{
+                          fontSize: 20,
+                          flexShrink: 0,
+                          width: 32,
+                          textAlign: 'center',
+                        }}
+                        aria-hidden="true"
+                      >
+                        {newCategoryEmoji}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="Category name"
+                        value={newCategoryLabel}
+                        onChange={(e) => setNewCategoryLabel(e.target.value.slice(0, 30))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.preventDefault(); void handleAddCategorySubmit() }
+                          if (e.key === 'Escape') { setShowAddCategoryForm(false) }
+                        }}
+                        maxLength={30}
+                        aria-label="New category name"
+                        style={{
+                          flex: 1,
+                          background: 'transparent',
+                          border: 'none',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+                          outline: 'none',
+                          fontSize: 14,
+                          fontFamily: 'Inter, sans-serif',
+                          color: 'var(--text)',
+                          padding: '6px 0',
+                        }}
+                        // eslint-disable-next-line jsx-a11y/no-autofocus
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleAddCategorySubmit()}
+                        disabled={!newCategoryLabel.trim() || isAddingCategory}
+                        aria-label="Save new category"
+                        style={{
+                          flexShrink: 0,
+                          padding: '6px 14px',
+                          borderRadius: 99,
+                          background: newCategoryLabel.trim()
+                            ? 'rgba(129, 140, 248, 0.8)'
+                            : 'rgba(255, 255, 255, 0.08)',
+                          border: 'none',
+                          color: newCategoryLabel.trim() ? '#fff' : 'var(--muted)',
+                          fontSize: 13,
+                          fontFamily: 'Inter, sans-serif',
+                          fontWeight: 600,
+                          cursor: newCategoryLabel.trim() ? 'pointer' : 'not-allowed',
+                          opacity: isAddingCategory ? 0.6 : 1,
+                        }}
+                      >
+                        {isAddingCategory ? '…' : 'Add'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCategoryForm(false)}
+                        aria-label="Cancel adding category"
+                        style={{
+                          flexShrink: 0,
+                          padding: '6px 10px',
+                          borderRadius: 99,
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--muted)',
+                          fontSize: 13,
+                          fontFamily: 'Inter, sans-serif',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* ── Auto-category suggestion indicator ──────────────── */}
               {isAutoSuggested && category && (

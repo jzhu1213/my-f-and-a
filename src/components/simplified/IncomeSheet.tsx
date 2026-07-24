@@ -158,6 +158,44 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
             <div style={{ padding: '0 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
               {/* ── Amount Input (calculator-style) ─────────────────── */}
               <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                {/* Quick income presets — common student amounts (task 65) */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    marginBottom: 16,
+                  }}
+                  aria-label="Quick income amounts"
+                >
+                  {[20, 50, 100, 200].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setAmount(String(preset))}
+                      aria-label={`Set amount to $${preset}`}
+                      style={{
+                        padding: '8px 14px',
+                        background: amount === String(preset)
+                          ? 'rgba(74, 222, 128, 0.12)'
+                          : 'rgba(255, 255, 255, 0.04)',
+                        border: amount === String(preset)
+                          ? '1px solid rgba(74, 222, 128, 0.4)'
+                          : '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: 99,
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        fontFamily: 'Inter, sans-serif',
+                        color: amount === String(preset) ? 'var(--success)' : 'var(--text)',
+                      }}
+                    >
+                      ${preset}
+                    </button>
+                  ))}
+                </div>
+
                 <div
                   style={{
                     display: 'flex',

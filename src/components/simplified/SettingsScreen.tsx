@@ -7,6 +7,7 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal } from "@/types"
+import type { IncomeSmoothing } from "@/types/folio"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -28,6 +29,8 @@ export interface SettingsScreenProps {
   totalSetAside?: number
   savingsRate?: number
   userEmail?: string
+  incomeSmoothing?: IncomeSmoothing | null
+  onSetIncomeSmoothing?: (s: IncomeSmoothing) => void
   onOpenBudgetSettings: () => void
   onOpenRecurringBills?: () => void
   onOpenGoals: () => void
@@ -50,6 +53,32 @@ const THEME_OPTIONS: ThemeOption[] = [
   { key: "warm", label: "Warm" },
   { key: "dark", label: "Dark" },
   { key: "system", label: "System" },
+]
+
+// ============================================================================
+// Income smoothing options
+// ============================================================================
+
+type IncomeOption = {
+  key: 'current_month' | 'trailing_average'
+  label: string
+  desc: string
+  value: IncomeSmoothing
+}
+
+const INCOME_OPTIONS: IncomeOption[] = [
+  {
+    key: 'current_month',
+    label: 'Just this month',
+    desc: 'Uses your income recorded this month',
+    value: { strategy: 'current_month' },
+  },
+  {
+    key: 'trailing_average',
+    label: 'Average the last 3 months',
+    desc: 'Steadier for gig income or irregular pay',
+    value: { strategy: 'trailing_average', windowMonths: 3 },
+  },
 ]
 
 // ============================================================================
@@ -78,6 +107,8 @@ export function SettingsScreen({
   totalSetAside,
   savingsRate,
   userEmail,
+  incomeSmoothing,
+  onSetIncomeSmoothing,
   onOpenBudgetSettings,
   onOpenRecurringBills,
   onOpenGoals,
@@ -186,6 +217,63 @@ export function SettingsScreen({
           Manage limits →
         </motion.button>
       </GlassCard>
+
+      {/* ── Income Calculation ────────────────────────────────────────────── */}
+      {onSetIncomeSmoothing && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+            Income
+          </p>
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
+            How should your daily budget be calculated when income varies?
+          </p>
+
+          {/* Segmented control — same pattern as Appearance */}
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              padding: 4,
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            {INCOME_OPTIONS.map(opt => {
+              const isActive = (incomeSmoothing?.strategy ?? 'current_month') === opt.key
+              return (
+                <motion.button
+                  key={opt.key}
+                  onClick={() => onSetIncomeSmoothing(opt.value)}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={{
+                    flex: 1,
+                    padding: "10px 8px",
+                    borderRadius: 9,
+                    border: "none",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    fontFamily: FONT_FAMILY,
+                    cursor: "pointer",
+                    color: isActive ? "var(--text)" : "var(--muted)",
+                    background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
+                    boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                    transition: "background 0.2s, color 0.2s, box-shadow 0.2s",
+                    textAlign: "center",
+                    lineHeight: 1.3,
+                  }}
+                  aria-pressed={isActive}
+                  aria-label={opt.label}
+                  title={opt.desc}
+                >
+                  {opt.label}
+                </motion.button>
+              )
+            })}
+          </div>
+        </GlassCard>
+      )}
 
       {/* ── Set Aside This Month ─────────────────────────────────────────── */}
       {(totalSetAside ?? 0) > 0 && (

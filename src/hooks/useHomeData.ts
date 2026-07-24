@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import type { Transaction, Budget, Goal, TransactionCategory, TransactionType, UserLessonProgress } from '@/types'
-import type { DailyAllowance, Debt, SavingsAccount, SavingsAccountType } from '@/types/folio'
+import type { DailyAllowance, Debt, SavingsAccount, SavingsAccountType, IncomeSmoothing } from '@/types/folio'
 import { 
   getTransactions, 
   getBudgets, 
@@ -37,6 +37,31 @@ import { getTotalMonthlyReserve } from '@/lib/sinkingFunds'
 import { computeTotalSetAside, computeSavingsRate } from '@/lib/allocationUtils'
 import type { IncomeAllocation } from '@/types/folio'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
+
+// ── Income Smoothing Preference Persistence ────────────────────────────────
+// Stored in localStorage as a fallback (no dedicated Supabase table yet).
+// Pattern mirrors other simple preference keys (roundUpSavings, minBalanceBuffer, etc.)
+const INCOME_SMOOTHING_KEY = 'folio-income-smoothing'
+
+function loadIncomeSmoothingPreference(): IncomeSmoothing | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(INCOME_SMOOTHING_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as IncomeSmoothing
+  } catch {
+    return null
+  }
+}
+
+function saveIncomeSmoothingPreference(preference: IncomeSmoothing): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(INCOME_SMOOTHING_KEY, JSON.stringify(preference))
+  } catch {
+    // localStorage full or unavailable — fail silently
+  }
+}
 import { computeCategoryBudgets } from '@/lib/budgetUtils'
 import { computeTotalSavingsBalance, computeMonthlyContributions } from '@/lib/savingsAccountUtils'
 import { debtsToFixedExpenses } from '@/lib/debtUtils'
@@ -148,6 +173,11 @@ export interface UseHomeDataReturn {
   paySchedule: PaySchedule | null
   /** User sinking funds for periodic large costs */
   sinkingFunds: SinkingFund[]
+  /**
+   * The user's income smoothing preference, or `null` when none is set.
+   * `null` means `current_month` behaviour (no change to existing logic).
+   */
+  incomeSmoothing: IncomeSmoothing | null
   
   // ── Computed Values (Memoized) ─────────────────────────────────
   /** Daily allowance calculation (Requirement 13.2) */
@@ -279,6 +309,11 @@ export interface UseHomeDataReturn {
   setDisbursementBonus: React.Dispatch<React.SetStateAction<number>>
   /** Set goals directly (for optimistic updates) */
   setGoals: React.Dispatch<React.SetStateAction<Goal[]>>
+  /**
+   * Persist a new income-smoothing preference and update state.
+   * Pass `null` to clear the preference and revert to `current_month` behaviour.
+   */
+  setIncomeSmoothing: (preference: IncomeSmoothing | null) => void
 }
 
 /**
@@ -309,6 +344,9 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   const [paySchedule, setPaySchedule] = useState<PaySchedule | null>(null)
   const [sinkingFunds, setSinkingFunds] = useState<SinkingFund[]>([])
   const [disbursementBonus, setDisbursementBonus] = useState(0)
+  const [incomeSmoothing, setIncomeSmoothingState] = useState<IncomeSmoothing | null>(
+    () => loadIncomeSmoothingPreference()
+  )
   const [isLoading, setIsLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isStale, setIsStale] = useState(false)
@@ -908,6 +946,27 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     }
   }, [userId])
   
+  // ── Income Smoothing Mutation ──────────────────────────────────
+  /**
+   * Persist a new income-smoothing preference and update state.
+   * Uses localStorage as the persistence layer (no dedicated Supabase table).
+   * Pass `null` to clear the preference and revert to `current_month` behaviour.
+   */
+  const setIncomeSmoothing = useCallback((preference: IncomeSmoothing | null) => {
+    if (preference === null) {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(INCOME_SMOOTHING_KEY)
+        } catch {
+          // Silently fail if storage is unavailable
+        }
+      }
+    } else {
+      saveIncomeSmoothingPreference(preference)
+    }
+    setIncomeSmoothingState(preference)
+  }, [])
+
   // ── Memoized Computations ──────────────────────────────────────
   /**
    * Daily allowance calculation (memoized)
@@ -961,8 +1020,8 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       ? [...debtFixedExpenses, sinkingFundFixedExpense]
       : debtFixedExpenses
     
-    return computeDailyAllowance(budgets, transactions, new Date(), (monthlyIncome ?? 0) + disbursementBonus, allFixedExpenses)
-  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, isLoading])
+    return computeDailyAllowance(budgets, transactions, new Date(), (monthlyIncome ?? 0) + disbursementBonus, allFixedExpenses, undefined, incomeSmoothing ?? undefined)
+  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, incomeSmoothing, isLoading])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
@@ -1042,6 +1101,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     lessonProgress,
     savingsAccounts,
     paySchedule,
+    incomeSmoothing,
     
     // Computed values (memoized)
     allowance,
@@ -1093,5 +1153,6 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     setBudgets,
     setGoals,
     setDisbursementBonus,
+    setIncomeSmoothing,
   }
 }

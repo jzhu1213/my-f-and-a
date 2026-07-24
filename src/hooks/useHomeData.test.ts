@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { useHomeData } from './useHomeData'
 import type { Transaction, Budget, Goal } from '@/types'
 import * as supabaseData from '@/lib/supabaseData'
@@ -9,6 +9,29 @@ vi.mock('@/lib/supabaseData', () => ({
   getTransactions: vi.fn(),
   getBudgets: vi.fn(),
   getGoals: vi.fn(),
+  getLessonProgress: vi.fn().mockResolvedValue([]),
+  getMonthAllocations: vi.fn().mockResolvedValue([]),
+  getSavingsAccounts: vi.fn().mockResolvedValue([]),
+  getDebts: vi.fn().mockResolvedValue([]),
+  getPaySchedule: vi.fn().mockResolvedValue(null),
+  getSinkingFunds: vi.fn().mockResolvedValue([]),
+  updateLessonProgress: vi.fn(),
+  insertTransaction: vi.fn(),
+  updateTransaction: vi.fn(),
+  deleteTransaction: vi.fn(),
+  upsertBudget: vi.fn(),
+  updateBudgetSpent: vi.fn(),
+  createGoal: vi.fn(),
+  updateGoal: vi.fn(),
+  updateGoalProgress: vi.fn(),
+  deleteGoal: vi.fn(),
+  createSavingsAccount: vi.fn(),
+  updateSavingsAccount: vi.fn(),
+  deleteSavingsAccount: vi.fn(),
+  updateSavingsAccountBalance: vi.fn(),
+  createSinkingFund: vi.fn(),
+  updateSinkingFund: vi.fn(),
+  deleteSinkingFund: vi.fn(),
 }))
 
 describe('useHomeData', () => {
@@ -71,6 +94,8 @@ describe('useHomeData', () => {
   
   beforeEach(() => {
     vi.clearAllMocks()
+    // Clear localStorage to prevent cache hydration from bleeding across tests
+    localStorage.clear()
   })
   
   afterEach(() => {
@@ -254,7 +279,7 @@ describe('useHomeData', () => {
     expect(typeof result.current.setBudgets).toBe('function')
     expect(typeof result.current.setGoals).toBe('function')
     
-    // Test optimistic update
+    // Test optimistic update — wrap in act() so React flushes the state update synchronously
     const newTransaction: Transaction = {
       id: '999',
       userId: mockUserId,
@@ -266,7 +291,9 @@ describe('useHomeData', () => {
       createdAt: new Date().toISOString(),
     }
     
-    result.current.setTransactions((prev: Transaction[]) => [newTransaction, ...prev])
+    act(() => {
+      result.current.setTransactions((prev: Transaction[]) => [newTransaction, ...prev])
+    })
     
     // Should have new transaction
     expect(result.current.transactions[0]).toEqual(newTransaction)

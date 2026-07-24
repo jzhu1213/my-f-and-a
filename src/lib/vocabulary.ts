@@ -25,12 +25,12 @@ import type { AllowanceStatus } from '@/types/folio'
  * This is THE single lookup — if you need an emoji for a category, use this.
  */
 export const CATEGORY_EMOJI: Record<TransactionCategory, string> = {
-  food: '🍕',
+  food: '🍔',
   rent: '🏠',
-  transport: '🚗',
+  transport: '🚌',
   school: '📚',
-  fun: '🎮',
-  other: '💼',
+  fun: '🎉',
+  other: '📦',
   gig: '⚡',
   income: '💵',
 }
@@ -104,6 +104,7 @@ export const TIP_EMOJI = {
   pacing_check: '📊',
   subscription_audit: '🔄',
   low_balance: '🫶',
+  lump_income: '🎉',
 } as const
 
 // ============================================================================
@@ -153,8 +154,9 @@ export function getStatusMessage(
       return `Right at your limit. Nice job staying on track.`
 
     case 'over':
-      if (spentToday < 50) return 'A little tight today — tomorrow resets.'
-      return "Over today, but no stress. Tomorrow's a fresh start."
+      if (spentToday <= 20) return 'A little tight today — tomorrow resets.'
+      if (spentToday <= 50) return "Over today, but no stress. Tomorrow's a fresh start."
+      return `Big day for spending — tomorrow gives you a clean ${amountStr === '$0' ? 'slate' : 'start'}.`
 
     default:
       return "No stress — let's keep it simple."

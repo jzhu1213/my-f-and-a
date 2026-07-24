@@ -65,21 +65,21 @@ export interface Budget {
 }
 
 export const BUDGET_CATEGORIES: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: 'food', emoji: '🍕', label: 'Food' },
-  { category: 'rent', emoji: '🏠', label: 'Rent' },
-  { category: 'transport', emoji: '🚗', label: 'Transport' },
+  { category: 'food', emoji: '🍔', label: 'Food & Coffee' },
+  { category: 'rent', emoji: '🏠', label: 'Rent & Bills' },
+  { category: 'transport', emoji: '🚌', label: 'Transport' },
   { category: 'school', emoji: '📚', label: 'School' },
-  { category: 'fun', emoji: '🎮', label: 'Fun' },
-  { category: 'other', emoji: '💼', label: 'Other' },
+  { category: 'fun', emoji: '🎉', label: 'Fun & Social' },
+  { category: 'other', emoji: '📦', label: 'Other' },
 ]
 
 export const TRANSACTION_CATEGORIES: { category: TransactionCategory; emoji: string; label: string; type: TransactionType }[] = [
-  { category: 'food', emoji: '🍕', label: 'Food', type: 'expense' },
-  { category: 'rent', emoji: '🏠', label: 'Rent', type: 'expense' },
-  { category: 'transport', emoji: '🚗', label: 'Transport', type: 'expense' },
+  { category: 'food', emoji: '🍔', label: 'Food & Coffee', type: 'expense' },
+  { category: 'rent', emoji: '🏠', label: 'Rent & Bills', type: 'expense' },
+  { category: 'transport', emoji: '🚌', label: 'Transport', type: 'expense' },
   { category: 'school', emoji: '📚', label: 'School', type: 'expense' },
-  { category: 'fun', emoji: '🎮', label: 'Fun', type: 'expense' },
-  { category: 'other', emoji: '💼', label: 'Other', type: 'expense' },
+  { category: 'fun', emoji: '🎉', label: 'Fun & Social', type: 'expense' },
+  { category: 'other', emoji: '📦', label: 'Other', type: 'expense' },
   { category: 'income', emoji: '⚡', label: 'Other Pay', type: 'income' },
   { category: 'income', emoji: '💵', label: 'Paycheck', type: 'income' },
 ]

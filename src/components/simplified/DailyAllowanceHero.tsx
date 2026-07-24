@@ -238,14 +238,16 @@ function HeroSkeleton() {
 
 /**
  * Formats the rollover amount into a human-friendly string.
- * e.g., "+$5 from yesterday" or "-$3 from yesterday"
+ * e.g., "+$5 from yesterday" or "−$3 from yesterday (yesterday's extra)"
+ * The annotation on negative rollovers adds context so it reads as calm
+ * information rather than a warning.
  */
 function formatRollover(rollover: number): string {
   const rounded = Math.round(Math.abs(rollover))
   if (rollover >= 0) {
     return `+$${rounded} from yesterday`
   }
-  return `-$${rounded} from yesterday`
+  return `\u2212$${rounded} from yesterday (yesterday's extra)`
 }
 
 /**
@@ -321,7 +323,7 @@ export function DailyAllowanceHero({
       icon: "🔄",
       label: "Rollover",
       value: formatRollover(rollover),
-      valueColor: rollover >= 0 ? "var(--success)" : "var(--error)",
+      valueColor: rollover >= 0 ? "var(--success)" : "var(--sub)",
     },
     {
       key: "spent-today",
@@ -424,9 +426,8 @@ export function DailyAllowanceHero({
         <motion.p
           className="text-center text-sm"
           style={{
-            color: status === "over" ? "var(--error)" : "var(--sub)",
+            color: "var(--sub)",
             maxWidth: 280,
-            fontWeight: status === "over" ? 500 : undefined,
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react"
 import { motion, AnimatePresence, PanInfo, Variants } from "framer-motion"
 import type { Transaction, Budget, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
-import type { QuickTransaction, SmartSuggestion } from "@/types/folio"
+import type { QuickTransaction, SmartSuggestion, CustomCategory } from "@/types/folio"
 import { generateSmartSuggestions } from "@/lib/suggestionUtils"
 import { useToast } from "@/contexts/ToastContext"
 import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
@@ -422,6 +422,8 @@ export interface QuickLogAreaProps {
   onLogExpense: (transaction: QuickTransaction) => void
   /** Callback when income is logged */
   onLogIncome: (amount: number, note?: string) => void
+  /** User-defined custom categories to show in the category grid (task 69) */
+  customCategories?: CustomCategory[]
 }
 
 /**
@@ -443,6 +445,7 @@ export function QuickLogArea({
   budgets,
   onLogExpense,
   onLogIncome,
+  customCategories = [],
 }: QuickLogAreaProps) {
   const { showToast } = useToast()
   const { prefersReducedMotion } = useReducedMotion()
@@ -483,10 +486,22 @@ export function QuickLogArea({
       }
     }
     // Only show expense categories (BUDGET_CATEGORIES excludes income)
-    return [...BUDGET_CATEGORIES].sort(
+    const builtIn = [...BUDGET_CATEGORIES].sort(
       (a, b) => (usageCount.get(b.category) ?? 0) - (usageCount.get(a.category) ?? 0)
     )
-  }, [recentTransactions])
+
+    // Append custom categories at the end, sorted by creation date (task 69)
+    const custom = [...customCategories]
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map((c) => ({
+        category: 'other' as TransactionCategory,
+        emoji: c.emoji,
+        label: c.label,
+        customId: c.id,
+      }))
+
+    return [...builtIn, ...custom]
+  }, [recentTransactions, customCategories])
 
   // ── 6.3: Smart suggestions for selected category (Requirements 3.3, 3.6) ───
   const suggestions = useMemo<SmartSuggestion[]>(() => {
@@ -636,7 +651,7 @@ export function QuickLogArea({
       >
         {sortedCategories.map((cat, index) => (
           <CategoryButton
-            key={cat.category}
+            key={'customId' in cat && cat.customId ? `custom-${cat.customId}` : cat.category}
             category={cat.category}
             emoji={cat.emoji}
             label={cat.label}

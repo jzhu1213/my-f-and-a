@@ -127,6 +127,8 @@ export type TipTrigger =
   | { type: 'bill_due_soon'; label: string; dueDay: number; daysUntil: number }
   | { type: 'low_balance_warning'; projectedLowBalance: number; buffer: number; daysUntilDip?: number }
   | { type: 'subscription_audit'; count: number; monthlyTotal: number }
+  | { type: 'lump_income_spike'; spikeAmount: number; averageMonthlyIncome: number }
+  | { type: 'over_budget_today' }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)

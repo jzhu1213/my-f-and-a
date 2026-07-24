@@ -38,6 +38,14 @@ export interface UserContext {
   daysUntilBalanceDip?: number
   /** Detected subscriptions summary for subscription audit nudge */
   detectedSubscriptions?: { count: number; monthlyTotal: number }
+  /**
+   * Signals a lump-sum income spike: a single income transaction in the current
+   * month that is more than 2× the trailing-average monthly income. When set,
+   * the lump_income_spike tip is eligible to fire.
+   */
+  lumpIncomeSpikeAmount?: number
+  /** The trailing-average monthly income used as baseline for spike detection. */
+  lumpIncomeBaselineAverage?: number
 }
 
 /**
@@ -61,7 +69,9 @@ export function selectContextualTip(
 ): ContextualTip | null {
   const candidates: ContextualTip[] = []
 
-  // Step 1: Celebration trigger — streak of 3+ days under budget (high priority)
+  // Step 1: Celebration trigger — streak of 3+ days under budget (high priority).
+  // Note: when the user is over budget today their `underBudgetStreak` resets to 0,
+  // so celebration tips naturally won't fire on over-budget days — no extra guard needed.
   if (context.underBudgetStreak >= 3) {
     candidates.push({
       id: `streak-${context.underBudgetStreak}`,
@@ -74,8 +84,28 @@ export function selectContextualTip(
     })
   }
 
-  // Step 2: Gentle nudge trigger — spent more than 80% of daily budget (medium priority)
-  if (context.todaySpentPercent > 80 && context.allowance.amount > 0) {
+  // Step 2a: Over-budget tip — spent >= 100% of daily budget (medium priority).
+  // The near-budget message ("save the rest for later") is inaccurate when there is
+  // nothing left, so we use a distinct tip ID and shame-free copy that points to a
+  // practical next step (logging income extends today's pool).
+  if (context.todaySpentPercent >= 100) {
+    candidates.push({
+      id: 'over-budget-today',
+      type: 'gentle_nudge',
+      title: TIP_TITLES.gentle_nudge,
+      message:
+        "Today's a little tight — tomorrow resets fresh. Logging income adds to today's pool if you need it.",
+      emoji: TIP_EMOJI.low_balance,
+      priority: 'medium',
+      actionLabel: 'See breakdown',
+      actionType: 'view_insight',
+      triggerCondition: { type: 'over_budget_today' },
+    })
+  }
+
+  // Step 2b: Near-budget nudge — spent 80–99% of daily budget (medium priority).
+  // Only fires when the user is close but has something left to preserve.
+  if (context.todaySpentPercent > 80 && context.todaySpentPercent < 100 && context.allowance.amount > 0) {
     candidates.push({
       id: 'spending-high-today',
       type: 'gentle_nudge',
@@ -89,7 +119,7 @@ export function selectContextualTip(
     })
   }
 
-  // Step 2b: Burn-rate velocity warning — spending pace would exhaust pool early (medium priority)
+  // Step 2c: Burn-rate velocity warning — spending pace would exhaust pool early (medium priority)
   if (
     context.recentBurnRate != null &&
     context.discretionaryPoolRemaining != null &&
@@ -117,7 +147,7 @@ export function selectContextualTip(
     }
   }
 
-  // Step 2c-lb: Low-balance / overdraft heads-up — projected dip below the
+  // Step 2d-lb: Low-balance / overdraft heads-up — projected dip below the
   // configured buffer before payday (medium priority). Warm and non-shaming:
   // it's a gentle nudge to plan ahead, not a scolding about being "low".
   if (
@@ -144,7 +174,7 @@ export function selectContextualTip(
     })
   }
 
-  // Step 2c: Bill due-date reminder — soonest bill due within 3 days (medium priority)
+  // Step 2e: Bill due-date reminder — soonest bill due within 3 days (medium priority)
   if (context.upcomingBills && context.upcomingBills.length > 0) {
     // Pick the soonest bill (lowest dueDay relative to today)
     const today = new Date()
@@ -169,7 +199,33 @@ export function selectContextualTip(
     }
   }
 
-  // Step 2d: Subscription audit nudge — detected subscriptions the user hasn't reviewed (medium priority)
+  // Step 2f-li: Lump-sum income spike — a single income transaction > 2× trailing average (medium priority).
+  // Use a per-month tip ID so it fires at most once per income event (dismissed-tips pattern).
+  if (
+    context.lumpIncomeSpikeAmount != null &&
+    context.lumpIncomeSpikeAmount > 0 &&
+    context.lumpIncomeBaselineAverage != null
+  ) {
+    const currentMonthPrefix = new Date().toISOString().slice(0, 7)
+    candidates.push({
+      id: `lump-income-${currentMonthPrefix}`,
+      type: 'celebration',
+      title: 'Big payment landed',
+      message:
+        "Looks like a big payment came in 🎉 Your daily budget uses a 3-month average, so the number stays steady. You can save the extra or adjust the split in Settings.",
+      emoji: TIP_EMOJI.lump_income,
+      priority: 'medium',
+      actionLabel: 'Adjust in Settings',
+      actionType: 'view_insight',
+      triggerCondition: {
+        type: 'lump_income_spike',
+        spikeAmount: context.lumpIncomeSpikeAmount,
+        averageMonthlyIncome: context.lumpIncomeBaselineAverage,
+      },
+    })
+  }
+
+  // Step 2g: Subscription audit nudge — detected subscriptions the user hasn't reviewed (medium priority)
   if (
     context.detectedSubscriptions &&
     context.detectedSubscriptions.count > 0 &&

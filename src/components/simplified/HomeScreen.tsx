@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import type { Transaction, Budget, Goal, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { CelebrationEvent } from "@/types/folio"
-import type { DailyAllowance, QuickTransaction } from "@/types/folio"
+import type { DailyAllowance, IncomeSmoothing, QuickTransaction } from "@/types/folio"
 import type { TransactionRepeat } from "@/lib/transactionUtils"
 import { getRecentRepeats } from "@/lib/transactionUtils"
 import { computeCategoryBudgets } from "@/lib/budgetUtils"
@@ -16,7 +16,8 @@ import type { PaySchedule } from "@/lib/paySchedule"
 import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/vocabulary"
 import { getDaysUntilPayday, computeSafeToSpendUntilPayday, projectBalanceUntilPayday } from "@/lib/paySchedule"
 import { getMinBalanceBuffer } from "@/lib/minBalanceBuffer"
-import { motion, AnimatePresence } from "framer-motion"
+import { computeSmoothedIncome } from "@/lib/dailyAllowanceUtils"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
@@ -69,6 +70,171 @@ function getRelativeDate(dateStr: string): string {
   if (dateStr === yesterday) return "Yesterday"
   const d = new Date(dateStr + "T00:00:00")
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
+
+// ============================================================================
+// SmoothingPopover sub-component
+// ============================================================================
+
+function SmoothingPopover({ windowMonths, onClose }: { windowMonths: number; onClose: () => void }) {
+  const prefersReducedMotion = useReducedMotion()
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Tap-outside dismiss
+  useEffect(() => {
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
+    }
+  }, [onClose])
+
+  const motionProps = prefersReducedMotion
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.15 } }
+    : { initial: { opacity: 0, y: -8, scale: 0.97 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: -6, scale: 0.97 }, transition: { type: 'spring' as const, stiffness: 320, damping: 26 } }
+
+  return (
+    <motion.div
+      ref={ref}
+      role="dialog"
+      aria-modal="false"
+      aria-label="Income smoothing explanation"
+      style={{
+        position: 'absolute',
+        top: 'calc(100% + 8px)',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 50,
+        width: 'min(300px, 90vw)',
+        textAlign: 'left',
+      }}
+      {...motionProps}
+    >
+      <GlassCard elevation="low" style={{ padding: '16px', position: 'relative' }}>
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close explanation"
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            background: 'none',
+            border: 'none',
+            color: 'var(--sub)',
+            fontSize: 18,
+            cursor: 'pointer',
+            lineHeight: 1,
+            padding: 2,
+          }}
+        >
+          ×
+        </button>
+        <p style={{
+          margin: 0,
+          fontSize: 13,
+          lineHeight: 1.6,
+          color: 'var(--text)',
+          fontFamily: FONT_FAMILY,
+          paddingRight: 20,
+        }}>
+          Your daily budget uses the average of your last {windowMonths} months of income, so a big one-time payment (like financial aid) doesn&rsquo;t spike or crash your daily number.
+        </p>
+      </GlassCard>
+    </motion.div>
+  )
+}
+
+// ============================================================================
+// OverBudgetStrip sub-component (task 70.3)
+// ============================================================================
+
+/**
+ * A compact, warm inline suggestion strip shown directly below the hero when
+ * the user's allowance status is 'over'. Offers one practical next step and a
+ * one-tap shortcut to log income.
+ *
+ * - Dismissed automatically when the user logs income (status leaves 'over')
+ * - No persistent dismiss button — auto-hides when no longer needed
+ * - Entrance animation: fade-in only (respects prefers-reduced-motion)
+ */
+function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
+  const prefersReducedMotion = useReducedMotion()
+
+  const motionProps = prefersReducedMotion
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.2 },
+      }
+    : {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.35, ease: 'easeOut' as const },
+      }
+
+  return (
+    <motion.div
+      role="status"
+      aria-label="Over budget suggestion"
+      {...motionProps}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        background: 'rgba(248, 113, 113, 0.06)',
+        border: '1px solid rgba(248, 113, 113, 0.18)',
+        borderRadius: 12,
+        padding: '12px 16px',
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: 'var(--sub)',
+          fontFamily: FONT_FAMILY,
+          flex: 1,
+        }}
+      >
+        Tomorrow&rsquo;s budget resets — or log income to top up today.
+      </p>
+
+      <motion.button
+        type="button"
+        onClick={onLogIncome}
+        whileTap={{ scale: 0.95 }}
+        transition={springs.bouncy}
+        aria-label="Log income to top up your budget"
+        style={{
+          flexShrink: 0,
+          background: 'rgba(248, 113, 113, 0.12)',
+          border: '1px solid rgba(248, 113, 113, 0.30)',
+          borderRadius: 999,
+          padding: '7px 14px',
+          color: '#f87171',
+          fontSize: 13,
+          fontWeight: 500,
+          fontFamily: FONT_FAMILY,
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Log income →
+      </motion.button>
+    </motion.div>
+  )
 }
 
 // ============================================================================
@@ -139,6 +305,8 @@ export interface HomeScreenProps {
   onSplitExpense?: () => void
   /** Called when user taps "Bills" quick action — opens recurring bills screen */
   onOpenBills?: () => void
+  /** Income smoothing preference — passed from page.tsx via useHomeData */
+  incomeSmoothing?: IncomeSmoothing | null
 }
 
 // ============================================================================
@@ -183,6 +351,7 @@ export function HomeScreen({
   upcomingBills,
   onSplitExpense,
   onOpenBills,
+  incomeSmoothing,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -191,6 +360,7 @@ export function HomeScreen({
   const [celebrationQueue, setCelebrationQueue] = useState<CelebrationEvent[]>([])
   const [showAffordabilitySheet, setShowAffordabilitySheet] = useState(false)
   const [inlineEditId, setInlineEditId] = useState<string | null>(null)
+  const [showSmoothingPopover, setShowSmoothingPopover] = useState(false)
   const prevTxCountRef = useRef<number>(transactions.length)
   const prevGoalsRef = useRef<string>("")
 
@@ -362,6 +532,30 @@ export function HomeScreen({
       daysUntilBalanceDip = projection.daysUntilDip
     }
 
+    // ── Lump-sum income spike detection ───────────────────────────────────────
+    // Fires when a single income transaction in the current month is more than
+    // 2× the trailing-3-month average income. Signals aid disbursements, gig
+    // payouts, etc. so the tip can reassure the user the daily number is stable.
+    let lumpIncomeSpikeAmount: number | undefined
+    let lumpIncomeBaselineAverage: number | undefined
+    const currentMonthPrefix = now.toISOString().slice(0, 7)
+    const thisMonthIncomeTxs = transactions.filter(
+      (t) => t.type === 'income' && t.date.startsWith(currentMonthPrefix)
+    )
+    if (thisMonthIncomeTxs.length > 0) {
+      const trailingAvg = computeSmoothedIncome(transactions, now, {
+        strategy: 'trailing_average',
+        windowMonths: 3,
+      })
+      if (trailingAvg > 0) {
+        const maxThisMonthTx = Math.max(...thisMonthIncomeTxs.map((t) => t.amount))
+        if (maxThisMonthTx > trailingAvg * 2) {
+          lumpIncomeSpikeAmount = maxThisMonthTx
+          lumpIncomeBaselineAverage = trailingAvg
+        }
+      }
+    }
+
     return {
       underBudgetStreak,
       todaySpentPercent,
@@ -379,6 +573,8 @@ export function HomeScreen({
       projectedLowBalance,
       minBalanceBuffer,
       daysUntilBalanceDip,
+      lumpIncomeSpikeAmount,
+      lumpIncomeBaselineAverage,
     }
   }, [transactions, allowance, underBudgetStreak, upcomingBills, paySchedule, minBalanceBuffer])
 
@@ -615,6 +811,52 @@ export function HomeScreen({
               Spent today: ${Math.round(allowance.spentToday)}
             </p>
           )}
+
+          {/* Stability badge — only when income source is 'transactions' with trailing average smoothing */}
+          {!isLoading &&
+            allowance &&
+            allowance.incomeSource === 'transactions' &&
+            incomeSmoothing?.strategy === 'trailing_average' && (
+              <div style={{ position: 'relative', textAlign: 'center', marginTop: 8 }}>
+                {/* Badge button */}
+                <motion.button
+                  type="button"
+                  onClick={() => setShowSmoothingPopover(v => !v)}
+                  aria-label="Income smoothing is active. Tap for details."
+                  aria-expanded={showSmoothingPopover}
+                  whileTap={{ scale: 0.96 }}
+                  transition={springs.bouncy}
+                  style={{
+                    background: 'rgba(167, 139, 250, 0.12)',
+                    border: '1px solid rgba(167, 139, 250, 0.25)',
+                    borderRadius: 999,
+                    padding: '5px 12px',
+                    color: 'var(--accent)',
+                    fontSize: 12,
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <span aria-hidden="true">ℹ️</span>
+                  Averaged over {incomeSmoothing.windowMonths ?? 3} months · more stable
+                </motion.button>
+
+                {/* Popover */}
+                <AnimatePresence>
+                  {showSmoothingPopover && (
+                    <SmoothingPopover
+                      windowMonths={incomeSmoothing.windowMonths ?? 3}
+                      onClose={() => setShowSmoothingPopover(false)}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
           {!isLoading && allowance && allowance.reservedForBills && allowance.reservedForBills > 0 && (
             <p
               style={{
@@ -692,6 +934,13 @@ export function HomeScreen({
             </div>
           )}
         </section>
+
+        {/* ── 1.5. Over-budget "what's next" strip (task 70.3) ───── */}
+        <AnimatePresence>
+          {!isLoading && allowance?.status === 'over' && (
+            <OverBudgetStrip onLogIncome={onLogIncome} />
+          )}
+        </AnimatePresence>
 
         {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}
         <section aria-label="Quick actions">
@@ -946,7 +1195,7 @@ export function HomeScreen({
 
                 const budgetLabel = row.hasLimit
                   ? row.overWeekly
-                    ? `${row.label}: $${Math.abs(Math.round(row.weeklyLeft))} over budget`
+                    ? `${row.label}: $${Math.abs(Math.round(row.weeklyLeft))} over this week`
                     : `${row.label}: $${Math.max(0, Math.round(row.weeklyLeft))} left this week`
                   : `${row.label}: no limit set${row.weeklySpent > 0 ? `, $${Math.round(row.weeklySpent)} spent` : ""}`
 
@@ -1023,7 +1272,7 @@ export function HomeScreen({
                             }}
                           >
                             {row.overWeekly
-                              ? `$${Math.abs(Math.round(row.weeklyLeft))} over`
+                              ? `$${Math.abs(Math.round(row.weeklyLeft))} over this week`
                               : `$${Math.max(0, Math.round(row.weeklyLeft))} left`}
                           </span>
                         </>

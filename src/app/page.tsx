@@ -111,10 +111,12 @@ export default function FolioApp() {
     updateSinkingFund,
     deleteSinkingFund,
     setDisbursementBonus,
+    incomeSmoothing,
+    setIncomeSmoothing,
   } = useHomeData(user?.id)
 
   // ── Custom Categories ──────────────────────────────────────────
-  const { customCategories } = useCustomCategories(user?.id)
+  const { customCategories, addCustomCategory } = useCustomCategories(user?.id)
 
   // ── Recurring Bills (task 65 — set-and-forget bills) ───────────
   const { bills: recurringBills, addBill, updateBill, deleteBill } = useRecurringBills(user?.id)
@@ -652,6 +654,7 @@ export default function FolioApp() {
                 onCelebrationDismiss={() => setCelebrationEvent(null)}
                 onSplitExpense={handleOpenSplitExpense}
                 onOpenBills={() => setShowRecurringBills(true)}
+                incomeSmoothing={incomeSmoothing}
               />
             )}
             {activeNav === 'history' && (
@@ -680,6 +683,8 @@ export default function FolioApp() {
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 userEmail={user?.email}
+                incomeSmoothing={incomeSmoothing}
+                onSetIncomeSmoothing={setIncomeSmoothing}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
                 onOpenRecurringBills={() => setShowRecurringBills(true)}
                 onOpenGoals={() => setShowGoals(true)}
@@ -704,6 +709,7 @@ export default function FolioApp() {
         defaultCategory={defaultExpenseCategory}
         transactions={transactions}
         customCategories={customCategories}
+        onAddCustomCategory={addCustomCategory}
         splitPreEnabled={splitPreEnabled}
       />
 
