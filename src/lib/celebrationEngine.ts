@@ -13,6 +13,12 @@ import { CELEBRATION_EMOJI, CELEBRATION_COPY } from '@/lib/vocabulary'
  */
 const STORAGE_KEY = 'folio_triggered_celebrations'
 
+// ── Per-session dedup guard (Task 75) ────────────────────────────────────────
+// Prevents the celebration engine from re-running identical checks multiple
+// times within the same browser session (page load). Once checkAllCelebrations
+// has evaluated a specific fingerprint, it won't re-evaluate until data changes.
+let sessionCelebrationFingerprint: string | null = null
+
 // ============================================================================
 // Internal Helpers
 // ============================================================================
@@ -419,6 +425,11 @@ export function checkAllCelebrations(
   goals: Goal[],
   now: Date = new Date()
 ): CelebrationEvent[] {
+  // ── Per-session dedup: skip if we already evaluated this exact data state ──
+  const fingerprint = `${transactions.length}:${goals.map(g => `${g.id}:${g.currentAmount}`).join('|')}:${now.toISOString().slice(0, 13)}`
+  if (fingerprint === sessionCelebrationFingerprint) return []
+  sessionCelebrationFingerprint = fingerprint
+
   const events: CelebrationEvent[] = []
 
   const underBudget = checkUnderBudgetToday(budgets, transactions, now)

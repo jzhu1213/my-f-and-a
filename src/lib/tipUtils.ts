@@ -2,6 +2,152 @@ import type { TransactionCategory } from '@/types'
 import type { ContextualTip } from '@/types/folio'
 import { TIP_EMOJI, TIP_TITLES } from '@/lib/vocabulary'
 
+// ============================================================================
+// Tip Cooldown & Throttle (Task 75)
+// ============================================================================
+
+/** localStorage key for the timestamp of the last tip shown. */
+const LAST_TIP_SHOWN_KEY = 'folio-last-tip-shown-ts'
+/** localStorage key for the ID of the last tip shown. */
+const LAST_TIP_ID_KEY = 'folio-last-tip-id'
+/** localStorage key for the "spending-high shown today" date guard. */
+const SPENDING_HIGH_SHOWN_KEY = 'folio-spending-high-shown-date'
+/** localStorage key tracking how many app opens since first open (for educational tip). */
+const APP_OPEN_COUNT_KEY = 'folio-app-open-count'
+/** Minimum cooldown in milliseconds between showing tips (6 hours). */
+const TIP_COOLDOWN_MS = 6 * 60 * 60 * 1000
+/** Maximum number of opens that will show the educational tip. */
+const EDUCATIONAL_TIP_MAX_OPENS = 3
+/** Streak milestones at which the celebration tip fires. */
+const STREAK_MILESTONES = new Set([3, 7, 14, 30])
+
+// ── Per-session state (resets on page reload / app open) ────────────────────
+let sessionTipShown = false
+
+/**
+ * Marks that a tip was shown in the current session. Called from the HomeScreen
+ * after rendering a ContextualTipCard.
+ */
+export function markSessionTipShown(): void {
+  sessionTipShown = true
+}
+
+/**
+ * Returns whether a tip has already been shown in the current session.
+ */
+export function hasSessionTipBeenShown(): boolean {
+  return sessionTipShown
+}
+
+/**
+ * Records the timestamp and ID of the last tip shown (persisted to localStorage).
+ */
+export function recordTipShown(tipId: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(LAST_TIP_SHOWN_KEY, String(Date.now()))
+    localStorage.setItem(LAST_TIP_ID_KEY, tipId)
+  } catch {
+    // localStorage unavailable — best-effort
+  }
+}
+
+/**
+ * Checks whether the cooldown period has elapsed since the last tip was shown.
+ * Returns true if a new tip may be displayed.
+ */
+export function isTipCooldownElapsed(): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    const lastShown = localStorage.getItem(LAST_TIP_SHOWN_KEY)
+    if (!lastShown) return true
+    return Date.now() - Number(lastShown) >= TIP_COOLDOWN_MS
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Returns the tip ID that was last shown to the user (or null if unknown).
+ */
+export function getLastTipId(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return localStorage.getItem(LAST_TIP_ID_KEY)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Gate function: determines if contextual content should render at all.
+ * Combines cooldown, session, and novelty checks.
+ *
+ * @param candidateTipId - The ID of the tip that would be shown (for novelty check)
+ */
+export function shouldShowContextualContent(candidateTipId: string | null): boolean {
+  if (!candidateTipId) return false
+  // Already shown a tip this session — keep the home screen clean.
+  if (sessionTipShown) return false
+  // Cooldown not elapsed — too soon since last tip.
+  if (!isTipCooldownElapsed()) return false
+  // Same tip as last time — not genuinely new/relevant.
+  if (candidateTipId === getLastTipId()) return false
+  return true
+}
+
+/**
+ * Increments the app-open counter (called once per mount in HomeScreen).
+ * Returns the new count.
+ */
+export function incrementAppOpenCount(): number {
+  if (typeof window === 'undefined') return 0
+  try {
+    const current = Number(localStorage.getItem(APP_OPEN_COUNT_KEY) ?? '0')
+    const next = current + 1
+    localStorage.setItem(APP_OPEN_COUNT_KEY, String(next))
+    return next
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Returns the current app-open count without incrementing.
+ */
+export function getAppOpenCount(): number {
+  if (typeof window === 'undefined') return 0
+  try {
+    return Number(localStorage.getItem(APP_OPEN_COUNT_KEY) ?? '0')
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Marks the spending-high tip as shown today (date-based guard).
+ */
+function markSpendingHighShownToday(): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(SPENDING_HIGH_SHOWN_KEY, new Date().toISOString().slice(0, 10))
+  } catch {
+    // best-effort
+  }
+}
+
+/**
+ * Returns true if the spending-high tip has already been shown today.
+ */
+function wasSpendingHighShownToday(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return localStorage.getItem(SPENDING_HIGH_SHOWN_KEY) === new Date().toISOString().slice(0, 10)
+  } catch {
+    return false
+  }
+}
+
 /**
  * Context data needed to evaluate which tip to show.
  * Assembled by the HomeScreen from user state before calling selectContextualTip.
@@ -69,10 +215,11 @@ export function selectContextualTip(
 ): ContextualTip | null {
   const candidates: ContextualTip[] = []
 
-  // Step 1: Celebration trigger — streak of 3+ days under budget (high priority).
+  // Step 1: Celebration trigger — streak at milestone days under budget (high priority).
+  // Only fires at meaningful milestones (3, 7, 14, 30) — not every day after day 3.
   // Note: when the user is over budget today their `underBudgetStreak` resets to 0,
   // so celebration tips naturally won't fire on over-budget days — no extra guard needed.
-  if (context.underBudgetStreak >= 3) {
+  if (context.underBudgetStreak >= 3 && STREAK_MILESTONES.has(context.underBudgetStreak)) {
     candidates.push({
       id: `streak-${context.underBudgetStreak}`,
       type: 'celebration',
@@ -105,7 +252,13 @@ export function selectContextualTip(
 
   // Step 2b: Near-budget nudge — spent 80–99% of daily budget (medium priority).
   // Only fires when the user is close but has something left to preserve.
-  if (context.todaySpentPercent > 80 && context.todaySpentPercent < 100 && context.allowance.amount > 0) {
+  // Guard: only show once per day to avoid nagging on every open.
+  if (
+    context.todaySpentPercent > 80 &&
+    context.todaySpentPercent < 100 &&
+    context.allowance.amount > 0 &&
+    !wasSpendingHighShownToday()
+  ) {
     candidates.push({
       id: 'spending-high-today',
       type: 'gentle_nudge',
@@ -246,7 +399,8 @@ export function selectContextualTip(
   }
 
   // Step 3: Educational trigger — fewer than 10 total transactions (low priority)
-  if (context.totalTransactions < 10) {
+  // Only shows on the first few app opens to avoid nagging new users.
+  if (context.totalTransactions < 10 && getAppOpenCount() <= EDUCATIONAL_TIP_MAX_OPENS) {
     candidates.push({
       id: 'getting-started-tip',
       type: 'did_you_know',
@@ -266,5 +420,12 @@ export function selectContextualTip(
   available.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 
   // Step 6: Return top candidate or null
-  return available[0] ?? null
+  const winner = available[0] ?? null
+
+  // Side-effect: mark spending-high as shown today so it doesn't nag on re-opens.
+  if (winner?.id === 'spending-high-today') {
+    markSpendingHighShownToday()
+  }
+
+  return winner
 }

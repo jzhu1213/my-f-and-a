@@ -11,6 +11,12 @@ import { computeCategoryBudgets } from "@/lib/budgetUtils"
 import type { CategoryBudgetRow } from "@/lib/budgetUtils"
 import { selectContextualTip } from "@/lib/tipUtils"
 import type { UserContext } from "@/lib/tipUtils"
+import {
+  shouldShowContextualContent,
+  markSessionTipShown,
+  recordTipShown,
+  incrementAppOpenCount,
+} from "@/lib/tipUtils"
 import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
 import type { PaySchedule } from "@/lib/paySchedule"
 import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/vocabulary"
@@ -396,12 +402,39 @@ export function HomeScreen({
   const prevTxCountRef = useRef<number>(transactions.length)
   const prevGoalsRef = useRef<string>("")
 
+  // ── "New day" micro-celebration (task 74) ────────────────────────────────
+  // Shows a brief warm indicator when the user opens the app on a new calendar day.
+  const [showNewDayRefresh, setShowNewDayRefresh] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10)
+      const lastOpenDate = localStorage.getItem("folio-last-open-date")
+      if (lastOpenDate !== todayStr) {
+        // It's a new day — show the refresh indicator
+        setShowNewDayRefresh(true)
+        localStorage.setItem("folio-last-open-date", todayStr)
+        // Auto-dismiss after 2.5 seconds
+        const timer = setTimeout(() => setShowNewDayRefresh(false), 2500)
+        return () => clearTimeout(timer)
+      }
+    } catch {
+      // localStorage unavailable — skip gracefully
+    }
+  }, [])
+
   // ── Minimum-balance buffer (user preference, persisted in localStorage) ────
   // Hydrated after mount to stay SSR-safe; the projection falls back to the
   // sensible default until then.
   const [minBalanceBuffer, setMinBalanceBufferState] = useState<number | undefined>(undefined)
   useEffect(() => {
     setMinBalanceBufferState(getMinBalanceBuffer())
+  }, [])
+
+  // ── App-open counter for tip throttling (task 75) ──────────────────────────
+  useEffect(() => {
+    incrementAppOpenCount()
   }, [])
 
   // ── Dismissed tips (persisted in localStorage) ────────────────────────────
@@ -451,6 +484,48 @@ export function HomeScreen({
     const daysUntilPayday = getDaysUntilPayday(schedule, now, transactions)
 
     return computeSafeToSpendUntilPayday(discretionaryAvailable, daysUntilPayday)
+  }, [allowance, paySchedule, transactions])
+
+  // ── Weekend / payday horizon stat (task 74) ────────────────────────────────
+  // Shows a secondary "This weekend" or "Until payday" figure depending on
+  // which horizon is more relevant right now.
+  const horizonStat = useMemo<{ label: string; amount: number } | null>(() => {
+    const dailyBudget = allowance?.dailyBudget ?? 0
+    if (dailyBudget <= 0) return null
+
+    const now = new Date()
+    const dayOfWeek = now.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
+
+    const schedule: PaySchedule =
+      paySchedule ?? { cadence: "irregular", anchorDate: now.toISOString().slice(0, 10) }
+    const daysUntilPayday = getDaysUntilPayday(schedule, now, transactions)
+
+    // If payday is close (≤5 days) and it's Mon-Wed, show "Until payday"
+    if (daysUntilPayday <= 5 && daysUntilPayday > 0 && dayOfWeek >= 1 && dayOfWeek <= 3) {
+      return {
+        label: "Until payday",
+        amount: Math.round(dailyBudget * daysUntilPayday),
+      }
+    }
+
+    // Thu-Sun: show "This weekend" budget
+    // Thu/Fri: days until end of Sun (including Sat+Sun)
+    // Sat: rest of weekend (Sat+Sun = 2 days)
+    // Sun: just today (1 day)
+    if (dayOfWeek >= 4 || dayOfWeek === 0) {
+      let weekendDays: number
+      if (dayOfWeek === 4) weekendDays = 3 // Thu → Fri+Sat+Sun (spending evenings count)
+      else if (dayOfWeek === 5) weekendDays = 2 // Fri → Sat+Sun
+      else if (dayOfWeek === 6) weekendDays = 2 // Sat → Sat+Sun
+      else weekendDays = 1 // Sun → just today
+      return {
+        label: "This weekend",
+        amount: Math.round(dailyBudget * weekendDays),
+      }
+    }
+
+    // Mon-Wed without close payday: no secondary stat needed
+    return null
   }, [allowance, paySchedule, transactions])
 
   // ── Category budget rows (sorted) ────────────────────────────────────────
@@ -611,9 +686,23 @@ export function HomeScreen({
   }, [transactions, allowance, underBudgetStreak, upcomingBills, paySchedule, minBalanceBuffer])
 
   const activeTip = useMemo(
-    () => selectContextualTip(userContext, dismissedTips),
+    () => {
+      const candidate = selectContextualTip(userContext, dismissedTips)
+      // Gate: only show if cooldown has elapsed, session hasn't shown one yet,
+      // and it's a genuinely new tip (not the same one shown last time).
+      if (!shouldShowContextualContent(candidate?.id ?? null)) return null
+      return candidate
+    },
     [userContext, dismissedTips]
   )
+
+  // When a tip is rendered, mark it in the session and persist metadata so
+  // the cooldown/novelty checks work across app opens.
+  useEffect(() => {
+    if (!activeTip) return
+    markSessionTipShown()
+    recordTipShown(activeTip.id)
+  }, [activeTip])
 
   const handleDismissTip = useCallback(() => {
     if (!activeTip) return
@@ -785,6 +874,31 @@ export function HomeScreen({
             isLoading={isLoading}
             onTapForDetails={onHeroTapDetails}
           />
+
+          {/* "New day" micro-celebration (task 74) — warm, brief indicator */}
+          <AnimatePresence>
+            {showNewDayRefresh && (
+              <motion.div
+                role="status"
+                aria-live="polite"
+                aria-label="New day — your budget has refreshed"
+                initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                style={{
+                  textAlign: "center",
+                  marginTop: 10,
+                  fontFamily: FONT_FAMILY,
+                  fontSize: 12,
+                  color: "var(--accent, #a78bfa)",
+                  opacity: 0.9,
+                }}
+              >
+                ☀️ Fresh start — new day, new budget
+              </motion.div>
+            )}
+          </AnimatePresence>
           {!isLoading && allowance && allowance.isEstimated && (
             <motion.div
               initial={{ opacity: 0, y: 4 }}
@@ -926,6 +1040,31 @@ export function HomeScreen({
               Safe spend:{" "}
               <strong style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
                 ${Math.round(safeToSpendPerDay).toLocaleString("en-US")}/day
+              </strong>
+            </motion.p>
+          )}
+
+          {/* Weekend / payday horizon — secondary "real-life rhythm" stat (task 74) */}
+          {!isLoading && horizonStat !== null && (
+            <motion.p
+              role="status"
+              aria-live="polite"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+              style={{
+                fontSize: 12,
+                color: "var(--sub)",
+                textAlign: "center",
+                fontFamily: FONT_FAMILY,
+                marginTop: 4,
+                opacity: 0.75,
+              }}
+              aria-label={`${horizonStat.label}: about $${horizonStat.amount}`}
+            >
+              {horizonStat.label}:{" "}
+              <strong style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+                ${horizonStat.amount.toLocaleString("en-US")}
               </strong>
             </motion.p>
           )}
@@ -1156,9 +1295,11 @@ export function HomeScreen({
 
         {/* ── 2.7. Contextual Tip (secondary — after primary actions) ── */}
         {/* TODO(task-38): Wire onLearnMore to Lessons tab once it exists; currently a no-op. */}
-        {/* Commented out to reduce home screen clutter — re-enable when needed
+        {/* Commented out to reduce home screen clutter — re-enable when needed.
+            Task 75: gate ensures at most one contextual element at a time.
+            When a celebration overlay is showing, the tip card is hidden.
         <AnimatePresence>
-          {activeTip && (
+          {activeTip && !effectiveCelebration && (
             <section aria-label="Contextual tip">
               <ContextualTipCard
                 tip={activeTip}
