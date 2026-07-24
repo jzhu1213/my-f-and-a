@@ -13,6 +13,7 @@ import { GlassCard, AmbientGlow } from "@/components/ui"
 import { useReducedMotion, springs, timings } from "@/lib/animations"
 import { typography } from "@/styles/typography"
 import { AllowanceRing } from "./AllowanceRing"
+import { STATUS_EMOJI, STATUS_LABELS } from "@/lib/vocabulary"
 
 interface DailyAllowanceHeroProps {
   allowanceLeft: number
@@ -46,6 +47,17 @@ function getStatusColor(status: AllowanceStatus): string {
  */
 function getStatusGlow(status: AllowanceStatus): AllowanceStatus {
   return status
+}
+
+/**
+ * Maps an allowance status to an emoji and a short phrase for the instant
+ * visual answer. Designed to communicate "am I okay today?" in under 1 second
+ * — no number-reading required.
+ *
+ * Uses the canonical vocabulary for consistent emoji/labels across all surfaces.
+ */
+function getInstantStatus(status: AllowanceStatus): { emoji: string; phrase: string } {
+  return { emoji: STATUS_EMOJI[status], phrase: STATUS_LABELS[status] }
 }
 
 /**
@@ -272,6 +284,7 @@ export function DailyAllowanceHero({
     : getStatus(allowanceLeft, dailyBudget)
   const message = generateEncouragingMessage(status, allowanceLeft, spentToday)
   const color = getStatusColor(status)
+  const instantStatus = getInstantStatus(status)
 
   if (isLoading) {
     return <HeroSkeleton />
@@ -342,7 +355,7 @@ export function DailyAllowanceHero({
         className="flex flex-col items-center gap-2 w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-lg"
         style={{ background: "transparent", border: "none", cursor: "pointer" }}
         onClick={handleTap}
-        aria-label={`Daily allowance: ${formatCurrency(allowanceLeft)}. ${message}. Tap for details.`}
+        aria-label={`Daily allowance: ${formatCurrency(allowanceLeft)}. ${instantStatus.phrase}. ${message}. Tap for details.`}
         aria-expanded={showBreakdown}
         aria-live="polite"
         aria-atomic="true"
@@ -350,6 +363,25 @@ export function DailyAllowanceHero({
         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
         transition={prefersReducedMotion ? timings.fast : timings.slow}
       >
+        {/* Instant status — emoji + phrase, the first thing the eye catches */}
+        <p
+          className="text-center"
+          style={{
+            fontSize: 22,
+            fontWeight: 600,
+            color,
+            lineHeight: 1.3,
+            margin: 0,
+            letterSpacing: "-0.01em",
+          }}
+          aria-label={`Status: ${instantStatus.phrase}`}
+        >
+          <span aria-hidden="true" style={{ marginRight: 6 }}>
+            {instantStatus.emoji}
+          </span>
+          {instantStatus.phrase}
+        </p>
+
         {/* Ring with depth shadow + shimmer particles */}
         <div className="relative" style={{ width: ringSize, height: ringSize }}>
           {/* Soft depth shadow beneath the ring, shifting with progress */}

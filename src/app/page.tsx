@@ -88,6 +88,8 @@ export default function FolioApp() {
     savingsRate,
     paySchedule,
     isLoading: dataLoading,
+    isSyncing,
+    isStale,
     refresh,
     addTransaction,
     deleteTransaction,
@@ -222,10 +224,19 @@ export default function FolioApp() {
       note: data.note,
     })
 
-    if (!result) {
+    if (result) {
+      setLastLoggedId(result.id)
+    } else {
       showToast('Saved offline — will sync when connected', 'success')
     }
   }, [user?.id, addTransaction, showToast])
+
+  const handleIncomeUndo = useCallback(async () => {
+    if (!lastLoggedId) return
+    await deleteTransaction(lastLoggedId)
+    setLastLoggedId(null)
+    showToast('Income removed')
+  }, [lastLoggedId, deleteTransaction, showToast])
 
   // ── Paycheck Sheet (show after income logged, only if active goals) ──
   const handleShowPaycheck = useCallback((amount: number, isGigIncome?: boolean) => {
@@ -263,12 +274,18 @@ export default function FolioApp() {
     })
 
     if (result) {
-      showToast(`Logged ${repeat.label} ✓`, 'success')
       setLastLoggedId(result.id)
+      showToast(`Logged ${repeat.label} ✓`, 'success', {
+        label: 'Undo',
+        onClick: async () => {
+          await deleteTransaction(result.id)
+          showToast('Removed')
+        },
+      })
     } else {
       showToast('Saved offline — will sync when connected', 'success')
     }
-  }, [user?.id, addTransaction, showToast])
+  }, [user?.id, addTransaction, deleteTransaction, showToast])
 
   // ── Transaction Delete ─────────────────────────────────────────
   const handleDeleteTransaction = useCallback(async (id: string) => {
@@ -294,6 +311,22 @@ export default function FolioApp() {
       note: data.note,
     })
   }, [editTransaction, updateTransaction])
+
+  /** Inline edit handler — looks up the transaction from the list (no sheet state needed) */
+  const handleInlineSaveTransaction = useCallback(async (
+    id: string,
+    data: { amount: number; category: TransactionCategory; note?: string }
+  ) => {
+    const tx = transactions.find(t => t.id === id)
+    if (!tx) return null
+    return updateTransaction(id, {
+      amount: data.amount,
+      category: data.category,
+      type: tx.type,
+      date: tx.date,
+      note: data.note,
+    })
+  }, [transactions, updateTransaction])
 
   // ── Refund Handling ────────────────────────────────────────────
   const handleOpenRefund = useCallback((tx: Transaction) => {
@@ -516,6 +549,7 @@ export default function FolioApp() {
         avatarUrl={undefined}
         avatarInitial={user?.email?.charAt(0)}
         meshVariant="home"
+        onQuickLog={() => setExpenseSheetOpen(true)}
       >
         <AnimatePresence mode="wait">
           <motion.div
@@ -536,6 +570,7 @@ export default function FolioApp() {
                 paySchedule={paySchedule}
                 userName={user?.email?.split('@')[0]}
                 isLoading={dataLoading}
+                isStale={isStale}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => setIncomeSheetOpen(true)}
@@ -543,6 +578,7 @@ export default function FolioApp() {
                 onViewTransaction={handleEditTransaction}
                 onViewAllHistory={() => setActiveNav('history')}
                 onDeleteTransaction={handleDeleteTransaction}
+                onEditTransaction={handleInlineSaveTransaction}
                 onRefresh={refresh}
                 celebrationEvent={celebrationEvent}
                 onCelebrationDismiss={() => setCelebrationEvent(null)}
@@ -603,6 +639,7 @@ export default function FolioApp() {
         onClose={() => setIncomeSheetOpen(false)}
         onSubmit={handleIncomeSubmit}
         onShowPaycheck={handleShowPaycheck}
+        onUndo={lastLoggedId ? handleIncomeUndo : undefined}
       />
 
       {/* ── Paycheck Sheet ─────────────────────────────────────── */}

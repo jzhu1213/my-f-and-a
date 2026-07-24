@@ -11,11 +11,13 @@ interface IncomeSheetProps {
   onSubmit: (data: { amount: number; note?: string }) => void
   /** Called after successful submit to show PaycheckSheet. Receives the logged amount and gig flag. */
   onShowPaycheck?: (amount: number, isGigIncome?: boolean) => void
+  /** Called when user taps Undo on the success toast */
+  onUndo?: () => void
 }
 
 const MAX_AMOUNT = 99999
 
-export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: IncomeSheetProps) {
+export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo }: IncomeSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
   const amountRef = useRef<HTMLInputElement>(null)
@@ -68,9 +70,13 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
     const data = { amount: parsed, note: note.trim() || undefined }
     onSubmit(data)
 
-    // Show success toast
+    // Show success toast with undo action
     const formatted = parsed % 1 === 0 ? `$${parsed}` : `$${parsed.toFixed(2)}`
-    showToast(`Logged +${formatted} income ✓`, 'success')
+    showToast(
+      `Logged +${formatted} income ✓`,
+      'success',
+      onUndo ? { label: 'Undo', onClick: onUndo } : undefined
+    )
 
     // Trigger PaycheckSheet if handler provided
     if (onShowPaycheck) {
@@ -78,7 +84,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
     }
 
     onClose()
-  }, [amount, note, isGigIncome, onSubmit, onClose, showToast, onShowPaycheck])
+  }, [amount, note, isGigIncome, onSubmit, onClose, onUndo, showToast, onShowPaycheck])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -142,13 +148,14 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
               borderTop: '1px solid var(--line)',
               borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
               maxHeight: '90vh',
+              minHeight: '50vh',
               overflowY: 'auto',
             }}
           >
             {/* Handle */}
             <div className="sheet-handle" />
 
-            <div style={{ padding: '0 24px 32px' }}>
+            <div style={{ padding: '0 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
               {/* ── Amount Input (calculator-style) ─────────────────── */}
               <div style={{ textAlign: 'center', marginBottom: 28 }}>
                 <div
@@ -311,7 +318,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
                 </button>
               </div>
 
-              {/* ── Done Button ──────────────────────────────────────── */}
+              {/* ── Done Button (thumb zone — pinned at bottom of sheet) ── */}
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
@@ -322,6 +329,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck }: Incom
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  marginTop: 'auto',
                   background: canSubmit
                     ? 'linear-gradient(135deg, #4ade80, #22c55e)'
                     : 'var(--dim)',

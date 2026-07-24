@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { useToast } from '@/contexts/ToastContext'
 import type { Transaction } from '@/types'
+import { getCategoryEmoji } from '@/lib/vocabulary'
 
 interface RefundSheetProps {
   isOpen: boolean
@@ -91,11 +92,6 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
     exit: { opacity: 0, transition: timings.fast },
   }
 
-  const categoryEmojis: Record<string, string> = {
-    food: '🍕', transport: '🚗', fun: '🎮',
-    school: '📚', rent: '🏠', other: '💼',
-    gig: '💼', income: '💵',
-  }
 
   return (
     <AnimatePresence>
@@ -166,7 +162,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
                 gap: 12,
               }}>
                 <span style={{ fontSize: 24 }} aria-hidden="true">
-                  {categoryEmojis[transaction.category] ?? '💼'}
+                  {getCategoryEmoji(transaction.category)}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{

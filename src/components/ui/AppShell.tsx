@@ -64,6 +64,12 @@ export interface AppShellProps {
   hideTopBar?: boolean
   /** Extra classes for the scrollable content wrapper. */
   contentClassName?: string
+  /**
+   * Handler for the quick-log FAB (Floating Action Button). When provided, a
+   * persistent "+" button is rendered centered above the dock for one-tap
+   * expense logging from any screen.
+   */
+  onQuickLog?: () => void
 }
 
 /** A single dock destination with its icon + accessible label. */
@@ -133,6 +139,7 @@ export function AppShell({
   meshVariant = 'home',
   hideTopBar = false,
   contentClassName = '',
+  onQuickLog,
 }: AppShellProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
@@ -183,6 +190,23 @@ export function AppShell({
       >
         {children}
       </main>
+
+      {/* ── Quick-log FAB (always visible, centered above dock) ──── */}
+      {onQuickLog && (
+        <motion.button
+          type="button"
+          className="app-dock-fab"
+          onClick={onQuickLog}
+          aria-label="Log expense"
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.88 }}
+          transition={springs.snappy}
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+          </svg>
+        </motion.button>
+      )}
 
       {/* ── Floating dock navigation ───────────────────────────── */}
       <nav className="app-dock" aria-label="Primary">

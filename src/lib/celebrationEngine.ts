@@ -1,6 +1,7 @@
 import type { Transaction, Budget, Goal } from '@/types'
 import type { CelebrationEvent, CelebrationType, AnimationType } from '@/types/folio'
 import { getNoSpendStreak, isNoSpendWeekend } from '@/lib/noSpendChallenge'
+import { CELEBRATION_EMOJI, CELEBRATION_COPY } from '@/lib/vocabulary'
 
 // ============================================================================
 // Celebration Engine (Requirements 6.1–6.6)
@@ -154,9 +155,9 @@ export function checkUnderBudgetToday(
   return createEvent(
     id,
     'under_budget_today',
-    'Under budget today!',
-    "Nice work — you spent well below today's limit.",
-    '🌟',
+    CELEBRATION_COPY.under_budget_today.title,
+    CELEBRATION_COPY.under_budget_today.message,
+    CELEBRATION_EMOJI.under_budget_today,
     'sparkle',
     3000,
     'subtle'
@@ -193,9 +194,9 @@ export function checkStreak3Days(
   return createEvent(
     id,
     'streak_3_days',
-    '3-day streak!',
-    "Three days under budget in a row. You're building momentum!",
-    '🔥',
+    CELEBRATION_COPY.streak_3_days.title,
+    CELEBRATION_COPY.streak_3_days.message,
+    CELEBRATION_EMOJI.streak_3_days,
     'confetti',
     4000,
     'cheerful'
@@ -230,9 +231,9 @@ export function checkStreak7Days(
   return createEvent(
     id,
     'streak_7_days',
-    'One whole week!',
-    "Seven days under budget — that's seriously impressive.",
-    '🏆',
+    CELEBRATION_COPY.streak_7_days.title,
+    CELEBRATION_COPY.streak_7_days.message,
+    CELEBRATION_EMOJI.streak_7_days,
     'confetti',
     5000,
     'cheerful'
@@ -268,7 +269,7 @@ export function checkGoalProgress(goals: Goal[]): CelebrationEvent[] {
       const type: CelebrationType = milestone === 100 ? 'goal_complete' : 'goal_progress'
       const animation: AnimationType = milestone === 100 ? 'confetti' : 'bounce'
       const sound: 'subtle' | 'cheerful' = milestone === 100 ? 'cheerful' : 'subtle'
-      const emoji = milestone === 100 ? '🎉' : '🎯'
+      const emoji = milestone === 100 ? CELEBRATION_EMOJI.goal_complete : CELEBRATION_EMOJI.goal_progress
       const title =
         milestone === 100
           ? `${goal.name} complete!`
@@ -307,9 +308,9 @@ export function checkFirstTransaction(
   return createEvent(
     id,
     'first_transaction',
-    'First one logged!',
-    "You've started tracking. That's the hardest part.",
-    '✨',
+    CELEBRATION_COPY.first_transaction.title,
+    CELEBRATION_COPY.first_transaction.message,
+    CELEBRATION_EMOJI.first_transaction,
     'pulse',
     3500,
     'cheerful'
@@ -349,11 +350,11 @@ export function checkNoSpendStreak(
       events.push(createEvent(
         id,
         'no_spend_streak',
-        `${streak}-day no-spend streak!`,
+        CELEBRATION_COPY.no_spend_streak.title,
         streak >= 7
           ? "A whole week with no spending — that's some serious willpower. 🌟"
-          : "You're on a roll — no spending for " + streak + " days straight.",
-        '🌿',
+          : CELEBRATION_COPY.no_spend_streak.message,
+        CELEBRATION_EMOJI.no_spend_streak,
         'sparkle',
         3500,
         'subtle'
@@ -386,9 +387,9 @@ export function checkNoSpendStreak(
       events.push(createEvent(
         weekendId,
         'no_spend_weekend',
-        'No-spend weekend!',
-        "You made it through the whole weekend without spending — nice one!",
-        '🎯',
+        CELEBRATION_COPY.no_spend_weekend.title,
+        CELEBRATION_COPY.no_spend_weekend.message,
+        CELEBRATION_EMOJI.no_spend_weekend,
         'bounce',
         3500,
         'subtle'

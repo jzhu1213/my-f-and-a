@@ -14,6 +14,7 @@ import type { SmartSuggestion, CustomCategory } from '@/types/folio'
 import type { HabitChip } from '@/lib/habitEngine'
 import type { CategoryDisplayItem } from '@/lib/customCategories'
 import { mergeCategories } from '@/lib/customCategories'
+import { getCategoryEmoji } from '@/lib/vocabulary'
 
 interface ExpenseSheetProps {
   isOpen: boolean
@@ -26,12 +27,12 @@ interface ExpenseSheetProps {
 }
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: 'food', emoji: '🍕', label: 'Food' },
-  { category: 'transport', emoji: '🚗', label: 'Transport' },
-  { category: 'fun', emoji: '🎮', label: 'Fun' },
-  { category: 'school', emoji: '📚', label: 'School' },
-  { category: 'rent', emoji: '🏠', label: 'Rent' },
-  { category: 'other', emoji: '💼', label: 'Other' },
+  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food' },
+  { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Transport' },
+  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Fun' },
+  { category: 'school', emoji: getCategoryEmoji('school'), label: 'School' },
+  { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent' },
+  { category: 'other', emoji: getCategoryEmoji('other'), label: 'Other' },
 ]
 
 const MAX_AMOUNT = 99999
@@ -285,14 +286,14 @@ export function ExpenseSheet({
               borderTop: '1px solid var(--line)',
               borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
               maxHeight: '90vh',
+              minHeight: '50vh',
               overflowY: 'auto',
             }}
           >
             {/* Handle */}
             <div className="sheet-handle" />
 
-            <div style={{ padding: '0 24px 32px' }}>
-              {/* ── Habit Chips (one-tap log again, frequency-based) ── */}
+            <div style={{ padding: '0 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
               {habitChips.length > 0 && (
                 <div
                   style={{
@@ -967,7 +968,7 @@ export function ExpenseSheet({
                 </AnimatePresence>
               </div>
 
-              {/* ── Log Button ──────────────────────────────────────── */}
+              {/* ── Log Button (thumb zone — pinned at bottom of sheet) ── */}
               <motion.button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
@@ -980,6 +981,7 @@ export function ExpenseSheet({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  marginTop: 'auto',
                   background: canSubmit
                     ? 'linear-gradient(135deg, rgba(129, 140, 248, 1) 0%, rgba(99, 102, 241, 1) 100%)'
                     : 'var(--dim)',

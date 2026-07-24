@@ -13,6 +13,7 @@ import { selectContextualTip } from "@/lib/tipUtils"
 import type { UserContext } from "@/lib/tipUtils"
 import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
 import type { PaySchedule } from "@/lib/paySchedule"
+import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/vocabulary"
 import { getDaysUntilPayday, computeSafeToSpendUntilPayday, projectBalanceUntilPayday } from "@/lib/paySchedule"
 import { getMinBalanceBuffer } from "@/lib/minBalanceBuffer"
 import { motion, AnimatePresence } from "framer-motion"
@@ -40,6 +41,7 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { HomeScreenSkeleton, FadeInContent } from "@/components/ui/Skeleton"
 import { CategoryDetailSheet } from "@/components/accounting/CategoryDetailSheet"
 import { SwipeableTransactionRow } from "./SwipeableTransactionRow"
+import { InlineTransactionEditor } from "./InlineTransactionEditor"
 import { PullToRefresh } from "./PullToRefresh"
 import { AffordabilitySheet } from "./AffordabilitySheet"
 import dynamic from "next/dynamic"
@@ -96,6 +98,8 @@ export interface HomeScreenProps {
   userName?: string
   /** Whether data is still loading */
   isLoading: boolean
+  /** Whether cached data is stale and background fetch hasn't completed */
+  isStale?: boolean
 
   // ── Callbacks ──────────────────────────────────────────────────────────────
   /** Called when the hero is tapped for breakdown details */
@@ -112,6 +116,11 @@ export interface HomeScreenProps {
   onViewAllHistory: () => void
   /** Called when user swipes to delete a transaction (optimistic delete with undo) */
   onDeleteTransaction?: (id: string) => void
+  /** Called when user wants to inline-edit a transaction (swipe-right) — saves edits */
+  onEditTransaction?: (
+    id: string,
+    data: { amount: number; category: TransactionCategory; note?: string }
+  ) => Promise<Transaction | null>
   /** Called when user pulls to refresh — refetches transactions and budgets */
   onRefresh?: () => Promise<void>
 
@@ -153,6 +162,7 @@ export function HomeScreen({
   paySchedule,
   userName,
   isLoading,
+  isStale,
   onHeroTapDetails,
   onLogExpense,
   onLogIncome,
@@ -160,6 +170,7 @@ export function HomeScreen({
   onViewTransaction,
   onViewAllHistory,
   onDeleteTransaction,
+  onEditTransaction,
   onRefresh,
   celebrationEvent: externalCelebration,
   onCelebrationDismiss,
@@ -171,6 +182,7 @@ export function HomeScreen({
   const [localCelebration, setLocalCelebration] = useState<CelebrationEvent | null>(null)
   const [celebrationQueue, setCelebrationQueue] = useState<CelebrationEvent[]>([])
   const [showAffordabilitySheet, setShowAffordabilitySheet] = useState(false)
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null)
   const prevTxCountRef = useRef<number>(transactions.length)
   const prevGoalsRef = useRef<string>("")
 
@@ -396,9 +408,9 @@ export function HomeScreen({
     const event: CelebrationEvent = {
       id: "first-transaction-" + Date.now(),
       type: "first_transaction",
-      title: "First one logged!",
-      message: "You're on your way — tracking is the first step.",
-      emoji: "🎉",
+      title: CELEBRATION_COPY.first_transaction.title,
+      message: CELEBRATION_COPY.first_transaction.message,
+      emoji: CELEBRATION_EMOJI.first_transaction,
       animation: "confetti",
       duration: 4000,
       sound: "cheerful",
@@ -491,7 +503,43 @@ export function HomeScreen({
         }}
       >
         {/* ── 1. Hero: Daily Allowance ────────────────────────────── */}
-        <section aria-label="Daily allowance">
+        <section aria-label="Daily allowance" style={{ position: "relative" }}>
+          {/* Stale data indicator — only shown when cache is outdated */}
+          {isStale && (
+            <div
+              aria-label="Syncing latest data"
+              style={{
+                position: "absolute",
+                top: 4,
+                right: 4,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                zIndex: 2,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "var(--sub)",
+                  opacity: 0.7,
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "var(--sub)",
+                  opacity: 0.7,
+                  fontFamily: FONT_FAMILY,
+                }}
+              >
+                syncing…
+              </span>
+            </div>
+          )}
           <DailyAllowanceHero
             allowanceLeft={allowance?.amount ?? 0}
             dailyBudget={allowance?.dailyBudget ?? 0}
@@ -617,75 +665,7 @@ export function HomeScreen({
           )}
         </section>
 
-        {/* ── 1.25. Set Aside Stat ────────────────────────────────── */}
-        {(totalSetAside ?? 0) > 0 && (
-          <section aria-label="Set aside this month">
-            <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 20 }} aria-hidden="true">🏦</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY, marginBottom: 2 }}>
-                    Set aside this month
-                  </p>
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", fontFamily: FONT_FAMILY, fontVariantNumeric: "tabular-nums" }}>
-                    ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
-                  </p>
-                </div>
-              </div>
-            </GlassCard>
-          </section>
-        )}
-
-        {/* ── 1.3. Savings Rate Stat ──────────────────────────────── */}
-        {(savingsRate ?? 0) > 0 && (
-          <section aria-label="Savings rate">
-            <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 20 }} aria-hidden="true">💪</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY, marginBottom: 2 }}>
-                    Savings rate
-                  </p>
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", fontFamily: FONT_FAMILY, fontVariantNumeric: "tabular-nums" }}>
-                    {savingsRate}%
-                  </p>
-                </div>
-              </div>
-            </GlassCard>
-          </section>
-        )}
-
-        {/* ── 1.5. Contextual Tip ─────────────────────────────────── */}
-        {/* TODO(task-38): Wire onLearnMore to Lessons tab once it exists; currently a no-op. */}
-        <AnimatePresence>
-          {activeTip && (
-            <section aria-label="Contextual tip">
-              <ContextualTipCard
-                tip={activeTip}
-                onDismiss={handleDismissTip}
-                onLearnMore={() => {}}
-                onActionComplete={() => {}}
-              />
-            </section>
-          )}
-        </AnimatePresence>
-
-        {/* ── 1.6. End-of-Month Projection Insight ─────────────── */}
-        <InsightCard
-          transactions={transactions}
-          budgets={budgets}
-        />
-
-        {/* ── 1.7. Month-over-Month Trend Insight ──────────────── */}
-        <InsightTrendCard transactions={transactions} />
-
-        {/* ── 1.8. No-Spend Challenge / Streak Card ───────────────── */}
-        <NoSpendChallengeCard transactions={transactions} />
-
-        {/* ── 1.9. Spending Breakdown Insight ──────────────────── */}
-        <InsightBreakdownCard transactions={transactions} />
-
-        {/* ── 2. Quick Actions ────────────────────────────────────── */}
+        {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}
         <section aria-label="Quick actions">
           <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
             {/* Primary: Log expense — larger pill with warm gradient */}
@@ -751,8 +731,7 @@ export function HomeScreen({
               }}
             >
               {repeats.map((repeat, index) => {
-                const emoji =
-                  BUDGET_CATEGORIES.find((c) => c.category === repeat.category)?.emoji ?? "💰"
+                const emoji = getCategoryEmoji(repeat.category)
                 return (
                   <motion.button
                     key={`${repeat.category}-${repeat.amount}-${repeat.note ?? ""}`}
@@ -773,6 +752,74 @@ export function HomeScreen({
             </div>
           </section>
         )}
+
+        {/* ── 2.6. Set Aside Stat (secondary info) ─────────────── */}
+        {(totalSetAside ?? 0) > 0 && (
+          <section aria-label="Set aside this month">
+            <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 20 }} aria-hidden="true">🏦</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY, marginBottom: 2 }}>
+                    Set aside this month
+                  </p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", fontFamily: FONT_FAMILY, fontVariantNumeric: "tabular-nums" }}>
+                    ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          </section>
+        )}
+
+        {/* ── 2.65. Savings Rate Stat (secondary info) ────────────── */}
+        {(savingsRate ?? 0) > 0 && (
+          <section aria-label="Savings rate">
+            <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 20 }} aria-hidden="true">💪</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY, marginBottom: 2 }}>
+                    Savings rate
+                  </p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", fontFamily: FONT_FAMILY, fontVariantNumeric: "tabular-nums" }}>
+                    {savingsRate}%
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          </section>
+        )}
+
+        {/* ── 2.7. Contextual Tip (secondary — after primary actions) ── */}
+        {/* TODO(task-38): Wire onLearnMore to Lessons tab once it exists; currently a no-op. */}
+        <AnimatePresence>
+          {activeTip && (
+            <section aria-label="Contextual tip">
+              <ContextualTipCard
+                tip={activeTip}
+                onDismiss={handleDismissTip}
+                onLearnMore={() => {}}
+                onActionComplete={() => {}}
+              />
+            </section>
+          )}
+        </AnimatePresence>
+
+        {/* ── 2.8. End-of-Month Projection Insight ─────────────── */}
+        <InsightCard
+          transactions={transactions}
+          budgets={budgets}
+        />
+
+        {/* ── 2.9. Month-over-Month Trend Insight ──────────────── */}
+        <InsightTrendCard transactions={transactions} />
+
+        {/* ── 2.10. No-Spend Challenge / Streak Card ──────────────── */}
+        <NoSpendChallengeCard transactions={transactions} />
+
+        {/* ── 2.11. Spending Breakdown Insight ─────────────────── */}
+        <InsightBreakdownCard transactions={transactions} />
 
         {/* ── 3. Category Budget Cards ────────────────────────────── */}
         <section aria-label="Budget categories">
@@ -1009,55 +1056,64 @@ export function HomeScreen({
                       const catInfo = BUDGET_CATEGORIES.find(
                         (c) => c.category === tx.category
                       )
-                      const emoji = catInfo?.emoji ?? "💰"
+                      const emoji = getCategoryEmoji(tx.category)
                       const label = tx.note || catInfo?.label || tx.category
                       const isLast =
                         groupIdx === grouped.length - 1 &&
                         txIdx === group.txs.length - 1
 
                       return (
-                        <SwipeableTransactionRow
-                          key={tx.id}
-                          id={tx.id}
-                          onDelete={(id) => onDeleteTransaction?.(id)}
-                          onTap={() => onViewTransaction(tx)}
-                          showBorder={!isLast}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              width: "100%",
-                              padding: "10px 16px",
-                              textAlign: "left",
-                            }}
+                        <div key={tx.id}>
+                          <SwipeableTransactionRow
+                            id={tx.id}
+                            onDelete={(id) => onDeleteTransaction?.(id)}
+                            onTap={() => onViewTransaction(tx)}
+                            onEdit={onEditTransaction ? (id) => setInlineEditId(id) : undefined}
+                            showBorder={!isLast && inlineEditId !== tx.id}
                           >
-                            <span
+                            <div
                               style={{
-                                fontSize: 14,
-                                color: "var(--text)",
-                                fontFamily: FONT_FAMILY,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                width: "100%",
+                                padding: "10px 16px",
+                                textAlign: "left",
                               }}
                             >
-                              {emoji} {label}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 14,
-                                fontWeight: 500,
-                                fontFamily: FONT_FAMILY,
-                                color:
-                                  tx.type === "income"
-                                    ? "var(--success)"
-                                    : "var(--text)",
-                              }}
-                            >
-                              {tx.type === "income" ? "+" : "−"}$
-                              {tx.amount.toFixed(2)}
-                            </span>
-                          </div>
-                        </SwipeableTransactionRow>
+                              <span
+                                style={{
+                                  fontSize: 14,
+                                  color: "var(--text)",
+                                  fontFamily: FONT_FAMILY,
+                                }}
+                              >
+                                {emoji} {label}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: 500,
+                                  fontFamily: FONT_FAMILY,
+                                  color:
+                                    tx.type === "income"
+                                      ? "var(--success)"
+                                      : "var(--text)",
+                                }}
+                              >
+                                {tx.type === "income" ? "+" : "−"}$
+                                {tx.amount.toFixed(2)}
+                              </span>
+                            </div>
+                          </SwipeableTransactionRow>
+                          {inlineEditId === tx.id && onEditTransaction && (
+                            <InlineTransactionEditor
+                              transaction={tx}
+                              onSave={onEditTransaction}
+                              onClose={() => setInlineEditId(null)}
+                            />
+                          )}
+                        </div>
                       )
                     })}
                   </div>

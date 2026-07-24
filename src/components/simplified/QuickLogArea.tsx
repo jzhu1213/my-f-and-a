@@ -8,6 +8,7 @@ import type { QuickTransaction, SmartSuggestion } from "@/types/folio"
 import { generateSmartSuggestions } from "@/lib/suggestionUtils"
 import { useToast } from "@/contexts/ToastContext"
 import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
+import { getCategoryEmoji } from "@/lib/vocabulary"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -324,7 +325,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
     >
       <div className="flex items-center gap-2">
         <span style={{ fontSize: 20 }} aria-hidden="true">
-          {categoryInfo?.emoji ?? "💼"}
+          {getCategoryEmoji(category)}
         </span>
         <span style={{ fontSize: 14, color: "var(--sub)", fontWeight: 500 }}>
           {categoryInfo?.label ?? category}

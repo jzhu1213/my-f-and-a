@@ -2,6 +2,7 @@ import type { Budget, Transaction } from '@/types'
 import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList } from '@/lib/fixedExpenses'
+import { getStatusMessage } from '@/lib/vocabulary'
 
 /**
  * Formats a Date object into YYYY-MM-DD string format
@@ -87,51 +88,11 @@ export function getStatus(remainingAmount: number, dailyBudget: number): Allowan
  * 
  * **Validates: Requirements 1.10, 2.3**
  * 
- * Messages follow UX guidelines:
- * - Encouraging and non-judgmental tone
- * - Short and human language
- * - Actionable context when appropriate
- * - Warm and supportive rather than shame-based
+ * Delegates to the canonical vocabulary's getStatusMessage for a single
+ * source of truth — ensuring all surfaces show the same tone and copy.
  */
 export function generateEncouragingMessage(status: AllowanceStatus, amount: number, spentToday: number): string {
-  // Format amounts for contextual messages
-  const amountStr = amount > 0 ? `$${Math.round(amount)}` : '$0'
-  
-  switch (status) {
-    case 'healthy':
-      if (amount >= 50) {
-        return `Nice! You've got ${amountStr} left today.`
-      } else if (amount >= 20) {
-        return `You're doing great — ${amountStr} to go.`
-      } else {
-        return `Still ${amountStr} left. You're on track!`
-      }
-      
-    case 'caution':
-      if (amount >= 10) {
-        return `Heads up, you're close to today's limit. ${amountStr} left.`
-      } else {
-        return `Getting close — ${amountStr} left. You've got this.`
-      }
-      
-    case 'warning':
-      if (amount > 0) {
-        return `Almost there — just ${amountStr} left today.`
-      } else {
-        return `Right at your limit. Nice job staying on track.`
-      }
-      
-    case 'over':
-      if (spentToday < 50) {
-        return 'A little tight today — tomorrow resets.'
-      } else {
-        return 'Over today, but no stress. Tomorrow\'s a fresh start.'
-      }
-      
-    default:
-      // Fallback for any unexpected status values
-      return 'No stress — let\'s keep it simple.'
-  }
+  return getStatusMessage(status, amount, spentToday)
 }
 
 /**

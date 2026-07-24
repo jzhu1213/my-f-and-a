@@ -37,7 +37,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const id = Date.now().toString()
     setToasts(prev => [...prev, { id, message, type, action }])
 
-    const duration = action ? 3500 : 2500
+    const duration = action ? 5000 : 2500
     const timer = setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
       timers.current.delete(id)

@@ -1,5 +1,6 @@
 import type { TransactionCategory } from '@/types'
 import type { ContextualTip } from '@/types/folio'
+import { TIP_EMOJI, TIP_TITLES } from '@/lib/vocabulary'
 
 /**
  * Context data needed to evaluate which tip to show.
@@ -65,9 +66,9 @@ export function selectContextualTip(
     candidates.push({
       id: `streak-${context.underBudgetStreak}`,
       type: 'celebration',
-      title: "You're on fire! 🔥",
+      title: TIP_TITLES.celebration,
       message: `${context.underBudgetStreak} days under budget! Keep it up.`,
-      emoji: '🎉',
+      emoji: TIP_EMOJI.celebration,
       priority: 'high',
       triggerCondition: { type: 'under_budget_streak', days: context.underBudgetStreak },
     })
@@ -78,9 +79,9 @@ export function selectContextualTip(
     candidates.push({
       id: 'spending-high-today',
       type: 'gentle_nudge',
-      title: 'Heads up',
+      title: TIP_TITLES.gentle_nudge,
       message: "You've used most of today's budget. Maybe save the rest for later?",
-      emoji: '💡',
+      emoji: TIP_EMOJI.gentle_nudge,
       priority: 'medium',
       actionLabel: 'See breakdown',
       actionType: 'view_insight',
@@ -104,7 +105,7 @@ export function selectContextualTip(
         title: 'Pacing check',
         message:
           "At your recent pace, things might get tight before month-end. No stress — just a heads up so you can plan ahead.",
-        emoji: '📊',
+        emoji: TIP_EMOJI.pacing_check,
         priority: 'medium',
         actionLabel: 'See breakdown',
         actionType: 'view_insight',
@@ -127,10 +128,10 @@ export function selectContextualTip(
     candidates.push({
       id: 'low-balance-until-payday',
       type: 'gentle_nudge',
-      title: 'Heads up',
+      title: TIP_TITLES.gentle_nudge,
       message:
         "Money's a little tight until payday. No stress — spacing things out a bit will keep you comfortable.",
-      emoji: '🫶',
+      emoji: TIP_EMOJI.low_balance,
       priority: 'medium',
       actionLabel: 'See breakdown',
       actionType: 'view_insight',
@@ -158,8 +159,8 @@ export function selectContextualTip(
         id: `bill-due-${soonest.label}-${soonest.dueDay}`,
         type: 'gentle_nudge',
         title: 'Bill reminder',
-        message: `Reminder — ${soonest.label} ($${soonest.amount}) is due ${dayLabel}. You've got this! 📬`,
-        emoji: '📬',
+        message: `Reminder — ${soonest.label} ($${soonest.amount}) is due ${dayLabel}. You've got this!`,
+        emoji: TIP_EMOJI.bill_reminder,
         priority: 'medium',
         actionLabel: 'View details',
         actionType: 'view_insight',
@@ -180,7 +181,7 @@ export function selectContextualTip(
       type: 'gentle_nudge',
       title: 'Subscription check-in',
       message: `You have ${count} subscription${count !== 1 ? 's' : ''} totaling $${Math.round(monthlyTotal)}/mo — want to check they're all worth keeping?`,
-      emoji: '🔄',
+      emoji: TIP_EMOJI.subscription_audit,
       priority: 'medium',
       actionLabel: 'Review subscriptions',
       actionType: 'view_insight',
@@ -193,9 +194,9 @@ export function selectContextualTip(
     candidates.push({
       id: 'getting-started-tip',
       type: 'did_you_know',
-      title: 'Quick tip',
+      title: TIP_TITLES.did_you_know,
       message: 'Tap any category to log an expense. Your most common amounts will appear automatically.',
-      emoji: '✨',
+      emoji: TIP_EMOJI.did_you_know,
       priority: 'low',
       triggerCondition: { type: 'first_goal_progress' },
     })

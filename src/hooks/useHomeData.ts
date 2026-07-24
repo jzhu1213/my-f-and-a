@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import type { Transaction, Budget, Goal, TransactionCategory, TransactionType, UserLessonProgress } from '@/types'
 import type { DailyAllowance, Debt, SavingsAccount, SavingsAccountType } from '@/types/folio'
 import { 
@@ -29,6 +29,7 @@ import {
   updateSinkingFund as updateSinkingFundApi,
   deleteSinkingFund as deleteSinkingFundApi,
 } from '@/lib/supabaseData'
+import { getHomeCache, setHomeCache, isCacheStale } from '@/lib/homeCache'
 import type { AppAllocation } from '@/lib/supabaseData'
 import type { PaySchedule } from '@/lib/paySchedule'
 import type { SinkingFund } from '@/lib/sinkingFunds'
@@ -163,6 +164,10 @@ export interface UseHomeDataReturn {
   // ── Loading State ──────────────────────────────────────────────
   /** Whether initial data is still loading */
   isLoading: boolean
+  /** Whether background sync is in progress (after cache hydration) */
+  isSyncing: boolean
+  /** Whether cached data is stale beyond the configured threshold */
+  isStale: boolean
   
   // ── Mutation Functions ─────────────────────────────────────────
   /** Refresh all data from Supabase (Requirement 13.7) */
@@ -305,6 +310,26 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   const [sinkingFunds, setSinkingFunds] = useState<SinkingFund[]>([])
   const [disbursementBonus, setDisbursementBonus] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [isStale, setIsStale] = useState(false)
+
+  // Track whether cache hydration happened so we skip the skeleton
+  const hydratedFromCache = useRef(false)
+
+  // ── Cache Hydration (synchronous, before first render paint) ───
+  // Runs once when userId becomes available to populate state from localStorage cache
+  useEffect(() => {
+    if (!userId || hydratedFromCache.current) return
+    const cache = getHomeCache(userId)
+    if (cache) {
+      setTransactions(cache.recentTransactions)
+      setBudgets(cache.budgets)
+      setIsLoading(false) // Skip skeleton — we have cached data
+      hydratedFromCache.current = true
+      // Check if cache is stale
+      setIsStale(isCacheStale(userId))
+    }
+  }, [userId])
   
   // ── Data Loading ───────────────────────────────────────────────
   /**
@@ -318,7 +343,12 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     }
     
     try {
-      setIsLoading(true)
+      // If cache was hydrated, this is a background reconciliation
+      if (hydratedFromCache.current) {
+        setIsSyncing(true)
+      } else {
+        setIsLoading(true)
+      }
       
       const currentMonth = new Date().toISOString().slice(0, 7)
       
@@ -344,15 +374,20 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setDebts(debtData)
       setPaySchedule(payScheduleData)
       setSinkingFunds(sinkingFundsData)
+      
+      setIsStale(false)
     } catch (err) {
       console.error('Error loading home data:', err)
-      // Set empty arrays on error to allow app to function
-      setTransactions([])
-      setBudgets([])
-      setGoals([])
-      setAllocations([])
+      // Set empty arrays on error to allow app to function (only if no cache)
+      if (!hydratedFromCache.current) {
+        setTransactions([])
+        setBudgets([])
+        setGoals([])
+        setAllocations([])
+      }
     } finally {
       setIsLoading(false)
+      setIsSyncing(false)
     }
   }, [userId])
   
@@ -370,6 +405,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     if (!userId) return
     
     try {
+      setIsSyncing(true)
       const currentMonth = new Date().toISOString().slice(0, 7)
       
       // Parallel refresh for optimal performance
@@ -392,9 +428,13 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setSavingsAccounts(savingsData)
       setPaySchedule(payScheduleData)
       setSinkingFunds(sinkingFundsData)
+      
+      setIsStale(false)
     } catch (err) {
       console.error('Error refreshing home data:', err)
       // Don't clear existing data on refresh failure
+    } finally {
+      setIsSyncing(false)
     }
   }, [userId])
   
@@ -909,6 +949,14 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     return computeDailyAllowance(budgets, transactions, new Date(), (monthlyIncome ?? 0) + disbursementBonus, allFixedExpenses)
   }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, isLoading])
   
+  // ── Cache Write Effect ─────────────────────────────────────────
+  // Update localStorage cache whenever allowance/transactions/budgets change
+  // (covers all mutation triggers: add/delete/update transaction, budget changes, refresh)
+  useEffect(() => {
+    if (!userId || isLoading || !allowance) return
+    setHomeCache(userId, { allowance, transactions, budgets })
+  }, [userId, allowance, transactions, budgets, isLoading])
+  
   /**
    * Category budget rows (memoized)
    * Requirement 13.2: Only recalculate when budgets or transactions change
@@ -989,6 +1037,8 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     
     // Loading state
     isLoading,
+    isSyncing,
+    isStale,
     
     // Mutation functions
     refresh,

@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useDragControls, type PanInfo } from 'framer-m
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import type { Transaction, TransactionCategory } from '@/types'
 import { BUDGET_CATEGORIES } from '@/types'
+import { getCategoryEmoji } from '@/lib/vocabulary'
 import { SwipeableTransactionRow } from './SwipeableTransactionRow'
 
 // ============================================================================
@@ -514,7 +515,7 @@ export function HistoryDrawer({
                             const catInfo = BUDGET_CATEGORIES.find(
                               (c) => c.category === tx.category
                             )
-                            const emoji = catInfo?.emoji ?? "💰"
+                            const emoji = getCategoryEmoji(tx.category)
                             const label = tx.note || catInfo?.label || tx.category
                             const isLast = txIdx === day.transactions.length - 1
                             

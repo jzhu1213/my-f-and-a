@@ -6,6 +6,7 @@ import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { Transaction, TransactionCategory } from '@/types'
+import { getCategoryEmoji } from '@/lib/vocabulary'
 
 interface EditTransactionSheetProps {
   isOpen: boolean
@@ -22,12 +23,12 @@ interface EditTransactionSheetProps {
 }
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: 'food', emoji: '🍕', label: 'Food' },
-  { category: 'transport', emoji: '🚗', label: 'Transport' },
-  { category: 'fun', emoji: '🎮', label: 'Fun' },
-  { category: 'school', emoji: '📚', label: 'School' },
-  { category: 'rent', emoji: '🏠', label: 'Rent' },
-  { category: 'other', emoji: '💼', label: 'Other' },
+  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food' },
+  { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Transport' },
+  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Fun' },
+  { category: 'school', emoji: getCategoryEmoji('school'), label: 'School' },
+  { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent' },
+  { category: 'other', emoji: getCategoryEmoji('other'), label: 'Other' },
 ]
 
 const MAX_AMOUNT = 99999

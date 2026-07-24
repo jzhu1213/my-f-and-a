@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs } from '@/lib/animations'
 import type { OnboardingResult, BudgetPreset } from '@/types/folio'
+import { PRESET_EMOJI } from '@/lib/vocabulary'
 
 // ============================================================================
 // Props
@@ -29,10 +30,10 @@ const BUDGET_PRESETS: Array<{
   description: string
   savingsPercent: number | null // null for custom
 }> = [
-  { value: 'student_tight', label: 'Tight budget', emoji: '🎓', description: '30% savings — every dollar counts', savingsPercent: 30 },
-  { value: 'student_moderate', label: 'Some room', emoji: '☕', description: '20% savings — a little breathing room', savingsPercent: 20 },
-  { value: 'young_professional', label: 'Comfortable', emoji: '💼', description: '10% savings — entry-level income', savingsPercent: 10 },
-  { value: 'custom', label: 'Custom', emoji: '✨', description: "I'll set my own limits", savingsPercent: null },
+  { value: 'student_tight', label: 'Tight budget', emoji: PRESET_EMOJI.student_tight, description: '30% savings — every dollar counts', savingsPercent: 30 },
+  { value: 'student_moderate', label: 'Some room', emoji: PRESET_EMOJI.student_moderate, description: '20% savings — a little breathing room', savingsPercent: 20 },
+  { value: 'young_professional', label: 'Comfortable', emoji: PRESET_EMOJI.young_professional, description: '10% savings — entry-level income', savingsPercent: 10 },
+  { value: 'custom', label: 'Custom', emoji: PRESET_EMOJI.custom, description: "I'll set my own limits", savingsPercent: null },
 ]
 
 // ============================================================================
