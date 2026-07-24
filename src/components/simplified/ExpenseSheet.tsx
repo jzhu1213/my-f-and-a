@@ -7,9 +7,11 @@ import { generateSmartSuggestions } from '@/lib/suggestionUtils'
 import { computeSplitAmount } from '@/lib/splitUtils'
 import { autoCategorize } from '@/lib/autoCategorize'
 import { triggerHaptic } from '@/lib/haptics'
+import { predictHabit, getTopHabitChips } from '@/lib/habitEngine'
 import { useToast } from '@/contexts/ToastContext'
 import type { TransactionCategory, Transaction } from '@/types'
 import type { SmartSuggestion, CustomCategory } from '@/types/folio'
+import type { HabitChip } from '@/lib/habitEngine'
 import type { CategoryDisplayItem } from '@/lib/customCategories'
 import { mergeCategories } from '@/lib/customCategories'
 
@@ -93,21 +95,38 @@ export function ExpenseSheet({
     return getMostRecentExpenseCategory(transactions)
   }, [defaultCategory, transactions])
 
+  // Habit prediction: pre-fill category + amount based on time-of-day patterns
+  const habitPrediction = useMemo(() => {
+    if (defaultCategory) return null // Don't override explicit category
+    return predictHabit(transactions ?? [], new Date())
+  }, [defaultCategory, transactions])
+
+  // Top habit chips: frequency-weighted common transactions for one-tap logging
+  const habitChips: HabitChip[] = useMemo(() => {
+    return getTopHabitChips(transactions ?? [], 3)
+  }, [transactions])
+
   // Reset state when opening
   useEffect(() => {
     if (isOpen) {
-      setAmount('')
-      setCategory(effectiveDefault)
+      // Pre-fill from habit prediction if no explicit default
+      const prefillCategory = effectiveDefault ?? habitPrediction?.category ?? null
+      const prefillAmount = (!defaultCategory && habitPrediction?.amount)
+        ? String(habitPrediction.amount)
+        : ''
+
+      setAmount(prefillAmount)
+      setCategory(prefillCategory)
       setNote('')
       setShowNoteField(false)
       setSplitEnabled(false)
       setSplitCount(2)
       setManualCategorySelection(!!effectiveDefault)
-      setIsAutoSuggested(false)
+      setIsAutoSuggested(!!(!defaultCategory && !effectiveDefault && habitPrediction))
       // Auto-focus amount input
       setTimeout(() => amountRef.current?.focus(), 120)
     }
-  }, [isOpen, effectiveDefault])
+  }, [isOpen, effectiveDefault, defaultCategory, habitPrediction])
 
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '')
@@ -273,6 +292,89 @@ export function ExpenseSheet({
             <div className="sheet-handle" />
 
             <div style={{ padding: '0 24px 32px' }}>
+              {/* ── Habit Chips (one-tap log again, frequency-based) ── */}
+              {habitChips.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                    marginBottom: 20,
+                    paddingTop: 4,
+                  }}
+                  aria-label="Quick log habits"
+                >
+                  {habitChips.map((chip, i) => (
+                    <button
+                      key={`habit-${chip.category}-${chip.amount}-${i}`}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light')
+                        onSubmit({
+                          amount: chip.amount,
+                          category: chip.category,
+                          note: chip.note,
+                        })
+                        const amountStr = chip.amount % 1 === 0 ? `$${chip.amount}` : `$${chip.amount.toFixed(2)}`
+                        const categoryLabel = displayCategories.find(c => c.categoryValue === chip.category)?.label ?? chip.category
+                        showToast(
+                          `Logged ${amountStr} for ${categoryLabel} ✓`,
+                          'success',
+                          onUndo ? { label: 'Undo', onClick: onUndo } : undefined
+                        )
+                        onClose()
+                      }}
+                      aria-label={`Quick log: ${chip.label}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '10px 14px',
+                        background: 'rgba(129, 140, 248, 0.06)',
+                        border: '1px solid rgba(129, 140, 248, 0.2)',
+                        borderRadius: 99,
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: 500,
+                        color: 'var(--text)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span style={{ fontSize: 14 }} aria-hidden="true">⚡</span>
+                      <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {chip.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Habit pre-fill indicator ── */}
+              {!defaultCategory && !effectiveDefault && habitPrediction && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    marginBottom: 12,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 400,
+                      color: 'var(--muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                    aria-live="polite"
+                  >
+                    <span aria-hidden="true">🕐</span> pre-filled from your habits
+                  </span>
+                </div>
+              )}
+
               {/* ── Smart Suggestions (shown when category selected) ── */}
               <AnimatePresence>
                 {category && suggestions.length > 0 && (
