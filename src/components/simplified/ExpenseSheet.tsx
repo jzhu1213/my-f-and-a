@@ -143,8 +143,8 @@ export function ExpenseSheet({
       setNewCategoryLabel('')
       setNewCategoryEmoji('✨')
       setIsAddingCategory(false)
-      // Auto-focus amount input
-      setTimeout(() => amountRef.current?.focus(), 120)
+      // Auto-focus amount input (Task 73: removed setTimeout for instant focus)
+      amountRef.current?.focus()
     }
   }, [isOpen, effectiveDefault, defaultCategory, habitPrediction, splitPreEnabled])
 
@@ -269,17 +269,17 @@ export function ExpenseSheet({
     ? { tap: {} }
     : { tap: { scale: 1.3 } }
 
-  // Sheet animation variants
+  // Sheet animation variants (Task 73: optimized for faster capture — 150ms vs 250ms)
   const sheetVariants = prefersReducedMotion
     ? {
         hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: timings.fast },
-        exit: { opacity: 0, transition: timings.fast },
+        visible: { opacity: 1, transition: { duration: 0.15 } },
+        exit: { opacity: 0, transition: { duration: 0.15 } },
       }
     : {
         hidden: { y: '100%' },
-        visible: { y: 0, transition: springs.gentle },
-        exit: { y: '100%', transition: timings.normal },
+        visible: { y: 0, transition: { type: 'spring' as const, stiffness: 400, damping: 30, duration: 0.15 } },
+        exit: { y: '100%', transition: { duration: 0.15, ease: 'easeIn' as const } },
       }
 
   const backdropVariants = {
@@ -328,6 +328,9 @@ export function ExpenseSheet({
               maxHeight: '90vh',
               minHeight: '50vh',
               overflowY: 'auto',
+              // Task 73: GPU acceleration for transform animations
+              willChange: 'transform',
+              transform: 'translate3d(0, 0, 0)',
             }}
           >
             {/* Handle */}

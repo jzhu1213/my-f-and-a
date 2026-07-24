@@ -62,6 +62,37 @@ const CelebrationOverlay = dynamic(
 // Helpers
 // ============================================================================
 
+/**
+ * ─── 10-SECOND SESSION: TAP-TO-DONE AUDIT (Task 71) ─────────────────────────
+ *
+ * Core flow #1: CHECK DAILY ALLOWANCE
+ *   Open app → see hero number.
+ *   Taps: 0 (instant — the hero is the first thing visible)
+ *   Time: <1 second for a returning user (cached data, FadeInContent)
+ *
+ * Core flow #2: LOG AN EXPENSE (returning user with history)
+ *   1. Tap "Log expense" button (or repeat chip = 1 tap total)
+ *   2. Type amount (keyboard auto-focused, category pre-filled from habit engine)
+ *   3. Tap "Log" to submit
+ *   Taps: 2–3 (amount entry + submit; category auto-selected)
+ *   Time: ~5–8 seconds (well under 10s target)
+ *   With repeat chip: 1 tap to log a recent transaction instantly.
+ *
+ * AUTO-DISMISS BEHAVIOR:
+ *   Both ExpenseSheet and IncomeSheet call `onClose()` synchronously after
+ *   `onSubmit()`. The sheet exit animation is 250ms (timings.normal) for slide
+ *   or 150ms (timings.fast) for reduced-motion — no lingering state or delay.
+ *   The user returns to the hero immediately.
+ *
+ * HOME SCREEN AS LAUNCHPAD:
+ *   - Hero + quick actions + repeat chips are above the fold
+ *   - Insight cards are collapsed by default (expandable toggle)
+ *   - Contextual tip and no-spend challenge are disabled (commented out)
+ *   - Monthly summary is collapsed by default
+ *   - No infinite scroll or feed patterns
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
 /** Returns "Today", "Yesterday", or a short formatted date like "Jun 15" */
 function getRelativeDate(dateStr: string): string {
   const today = new Date().toISOString().slice(0, 10)
@@ -356,6 +387,7 @@ export function HomeScreen({
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
   const [showMonthSummary, setShowMonthSummary] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
   const [localCelebration, setLocalCelebration] = useState<CelebrationEvent | null>(null)
   const [celebrationQueue, setCelebrationQueue] = useState<CelebrationEvent[]>([])
   const [showAffordabilitySheet, setShowAffordabilitySheet] = useState(false)
@@ -873,7 +905,7 @@ export function HomeScreen({
             </p>
           )}
 
-          {/* Safe-to-spend-until-payday — compact, warm secondary stat (task 51.2) */}
+          {/* Safe-to-spend-until-payday — concise secondary stat (task 51.2) */}
           {!isLoading && safeToSpendPerDay !== null && safeToSpendPerDay > 0 && (
             <motion.p
               role="status"
@@ -882,28 +914,19 @@ export function HomeScreen({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 color: "var(--sub)",
                 textAlign: "center",
                 fontFamily: FONT_FAMILY,
-                marginTop: 10,
-                opacity: 0.9,
-                padding: "8px 14px",
-                background: "rgba(167, 139, 250, 0.10)",
-                borderRadius: 999,
-                display: "block",
-                marginLeft: "auto",
-                marginRight: "auto",
-                width: "fit-content",
-                maxWidth: "100%",
+                marginTop: 8,
+                opacity: 0.8,
               }}
-              aria-label={`You've got room to spend about $${Math.round(safeToSpendPerDay)} a day until your next paycheck`}
+              aria-label={`Safe to spend about $${Math.round(safeToSpendPerDay)} per day until payday`}
             >
-              🗓️ You&rsquo;ve got room for{" "}
+              Safe spend:{" "}
               <strong style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-                ~${Math.round(safeToSpendPerDay).toLocaleString("en-US")}/day
-              </strong>{" "}
-              until payday
+                ${Math.round(safeToSpendPerDay).toLocaleString("en-US")}/day
+              </strong>
             </motion.p>
           )}
 
@@ -1148,22 +1171,69 @@ export function HomeScreen({
         </AnimatePresence>
         */}
 
-        {/* ── 2.8. End-of-Month Projection Insight ─────────────── */}
-        <InsightCard
-          transactions={transactions}
-          budgets={budgets}
-        />
+        {/* ── 2.8–2.11. Insights (collapsed by default — launchpad, not destination) ── */}
+        <section aria-label="Spending insights">
+          <GlassCard elevation="low" style={{ padding: 0, borderRadius: 14, overflow: "hidden" }}>
+            <motion.button
+              type="button"
+              onClick={() => setShowInsights((prev) => !prev)}
+              whileTap={{ scale: 0.98 }}
+              transition={springs.bouncy}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                width: "100%",
+                padding: "16px 20px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+              aria-expanded={showInsights}
+              aria-controls="insights-details"
+              aria-label={`Spending insights. ${showInsights ? "Collapse" : "Expand"} details.`}
+            >
+              <span style={sectionHeading}>
+                📊 Insights
+              </span>
+              <motion.span
+                animate={{ rotate: showInsights ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  display: "inline-flex",
+                  fontSize: 14,
+                  color: "var(--sub)",
+                  opacity: 0.6,
+                }}
+              >
+                ▾
+              </motion.span>
+            </motion.button>
 
-        {/* ── 2.9. Month-over-Month Trend Insight ──────────────── */}
-        <InsightTrendCard transactions={transactions} />
-
-        {/* ── 2.10. No-Spend Challenge / Streak Card ──────────────── */}
-        {/* Commented out to reduce home screen clutter — re-enable when needed
-        <NoSpendChallengeCard transactions={transactions} />
-        */}
-
-        {/* ── 2.11. Spending Breakdown Insight ─────────────────── */}
-        <InsightBreakdownCard transactions={transactions} />
+            <AnimatePresence initial={false}>
+              {showInsights && (
+                <motion.div
+                  id="insights-details"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+                    <InsightCard
+                      transactions={transactions}
+                      budgets={budgets}
+                    />
+                    <InsightTrendCard transactions={transactions} />
+                    <InsightBreakdownCard transactions={transactions} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </GlassCard>
+        </section>
 
         {/* ── 3. Category Budget Cards ────────────────────────────── */}
         <section aria-label="Budget categories">
