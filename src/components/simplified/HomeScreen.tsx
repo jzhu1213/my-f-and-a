@@ -18,11 +18,8 @@ import {
   incrementAppOpenCount,
 } from "@/lib/tipUtils"
 import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
-import type { PaySchedule } from "@/lib/paySchedule"
 import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/vocabulary"
-import { getDaysUntilPayday, computeSafeToSpendUntilPayday, projectBalanceUntilPayday } from "@/lib/paySchedule"
-import { getMinBalanceBuffer } from "@/lib/minBalanceBuffer"
-import { computeSmoothedIncome } from "@/lib/dailyAllowanceUtils"
+import { recordLastActive } from "@/lib/reminderPreferences"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -40,10 +37,6 @@ import {
 } from "@/styles/shared"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
 import { ContextualTipCard } from "./ContextualTipCard"
-import { InsightCard } from "./InsightCard"
-import { InsightTrendCard } from "./InsightTrendCard"
-import { NoSpendChallengeCard } from "./NoSpendChallengeCard"
-import { InsightBreakdownCard } from "./InsightBreakdownCard"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { HomeScreenSkeleton, FadeInContent } from "@/components/ui/Skeleton"
 import { CategoryDetailSheet } from "@/components/accounting/CategoryDetailSheet"
@@ -51,6 +44,7 @@ import { SwipeableTransactionRow } from "./SwipeableTransactionRow"
 import { InlineTransactionEditor } from "./InlineTransactionEditor"
 import { PullToRefresh } from "./PullToRefresh"
 import { AffordabilitySheet } from "./AffordabilitySheet"
+import { WelcomeBackBadge } from "./WelcomeBackBadge"
 import dynamic from "next/dynamic"
 
 // Code-split: celebration animations are heavy (canvas-confetti + framer-motion
@@ -107,86 +101,6 @@ function getRelativeDate(dateStr: string): string {
   if (dateStr === yesterday) return "Yesterday"
   const d = new Date(dateStr + "T00:00:00")
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
-
-// ============================================================================
-// SmoothingPopover sub-component
-// ============================================================================
-
-function SmoothingPopover({ windowMonths, onClose }: { windowMonths: number; onClose: () => void }) {
-  const prefersReducedMotion = useReducedMotion()
-  const ref = useRef<HTMLDivElement>(null)
-
-  // Tap-outside dismiss
-  useEffect(() => {
-    function handleOutside(e: MouseEvent | TouchEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-    document.addEventListener('mousedown', handleOutside)
-    document.addEventListener('touchstart', handleOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleOutside)
-      document.removeEventListener('touchstart', handleOutside)
-    }
-  }, [onClose])
-
-  const motionProps = prefersReducedMotion
-    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.15 } }
-    : { initial: { opacity: 0, y: -8, scale: 0.97 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: -6, scale: 0.97 }, transition: { type: 'spring' as const, stiffness: 320, damping: 26 } }
-
-  return (
-    <motion.div
-      ref={ref}
-      role="dialog"
-      aria-modal="false"
-      aria-label="Income smoothing explanation"
-      style={{
-        position: 'absolute',
-        top: 'calc(100% + 8px)',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 50,
-        width: 'min(300px, 90vw)',
-        textAlign: 'left',
-      }}
-      {...motionProps}
-    >
-      <GlassCard elevation="low" style={{ padding: '16px', position: 'relative' }}>
-        {/* Close button */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close explanation"
-          style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            background: 'none',
-            border: 'none',
-            color: 'var(--sub)',
-            fontSize: 18,
-            cursor: 'pointer',
-            lineHeight: 1,
-            padding: 2,
-          }}
-        >
-          ×
-        </button>
-        <p style={{
-          margin: 0,
-          fontSize: 13,
-          lineHeight: 1.6,
-          color: 'var(--text)',
-          fontFamily: FONT_FAMILY,
-          paddingRight: 20,
-        }}>
-          Your daily budget uses the average of your last {windowMonths} months of income, so a big one-time payment (like financial aid) doesn&rsquo;t spike or crash your daily number.
-        </p>
-      </GlassCard>
-    </motion.div>
-  )
 }
 
 // ============================================================================
@@ -287,16 +201,6 @@ export interface HomeScreenProps {
   budgets: Budget[]
   /** User savings goals */
   goals: Goal[]
-  /** Total set aside (reserved) this month */
-  totalSetAside?: number
-  /** Savings rate percentage (0-100) */
-  savingsRate?: number
-  /**
-   * The user's persisted pay schedule (or null when none is set). When absent,
-   * HomeScreen falls back to a flexible default so the payday-aware stat still
-   * shows something useful for variable-income students / young adults.
-   */
-  paySchedule?: PaySchedule | null
   /** User display name (for greeting) */
   userName?: string
   /** Whether data is still loading */
@@ -336,14 +240,6 @@ export interface HomeScreenProps {
   // ── Bill reminders ─────────────────────────────────────────────────────────
   /** Bills due within the next 3 days — used for contextual bill-due tips */
   upcomingBills?: { label: string; amount: number; dueDay: number }[]
-
-  // ── Quick action shortcuts for core money events (task 65) ─────────────────
-  /** Called when user taps "Split" quick action — opens expense sheet with split pre-enabled */
-  onSplitExpense?: () => void
-  /** Called when user taps "Bills" quick action — opens recurring bills screen */
-  onOpenBills?: () => void
-  /** Income smoothing preference — passed from page.tsx via useHomeData */
-  incomeSmoothing?: IncomeSmoothing | null
 }
 
 // ============================================================================
@@ -368,9 +264,6 @@ export function HomeScreen({
   transactions,
   budgets,
   goals,
-  totalSetAside,
-  savingsRate,
-  paySchedule,
   userName,
   isLoading,
   isStale,
@@ -386,19 +279,13 @@ export function HomeScreen({
   celebrationEvent: externalCelebration,
   onCelebrationDismiss,
   upcomingBills,
-  onSplitExpense,
-  onOpenBills,
-  incomeSmoothing,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
-  const [showMonthSummary, setShowMonthSummary] = useState(false)
-  const [showInsights, setShowInsights] = useState(false)
   const [localCelebration, setLocalCelebration] = useState<CelebrationEvent | null>(null)
   const [celebrationQueue, setCelebrationQueue] = useState<CelebrationEvent[]>([])
   const [showAffordabilitySheet, setShowAffordabilitySheet] = useState(false)
   const [inlineEditId, setInlineEditId] = useState<string | null>(null)
-  const [showSmoothingPopover, setShowSmoothingPopover] = useState(false)
   const prevTxCountRef = useRef<number>(transactions.length)
   const prevGoalsRef = useRef<string>("")
 
@@ -424,17 +311,10 @@ export function HomeScreen({
     }
   }, [])
 
-  // ── Minimum-balance buffer (user preference, persisted in localStorage) ────
-  // Hydrated after mount to stay SSR-safe; the projection falls back to the
-  // sensible default until then.
-  const [minBalanceBuffer, setMinBalanceBufferState] = useState<number | undefined>(undefined)
-  useEffect(() => {
-    setMinBalanceBufferState(getMinBalanceBuffer())
-  }, [])
-
   // ── App-open counter for tip throttling (task 75) ──────────────────────────
   useEffect(() => {
     incrementAppOpenCount()
+    recordLastActive()
   }, [])
 
   // ── Dismissed tips (persisted in localStorage) ────────────────────────────
@@ -450,83 +330,7 @@ export function HomeScreen({
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
-  const monthTxs = transactions.filter((t) => t.date.startsWith(currentMonth))
-  const monthIncome = monthTxs
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0)
-  const monthExpenses = monthTxs
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0)
-
   const recentTransactions = transactions.slice(0, 5)
-
-  // ── Safe-to-spend-until-payday (Theme F, task 51.2) ───────────────────────
-  // Spread the remaining discretionary pool across the days until the next
-  // paycheck for a warm, low-pressure per-day figure. Falls back to a flexible
-  // `irregular` schedule (anchored today) when the user hasn't set one — its
-  // rhythm is estimated from their income history, so it still adapts.
-  const safeToSpendPerDay = useMemo<number | null>(() => {
-    const dailyBudget = allowance?.dailyBudget ?? 0
-    // Nothing meaningful to show until we have a daily budget to work from.
-    if (dailyBudget <= 0) return null
-
-    const now = new Date()
-    const daysRemainingInMonth =
-      new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1
-
-    // Remaining discretionary money for the rest of the period — consumes the
-    // DailyAllowance output rather than recomputing budgeting logic here.
-    const discretionaryAvailable = dailyBudget * daysRemainingInMonth
-
-    const schedule: PaySchedule =
-      paySchedule ?? { cadence: "irregular", anchorDate: now.toISOString().slice(0, 10) }
-
-    const daysUntilPayday = getDaysUntilPayday(schedule, now, transactions)
-
-    return computeSafeToSpendUntilPayday(discretionaryAvailable, daysUntilPayday)
-  }, [allowance, paySchedule, transactions])
-
-  // ── Weekend / payday horizon stat (task 74) ────────────────────────────────
-  // Shows a secondary "This weekend" or "Until payday" figure depending on
-  // which horizon is more relevant right now.
-  const horizonStat = useMemo<{ label: string; amount: number } | null>(() => {
-    const dailyBudget = allowance?.dailyBudget ?? 0
-    if (dailyBudget <= 0) return null
-
-    const now = new Date()
-    const dayOfWeek = now.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
-
-    const schedule: PaySchedule =
-      paySchedule ?? { cadence: "irregular", anchorDate: now.toISOString().slice(0, 10) }
-    const daysUntilPayday = getDaysUntilPayday(schedule, now, transactions)
-
-    // If payday is close (≤5 days) and it's Mon-Wed, show "Until payday"
-    if (daysUntilPayday <= 5 && daysUntilPayday > 0 && dayOfWeek >= 1 && dayOfWeek <= 3) {
-      return {
-        label: "Until payday",
-        amount: Math.round(dailyBudget * daysUntilPayday),
-      }
-    }
-
-    // Thu-Sun: show "This weekend" budget
-    // Thu/Fri: days until end of Sun (including Sat+Sun)
-    // Sat: rest of weekend (Sat+Sun = 2 days)
-    // Sun: just today (1 day)
-    if (dayOfWeek >= 4 || dayOfWeek === 0) {
-      let weekendDays: number
-      if (dayOfWeek === 4) weekendDays = 3 // Thu → Fri+Sat+Sun (spending evenings count)
-      else if (dayOfWeek === 5) weekendDays = 2 // Fri → Sat+Sun
-      else if (dayOfWeek === 6) weekendDays = 2 // Sat → Sat+Sun
-      else weekendDays = 1 // Sun → just today
-      return {
-        label: "This weekend",
-        amount: Math.round(dailyBudget * weekendDays),
-      }
-    }
-
-    // Mon-Wed without close payday: no secondary stat needed
-    return null
-  }, [allowance, paySchedule, transactions])
 
   // ── Category budget rows (sorted) ────────────────────────────────────────
   const categoryRows = useMemo(() => {
@@ -557,7 +361,7 @@ export function HomeScreen({
     [budgets, transactions]
   )
 
-  // ── Contextual tip selection ──────────────────────────────────────────────
+  // ── Contextual tip selection (simplified — many advanced features removed) ──────────────────────────────────────────────
   const userContext = useMemo((): UserContext => {
     const todayStr = new Date().toISOString().slice(0, 10)
     const todayTxs = transactions.filter(
@@ -578,91 +382,6 @@ export function HomeScreen({
     const spentToday = allowance?.spentToday ?? 0
     const todaySpentPercent = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0
 
-    // ── Burn-rate velocity fields ──────────────────────────────────────────
-    const now = new Date()
-    const daysRemainingInMonth =
-      new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate()
-
-    // Average daily discretionary spending over the last 7 days
-    let recentBurnRate: number | undefined
-    const sevenDaysAgo = new Date(now)
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10)
-    const recentExpenses = transactions.filter(
-      (t) => t.type === "expense" && t.date >= sevenDaysAgoStr && t.date <= todayStr
-    )
-    if (recentExpenses.length > 0) {
-      const totalRecentSpend = recentExpenses.reduce((sum, t) => sum + t.amount, 0)
-      // Use min(7, days since first expense in range) to avoid divide by too large a window
-      const firstExpenseDate = recentExpenses.reduce(
-        (min, t) => (t.date < min ? t.date : min),
-        recentExpenses[0].date
-      )
-      const daysInRange = Math.max(
-        1,
-        Math.ceil(
-          (new Date(todayStr).getTime() - new Date(firstExpenseDate).getTime()) /
-            86_400_000
-        ) + 1
-      )
-      recentBurnRate = totalRecentSpend / daysInRange
-    }
-
-    // Discretionary pool remaining = daily budget * days remaining (approximate)
-    const discretionaryPoolRemaining =
-      dailyBudget > 0 ? dailyBudget * daysRemainingInMonth : undefined
-
-    // ── Low-balance / overdraft projection (task 51.3) ─────────────────────
-    // Project the discretionary pool forward at the recent burn rate until the
-    // next payday and flag if it would dip below the user's comfort buffer.
-    // Reuses the figures above rather than recomputing budgeting logic.
-    let willDipBelowBuffer: boolean | undefined
-    let projectedLowBalance: number | undefined
-    let daysUntilBalanceDip: number | undefined
-    if (
-      discretionaryPoolRemaining != null &&
-      recentBurnRate != null &&
-      recentBurnRate > 0 &&
-      minBalanceBuffer != null
-    ) {
-      const schedule: PaySchedule =
-        paySchedule ?? { cadence: "irregular", anchorDate: todayStr }
-      const daysUntilPayday = getDaysUntilPayday(schedule, now, transactions)
-      const projection = projectBalanceUntilPayday(
-        discretionaryPoolRemaining,
-        daysUntilPayday,
-        recentBurnRate,
-        minBalanceBuffer
-      )
-      willDipBelowBuffer = projection.willDipBelowBuffer
-      projectedLowBalance = projection.projectedLowBalance
-      daysUntilBalanceDip = projection.daysUntilDip
-    }
-
-    // ── Lump-sum income spike detection ───────────────────────────────────────
-    // Fires when a single income transaction in the current month is more than
-    // 2× the trailing-3-month average income. Signals aid disbursements, gig
-    // payouts, etc. so the tip can reassure the user the daily number is stable.
-    let lumpIncomeSpikeAmount: number | undefined
-    let lumpIncomeBaselineAverage: number | undefined
-    const currentMonthPrefix = now.toISOString().slice(0, 7)
-    const thisMonthIncomeTxs = transactions.filter(
-      (t) => t.type === 'income' && t.date.startsWith(currentMonthPrefix)
-    )
-    if (thisMonthIncomeTxs.length > 0) {
-      const trailingAvg = computeSmoothedIncome(transactions, now, {
-        strategy: 'trailing_average',
-        windowMonths: 3,
-      })
-      if (trailingAvg > 0) {
-        const maxThisMonthTx = Math.max(...thisMonthIncomeTxs.map((t) => t.amount))
-        if (maxThisMonthTx > trailingAvg * 2) {
-          lumpIncomeSpikeAmount = maxThisMonthTx
-          lumpIncomeBaselineAverage = trailingAvg
-        }
-      }
-    }
-
     return {
       underBudgetStreak,
       todaySpentPercent,
@@ -672,18 +391,9 @@ export function HomeScreen({
         amount: allowance?.amount ?? 0,
         dailyBudget,
       },
-      recentBurnRate,
-      discretionaryPoolRemaining,
-      daysRemainingInMonth,
       upcomingBills,
-      willDipBelowBuffer,
-      projectedLowBalance,
-      minBalanceBuffer,
-      daysUntilBalanceDip,
-      lumpIncomeSpikeAmount,
-      lumpIncomeBaselineAverage,
     }
-  }, [transactions, allowance, underBudgetStreak, upcomingBills, paySchedule, minBalanceBuffer])
+  }, [transactions, allowance, underBudgetStreak, upcomingBills])
 
   const activeTip = useMemo(
     () => {
@@ -957,145 +667,10 @@ export function HomeScreen({
               Spent today: ${Math.round(allowance.spentToday)}
             </p>
           )}
-
-          {/* Stability badge — only when income source is 'transactions' with trailing average smoothing */}
-          {!isLoading &&
-            allowance &&
-            allowance.incomeSource === 'transactions' &&
-            incomeSmoothing?.strategy === 'trailing_average' && (
-              <div style={{ position: 'relative', textAlign: 'center', marginTop: 8 }}>
-                {/* Badge button */}
-                <motion.button
-                  type="button"
-                  onClick={() => setShowSmoothingPopover(v => !v)}
-                  aria-label="Income smoothing is active. Tap for details."
-                  aria-expanded={showSmoothingPopover}
-                  whileTap={{ scale: 0.96 }}
-                  transition={springs.bouncy}
-                  style={{
-                    background: 'rgba(167, 139, 250, 0.12)',
-                    border: '1px solid rgba(167, 139, 250, 0.25)',
-                    borderRadius: 999,
-                    padding: '5px 12px',
-                    color: 'var(--accent)',
-                    fontSize: 12,
-                    fontFamily: FONT_FAMILY,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                  }}
-                >
-                  <span aria-hidden="true">ℹ️</span>
-                  Averaged over {incomeSmoothing.windowMonths ?? 3} months · more stable
-                </motion.button>
-
-                {/* Popover */}
-                <AnimatePresence>
-                  {showSmoothingPopover && (
-                    <SmoothingPopover
-                      windowMonths={incomeSmoothing.windowMonths ?? 3}
-                      onClose={() => setShowSmoothingPopover(false)}
-                    />
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-
-          {!isLoading && allowance && allowance.reservedForBills && allowance.reservedForBills > 0 && (
-            <p
-              style={{
-                fontSize: 11,
-                color: "var(--warning)",
-                textAlign: "center",
-                fontFamily: FONT_FAMILY,
-                marginTop: 6,
-                opacity: 0.85,
-              }}
-              aria-label={`$${Math.round(allowance.reservedForBills)} reserved for ${allowance.upcomingBillCount} upcoming bill${(allowance.upcomingBillCount ?? 0) > 1 ? 's' : ''}`}
-            >
-              💡 ${Math.round(allowance.reservedForBills)} reserved for {allowance.upcomingBillCount} upcoming bill{(allowance.upcomingBillCount ?? 0) > 1 ? 's' : ''}
-            </p>
-          )}
-
-          {/* Safe-to-spend-until-payday — concise secondary stat (task 51.2) */}
-          {!isLoading && safeToSpendPerDay !== null && safeToSpendPerDay > 0 && (
-            <motion.p
-              role="status"
-              aria-live="polite"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              style={{
-                fontSize: 12,
-                color: "var(--sub)",
-                textAlign: "center",
-                fontFamily: FONT_FAMILY,
-                marginTop: 8,
-                opacity: 0.8,
-              }}
-              aria-label={`Safe to spend about $${Math.round(safeToSpendPerDay)} per day until payday`}
-            >
-              Safe spend:{" "}
-              <strong style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-                ${Math.round(safeToSpendPerDay).toLocaleString("en-US")}/day
-              </strong>
-            </motion.p>
-          )}
-
-          {/* Weekend / payday horizon — secondary "real-life rhythm" stat (task 74) */}
-          {!isLoading && horizonStat !== null && (
-            <motion.p
-              role="status"
-              aria-live="polite"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
-              style={{
-                fontSize: 12,
-                color: "var(--sub)",
-                textAlign: "center",
-                fontFamily: FONT_FAMILY,
-                marginTop: 4,
-                opacity: 0.75,
-              }}
-              aria-label={`${horizonStat.label}: about $${horizonStat.amount}`}
-            >
-              {horizonStat.label}:{" "}
-              <strong style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-                ${horizonStat.amount.toLocaleString("en-US")}
-              </strong>
-            </motion.p>
-          )}
-
-          {/* "Can I afford...?" quick check button (task 56.3) */}
-          {!isLoading && allowance && (
-            <div style={{ textAlign: "center", marginTop: 10 }}>
-              <motion.button
-                type="button"
-                onClick={() => setShowAffordabilitySheet(true)}
-                whileTap={{ scale: 0.96 }}
-                transition={springs.bouncy}
-                aria-label="Can I afford this? Quick purchase check"
-                style={{
-                  background: "transparent",
-                  border: "1px solid rgba(167, 139, 250, 0.3)",
-                  borderRadius: 999,
-                  padding: "8px 16px",
-                  color: "var(--sub)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  fontFamily: FONT_FAMILY,
-                  cursor: "pointer",
-                  opacity: 0.85,
-                }}
-              >
-                💭 Can I afford...?
-              </motion.button>
-            </div>
-          )}
         </section>
+
+        {/* ── 1.4. Welcome-back badge (task 77) ────────────────── */}
+        <WelcomeBackBadge />
 
         {/* ── 1.5. Over-budget "what's next" strip (task 70.3) ───── */}
         <AnimatePresence>
@@ -1154,72 +729,9 @@ export function HomeScreen({
               Log income
             </motion.button>
           </div>
-
-          {/* Secondary row: Split + Bills shortcuts (task 65 — core money events) */}
-          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-            {/* Split: opens expense sheet with split pre-enabled */}
-            {onSplitExpense && (
-              <motion.button
-                type="button"
-                onClick={onSplitExpense}
-                whileTap={{ scale: 0.96 }}
-                transition={springs.bouncy}
-                aria-label="Split an expense with friends"
-                style={{
-                  flex: 1,
-                  background: "rgba(129, 140, 248, 0.06)",
-                  border: "1px solid rgba(129, 140, 248, 0.25)",
-                  borderRadius: 99,
-                  padding: "12px 16px",
-                  color: "var(--text)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  fontFamily: FONT_FAMILY,
-                  cursor: "pointer",
-                  textAlign: "center",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                }}
-              >
-                <span aria-hidden="true">👥</span> Split
-              </motion.button>
-            )}
-
-            {/* Bills: opens recurring bills setup */}
-            {onOpenBills && (
-              <motion.button
-                type="button"
-                onClick={onOpenBills}
-                whileTap={{ scale: 0.96 }}
-                transition={springs.bouncy}
-                aria-label="Manage recurring bills"
-                style={{
-                  flex: 1,
-                  background: "rgba(251, 191, 36, 0.06)",
-                  border: "1px solid rgba(251, 191, 36, 0.25)",
-                  borderRadius: 99,
-                  padding: "12px 16px",
-                  color: "var(--text)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  fontFamily: FONT_FAMILY,
-                  cursor: "pointer",
-                  textAlign: "center",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                }}
-              >
-                <span aria-hidden="true">🔁</span> Bills
-              </motion.button>
-            )}
-          </div>
         </section>
 
-        {/* ── 2.5. Log Again — Quick Repeat ────────────────────── */}
+        {/* ── 2.5. Log Again — Quick Repeat (max 3 items for cleanliness) ────────────────────── */}
         {repeats.length > 0 && (
           <section aria-label="Log again">
             <div
@@ -1255,132 +767,34 @@ export function HomeScreen({
           </section>
         )}
 
-        {/* ── 2.6. Set Aside Stat (secondary info) ─────────────── */}
-        {(totalSetAside ?? 0) > 0 && (
-          <section aria-label="Set aside this month">
-            <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 20 }} aria-hidden="true">🏦</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY, marginBottom: 2 }}>
-                    Set aside this month
-                  </p>
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", fontFamily: FONT_FAMILY, fontVariantNumeric: "tabular-nums" }}>
-                    ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
-                  </p>
-                </div>
-              </div>
-            </GlassCard>
-          </section>
-        )}
-
-        {/* ── 2.65. Savings Rate Stat (secondary info) ────────────── */}
-        {(savingsRate ?? 0) > 0 && (
-          <section aria-label="Savings rate">
-            <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 20 }} aria-hidden="true">💪</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY, marginBottom: 2 }}>
-                    Savings rate
-                  </p>
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", fontFamily: FONT_FAMILY, fontVariantNumeric: "tabular-nums" }}>
-                    {savingsRate}%
-                  </p>
-                </div>
-              </div>
-            </GlassCard>
-          </section>
-        )}
-
-        {/* ── 2.7. Contextual Tip (secondary — after primary actions) ── */}
-        {/* TODO(task-38): Wire onLearnMore to Lessons tab once it exists; currently a no-op. */}
-        {/* Commented out to reduce home screen clutter — re-enable when needed.
-            Task 75: gate ensures at most one contextual element at a time.
-            When a celebration overlay is showing, the tip card is hidden.
-        <AnimatePresence>
-          {activeTip && !effectiveCelebration && (
-            <section aria-label="Contextual tip">
-              <ContextualTipCard
-                tip={activeTip}
-                onDismiss={handleDismissTip}
-                onLearnMore={() => {}}
-                onActionComplete={() => {}}
-              />
-            </section>
-          )}
-        </AnimatePresence>
-        */}
-
-        {/* ── 2.8–2.11. Insights (collapsed by default — launchpad, not destination) ── */}
-        <section aria-label="Spending insights">
-          <GlassCard elevation="low" style={{ padding: 0, borderRadius: 14, overflow: "hidden" }}>
-            <motion.button
-              type="button"
-              onClick={() => setShowInsights((prev) => !prev)}
-              whileTap={{ scale: 0.98 }}
-              transition={springs.bouncy}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                width: "100%",
-                padding: "16px 20px",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-              aria-expanded={showInsights}
-              aria-controls="insights-details"
-              aria-label={`Spending insights. ${showInsights ? "Collapse" : "Expand"} details.`}
-            >
-              <span style={sectionHeading}>
-                📊 Insights
-              </span>
-              <motion.span
-                animate={{ rotate: showInsights ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-                style={{
-                  display: "inline-flex",
-                  fontSize: 14,
-                  color: "var(--sub)",
-                  opacity: 0.6,
-                }}
-              >
-                ▾
-              </motion.span>
-            </motion.button>
-
-            <AnimatePresence initial={false}>
-              {showInsights && (
-                <motion.div
-                  id="insights-details"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25, ease: "easeInOut" }}
-                  style={{ overflow: "hidden" }}
-                >
-                  <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 16 }}>
-                    <InsightCard
-                      transactions={transactions}
-                      budgets={budgets}
-                    />
-                    <InsightTrendCard transactions={transactions} />
-                    <InsightBreakdownCard transactions={transactions} />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </GlassCard>
-        </section>
-
-        {/* ── 3. Category Budget Cards ────────────────────────────── */}
+        {/* ── 3. Category Budget Cards (top 4 only for cleanliness) ────────────────────────────── */}
         <section aria-label="Budget categories">
-          <h2 style={{ ...sectionHeading, marginBottom: 12 }}>
-            Categories
-          </h2>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 12,
+            }}
+          >
+            <h2 style={sectionHeading}>
+              Categories
+            </h2>
+            {categoryRows.length > 4 && (
+              <button
+                type="button"
+                onClick={() => {/* TODO: navigate to Settings > Budget Limits */}}
+                style={{
+                  ...linkButton,
+                  fontSize: 12,
+                  opacity: 0.7,
+                }}
+                aria-label="See all categories"
+              >
+                See all →
+              </button>
+            )}
+          </div>
           {categoryRows.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
@@ -1401,7 +815,7 @@ export function HomeScreen({
             </motion.div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {categoryRows.map((row) => {
+              {categoryRows.slice(0, 4).map((row) => {
                 const barColor = row.overWeekly
                   ? "var(--error)"
                   : row.nearLimit
@@ -1676,166 +1090,6 @@ export function HomeScreen({
               })()}
             </GlassCard>
           )}
-        </section>
-
-        {/* ── 5. Monthly Summary ──────────────────────────────────── */}
-        <section aria-label="Monthly summary">
-          <GlassCard elevation="low" style={{ padding: 0, borderRadius: 14, overflow: "hidden" }}>
-              {/* Header — always visible, acts as toggle */}
-              <motion.button
-                type="button"
-                onClick={() => setShowMonthSummary((prev) => !prev)}
-                whileTap={{ scale: 0.98 }}
-                transition={springs.bouncy}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  padding: "16px 20px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
-                aria-expanded={showMonthSummary}
-                aria-controls="month-summary-details"
-                aria-label={`Monthly summary: ${monthIncome - monthExpenses < 0 ? "−" : "+"}$${Math.abs(monthIncome - monthExpenses).toLocaleString()} net. ${showMonthSummary ? "Collapse" : "Expand"} details.`}
-              >
-                <span style={sectionHeading}>
-                  This month
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 600,
-                      fontFamily: FONT_FAMILY,
-                      color:
-                        monthIncome - monthExpenses < 0 ? "var(--error)" : "var(--text)",
-                    }}
-                  >
-                    {monthIncome - monthExpenses < 0 ? "−" : "+"}$
-                    {Math.abs(monthIncome - monthExpenses).toLocaleString()}
-                  </span>
-                  <motion.span
-                    animate={{ rotate: showMonthSummary ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                    style={{
-                      display: "inline-flex",
-                      fontSize: 14,
-                      color: "var(--sub)",
-                      opacity: 0.6,
-                    }}
-                  >
-                    ▾
-                  </motion.span>
-                </div>
-              </motion.button>
-
-              {/* Expanded content */}
-              <AnimatePresence initial={false}>
-                {showMonthSummary && (
-                  <motion.div
-                    id="month-summary-details"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
-                    style={{ overflow: "hidden" }}
-                  >
-                    <div style={{ padding: "0 20px 16px" }}>
-                      {/* Show "Log income" prompt if no income recorded but has expenses */}
-                      {monthIncome === 0 && monthExpenses > 0 ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 10,
-                            padding: "8px 0",
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 13,
-                              color: "var(--sub)",
-                              fontFamily: FONT_FAMILY,
-                              textAlign: "center",
-                            }}
-                          >
-                            Log income to see your balance
-                          </p>
-                          <motion.button
-                            type="button"
-                            onClick={onLogIncome}
-                            whileTap={{ scale: 0.96 }}
-                            transition={springs.bouncy}
-                            style={{
-                              ...pillButton,
-                              padding: "10px 20px",
-                            }}
-                          >
-                            Log income
-                          </motion.button>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", gap: 24 }}>
-                          <div>
-                            <p
-                              style={{
-                                fontSize: 18,
-                                fontWeight: 600,
-                                color: "var(--success)",
-                                fontFamily: FONT_FAMILY,
-                              }}
-                            >
-                              +${monthIncome.toLocaleString()}
-                            </p>
-                            <p style={{ fontSize: 11, color: "var(--sub)", marginTop: 2 }}>
-                              income
-                            </p>
-                          </div>
-                          <div>
-                            <p
-                              style={{
-                                fontSize: 18,
-                                fontWeight: 600,
-                                color: "var(--error)",
-                                fontFamily: FONT_FAMILY,
-                              }}
-                            >
-                              −${monthExpenses.toLocaleString()}
-                            </p>
-                            <p style={{ fontSize: 11, color: "var(--sub)", marginTop: 2 }}>
-                              spent
-                            </p>
-                          </div>
-                          <div>
-                            <p
-                              style={{
-                                fontSize: 18,
-                                fontWeight: 600,
-                                color:
-                                  monthIncome - monthExpenses < 0
-                                    ? "var(--error)"
-                                    : "var(--text)",
-                                fontFamily: FONT_FAMILY,
-                              }}
-                            >
-                              ${Math.abs(monthIncome - monthExpenses).toLocaleString()}
-                            </p>
-                            <p style={{ fontSize: 11, color: "var(--sub)", marginTop: 2 }}>
-                              net
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </GlassCard>
         </section>
       </div>
 

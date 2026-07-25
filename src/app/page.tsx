@@ -37,6 +37,7 @@ import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation
 import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { createRefundTransaction } from '@/lib/refundUtils'
 import { useRecurringBills } from '@/hooks/useRecurringBills'
+import { useServiceWorker } from '@/hooks/useServiceWorker'
 
 type OnboardingStep = 'loading' | 'tutorial' | 'done'
 
@@ -120,6 +121,9 @@ export default function FolioApp() {
 
   // ── Recurring Bills (task 65 — set-and-forget bills) ───────────
   const { bills: recurringBills, addBill, updateBill, deleteBill } = useRecurringBills(user?.id)
+
+  // ── Service Worker registration (task 77 — PWA notifications) ──
+  useServiceWorker()
 
   // ── Subscription Detection ─────────────────────────────────────
   const [dismissedSubscriptions, setDismissedSubscriptions] = useState<Set<string>>(new Set())
@@ -635,9 +639,6 @@ export default function FolioApp() {
                 transactions={transactions}
                 budgets={budgets}
                 goals={goals}
-                totalSetAside={totalSetAside}
-                savingsRate={savingsRate}
-                paySchedule={paySchedule}
                 userName={user?.email?.split('@')[0]}
                 isLoading={dataLoading}
                 isStale={isStale}
@@ -652,9 +653,6 @@ export default function FolioApp() {
                 onRefresh={refresh}
                 celebrationEvent={celebrationEvent}
                 onCelebrationDismiss={() => setCelebrationEvent(null)}
-                onSplitExpense={handleOpenSplitExpense}
-                onOpenBills={() => setShowRecurringBills(true)}
-                incomeSmoothing={incomeSmoothing}
               />
             )}
             {activeNav === 'history' && (

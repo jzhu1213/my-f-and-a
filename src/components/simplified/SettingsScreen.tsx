@@ -18,6 +18,7 @@ import {
   listRow,
 } from "@/styles/shared"
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
+import { DailyReminderSetting } from "./DailyReminderSetting"
 
 // ============================================================================
 // Types
@@ -517,6 +518,9 @@ export function SettingsScreen({
           </motion.button>
         )}
       </GlassCard>
+
+      {/* ── Daily Reminder ─────────────────────────────────────────────── */}
+      <DailyReminderSetting />
 
       {/* ── Low-Balance Buffer ─────────────────────────────────────────── */}
       <div style={{ marginBottom: 20 }}>
