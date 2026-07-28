@@ -30,8 +30,8 @@
  * │ Dark theme:                                                     │
  * │   --text (#fff)    on --bg/--surface/--raised: 18.1–21.0:1  ✓  │
  * │   --sub  (#888888) on --bg/--surface/--raised:  5.1–5.9:1  ✓  │
- * │   --muted(#808080) on --bg/--surface/--raised:  4.6–5.3:1  ✓  │
- * │   Semantic colors on --bg/--surface/--raised:   4.8–11.1:1  ✓  │
+ * │   --muted(#868686) on --bg/--surface/--raised:  5.0–5.8:1  ✓  │
+ * │   Semantic colors on --bg/--surface/--raised:   6.1–12.6:1  ✓  │
  * │                                                                 │
  * │ Note: Semantic colors (success, warning, error, accent) exceed  │
  * │ 3:1 on all surfaces. When used as normal-size text (<18px),     │
@@ -86,7 +86,7 @@
   --border:    #282828;
   --line:      #323232;
   --sub:       #888888;       /* secondary text — ≥5.1:1 AA compliant */
-  --muted:     #808080;       /* labels, hints — ≥4.5:1 AA compliant */
+  --muted:     #868686;       /* labels, hints — ≥4.5:1 AA compliant (incl. GlassCard surfaces) */
   --dim:       #2e2e2e;
 
   /* Match the warmer semantic colors for consistency */
@@ -424,6 +424,18 @@ input[type="date"] {
 @keyframes pulse {
   0%, 100% { opacity: 0.4; }
   50%      { opacity: 1; }
+}
+
+/* Reduced motion — collapse utility slide/spin animations to simple fades.
+ * fadeIn is opacity-only and calm enough to keep. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right,
+  .animate-slide-up {
+    animation: fadeIn 0.18s ease-out forwards;
+  }
+  .animate-spin {
+    animation: none !important;
+  }
 }
 
 /* ── Gradient mesh background ────────────────────────────────────── */
@@ -1213,6 +1225,19 @@ input[type="date"] {
   font-weight: 600;
   color: var(--text);
   line-height: 1;
+}
+
+/* Centered wordmark — lightweight, modern brand presence */
+.app-topbar__wordmark {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  opacity: 0.85;
+  text-transform: lowercase;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* ── Scrollable content ─────────────────────────────────────────── */

@@ -177,6 +177,10 @@ export function AppShell({
             )}
           </div>
 
+          <span className="app-topbar__wordmark" aria-label="Folio">
+            folio
+          </span>
+
           <button
             type="button"
             className="app-topbar__btn"

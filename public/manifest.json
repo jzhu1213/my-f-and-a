@@ -1,11 +1,11 @@
 {
-  "name": "Folio - Your F&A Assistant",
+  "name": "Folio",
   "short_name": "Folio",
-  "description": "Simple budgeting + financial literacy for college students and young adults",
+  "description": "Simple budgeting for college students and young adults",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F9FBF8",
-  "theme_color": "#A8D5BA",
+  "background_color": "#12121f",
+  "theme_color": "#12121f",
   "icons": [
     {
       "src": "/icon-192.png",

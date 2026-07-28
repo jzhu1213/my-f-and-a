@@ -637,6 +637,40 @@ export function SettingsScreen({
           Manage account →
         </motion.button>
       </GlassCard>
+
+      {/* ── Branded footer ────────────────────────────────────────────────── */}
+      <div
+        style={{
+          textAlign: "center",
+          paddingTop: 24,
+          paddingBottom: 8,
+          opacity: 0.4,
+        }}
+      >
+        <p
+          style={{
+            fontFamily: FONT_FAMILY,
+            fontSize: 14,
+            fontWeight: 300,
+            letterSpacing: "0.12em",
+            color: "var(--sub)",
+            margin: 0,
+          }}
+        >
+          folio
+        </p>
+        <p
+          style={{
+            fontFamily: FONT_FAMILY,
+            fontSize: 10,
+            color: "var(--muted)",
+            marginTop: 4,
+            letterSpacing: "0.04em",
+          }}
+        >
+          v0.1.0
+        </p>
+      </div>
     </div>
   )
 }
