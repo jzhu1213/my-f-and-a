@@ -1,10 +1,12 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
+import { BottomSheet } from './BottomSheet'
 import { signOut, updateProfilePreferences } from '@/lib/supabaseData'
 import { GlassCard } from './GlassCard'
+import { FONT_FAMILY } from '@/styles/typography'
 
 interface ProfileSheetProps {
   isOpen: boolean
@@ -77,109 +79,46 @@ export function ProfileSheet({
     setIsEditing(false)
   }
 
-  // Sheet animation variants matching ExpenseSheet/IncomeSheet
-  const sheetVariants = prefersReducedMotion
-    ? {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { duration: 0.15 } },
-        exit: { opacity: 0, transition: { duration: 0.1 } },
-      }
-    : {
-        hidden: { y: '100%' },
-        visible: { y: 0, transition: springs.gentle },
-        exit: { y: '100%', transition: { duration: 0.25, ease: [0.32, 0.72, 0, 1] as const } },
-      }
-
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.2 } },
-    exit: { opacity: 0, transition: { duration: 0.15 } },
-  }
-
   const initials = getInitials(userEmail, initialDisplayName)
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="profile-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={onClose}
+    <BottomSheet isOpen={isOpen} onClose={onClose} ariaLabel="Account">
+      <div style={{ padding: '0 24px 32px' }}>
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 24,
+          }}
+        >
+          <h2
             style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 40,
-              background: 'rgba(0, 0, 0, 0.6)',
-            }}
-          />
-
-          {/* Sheet */}
-          <motion.div
-            key="profile-sheet"
-            variants={sheetVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            style={{
-              position: 'fixed',
-              insetInline: 0,
-              bottom: 0,
-              zIndex: 50,
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--line)',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              maxHeight: '90vh',
-              overflowY: 'auto',
+              fontFamily: FONT_FAMILY,
+              fontSize: 20,
+              fontWeight: 600,
+              color: 'var(--text)',
             }}
           >
-            {/* Handle */}
-            <div className="sheet-handle" />
-
-            <div style={{ padding: '0 24px 32px' }}>
-              {/* Header */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 24,
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    letterSpacing: '0.02em',
-                    textTransform: 'uppercase',
-                    color: 'var(--sub)',
-                  }}
-                >
-                  Account
-                </span>
-                <button
-                  onClick={onClose}
-                  aria-label="Close"
-                  style={{
-                    color: 'var(--muted)',
-                    padding: 4,
-                    cursor: 'pointer',
-                    background: 'transparent',
-                    border: 'none',
-                  }}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+            Account
+          </h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              color: 'var(--muted)',
+              padding: 4,
+              cursor: 'pointer',
+              background: 'transparent',
+              border: 'none',
+            }}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
               {/* User info card with GlassCard */}
               <GlassCard
@@ -205,7 +144,7 @@ export function ProfileSheet({
                     borderRadius: '50%',
                     fontSize: 18,
                     fontWeight: 600,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
                   }}
                 >
@@ -231,14 +170,15 @@ export function ProfileSheet({
                         style={{
                           width: '100%',
                           fontSize: 15,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontWeight: 500,
                           color: 'var(--text)',
                           background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid var(--border)',
-                          borderRadius: 8,
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: 'var(--radius-sm)',
                           padding: '8px 12px',
                           marginBottom: 6,
+                          outline: 'none',
                         }}
                       />
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -249,12 +189,12 @@ export function ProfileSheet({
                           transition={springs.snappy}
                           style={{
                             fontSize: 12,
-                            fontFamily: 'Inter, sans-serif',
+                            fontFamily: FONT_FAMILY,
                             fontWeight: 500,
                             color: 'var(--text)',
                             background: 'rgba(251, 146, 60, 0.15)',
                             border: '1px solid rgba(251, 146, 60, 0.3)',
-                            borderRadius: 6,
+                            borderRadius: 'var(--radius-sm)',
                             padding: '4px 12px',
                             cursor: isSaving ? 'not-allowed' : 'pointer',
                             opacity: isSaving ? 0.6 : 1,
@@ -268,12 +208,12 @@ export function ProfileSheet({
                           transition={springs.snappy}
                           style={{
                             fontSize: 12,
-                            fontFamily: 'Inter, sans-serif',
+                            fontFamily: FONT_FAMILY,
                             fontWeight: 500,
                             color: 'var(--muted)',
                             background: 'transparent',
-                            border: '1px solid var(--border)',
-                            borderRadius: 6,
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: 'var(--radius-sm)',
                             padding: '4px 12px',
                             cursor: 'pointer',
                           }}
@@ -287,7 +227,7 @@ export function ProfileSheet({
                       <p
                         style={{
                           fontSize: 15,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontWeight: 500,
                           color: 'var(--text)',
                           overflow: 'hidden',
@@ -300,7 +240,7 @@ export function ProfileSheet({
                       <p
                         style={{
                           fontSize: 12,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontWeight: 400,
                           color: 'var(--muted)',
                           marginTop: 4,
@@ -331,11 +271,11 @@ export function ProfileSheet({
                     justifyContent: 'center',
                     background: 'rgba(255, 255, 255, 0.04)',
                     color: 'var(--text)',
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontSize: 14,
                     fontWeight: 500,
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
                     cursor: 'pointer',
                     marginBottom: 12,
                     transition: 'all 0.15s',
@@ -366,20 +306,20 @@ export function ProfileSheet({
                     justifyContent: 'center',
                     background: 'transparent',
                     color: 'var(--error)',
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontSize: 15,
                     fontWeight: 500,
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    border: '1px solid rgba(248, 113, 113, 0.3)',
                     cursor: 'pointer',
                     transition: 'all 0.15s',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = 'var(--error)'
-                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'
+                    e.currentTarget.style.background = 'rgba(248, 113, 113, 0.08)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'
+                    e.currentTarget.style.borderColor = 'rgba(248, 113, 113, 0.3)'
                     e.currentTarget.style.background = 'transparent'
                   }}
                 >
@@ -389,7 +329,7 @@ export function ProfileSheet({
                 <p
                   style={{
                     fontSize: 13,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontWeight: 400,
                     color: 'var(--muted)',
                     textAlign: 'center',
@@ -403,7 +343,7 @@ export function ProfileSheet({
               <p
                 style={{
                   fontSize: 11,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontWeight: 400,
                   textAlign: 'center',
                   color: 'var(--dim)',
@@ -413,9 +353,6 @@ export function ProfileSheet({
                 folio · personal finance
               </p>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    </BottomSheet>
   )
 }

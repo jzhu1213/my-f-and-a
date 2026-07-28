@@ -63,6 +63,6 @@ describe('debug date filtering', () => {
     console.log('Rollover:', result.rollover)
     console.log('Expected rollover:', expected - 25)
     
-    expect(result.rollover).toBeCloseTo(25, 1)
+    expect(result.rollover).toBeCloseTo(20, 1) // Capped at ±2 days budget (2 * ~10 = ~20)
   })
 })

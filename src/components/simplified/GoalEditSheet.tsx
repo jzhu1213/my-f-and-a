@@ -1,10 +1,13 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
+import { BottomSheet } from "@/components/ui/BottomSheet"
 import type { Goal } from "@/types"
 import type { GoalFormData } from "./GoalsScreen"
+import { FONT_FAMILY } from "@/styles/typography"
+import { borderRadius } from "@/styles/shared"
 
 // ============================================================================
 // Config
@@ -66,6 +69,7 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
   const [name, setName] = useState("")
   const [targetAmount, setTargetAmount] = useState("")
   const [selectedEmoji, setSelectedEmoji] = useState(EMOJI_OPTIONS[0])
+  const [targetDate, setTargetDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -83,10 +87,12 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
       setName(goal.name)
       setTargetAmount(goal.targetAmount > 0 ? String(goal.targetAmount) : "")
       setSelectedEmoji(goal.emoji || EMOJI_OPTIONS[0])
+      setTargetDate(goal.targetDate || "")
     } else {
       setName("")
       setTargetAmount("")
       setSelectedEmoji(EMOJI_OPTIONS[0])
+      setTargetDate("")
     }
     // Focus the name field once the sheet has settled.
     const t = setTimeout(() => nameRef.current?.focus(), 140)
@@ -122,7 +128,7 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
       return
     }
 
-    const payload: GoalFormData = { name: cleanName, targetAmount: target, emoji: selectedEmoji }
+    const payload: GoalFormData = { name: cleanName, targetAmount: target, emoji: selectedEmoji, targetDate: targetDate || undefined }
 
     setSubmitting(true)
     setError(null)
@@ -147,109 +153,49 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
     }
   }, [name, targetAmount, selectedEmoji, sheetMode, goal, onCreate, onUpdate, onClose])
 
-  // ── Animation variants (shared language with ExpenseSheet/IncomeSheet) ──
-  const sheetVariants = prefersReducedMotion
-    ? {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: timings.fast },
-        exit: { opacity: 0, transition: timings.fast },
-      }
-    : {
-        hidden: { y: "100%" },
-        visible: { y: 0, transition: springs.gentle },
-        exit: { y: "100%", transition: timings.normal },
-      }
-
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: timings.fast },
-    exit: { opacity: 0, transition: timings.fast },
-  }
-
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="goal-edit-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={submitting ? undefined : onClose}
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={submitting ? () => {} : onClose}
+      ariaLabel={sheetMode === "edit" ? "Edit goal" : "New goal"}
+      preventClose={submitting}
+    >
+      <div style={{ padding: "0 24px 32px" }}>
+        {/* ── Header ─────────────────────────────────────────── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 22,
+          }}
+        >
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>
+            {sheetMode === "edit" ? "Edit goal" : "New goal"}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            aria-label="Close"
             style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 40,
-              background: "rgba(0, 0, 0, 0.6)",
-            }}
-          />
-
-          {/* Sheet */}
-          <motion.div
-            key="goal-edit-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label={sheetMode === "edit" ? "Edit goal" : "New goal"}
-            variants={sheetVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            style={{
-              position: "fixed",
-              insetInline: 0,
-              bottom: 0,
-              zIndex: 50,
               display: "flex",
-              flexDirection: "column",
-              background: "var(--surface)",
-              borderTop: "1px solid var(--line)",
-              borderRadius: "var(--radius-lg) var(--radius-lg) 0 0",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              fontFamily: "Inter, sans-serif",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 32,
+              height: 32,
+              borderRadius: borderRadius.full,
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid var(--border)",
+              color: "var(--muted)",
+              cursor: submitting ? "not-allowed" : "pointer",
             }}
           >
-            {/* Handle */}
-            <div className="sheet-handle" />
-
-            <div style={{ padding: "0 24px 32px" }}>
-              {/* ── Header ─────────────────────────────────────────── */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 22,
-                }}
-              >
-                <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>
-                  {sheetMode === "edit" ? "Edit goal" : "New goal"}
-                </h2>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  disabled={submitting}
-                  aria-label="Close"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid var(--border)",
-                    color: "var(--muted)",
-                    cursor: submitting ? "not-allowed" : "pointer",
-                  }}
-                >
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
               {/* ── Emoji picker ───────────────────────────────────── */}
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 10 }}>Pick an icon</p>
@@ -319,7 +265,7 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
                   borderBottom: "1px solid var(--line)",
                   outline: "none",
                   fontSize: 16,
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: FONT_FAMILY,
                   color: "var(--text)",
                   padding: "10px 0",
                   marginBottom: 24,
@@ -352,13 +298,64 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
                     outline: "none",
                     fontSize: 32,
                     fontWeight: 600,
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: FONT_FAMILY,
                     color: "var(--text)",
                     padding: "4px 0 6px",
                     caretColor: "var(--text)",
                     minWidth: 0,
                   }}
                 />
+              </div>
+
+              {/* ── Target date (optional) ─────────────────────────── */}
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>
+                Target date <span style={{ fontWeight: 400 }}>(optional)</span>
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+                <input
+                  type="date"
+                  value={targetDate}
+                  onChange={e => { setTargetDate(e.target.value); setError(null) }}
+                  min={new Date().toISOString().split("T")[0]}
+                  aria-label="Target date"
+                  style={{
+                    flex: 1,
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: "1px solid var(--line)",
+                    outline: "none",
+                    fontSize: 15,
+                    fontFamily: FONT_FAMILY,
+                    color: targetDate ? "var(--text)" : "var(--muted)",
+                    padding: "10px 0",
+                    caretColor: "var(--text)",
+                    colorScheme: "dark",
+                  }}
+                />
+                {targetDate && (
+                  <button
+                    type="button"
+                    onClick={() => setTargetDate("")}
+                    aria-label="Clear target date"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 28,
+                      height: 28,
+                      borderRadius: borderRadius.full,
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid var(--border)",
+                      color: "var(--muted)",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
               {/* ── Inline error (persistence failure / validation) ── */}
@@ -385,7 +382,7 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
                     ? "linear-gradient(135deg, rgba(129, 140, 248, 1) 0%, rgba(99, 102, 241, 1) 100%)"
                     : "var(--dim)",
                   color: canSubmit ? "#fff" : "var(--muted)",
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: FONT_FAMILY,
                   fontSize: 17,
                   fontWeight: 600,
                   borderRadius: "var(--radius-md)",
@@ -398,9 +395,6 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
                 {submitting ? "Saving…" : sheetMode === "edit" ? "Save goal" : "Create goal"}
               </motion.button>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    </BottomSheet>
   )
 }

@@ -123,6 +123,12 @@ export type TipTrigger =
   | { type: 'first_goal_progress' }
   | { type: 'weekly_summary' }
   | { type: 'payday_detected' }
+  | { type: 'burn_rate_warning'; projectedOverspend: number }
+  | { type: 'bill_due_soon'; label: string; dueDay: number; daysUntil: number }
+  | { type: 'low_balance_warning'; projectedLowBalance: number; buffer: number; daysUntilDip?: number }
+  | { type: 'subscription_audit'; count: number; monthlyTotal: number }
+  | { type: 'lump_income_spike'; spikeAmount: number; averageMonthlyIncome: number }
+  | { type: 'over_budget_today' }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)
@@ -153,6 +159,8 @@ export type CelebrationType =
   | 'goal_complete'
   | 'first_transaction'
   | 'weekly_win'
+  | 'no_spend_streak'
+  | 'no_spend_weekend'
 
 /**
  * Animation style for celebrations
@@ -373,3 +381,53 @@ export interface SavingsAccount {
   expectedAnnualReturn: number
   createdAt: string
 }
+
+// ============================================================================
+// Debt Tracking Types
+// ============================================================================
+
+/** Type of debt */
+export type DebtType = 'student_loan' | 'credit_card' | 'personal_loan' | 'car_loan' | 'other'
+
+/** Metadata for each debt type */
+export const DEBT_TYPES: { type: DebtType; label: string; emoji: string }[] = [
+  { type: 'student_loan', label: 'Student Loan', emoji: '🎓' },
+  { type: 'credit_card', label: 'Credit Card', emoji: '💳' },
+  { type: 'personal_loan', label: 'Personal Loan', emoji: '🤝' },
+  { type: 'car_loan', label: 'Car Loan', emoji: '🚗' },
+  { type: 'other', label: 'Other', emoji: '📄' },
+]
+
+/** A tracked debt (student loan, credit card, etc.) */
+export interface Debt {
+  id: string
+  userId: string
+  type: DebtType
+  name: string
+  balance: number
+  apr: number // Annual percentage rate (e.g., 6.5 for 6.5%)
+  minimumPayment: number
+  createdAt: string
+}
+
+// ============================================================================
+// Custom Category Types (Requirements 3.1, 12.3, new)
+// ============================================================================
+
+/**
+ * User-defined spending category layered on top of the fixed TransactionCategory enum.
+ * Custom categories map to 'other' for underlying accounting/budget logic.
+ */
+export interface CustomCategory {
+  id: string
+  label: string
+  emoji: string
+  userId: string
+  createdAt: string
+}
+
+// ============================================================================
+// Reimbursement / IOU Types (Requirements 12.3, 13.7)
+// ============================================================================
+
+export type { Reimbursement, ReimbursementDirection } from '@/lib/reimbursements'

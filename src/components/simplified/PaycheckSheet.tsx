@@ -2,10 +2,19 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { springs, timings, useReducedMotion } from '@/lib/animations'
+import { springs } from '@/lib/animations'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useToast } from '@/contexts/ToastContext'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { computeTaxSetAside, DEFAULT_GIG_TAX_RATE } from '@/lib/taxSetAside'
+import {
+  loadAutoContributeRules,
+  computeAutoContributions,
+  computeAutoContributeTotal,
+  type AutoContribution,
+} from '@/lib/autoContributeUtils'
 import type { Goal, IncomeAllocation, AllocationPreset } from '@/types'
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ── Default presets ──────────────────────────────────────────────────────────
 
@@ -19,9 +28,9 @@ const ALLOCATION_PRESETS: AllocationPreset[] = [
 
 const BUCKETS: { key: keyof IncomeAllocation; label: string; emoji: string; color: string }[] = [
   { key: 'spend', label: 'Spend', emoji: '💸', color: 'var(--text)' },
-  { key: 'save', label: 'Save', emoji: '🏦', color: '#4ade80' },
+  { key: 'save', label: 'Save', emoji: '🏦', color: 'var(--success)' },
   { key: 'invest', label: 'Invest', emoji: '📈', color: '#818cf8' },
-  { key: 'setAside', label: 'Set Aside', emoji: '🎯', color: '#fbbf24' },
+  { key: 'setAside', label: 'Set Aside', emoji: '🎯', color: 'var(--warning)' },
 ]
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -34,6 +43,8 @@ interface PaycheckSheetProps {
   /** Called with the final allocation; parent can roll back on persistence failure */
   onAllocate?: (allocation: IncomeAllocation) => void
   onClose: () => void
+  /** When true, shows a tax set-aside suggestion for gig/freelance income */
+  isGigIncome?: boolean
 }
 
 // ── Helper: round to 2 decimal places ────────────────────────────────────────
@@ -51,8 +62,8 @@ export function PaycheckSheet({
   onContribute,
   onAllocate,
   onClose,
+  isGigIncome,
 }: PaycheckSheetProps) {
-  const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
 
   // ── State ─────────────────────────────────────────────────────
@@ -60,6 +71,20 @@ export function PaycheckSheet({
   const [activePreset, setActivePreset] = useState<number | null>(0) // index into ALLOCATION_PRESETS or null for custom
   const [showGoalContributions, setShowGoalContributions] = useState(false)
   const [contributed, setContributed] = useState(0)
+  const [taxSuggestionDismissed, setTaxSuggestionDismissed] = useState(false)
+
+  // ── Auto-contribute state ─────────────────────────────────────
+  const [autoContributions, setAutoContributions] = useState<AutoContribution[]>([])
+  const [autoContributeSkipped, setAutoContributeSkipped] = useState(false)
+  const [autoContributeApplied, setAutoContributeApplied] = useState(false)
+
+  // ── Tax set-aside suggestion for gig income ───────────────────
+  const taxInfo = useMemo(() => {
+    if (!isGigIncome || amount <= 0) return null
+    return computeTaxSetAside(amount, DEFAULT_GIG_TAX_RATE)
+  }, [isGigIncome, amount])
+
+  const showTaxSuggestion = !!taxInfo && !taxSuggestionDismissed
 
   // Reset when sheet opens
   useEffect(() => {
@@ -68,8 +93,21 @@ export function PaycheckSheet({
       setActivePreset(0)
       setShowGoalContributions(false)
       setContributed(0)
+      setTaxSuggestionDismissed(false)
+      setAutoContributeSkipped(false)
+      setAutoContributeApplied(false)
+
+      // Compute auto-contributions from persisted rules
+      const rules = loadAutoContributeRules()
+      const activeRules = rules.filter(r => r.enabled)
+      if (activeRules.length > 0 && goals.length > 0 && amount > 0) {
+        const contributions = computeAutoContributions(activeRules, goals, amount)
+        setAutoContributions(contributions)
+      } else {
+        setAutoContributions([])
+      }
     }
-  }, [isOpen, amount])
+  }, [isOpen, amount, goals])
 
   // ── Derived values ────────────────────────────────────────────
   const allocation: IncomeAllocation = useMemo(() => ({
@@ -82,7 +120,19 @@ export function PaycheckSheet({
   const totalPercent = percentages[0] + percentages[1] + percentages[2] + percentages[3]
   const isValid = totalPercent === 100
 
-  const activeGoals = goals.filter(g => g.currentAmount < g.targetAmount)
+  const activeGoals = goals
+    .filter(g => g.currentAmount < g.targetAmount)
+    .sort((a, b) => {
+      // Emergency fund goals surface first so they get funded before discretionary savings
+      const aIsEF = a.type === 'emergency_fund' ? 0 : 1
+      const bIsEF = b.type === 'emergency_fund' ? 0 : 1
+      return aIsEF - bIsEF
+    })
+
+  // Auto-contribute: show the banner when there are pending contributions
+  const showAutoContributeBanner =
+    autoContributions.length > 0 && !autoContributeSkipped && !autoContributeApplied
+  const autoContributeTotal = computeAutoContributeTotal(autoContributions)
 
   // ── Handlers ──────────────────────────────────────────────────
 
@@ -104,6 +154,15 @@ export function PaycheckSheet({
   const handleConfirm = useCallback(() => {
     if (!isValid) return
 
+    // Apply auto-contributions optimistically if banner is active
+    if (showAutoContributeBanner && autoContributions.length > 0) {
+      for (const contrib of autoContributions) {
+        onContribute(contrib.goalId, contrib.amount)
+      }
+      setAutoContributeApplied(true)
+      showToast(`Auto-saved $${autoContributeTotal} toward your goals ✓`, 'success')
+    }
+
     // Notify parent with optimistic allocation data
     if (onAllocate) {
       onAllocate(allocation)
@@ -117,7 +176,7 @@ export function PaycheckSheet({
 
     showToast('Income allocated ✓', 'success')
     onClose()
-  }, [isValid, allocation, onAllocate, activeGoals, showToast, onClose])
+  }, [isValid, allocation, onAllocate, activeGoals, showToast, onClose, showAutoContributeBanner, autoContributions, autoContributeTotal, onContribute])
 
   const handleContribute = useCallback((goalId: string, goalName: string, amt: number) => {
     onContribute(goalId, amt)
@@ -130,77 +189,16 @@ export function PaycheckSheet({
     onClose()
   }, [showToast, onClose])
 
-  // ── Animation variants ────────────────────────────────────────
-  const sheetVariants = prefersReducedMotion
-    ? {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: timings.fast },
-        exit: { opacity: 0, transition: timings.fast },
-      }
-    : {
-        hidden: { y: '100%' },
-        visible: { y: 0, transition: springs.gentle },
-        exit: { y: '100%', transition: timings.normal },
-      }
-
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: timings.fast },
-    exit: { opacity: 0, transition: timings.fast },
-  }
-
   // ── Render ────────────────────────────────────────────────────
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="paycheck-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={onClose}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 40,
-              background: 'rgba(0, 0, 0, 0.6)',
-            }}
-          />
-
-          {/* Sheet */}
-          <motion.div
-            key="paycheck-sheet"
-            variants={sheetVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            style={{
-              position: 'fixed',
-              insetInline: 0,
-              bottom: 0,
-              zIndex: 50,
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--line)',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              maxHeight: '85vh',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Handle */}
-            <div className="sheet-handle" />
-
-            <div style={{ padding: '0 24px 32px' }}>
+    <BottomSheet isOpen={isOpen} onClose={onClose} maxHeight="85vh" ariaLabel="Allocate paycheck">
+      <div style={{ padding: '0 24px 32px' }}>
               {/* ── Header ──────────────────────────────────────── */}
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 <p
                   style={{
                     fontSize: 13,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontWeight: 500,
                     color: 'var(--muted)',
                     textTransform: 'uppercase',
@@ -213,7 +211,7 @@ export function PaycheckSheet({
                 <p
                   style={{
                     fontSize: 40,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontWeight: 300,
                     color: 'var(--success)',
                     lineHeight: 1,
@@ -224,7 +222,7 @@ export function PaycheckSheet({
                 <p
                   style={{
                     fontSize: 14,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     color: 'var(--muted)',
                     marginTop: 10,
                   }}
@@ -234,6 +232,151 @@ export function PaycheckSheet({
                     : 'Split it up — pick a preset or customize'}
                 </p>
               </div>
+
+              {/* ── Tax Set-Aside Suggestion (gig income) ─────────── */}
+              {showTaxSuggestion && taxInfo && (
+                <div
+                  style={{
+                    background: 'rgba(251, 191, 36, 0.1)',
+                    border: '1px solid rgba(251, 191, 36, 0.25)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '14px 16px',
+                    marginBottom: 16,
+                    position: 'relative',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 18, lineHeight: 1.3 }}>💡</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          fontSize: 13,
+                          fontFamily: FONT_FAMILY,
+                          fontWeight: 500,
+                          color: 'var(--warning)',
+                          marginBottom: 4,
+                        }}
+                      >
+                        Tax heads-up
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          fontFamily: FONT_FAMILY,
+                          color: 'var(--sub)',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Since this is gig income, consider setting aside ~{Math.round(taxInfo.rate * 100)}% (${taxInfo.suggestedReserve.toLocaleString()}) for taxes in your Set Aside bucket.
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 11,
+                          fontFamily: FONT_FAMILY,
+                          color: 'var(--muted)',
+                          marginTop: 4,
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {taxInfo.rationale}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTaxSuggestionDismissed(true)}
+                      aria-label="Dismiss tax suggestion"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--muted)',
+                        fontSize: 16,
+                        cursor: 'pointer',
+                        padding: 4,
+                        lineHeight: 1,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Auto-Contribute Banner ─────────────────────── */}
+              {showAutoContributeBanner && (
+                <div
+                  style={{
+                    background: 'rgba(74, 222, 128, 0.08)',
+                    border: '1px solid rgba(74, 222, 128, 0.2)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '14px 16px',
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 18, lineHeight: 1.3 }}>🎯</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          fontSize: 13,
+                          fontFamily: FONT_FAMILY,
+                          fontWeight: 500,
+                          color: 'var(--success)',
+                          marginBottom: 4,
+                        }}
+                      >
+                        Auto-saving to goals
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          fontFamily: FONT_FAMILY,
+                          color: 'var(--sub)',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        ${autoContributeTotal} will go toward {autoContributions.length === 1
+                          ? autoContributions[0].goalName
+                          : `${autoContributions.length} goals`} when you confirm.
+                      </p>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                        {autoContributions.map(c => (
+                          <span
+                            key={c.goalId}
+                            style={{
+                              fontSize: 11,
+                              fontFamily: FONT_FAMILY,
+                              color: 'var(--muted)',
+                              background: 'rgba(255,255,255,0.05)',
+                              borderRadius: 6,
+                              padding: '3px 8px',
+                            }}
+                          >
+                            {c.goalEmoji} {c.goalName}: +${c.amount}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAutoContributeSkipped(true)}
+                      aria-label="Skip auto-contributions this time"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--muted)',
+                        fontSize: 12,
+                        fontFamily: FONT_FAMILY,
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: 2,
+                      }}
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <AnimatePresence mode="wait">
                 {!showGoalContributions ? (
@@ -255,7 +398,7 @@ export function PaycheckSheet({
                             flex: 1,
                             padding: '10px 6px',
                             fontSize: 12,
-                            fontFamily: 'Inter, sans-serif',
+                            fontFamily: FONT_FAMILY,
                             fontWeight: 600,
                             color: activePreset === idx ? '#fff' : 'var(--text)',
                             background: activePreset === idx
@@ -294,7 +437,7 @@ export function PaycheckSheet({
                           flex: 1,
                           padding: '10px 6px',
                           fontSize: 12,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontWeight: 600,
                           color: activePreset === null ? '#fff' : 'var(--text)',
                           background: activePreset === null
@@ -324,7 +467,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 14,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 500,
                                     color: bucket.color,
                                   }}
@@ -334,7 +477,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 14,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 600,
                                     color: 'var(--text)',
                                   }}
@@ -361,7 +504,7 @@ export function PaycheckSheet({
                                 <span
                                   style={{
                                     fontSize: 12,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 500,
                                     color: 'var(--muted)',
                                     minWidth: 32,
@@ -382,7 +525,7 @@ export function PaycheckSheet({
                       <p
                         style={{
                           fontSize: 12,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           color: totalPercent > 100 ? 'var(--error)' : 'var(--warning)',
                           textAlign: 'center',
                           marginBottom: 12,
@@ -409,7 +552,7 @@ export function PaycheckSheet({
                           ? 'linear-gradient(135deg, #4ade80, #22c55e)'
                           : 'var(--dim)',
                         color: isValid ? '#fff' : 'var(--muted)',
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         fontSize: 16,
                         fontWeight: 600,
                         borderRadius: 'var(--radius-md)',
@@ -440,10 +583,10 @@ export function PaycheckSheet({
                       <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                         {BUCKETS.map(bucket => (
                           <div key={bucket.key} style={{ textAlign: 'center' }}>
-                            <p style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: 'var(--muted)' }}>
+                            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>
                               {bucket.emoji} {bucket.label}
                             </p>
-                            <p style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', fontWeight: 600, color: bucket.color }}>
+                            <p style={{ fontSize: 14, fontFamily: FONT_FAMILY, fontWeight: 600, color: bucket.color }}>
                               ${allocation[bucket.key].toLocaleString()}
                             </p>
                           </div>
@@ -455,7 +598,7 @@ export function PaycheckSheet({
                     <p
                       style={{
                         fontSize: 13,
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         color: 'var(--muted)',
                         marginBottom: 10,
                       }}
@@ -479,7 +622,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 15,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 500,
                                     color: 'var(--text)',
                                     overflow: 'hidden',
@@ -492,7 +635,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 12,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     color: 'var(--muted)',
                                     marginTop: 2,
                                   }}
@@ -513,7 +656,7 @@ export function PaycheckSheet({
                                     flex: 1,
                                     padding: '10px 0',
                                     fontSize: 14,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 600,
                                     color: 'var(--text)',
                                     background: 'rgba(255, 255, 255, 0.06)',
@@ -528,7 +671,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 12,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     color: 'var(--muted)',
                                     padding: '10px 0',
                                   }}
@@ -554,7 +697,7 @@ export function PaycheckSheet({
                         justifyContent: 'center',
                         background: 'linear-gradient(135deg, #4ade80, #22c55e)',
                         color: '#fff',
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         fontSize: 16,
                         fontWeight: 600,
                         borderRadius: 'var(--radius-md)',
@@ -568,9 +711,6 @@ export function PaycheckSheet({
                 )}
               </AnimatePresence>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    </BottomSheet>
   )
 }

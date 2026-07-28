@@ -6,6 +6,8 @@ import { springs } from '@/lib/animations'
 import type { TutorialStep } from './OnboardingTutorial'
 import type { BudgetPreset, OnboardingResult } from '@/types/folio'
 import type { TransactionCategory } from '@/types'
+import { getCategoryEmoji, PRESET_EMOJI } from '@/lib/vocabulary'
+import { borderRadius } from '@/styles/shared'
 
 // ============================================================================
 // Step Definitions
@@ -49,9 +51,9 @@ export const TUTORIAL_FEATURE_STEPS: TutorialStep[] = [
 // ============================================================================
 
 const MINI_CATEGORIES = [
-  { emoji: '🍕', label: 'Food' },
-  { emoji: '🚗', label: 'Transport' },
-  { emoji: '🎮', label: 'Fun' },
+  { emoji: getCategoryEmoji('food'), label: 'Food' },
+  { emoji: getCategoryEmoji('transport'), label: 'Transport' },
+  { emoji: getCategoryEmoji('fun'), label: 'Fun' },
 ]
 
 const AMOUNT_CHIPS = ['$5', '$12', '$20']
@@ -136,7 +138,7 @@ function TryLogExpense({ onComplete }: { onComplete: () => void }) {
               aria-label={`Amount: ${amt}`}
               style={{
                 padding: '10px 20px',
-                borderRadius: 99,
+                borderRadius: borderRadius.full,
                 background: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 color: 'var(--text)',
@@ -206,7 +208,7 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
             fontSize: 38,
             fontFamily: 'Inter, sans-serif',
             fontWeight: 700,
-            color: '#4ade80',
+            color: 'var(--success)',
           }}
         >
           $42
@@ -559,10 +561,10 @@ export const BUDGET_PRESETS: Array<{
   description: string
   savingsPercent: number | null
 }> = [
-  { value: 'student_tight', label: 'Tight budget', emoji: '🎓', description: '30% savings — every dollar counts', savingsPercent: 30 },
-  { value: 'student_moderate', label: 'Some room', emoji: '☕', description: '20% savings — a little breathing room', savingsPercent: 20 },
-  { value: 'young_professional', label: 'Comfortable', emoji: '💼', description: '10% savings — entry-level income', savingsPercent: 10 },
-  { value: 'custom', label: 'Custom', emoji: '✨', description: "I'll set my own limits", savingsPercent: null },
+  { value: 'student_tight', label: 'Tight budget', emoji: PRESET_EMOJI.student_tight, description: '30% savings — every dollar counts', savingsPercent: 30 },
+  { value: 'student_moderate', label: 'Some room', emoji: PRESET_EMOJI.student_moderate, description: '20% savings — a little breathing room', savingsPercent: 20 },
+  { value: 'young_professional', label: 'Comfortable', emoji: PRESET_EMOJI.young_professional, description: '10% savings — entry-level income', savingsPercent: 10 },
+  { value: 'custom', label: 'Custom', emoji: PRESET_EMOJI.custom, description: "I'll set my own limits", savingsPercent: null },
 ]
 
 // ============================================================================
@@ -577,9 +579,9 @@ const LIMIT_CATEGORIES: Array<{
   weekly: boolean
   category: TransactionCategory
 }> = [
-  { key: 'rent', label: 'Monthly rent', emoji: '🏠', placeholder: '800', weekly: false, category: 'rent' },
-  { key: 'food', label: 'Food per week', emoji: '🍕', placeholder: '60', weekly: true, category: 'food' },
-  { key: 'fun', label: 'Fun per week', emoji: '🎮', placeholder: '40', weekly: true, category: 'fun' },
+  { key: 'rent', label: 'Monthly rent', emoji: getCategoryEmoji('rent'), placeholder: '800', weekly: false, category: 'rent' },
+  { key: 'food', label: 'Food per week', emoji: getCategoryEmoji('food'), placeholder: '60', weekly: true, category: 'food' },
+  { key: 'fun', label: 'Fun per week', emoji: getCategoryEmoji('fun'), placeholder: '40', weekly: true, category: 'fun' },
 ]
 
 // ============================================================================

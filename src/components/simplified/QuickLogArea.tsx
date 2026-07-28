@@ -4,10 +4,13 @@ import { useState, useMemo, useRef, useEffect } from "react"
 import { motion, AnimatePresence, PanInfo, Variants } from "framer-motion"
 import type { Transaction, Budget, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
-import type { QuickTransaction, SmartSuggestion } from "@/types/folio"
+import type { QuickTransaction, SmartSuggestion, CustomCategory } from "@/types/folio"
 import { generateSmartSuggestions } from "@/lib/suggestionUtils"
 import { useToast } from "@/contexts/ToastContext"
 import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
+import { getCategoryEmoji } from "@/lib/vocabulary"
+import { FONT_FAMILY } from '@/styles/typography'
+import { borderRadius } from '@/styles/shared'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -221,7 +224,7 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion }: Sugg
         justifyContent: "center",
         gap: 2,
         padding: "10px 16px",
-        borderRadius: 999,
+        borderRadius: borderRadius.full,
       }}
       onClick={onTap}
       onPointerDown={handlePointerDown}
@@ -324,7 +327,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
     >
       <div className="flex items-center gap-2">
         <span style={{ fontSize: 20 }} aria-hidden="true">
-          {categoryInfo?.emoji ?? "💼"}
+          {getCategoryEmoji(category)}
         </span>
         <span style={{ fontSize: 14, color: "var(--sub)", fontWeight: 500 }}>
           {categoryInfo?.label ?? category}
@@ -421,6 +424,8 @@ export interface QuickLogAreaProps {
   onLogExpense: (transaction: QuickTransaction) => void
   /** Callback when income is logged */
   onLogIncome: (amount: number, note?: string) => void
+  /** User-defined custom categories to show in the category grid (task 69) */
+  customCategories?: CustomCategory[]
 }
 
 /**
@@ -442,6 +447,7 @@ export function QuickLogArea({
   budgets,
   onLogExpense,
   onLogIncome,
+  customCategories = [],
 }: QuickLogAreaProps) {
   const { showToast } = useToast()
   const { prefersReducedMotion } = useReducedMotion()
@@ -482,10 +488,22 @@ export function QuickLogArea({
       }
     }
     // Only show expense categories (BUDGET_CATEGORIES excludes income)
-    return [...BUDGET_CATEGORIES].sort(
+    const builtIn = [...BUDGET_CATEGORIES].sort(
       (a, b) => (usageCount.get(b.category) ?? 0) - (usageCount.get(a.category) ?? 0)
     )
-  }, [recentTransactions])
+
+    // Append custom categories at the end, sorted by creation date (task 69)
+    const custom = [...customCategories]
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map((c) => ({
+        category: 'other' as TransactionCategory,
+        emoji: c.emoji,
+        label: c.label,
+        customId: c.id,
+      }))
+
+    return [...builtIn, ...custom]
+  }, [recentTransactions, customCategories])
 
   // ── 6.3: Smart suggestions for selected category (Requirements 3.3, 3.6) ───
   const suggestions = useMemo<SmartSuggestion[]>(() => {
@@ -635,7 +653,7 @@ export function QuickLogArea({
       >
         {sortedCategories.map((cat, index) => (
           <CategoryButton
-            key={cat.category}
+            key={'customId' in cat && cat.customId ? `custom-${cat.customId}` : cat.category}
             category={cat.category}
             emoji={cat.emoji}
             label={cat.label}
@@ -662,7 +680,7 @@ export function QuickLogArea({
             color: "var(--muted)",
             textAlign: "center",
             padding: "4px 0",
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
           }}
         >
           Tap a category to see common amounts and log your first expense
@@ -694,7 +712,7 @@ export function QuickLogArea({
                   color: "var(--muted)",
                   fontWeight: 500,
                   marginBottom: 6,
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: FONT_FAMILY,
                 }}
               >
                 Common amounts

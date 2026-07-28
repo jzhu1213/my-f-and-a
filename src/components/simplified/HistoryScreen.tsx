@@ -4,6 +4,8 @@ import type { Transaction } from "@/types"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { HistoryView } from "@/components/accounting/HistoryView"
+import { InsightTrendCard } from "./InsightTrendCard"
+import { InsightBreakdownCard } from "./InsightBreakdownCard"
 
 // ============================================================================
 // HistoryScreen Props
@@ -43,6 +45,16 @@ export function HistoryScreen({
 }: HistoryScreenProps) {
   return (
     <div className="history-screen">
+      {/* Month-over-month trend insight (Requirement 9.4) */}
+      <div style={{ padding: "12px 16px 0" }}>
+        <InsightTrendCard transactions={transactions} />
+      </div>
+
+      {/* Spending breakdown insight (Requirement 9.4) */}
+      <div style={{ padding: "8px 16px 0" }}>
+        <InsightBreakdownCard transactions={transactions} />
+      </div>
+
       <HistoryView
         transactions={transactions}
         isLoading={isLoading}

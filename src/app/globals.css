@@ -30,8 +30,8 @@
  * │ Dark theme:                                                     │
  * │   --text (#fff)    on --bg/--surface/--raised: 18.1–21.0:1  ✓  │
  * │   --sub  (#888888) on --bg/--surface/--raised:  5.1–5.9:1  ✓  │
- * │   --muted(#808080) on --bg/--surface/--raised:  4.6–5.3:1  ✓  │
- * │   Semantic colors on --bg/--surface/--raised:   4.8–11.1:1  ✓  │
+ * │   --muted(#868686) on --bg/--surface/--raised:  5.0–5.8:1  ✓  │
+ * │   Semantic colors on --bg/--surface/--raised:   6.1–12.6:1  ✓  │
  * │                                                                 │
  * │ Note: Semantic colors (success, warning, error, accent) exceed  │
  * │ 3:1 on all surfaces. When used as normal-size text (<18px),     │
@@ -40,13 +40,13 @@
  * └─────────────────────────────────────────────────────────────────┘
  */
 :root {
-  /* Warm purple theme (canonical default) - soft purple-tinted backgrounds */
-  --bg:        #1a1a2e;
-  --surface:   #25253a;
-  --raised:    #2d2d44;
-  --hover:     #35354f;
-  --border:    #3f3f5a;
-  --line:      #4a4a65;
+  /* Warm purple theme (canonical default) - deeper purple-tinted backgrounds for reduced eye strain */
+  --bg:        #12121f;
+  --surface:   #1a1a2e;
+  --raised:    #22223a;
+  --hover:     #2a2a44;
+  --border:    #34344f;
+  --line:      #3f3f5a;
   --text:      #ffffff;       /* pure white — maximum contrast */
   --sub:       #b4b4d4;       /* secondary text — soft purple-gray, ≥6.2:1 on all surfaces */
   --muted:     #9494b8;       /* labels, hints — warm gray-purple, ≥4.5:1 AA compliant */
@@ -86,7 +86,7 @@
   --border:    #282828;
   --line:      #323232;
   --sub:       #888888;       /* secondary text — ≥5.1:1 AA compliant */
-  --muted:     #808080;       /* labels, hints — ≥4.5:1 AA compliant */
+  --muted:     #868686;       /* labels, hints — ≥4.5:1 AA compliant (incl. GlassCard surfaces) */
   --dim:       #2e2e2e;
 
   /* Match the warmer semantic colors for consistency */
@@ -144,16 +144,18 @@ body {
 
 /* ── Label utility ──────────────────────────────────────────────── */
 .label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 11px;
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-/* ── Mono utility for amounts/numbers ───────────────────────────── */
+/* ── Mono utility for tabular numbers ───────────────────────────── */
 .font-mono {
-  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Progress track ─────────────────────────────────────────────── */
@@ -290,9 +292,10 @@ input[type="date"] {
 }
 
 .t-tab-item .tab-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 10px;
-  letter-spacing: 0.14em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -418,6 +421,23 @@ input[type="date"] {
 }
 .animate-fade-in { animation: fadeIn 0.18s ease-out forwards; }
 
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
+/* Reduced motion — collapse utility slide/spin animations to simple fades.
+ * fadeIn is opacity-only and calm enough to keep. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right,
+  .animate-slide-up {
+    animation: fadeIn 0.18s ease-out forwards;
+  }
+  .animate-spin {
+    animation: none !important;
+  }
+}
+
 /* ── Gradient mesh background ────────────────────────────────────── */
 /*
  * Full-viewport animated backdrop built from layered radial-gradient
@@ -444,14 +464,14 @@ input[type="date"] {
   transform: translate3d(0, 0, 0);
 }
 
-/* Home variant — three warm purple-tone orbs (indigo, purple, deep violet) */
+/* Home variant — three warm purple-tone orbs (indigo, purple, deep violet) with reduced saturation */
 .gradient-mesh--home .gradient-mesh__orb--1 {
   width: 60vmax;
   height: 60vmax;
   top: -20vmax;
   left: -10vmax;
-  background: radial-gradient(circle at center, rgba(129, 140, 248, 0.35), transparent 65%);
-  /* soft indigo */
+  background: radial-gradient(circle at center, rgba(129, 140, 248, 0.28), transparent 65%);
+  /* soft indigo — reduced from 0.35 */
   animation: mesh-drift-1 33s ease-in-out infinite;
 }
 
@@ -460,8 +480,8 @@ input[type="date"] {
   height: 55vmax;
   bottom: -18vmax;
   right: -12vmax;
-  background: radial-gradient(circle at center, rgba(167, 139, 250, 0.3), transparent 65%);
-  /* warm purple */
+  background: radial-gradient(circle at center, rgba(167, 139, 250, 0.24), transparent 65%);
+  /* warm purple — reduced from 0.3 */
   animation: mesh-drift-2 40s ease-in-out infinite;
 }
 
@@ -470,8 +490,8 @@ input[type="date"] {
   height: 45vmax;
   top: 30vmax;
   left: 25vmax;
-  background: radial-gradient(circle at center, rgba(67, 56, 202, 0.45), transparent 65%);
-  /* deep violet — adds depth */
+  background: radial-gradient(circle at center, rgba(67, 56, 202, 0.36), transparent 65%);
+  /* deep violet — reduced from 0.45 */
   animation: mesh-drift-3 48s ease-in-out infinite;
 }
 
@@ -486,7 +506,7 @@ input[type="date"] {
   height: 55vmax;
   top: -18vmax;
   left: -12vmax;
-  background: radial-gradient(circle at center, rgba(129, 140, 248, 0.25), transparent 68%);
+  background: radial-gradient(circle at center, rgba(129, 140, 248, 0.20), transparent 68%);
   animation: mesh-drift-1 43s ease-in-out infinite;
 }
 
@@ -495,7 +515,7 @@ input[type="date"] {
   height: 50vmax;
   bottom: -20vmax;
   right: -14vmax;
-  background: radial-gradient(circle at center, rgba(167, 139, 250, 0.2), transparent 68%);
+  background: radial-gradient(circle at center, rgba(167, 139, 250, 0.16), transparent 68%);
   animation: mesh-drift-2 53s ease-in-out infinite;
 }
 
@@ -504,7 +524,7 @@ input[type="date"] {
   height: 40vmax;
   top: 28vmax;
   left: 22vmax;
-  background: radial-gradient(circle at center, rgba(67, 56, 202, 0.35), transparent 68%);
+  background: radial-gradient(circle at center, rgba(67, 56, 202, 0.28), transparent 68%);
   animation: mesh-drift-3 60s ease-in-out infinite;
 }
 
@@ -659,8 +679,8 @@ input[type="date"] {
   position: relative;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(6px) saturate(140%);
-  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  backdrop-filter: blur(5px) saturate(140%);
+  -webkit-backdrop-filter: blur(5px) saturate(140%);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   /* Halo color/strength — overridden inline when a glow is requested. */
   --glass-glow: transparent;
@@ -688,22 +708,22 @@ input[type="date"] {
 
 /* Elevation — controls blur intensity, rim brightness and shadow depth */
 .glass-card--low {
-  backdrop-filter: blur(5px) saturate(125%);
-  -webkit-backdrop-filter: blur(5px) saturate(125%);
+  backdrop-filter: blur(4px) saturate(125%);
+  -webkit-backdrop-filter: blur(4px) saturate(125%);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   --glass-border-top: rgba(129, 140, 248, 0.05);
 }
 
 .glass-card--medium {
-  backdrop-filter: blur(6px) saturate(140%);
-  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  backdrop-filter: blur(5px) saturate(140%);
+  -webkit-backdrop-filter: blur(5px) saturate(140%);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   --glass-border-top: rgba(129, 140, 248, 0.08);
 }
 
 .glass-card--high {
-  backdrop-filter: blur(10px) saturate(150%);
-  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
   box-shadow: 0 8px 36px rgba(0, 0, 0, 0.4);
   --glass-border-top: rgba(129, 140, 248, 0.10);
 }
@@ -1207,6 +1227,19 @@ input[type="date"] {
   line-height: 1;
 }
 
+/* Centered wordmark — lightweight, modern brand presence */
+.app-topbar__wordmark {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  opacity: 0.85;
+  text-transform: lowercase;
+  user-select: none;
+  pointer-events: none;
+}
+
 /* ── Scrollable content ─────────────────────────────────────────── */
 .app-content {
   position: relative;
@@ -1319,6 +1352,41 @@ input[type="date"] {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ── Quick-log FAB (centered, elevated above dock) ─────────────── */
+.app-dock-fab {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Sit above the dock (dock bottom ~16+safe, dock height ~64, offset -18 for overlap) */
+  bottom: calc(60px + var(--safe-bottom));
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  /* Warm purple gradient matching the brand */
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  color: #fff;
+  box-shadow:
+    0 4px 14px rgba(124, 58, 237, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  /* Prevent text selection */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.app-dock-fab:active {
+  box-shadow:
+    0 2px 8px rgba(124, 58, 237, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* ── Safe-area: feed env() insets into the shell spacing tokens ─── */

@@ -26,12 +26,17 @@ import type { CSSProperties } from 'react'
 /**
  * Body/display font stack. Matches `body` in `globals.css` (Requirement 8.2).
  * Inter — highly legible, designed for UI, friendly and modern.
+ * 
+ * Use with `fontVariantNumeric: 'tabular-nums'` for aligned numeric columns.
  */
 export const FONT_FAMILY =
   "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" as const
 
 /**
- * Monospace font for amounts/numbers — crisp, wide, technical feel.
+ * Monospace font for code/technical content only.
+ * 
+ * **Not recommended for financial amounts or UI text** — use FONT_FAMILY with
+ * `fontVariantNumeric: 'tabular-nums'` instead for a warmer, more welcoming look.
  */
 export const MONO_FAMILY =
   "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace" as const

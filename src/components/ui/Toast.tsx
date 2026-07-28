@@ -24,27 +24,28 @@ export function Toast() {
             background: 'var(--raised)',
             border: '1px solid var(--line)',
             borderLeft: `2px solid ${accentColor(toast.type)}`,
-            borderRadius: '3px',
+            borderRadius: '8px',
             minWidth: '200px',
             maxWidth: '280px',
           }}
         >
           <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accentColor(toast.type) }} />
-          <p className="text-xs font-mono flex-1" style={{ color: 'var(--sub)' }}>{toast.message}</p>
+          <p className="text-xs flex-1" style={{ color: 'var(--sub)', fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>{toast.message}</p>
 
           {toast.action && (
             <button
               onClick={() => { toast.action!.onClick(); removeToast(toast.id) }}
-              className="flex-shrink-0 text-xs font-mono transition-colors"
+              className="flex-shrink-0 text-xs transition-colors"
               style={{
-                fontFamily: 'Space Mono, monospace',
+                fontFamily: "'Inter', sans-serif",
                 fontSize: '11px',
-                letterSpacing: '0.08em',
+                fontWeight: 600,
+                letterSpacing: '0.04em',
                 textTransform: 'uppercase',
                 color: 'var(--text)',
                 padding: '3px 8px',
                 border: '1px solid var(--line)',
-                borderRadius: '2px',
+                borderRadius: '8px',
               }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--sub)')}
               onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--line)')}

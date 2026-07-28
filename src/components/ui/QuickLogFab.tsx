@@ -17,9 +17,9 @@ export function QuickLogFab({ onLogExpense, onLogIncome }: QuickLogFabProps) {
         style={{
           padding: '8px 12px',
           background: 'var(--raised)', border: '1px solid var(--border)',
-          borderRadius: '6px', color: 'var(--green)',
-          fontFamily: 'Space Mono, monospace', fontSize: '11px',
-          letterSpacing: '0.08em',
+          borderRadius: '8px', color: 'var(--green)',
+          fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600,
+          letterSpacing: '0.04em',
           transition: 'border-color 0.15s',
         }}
         onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--green)')}
@@ -34,7 +34,7 @@ export function QuickLogFab({ onLogExpense, onLogIncome }: QuickLogFabProps) {
           width: '52px', height: '52px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'var(--text)', color: '#000',
-          borderRadius: '6px',
+          borderRadius: '8px',
           boxShadow: '0 8px 32px rgba(255,255,255,0.08)',
           transition: 'transform 0.15s',
         }}

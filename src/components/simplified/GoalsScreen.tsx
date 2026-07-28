@@ -6,7 +6,18 @@ import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { GoalEditSheet } from "./GoalEditSheet"
 import { GoalContributeSheet } from "./GoalContributeSheet"
+import { SaveUpPlanSheet } from "./SaveUpPlanSheet"
+import { computeDeadlineFeasibility, formatTargetDate } from "@/lib/goalDeadlineUtils"
+import {
+  loadAutoContributeRules,
+  saveAutoContributeRules,
+  upsertAutoContributeRule,
+  removeAutoContributeRule,
+  type AutoContributeRule,
+} from "@/lib/autoContributeUtils"
 import type { Goal } from "@/types"
+import { FONT_FAMILY } from "@/styles/typography"
+import { borderRadius } from "@/styles/shared"
 
 // ============================================================================
 // Types
@@ -20,11 +31,15 @@ export interface GoalFormData {
   name: string
   targetAmount: number
   emoji: string
+  /** Optional ISO date string for the goal deadline */
+  targetDate?: string
 }
 
 export interface GoalsScreenProps {
   /** All of the user's savings goals. */
   goals: Goal[]
+  /** Monthly income used for deadline feasibility checks. */
+  monthlyIncome?: number
   /** Create a new savings goal (backed by useHomeData.createGoal). */
   onCreateGoal: (data: GoalFormData) => Promise<Goal | null> | void
   /** Update an existing goal (backed by useHomeData.updateGoal). */
@@ -63,16 +78,23 @@ function formatAmount(value: number): string {
 interface GoalCardProps {
   goal: Goal
   reducedMotion: boolean
+  monthlyIncome: number
   onContribute: (goal: Goal) => void
   onEdit: (goal: Goal) => void
   onDelete: (goal: Goal) => void
 }
 
-function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalCardProps) {
+function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, onDelete }: GoalCardProps) {
   const pct = goalProgress(goal)
   const complete = isComplete(goal)
   const remaining = Math.max(0, goal.targetAmount - goal.currentAmount)
   const fillColor = complete ? "var(--success)" : "var(--accent)"
+
+  // Compute deadline feasibility when a target date is set
+  const deadlineInfo = useMemo(
+    () => computeDeadlineFeasibility(goal, monthlyIncome),
+    [goal, monthlyIncome]
+  )
 
   // Two-step delete confirmation: the first tap arms the confirm, a second tap
   // commits. Auto-resets after a few seconds so it can't get stuck armed.
@@ -103,18 +125,33 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
           <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }} aria-hidden="true">
             {goal.emoji}
           </span>
-          <span
-            style={{
-              fontSize: 16,
-              fontWeight: 600,
-              color: "var(--text)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {goal.name}
-          </span>
+          <div style={{ minWidth: 0 }}>
+            <span
+              style={{
+                display: "block",
+                fontSize: 16,
+                fontWeight: 600,
+                color: "var(--text)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {goal.name}
+            </span>
+            {goal.targetDate && !complete && (
+              <span
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: deadlineInfo?.expired ? "var(--error)" : "var(--muted)",
+                  marginTop: 2,
+                }}
+              >
+                {deadlineInfo?.expired ? "Past deadline" : `Target: ${formatTargetDate(goal.targetDate)}`}
+              </span>
+            )}
+          </div>
         </div>
         <span
           style={{
@@ -139,10 +176,10 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
         style={{
           height: 8,
           width: "100%",
-          borderRadius: 999,
+          borderRadius: borderRadius.full,
           background: "rgba(255,255,255,0.06)",
           overflow: "hidden",
-          marginBottom: 12,
+          marginBottom: deadlineInfo && !complete ? 8 : 12,
         }}
       >
         <motion.div
@@ -151,11 +188,33 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
           transition={reducedMotion ? timings.fast : springs.gentle}
           style={{
             height: "100%",
-            borderRadius: 999,
+            borderRadius: borderRadius.full,
             background: fillColor,
           }}
         />
       </div>
+
+      {/* ── Deadline feasibility message (progressive disclosure) ─────────── */}
+      {deadlineInfo && !complete && (
+        <p
+          style={{
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: deadlineInfo.feasible ? "var(--sub)" : "var(--warning, #fbbf24)",
+            marginBottom: 12,
+            padding: "6px 10px",
+            background: deadlineInfo.feasible
+              ? "rgba(255,255,255,0.02)"
+              : "rgba(251, 191, 36, 0.06)",
+            borderRadius: 8,
+            border: deadlineInfo.feasible
+              ? "1px solid rgba(255,255,255,0.04)"
+              : "1px solid rgba(251, 191, 36, 0.15)",
+          }}
+        >
+          {deadlineInfo.message}
+        </p>
+      )}
 
       {/* ── Amounts ───────────────────────────────────────────────────────── */}
       <div
@@ -187,7 +246,7 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
               padding: "9px 0",
               fontSize: 13,
               fontWeight: 600,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
               color: "var(--accent)",
               background: "var(--accent-muted)",
               border: "1px solid rgba(129, 140, 248, 0.25)",
@@ -210,7 +269,7 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
               padding: "9px 16px",
               fontSize: 13,
               fontWeight: 500,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
               color: "var(--sub)",
               background: "rgba(255,255,255,0.04)",
               border: "1px solid var(--border)",
@@ -234,7 +293,7 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
                 padding: "9px 12px",
                 fontSize: 13,
                 fontWeight: 500,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 color: "var(--sub)",
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid var(--border)",
@@ -257,7 +316,7 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
                 padding: "9px 14px",
                 fontSize: 13,
                 fontWeight: 600,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 color: "#fff",
                 background: "var(--error)",
                 border: "1px solid var(--error)",
@@ -279,7 +338,7 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
               padding: "9px 12px",
               fontSize: 13,
               fontWeight: 500,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
               color: "var(--error)",
               background: "rgba(239, 68, 68, 0.08)",
               border: "1px solid rgba(239, 68, 68, 0.2)",
@@ -315,6 +374,7 @@ function GoalCard({ goal, reducedMotion, onContribute, onEdit, onDelete }: GoalC
  */
 export function GoalsScreen({
   goals,
+  monthlyIncome = 0,
   onCreateGoal,
   onUpdateGoal,
   onContributeToGoal,
@@ -327,6 +387,7 @@ export function GoalsScreen({
   // `goalSheet` drives create/edit; `contributeGoal` drives contribution.
   const [goalSheet, setGoalSheet] = useState<{ mode: "create" | "edit"; goal: Goal | null } | null>(null)
   const [contributeGoal, setContributeGoal] = useState<Goal | null>(null)
+  const [saveUpOpen, setSaveUpOpen] = useState(false)
 
   // ── Partition goals into active vs completed ───────────────────────────────
   const { activeGoals, completedGoals } = useMemo(() => {
@@ -366,13 +427,45 @@ export function GoalsScreen({
   const closeGoalSheet = useCallback(() => setGoalSheet(null), [])
   const closeContribute = useCallback(() => setContributeGoal(null), [])
 
+  // ── Auto-Contribute Rules ─────────────────────────────────────────────────
+  const [autoRules, setAutoRules] = useState<AutoContributeRule[]>([])
+  const [editingAutoRule, setEditingAutoRule] = useState<{ goalId: string; amount: string } | null>(null)
+
+  // Load rules from localStorage on mount
+  useEffect(() => {
+    setAutoRules(loadAutoContributeRules())
+  }, [])
+
+  const handleSaveAutoRule = useCallback((goalId: string, amountStr: string) => {
+    const amount = parseFloat(amountStr)
+    if (!amount || amount <= 0) return
+    const updated = upsertAutoContributeRule(autoRules, goalId, amount, true)
+    setAutoRules(updated)
+    saveAutoContributeRules(updated)
+    setEditingAutoRule(null)
+  }, [autoRules])
+
+  const handleToggleAutoRule = useCallback((goalId: string, enabled: boolean) => {
+    const rule = autoRules.find(r => r.goalId === goalId)
+    if (!rule) return
+    const updated = upsertAutoContributeRule(autoRules, goalId, rule.amount, enabled)
+    setAutoRules(updated)
+    saveAutoContributeRules(updated)
+  }, [autoRules])
+
+  const handleRemoveAutoRule = useCallback((goalId: string) => {
+    const updated = removeAutoContributeRule(autoRules, goalId)
+    setAutoRules(updated)
+    saveAutoContributeRules(updated)
+  }, [autoRules])
+
   return (
     <div
       style={{
         maxWidth: 560,
         margin: "0 auto",
         padding: "24px 20px 100px",
-        fontFamily: "Inter, sans-serif",
+        fontFamily: FONT_FAMILY,
       }}
     >
       {/* ── Back button ────────────────────────────────────────────────────── */}
@@ -390,7 +483,7 @@ export function GoalsScreen({
             border: "none",
             color: "var(--muted)",
             cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
             fontSize: 14,
           }}
           aria-label="Back"
@@ -440,6 +533,7 @@ export function GoalsScreen({
                 <GoalCard
                   goal={goal}
                   reducedMotion={prefersReducedMotion}
+                  monthlyIncome={monthlyIncome}
                   onContribute={handleContribute}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
@@ -477,6 +571,7 @@ export function GoalsScreen({
                 <GoalCard
                   goal={goal}
                   reducedMotion={prefersReducedMotion}
+                  monthlyIncome={monthlyIncome}
                   onContribute={handleContribute}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
@@ -527,7 +622,7 @@ export function GoalsScreen({
             padding: "14px 20px",
             fontSize: 14,
             fontWeight: 600,
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
             color: "var(--text)",
             background: "var(--accent-muted)",
             border: "1px solid rgba(129, 140, 248, 0.25)",
@@ -541,6 +636,236 @@ export function GoalsScreen({
           </svg>
           New goal{goals.length > 0 ? ` (${remainingSlots} left)` : ""}
         </motion.button>
+      )}
+
+      {/* ── Plan a big purchase link ───────────────────────────────────────── */}
+      <motion.button
+        onClick={() => setSaveUpOpen(true)}
+        whileTap={{ scale: prefersReducedMotion ? 1 : 0.97 }}
+        transition={springs.snappy}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          width: "100%",
+          padding: "12px 20px",
+          marginTop: 12,
+          fontSize: 14,
+          fontWeight: 500,
+          fontFamily: FONT_FAMILY,
+          color: "var(--sub)",
+          background: "none",
+          border: "1px dashed var(--border)",
+          borderRadius: 12,
+          cursor: "pointer",
+        }}
+        aria-label="Plan a big purchase"
+      >
+        🎯 Plan a big purchase
+      </motion.button>
+
+      {/* ── Auto-Contribute Settings ──────────────────────────────────── */}
+      {activeGoals.length > 0 && (
+        <section aria-label="Auto-contribute settings" style={{ marginTop: 24, marginBottom: 8 }}>
+          <p
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--muted)",
+              letterSpacing: "0.02em",
+              marginBottom: 6,
+            }}
+          >
+            Auto-save on payday
+          </p>
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--sub)",
+              marginBottom: 12,
+              lineHeight: 1.4,
+            }}
+          >
+            Set a fixed amount to save toward your goals each time you log income.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {activeGoals.map(goal => {
+              const rule = autoRules.find(r => r.goalId === goal.id)
+              const isEditing = editingAutoRule?.goalId === goal.id
+
+              return (
+                <GlassCard key={goal.id} elevation="low" style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>{goal.emoji}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          fontSize: 13,
+                          fontFamily: FONT_FAMILY,
+                          fontWeight: 500,
+                          color: "var(--text)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {goal.name}
+                      </p>
+                      {rule && !isEditing && (
+                        <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                          ${rule.amount}/paycheck {!rule.enabled && "(paused)"}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Toggle / Add / Edit actions */}
+                    {rule && !isEditing ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <button
+                          onClick={() => handleToggleAutoRule(goal.id, !rule.enabled)}
+                          aria-label={rule.enabled ? "Pause auto-save" : "Resume auto-save"}
+                          style={{
+                            width: 36,
+                            height: 20,
+                            borderRadius: 10,
+                            border: "none",
+                            cursor: "pointer",
+                            position: "relative",
+                            background: rule.enabled
+                              ? "rgba(74, 222, 128, 0.4)"
+                              : "rgba(255,255,255,0.1)",
+                            transition: "background 0.2s",
+                          }}
+                        >
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: 2,
+                              left: rule.enabled ? 18 : 2,
+                              width: 16,
+                              height: 16,
+                              borderRadius: "50%",
+                              background: rule.enabled ? "#4ade80" : "var(--muted)",
+                              transition: "left 0.2s, background 0.2s",
+                            }}
+                          />
+                        </button>
+                        <button
+                          onClick={() => setEditingAutoRule({ goalId: goal.id, amount: String(rule.amount) })}
+                          aria-label={`Edit auto-save for ${goal.name}`}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "var(--muted)",
+                            fontSize: 12,
+                            cursor: "pointer",
+                            padding: "2px 4px",
+                          }}
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleRemoveAutoRule(goal.id)}
+                          aria-label={`Remove auto-save for ${goal.name}`}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "var(--error)",
+                            fontSize: 12,
+                            cursor: "pointer",
+                            padding: "2px 4px",
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : isEditing ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 13, color: "var(--muted)" }}>$</span>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={editingAutoRule.amount}
+                          onChange={(e) => setEditingAutoRule({ goalId: goal.id, amount: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveAutoRule(goal.id, editingAutoRule.amount)
+                            if (e.key === "Escape") setEditingAutoRule(null)
+                          }}
+                          aria-label={`Auto-save amount for ${goal.name}`}
+                          style={{
+                            width: 60,
+                            padding: "4px 8px",
+                            fontSize: 13,
+                            fontFamily: FONT_FAMILY,
+                            color: "var(--text)",
+                            background: "rgba(255,255,255,0.06)",
+                            border: "1px solid var(--line)",
+                            borderRadius: 6,
+                            outline: "none",
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleSaveAutoRule(goal.id, editingAutoRule.amount)}
+                          aria-label="Save"
+                          style={{
+                            padding: "4px 10px",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            fontFamily: FONT_FAMILY,
+                            color: "#fff",
+                            background: "#4ade80",
+                            border: "none",
+                            borderRadius: 6,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingAutoRule(null)}
+                          aria-label="Cancel"
+                          style={{
+                            padding: "4px 8px",
+                            fontSize: 12,
+                            fontFamily: FONT_FAMILY,
+                            color: "var(--muted)",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setEditingAutoRule({ goalId: goal.id, amount: "25" })}
+                        aria-label={`Set up auto-save for ${goal.name}`}
+                        style={{
+                          padding: "6px 12px",
+                          fontSize: 12,
+                          fontWeight: 500,
+                          fontFamily: FONT_FAMILY,
+                          color: "var(--accent)",
+                          background: "var(--accent-muted)",
+                          border: "1px solid rgba(129, 140, 248, 0.2)",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                        }}
+                      >
+                        + Auto-save
+                      </button>
+                    )}
+                  </div>
+                </GlassCard>
+              )
+            })}
+          </div>
+        </section>
       )}
 
       {/* ── Create / edit goal sheet (subtask 25.2) ────────────────────────── */}
@@ -559,6 +884,13 @@ export function GoalsScreen({
         goal={contributeGoal}
         onClose={closeContribute}
         onContribute={onContributeToGoal}
+      />
+
+      {/* ── Save-up plan sheet ─────────────────────────────────────────────── */}
+      <SaveUpPlanSheet
+        isOpen={saveUpOpen}
+        onClose={() => setSaveUpOpen(false)}
+        onCreateGoal={atCap ? undefined : onCreateGoal}
       />
     </div>
   )

@@ -6,7 +6,7 @@ import { ToastProvider } from '../contexts/ToastContext'
 
 export const metadata: Metadata = {
   title: 'Folio',
-  description: 'Personal finance tracker',
+  description: 'Simple budgeting for college students and young adults',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -20,7 +20,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#000000',
+  themeColor: '#12121f',
 }
 
 export default function RootLayout({
@@ -34,7 +34,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>

@@ -1,5 +1,7 @@
 import type { Transaction, Budget, Goal } from '@/types'
 import type { CelebrationEvent, CelebrationType, AnimationType } from '@/types/folio'
+import { getNoSpendStreak, isNoSpendWeekend } from '@/lib/noSpendChallenge'
+import { CELEBRATION_EMOJI, CELEBRATION_COPY } from '@/lib/vocabulary'
 
 // ============================================================================
 // Celebration Engine (Requirements 6.1–6.6)
@@ -10,6 +12,12 @@ import type { CelebrationEvent, CelebrationType, AnimationType } from '@/types/f
  * Prevents duplicate celebrations per qualifying event (Req 6.6).
  */
 const STORAGE_KEY = 'folio_triggered_celebrations'
+
+// ── Per-session dedup guard (Task 75) ────────────────────────────────────────
+// Prevents the celebration engine from re-running identical checks multiple
+// times within the same browser session (page load). Once checkAllCelebrations
+// has evaluated a specific fingerprint, it won't re-evaluate until data changes.
+let sessionCelebrationFingerprint: string | null = null
 
 // ============================================================================
 // Internal Helpers
@@ -153,9 +161,9 @@ export function checkUnderBudgetToday(
   return createEvent(
     id,
     'under_budget_today',
-    'Under budget today!',
-    "Nice work — you spent well below today's limit.",
-    '🌟',
+    CELEBRATION_COPY.under_budget_today.title,
+    CELEBRATION_COPY.under_budget_today.message,
+    CELEBRATION_EMOJI.under_budget_today,
     'sparkle',
     3000,
     'subtle'
@@ -192,9 +200,9 @@ export function checkStreak3Days(
   return createEvent(
     id,
     'streak_3_days',
-    '3-day streak!',
-    "Three days under budget in a row. You're building momentum!",
-    '🔥',
+    CELEBRATION_COPY.streak_3_days.title,
+    CELEBRATION_COPY.streak_3_days.message,
+    CELEBRATION_EMOJI.streak_3_days,
     'confetti',
     4000,
     'cheerful'
@@ -229,9 +237,9 @@ export function checkStreak7Days(
   return createEvent(
     id,
     'streak_7_days',
-    'One whole week!',
-    "Seven days under budget — that's seriously impressive.",
-    '🏆',
+    CELEBRATION_COPY.streak_7_days.title,
+    CELEBRATION_COPY.streak_7_days.message,
+    CELEBRATION_EMOJI.streak_7_days,
     'confetti',
     5000,
     'cheerful'
@@ -267,7 +275,7 @@ export function checkGoalProgress(goals: Goal[]): CelebrationEvent[] {
       const type: CelebrationType = milestone === 100 ? 'goal_complete' : 'goal_progress'
       const animation: AnimationType = milestone === 100 ? 'confetti' : 'bounce'
       const sound: 'subtle' | 'cheerful' = milestone === 100 ? 'cheerful' : 'subtle'
-      const emoji = milestone === 100 ? '🎉' : '🎯'
+      const emoji = milestone === 100 ? CELEBRATION_EMOJI.goal_complete : CELEBRATION_EMOJI.goal_progress
       const title =
         milestone === 100
           ? `${goal.name} complete!`
@@ -306,13 +314,96 @@ export function checkFirstTransaction(
   return createEvent(
     id,
     'first_transaction',
-    'First one logged!',
-    "You've started tracking. That's the hardest part.",
-    '✨',
+    CELEBRATION_COPY.first_transaction.title,
+    CELEBRATION_COPY.first_transaction.message,
+    CELEBRATION_EMOJI.first_transaction,
     'pulse',
     3500,
     'cheerful'
   )
+}
+
+/**
+ * Checks if a no-spend streak or no-spend weekend celebration should trigger.
+ *
+ * **Validates: Requirements 5.4, 6.2**
+ *
+ * Fires when:
+ * - The user has 3+ consecutive no-spend days (no expenses at all)
+ * - The user completed a full no-spend weekend (Saturday + Sunday)
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date (for testability)
+ * @returns Array of CelebrationEvents
+ */
+export function checkNoSpendStreak(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent[] {
+  const events: CelebrationEvent[] = []
+
+  // ── No-spend streak (3+ days) ──────────────────────────────────────────
+  const yesterday = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1
+  ))
+  const yesterdayStr = formatDate(yesterday)
+
+  const streak = getNoSpendStreak(transactions, yesterdayStr)
+  if (streak >= 3) {
+    const id = `no_spend_streak_${streak}_${yesterdayStr}`
+    if (!hasBeenTriggered(id)) {
+      markTriggered(id)
+      events.push(createEvent(
+        id,
+        'no_spend_streak',
+        CELEBRATION_COPY.no_spend_streak.title,
+        streak >= 7
+          ? "A whole week with no spending — that's some serious willpower. 🌟"
+          : CELEBRATION_COPY.no_spend_streak.message,
+        CELEBRATION_EMOJI.no_spend_streak,
+        'sparkle',
+        3500,
+        'subtle'
+      ))
+    }
+  }
+
+  // ── No-spend weekend ───────────────────────────────────────────────────
+  // Check if the most recent past weekend was a no-spend weekend
+  const dayOfWeek = now.getUTCDay() // 0=Sun, 6=Sat
+  // Find last Sunday (or today if it's Monday, meaning weekend just ended)
+  let lastSunday: Date
+  if (dayOfWeek === 0) {
+    // Today is Sunday — check last weekend (the one before)
+    lastSunday = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7
+    ))
+  } else {
+    // Most recent Sunday
+    lastSunday = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayOfWeek
+    ))
+  }
+  const lastSundayStr = formatDate(lastSunday)
+
+  if (isNoSpendWeekend(transactions, lastSundayStr)) {
+    const weekendId = `no_spend_weekend_${lastSundayStr}`
+    if (!hasBeenTriggered(weekendId)) {
+      markTriggered(weekendId)
+      events.push(createEvent(
+        weekendId,
+        'no_spend_weekend',
+        CELEBRATION_COPY.no_spend_weekend.title,
+        CELEBRATION_COPY.no_spend_weekend.message,
+        CELEBRATION_EMOJI.no_spend_weekend,
+        'bounce',
+        3500,
+        'subtle'
+      ))
+    }
+  }
+
+  return events
 }
 
 /**
@@ -334,6 +425,11 @@ export function checkAllCelebrations(
   goals: Goal[],
   now: Date = new Date()
 ): CelebrationEvent[] {
+  // ── Per-session dedup: skip if we already evaluated this exact data state ──
+  const fingerprint = `${transactions.length}:${goals.map(g => `${g.id}:${g.currentAmount}`).join('|')}:${now.toISOString().slice(0, 13)}`
+  if (fingerprint === sessionCelebrationFingerprint) return []
+  sessionCelebrationFingerprint = fingerprint
+
   const events: CelebrationEvent[] = []
 
   const underBudget = checkUnderBudgetToday(budgets, transactions, now)
@@ -350,6 +446,10 @@ export function checkAllCelebrations(
 
   const firstTx = checkFirstTransaction(transactions)
   if (firstTx) events.push(firstTx)
+
+  // No-spend streak and weekend celebrations
+  const noSpendEvents = checkNoSpendStreak(transactions, now)
+  events.push(...noSpendEvents)
 
   return events
 }

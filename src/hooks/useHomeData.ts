@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import type { Transaction, Budget, Goal, TransactionCategory, TransactionType, UserLessonProgress } from '@/types'
-import type { DailyAllowance, SavingsAccount, SavingsAccountType } from '@/types/folio'
+import type { DailyAllowance, Debt, SavingsAccount, SavingsAccountType, IncomeSmoothing } from '@/types/folio'
 import { 
   getTransactions, 
   getBudgets, 
@@ -22,14 +22,87 @@ import {
   updateSavingsAccount as updateSavingsAccountApi,
   deleteSavingsAccount as deleteSavingsAccountApi,
   updateSavingsAccountBalance,
+  getDebts,
+  getPaySchedule,
+  getSinkingFunds,
+  createSinkingFund as createSinkingFundApi,
+  updateSinkingFund as updateSinkingFundApi,
+  deleteSinkingFund as deleteSinkingFundApi,
 } from '@/lib/supabaseData'
+import { getHomeCache, setHomeCache, isCacheStale } from '@/lib/homeCache'
+import { addToOfflineQueue } from '@/lib/offlineQueue'
 import type { AppAllocation } from '@/lib/supabaseData'
-import { computeTotalSetAside, computeSavingsRate } from '@/lib/allocationUtils'
+import type { PaySchedule } from '@/lib/paySchedule'
+import type { SinkingFund } from '@/lib/sinkingFunds'
+import { getTotalMonthlyReserve } from '@/lib/sinkingFunds'
+import { computeSavingsRate } from '@/lib/allocationUtils'
+import { computeSetAside } from '@/lib/setAside'
+import type { SetAsideBreakdown } from '@/lib/setAside'
 import type { IncomeAllocation } from '@/types/folio'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
+
+// ── Income Smoothing Preference Persistence ────────────────────────────────
+// Stored in localStorage as a fallback (no dedicated Supabase table yet).
+// Pattern mirrors other simple preference keys (roundUpSavings, minBalanceBuffer, etc.)
+const INCOME_SMOOTHING_KEY = 'folio-income-smoothing'
+
+function loadIncomeSmoothingPreference(): IncomeSmoothing | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(INCOME_SMOOTHING_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as IncomeSmoothing
+  } catch {
+    return null
+  }
+}
+
+function saveIncomeSmoothingPreference(preference: IncomeSmoothing): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(INCOME_SMOOTHING_KEY, JSON.stringify(preference))
+  } catch {
+    // localStorage full or unavailable — fail silently
+  }
+}
 import { computeCategoryBudgets } from '@/lib/budgetUtils'
 import { computeTotalSavingsBalance, computeMonthlyContributions } from '@/lib/savingsAccountUtils'
+import { debtsToFixedExpenses } from '@/lib/debtUtils'
+import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { CategoryBudgetRow } from '@/lib/budgetUtils'
+
+/**
+ * Returns a stable UTC Date representing "today" that only changes when the
+ * calendar date actually changes. Prevents the daily allowance from re-computing
+ * (or "jumping") on mid-day re-renders or if the user opens the app at 11:59 PM
+ * vs 12:01 AM within the same render cycle.
+ *
+ * The returned Date is always midnight UTC of the current day.
+ */
+function useCurrentDay(): Date {
+  const [today, setToday] = useState<Date>(() => {
+    const now = new Date()
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  })
+
+  useEffect(() => {
+    // Check if the calendar day has changed (e.g., app left open overnight)
+    const interval = setInterval(() => {
+      const now = new Date()
+      const currentDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+      setToday(prev => {
+        if (prev.getTime() !== currentDay.getTime()) {
+          return currentDay
+        }
+        return prev
+      })
+    }, 60_000) // Check every minute
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return today
+}
 
 /**
  * useHomeData - Consolidated data layer for the Home Screen
@@ -129,14 +202,36 @@ export interface UseHomeDataReturn {
   lessonProgress: UserLessonProgress[]
   /** Tracked savings/investment accounts */
   savingsAccounts: SavingsAccount[]
+  /**
+   * The user's persisted pay schedule, or `null` when none is set. Callers fall
+   * back to a flexible default so payday-aware features still work out of the box.
+   */
+  paySchedule: PaySchedule | null
+  /** User sinking funds for periodic large costs */
+  sinkingFunds: SinkingFund[]
+  /**
+   * The user's income smoothing preference, or `null` when none is set.
+   * `null` means `current_month` behaviour (no change to existing logic).
+   */
+  incomeSmoothing: IncomeSmoothing | null
   
   // ── Computed Values (Memoized) ─────────────────────────────────
   /** Daily allowance calculation (Requirement 13.2) */
   allowance: DailyAllowance | null
   /** Category budget rows with weekly spending (Requirement 13.2) */
   categoryRows: CategoryBudgetRow[]
-  /** Total reserved (non-spendable) money set aside this month */
+  /**
+   * Headline "set aside this month" number (reserved, non-spendable flow):
+   * allocation buckets + sinking-fund monthly reserves. Equivalent to
+   * `setAside.reservedThisMonth`. Computed once here and reused across surfaces.
+   */
   totalSetAside: number
+  /**
+   * Full reconciled set-aside breakdown (single source of truth for the four
+   * "money set aside" features). Computed once here; pass down rather than
+   * re-deriving per surface. See `src/lib/setAside.ts` for the mental model.
+   */
+  setAside: SetAsideBreakdown
   /** Total balance across all savings/investment accounts */
   totalSavingsBalance: number
   /** Savings rate as a percentage (0-100) — percent of income saved */
@@ -145,6 +240,10 @@ export interface UseHomeDataReturn {
   // ── Loading State ──────────────────────────────────────────────
   /** Whether initial data is still loading */
   isLoading: boolean
+  /** Whether background sync is in progress (after cache hydration) */
+  isSyncing: boolean
+  /** Whether cached data is stale beyond the configured threshold */
+  isStale: boolean
   
   // ── Mutation Functions ─────────────────────────────────────────
   /** Refresh all data from Supabase (Requirement 13.7) */
@@ -188,6 +287,7 @@ export interface UseHomeDataReturn {
     name: string
     targetAmount: number
     emoji: string
+    targetDate?: string
   }) => Promise<Goal | null>
   
   /** Update an existing goal */
@@ -197,6 +297,7 @@ export interface UseHomeDataReturn {
       name: string
       targetAmount: number
       emoji: string
+      targetDate?: string
     }
   ) => Promise<Goal | null>
   
@@ -237,13 +338,28 @@ export interface UseHomeDataReturn {
   /** Contribute to a savings account (add to balance) */
   contributeToSavingsAccount: (id: string, amount: number) => Promise<SavingsAccount | null>
   
+  // Sinking fund mutations
+  /** Add a new sinking fund */
+  addSinkingFund: (data: Omit<SinkingFund, 'id' | 'userId' | 'createdAt'>) => Promise<SinkingFund | null>
+  /** Update an existing sinking fund */
+  updateSinkingFund: (id: string, updates: Partial<SinkingFund>) => Promise<SinkingFund | null>
+  /** Delete a sinking fund */
+  deleteSinkingFund: (id: string) => Promise<boolean>
+  
   // Direct state setters (for advanced optimistic updates)
   /** Set transactions directly (for optimistic updates) */
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>
   /** Set budgets directly (for optimistic updates) */
   setBudgets: React.Dispatch<React.SetStateAction<Budget[]>>
+  /** Set disbursement bonus (monthly income boost from lump-sum aid/refunds) */
+  setDisbursementBonus: React.Dispatch<React.SetStateAction<number>>
   /** Set goals directly (for optimistic updates) */
   setGoals: React.Dispatch<React.SetStateAction<Goal[]>>
+  /**
+   * Persist a new income-smoothing preference and update state.
+   * Pass `null` to clear the preference and revert to `current_month` behaviour.
+   */
+  setIncomeSmoothing: (preference: IncomeSmoothing | null) => void
 }
 
 /**
@@ -263,6 +379,9 @@ export interface UseHomeDataReturn {
  * @returns Object containing all home screen data and mutation functions
  */
 export function useHomeData(userId: string | null | undefined): UseHomeDataReturn {
+  // ── Stable "today" date (only changes on calendar day boundary) ──
+  const currentDay = useCurrentDay()
+
   // ── Local State ────────────────────────────────────────────────
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
@@ -270,7 +389,34 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([])
   const [allocations, setAllocations] = useState<AppAllocation[]>([])
   const [savingsAccounts, setSavingsAccounts] = useState<SavingsAccount[]>([])
+  const [debts, setDebts] = useState<Debt[]>([])
+  const [paySchedule, setPaySchedule] = useState<PaySchedule | null>(null)
+  const [sinkingFunds, setSinkingFunds] = useState<SinkingFund[]>([])
+  const [disbursementBonus, setDisbursementBonus] = useState(0)
+  const [incomeSmoothing, setIncomeSmoothingState] = useState<IncomeSmoothing | null>(
+    () => loadIncomeSmoothingPreference()
+  )
   const [isLoading, setIsLoading] = useState(true)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [isStale, setIsStale] = useState(false)
+
+  // Track whether cache hydration happened so we skip the skeleton
+  const hydratedFromCache = useRef(false)
+
+  // ── Cache Hydration (synchronous, before first render paint) ───
+  // Runs once when userId becomes available to populate state from localStorage cache
+  useEffect(() => {
+    if (!userId || hydratedFromCache.current) return
+    const cache = getHomeCache(userId)
+    if (cache) {
+      setTransactions(cache.recentTransactions)
+      setBudgets(cache.budgets)
+      setIsLoading(false) // Skip skeleton — we have cached data
+      hydratedFromCache.current = true
+      // Check if cache is stale
+      setIsStale(isCacheStale(userId))
+    }
+  }, [userId])
   
   // ── Data Loading ───────────────────────────────────────────────
   /**
@@ -284,18 +430,26 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     }
     
     try {
-      setIsLoading(true)
+      // If cache was hydrated, this is a background reconciliation
+      if (hydratedFromCache.current) {
+        setIsSyncing(true)
+      } else {
+        setIsLoading(true)
+      }
       
       const currentMonth = new Date().toISOString().slice(0, 7)
       
       // Parallel data fetch for optimal performance (Requirement 13.1)
-      const [txData, budgetData, goalData, lessonData, allocationData, savingsData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, debtData, payScheduleData, sinkingFundsData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
         getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
         getMonthAllocations(userId, currentMonth).catch(() => [] as AppAllocation[]),
         getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
+        getDebts(userId).catch(() => [] as Debt[]),
+        getPaySchedule(userId).catch(() => null),
+        getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
       ])
       
       setTransactions(txData)
@@ -304,15 +458,23 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setLessonProgress(lessonData)
       setAllocations(allocationData)
       setSavingsAccounts(savingsData)
+      setDebts(debtData)
+      setPaySchedule(payScheduleData)
+      setSinkingFunds(sinkingFundsData)
+      
+      setIsStale(false)
     } catch (err) {
       console.error('Error loading home data:', err)
-      // Set empty arrays on error to allow app to function
-      setTransactions([])
-      setBudgets([])
-      setGoals([])
-      setAllocations([])
+      // Set empty arrays on error to allow app to function (only if no cache)
+      if (!hydratedFromCache.current) {
+        setTransactions([])
+        setBudgets([])
+        setGoals([])
+        setAllocations([])
+      }
     } finally {
       setIsLoading(false)
+      setIsSyncing(false)
     }
   }, [userId])
   
@@ -330,16 +492,19 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     if (!userId) return
     
     try {
+      setIsSyncing(true)
       const currentMonth = new Date().toISOString().slice(0, 7)
       
       // Parallel refresh for optimal performance
-      const [txData, budgetData, goalData, lessonData, allocationData, savingsData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, payScheduleData, sinkingFundsData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
         getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
         getMonthAllocations(userId, currentMonth).catch(() => [] as AppAllocation[]),
         getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
+        getPaySchedule(userId).catch(() => null),
+        getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
       ])
       
       setTransactions(txData)
@@ -348,9 +513,15 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setLessonProgress(lessonData)
       setAllocations(allocationData)
       setSavingsAccounts(savingsData)
+      setPaySchedule(payScheduleData)
+      setSinkingFunds(sinkingFundsData)
+      
+      setIsStale(false)
     } catch (err) {
       console.error('Error refreshing home data:', err)
       // Don't clear existing data on refresh failure
+    } finally {
+      setIsSyncing(false)
     }
   }, [userId])
   
@@ -381,6 +552,15 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
         if (data.type === 'expense') {
           await recalculateBudgetSpentForCategory(data.category)
         }
+      } else if (data.type === 'expense') {
+        // Persistence failed — queue the expense locally for background retry
+        // so it is not silently lost. Income is intentionally not queued because
+        // the offline queue only replays expenses. (Requirements 10.2, 13.7)
+        addToOfflineQueue(userId, {
+          category: data.category,
+          amount: data.amount,
+          note: data.note,
+        })
       }
       
       return result
@@ -542,6 +722,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     name: string
     targetAmount: number
     emoji: string
+    targetDate?: string
   }) => {
     if (!userId) return null
     
@@ -568,6 +749,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       name: string
       targetAmount: number
       emoji: string
+      targetDate?: string
     }
   ) => {
     if (!userId) return null
@@ -756,6 +938,93 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     }
   }, [userId])
   
+  // ── Sinking Fund Mutations ─────────────────────────────────────
+  /**
+   * Add a new sinking fund
+   */
+  const addSinkingFund = useCallback(async (
+    data: Omit<SinkingFund, 'id' | 'userId' | 'createdAt'>
+  ): Promise<SinkingFund | null> => {
+    if (!userId) return null
+    
+    try {
+      const result = await createSinkingFundApi(userId, data)
+      
+      if (result) {
+        setSinkingFunds(prev => [...prev, result])
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error creating sinking fund:', err)
+      return null
+    }
+  }, [userId])
+  
+  /**
+   * Update an existing sinking fund
+   */
+  const updateSinkingFundFn = useCallback(async (
+    id: string,
+    updates: Partial<SinkingFund>
+  ): Promise<SinkingFund | null> => {
+    if (!userId) return null
+    
+    try {
+      const result = await updateSinkingFundApi(userId, id, updates)
+      
+      if (result) {
+        setSinkingFunds(prev => prev.map(f => f.id === id ? result : f))
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error updating sinking fund:', err)
+      return null
+    }
+  }, [userId])
+  
+  /**
+   * Delete a sinking fund
+   */
+  const deleteSinkingFundFn = useCallback(async (id: string): Promise<boolean> => {
+    if (!userId) return false
+    
+    try {
+      const success = await deleteSinkingFundApi(userId, id)
+      
+      if (success) {
+        setSinkingFunds(prev => prev.filter(f => f.id !== id))
+      }
+      
+      return success
+    } catch (err) {
+      console.error('Error deleting sinking fund:', err)
+      return false
+    }
+  }, [userId])
+  
+  // ── Income Smoothing Mutation ──────────────────────────────────
+  /**
+   * Persist a new income-smoothing preference and update state.
+   * Uses localStorage as the persistence layer (no dedicated Supabase table).
+   * Pass `null` to clear the preference and revert to `current_month` behaviour.
+   */
+  const setIncomeSmoothing = useCallback((preference: IncomeSmoothing | null) => {
+    if (preference === null) {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(INCOME_SMOOTHING_KEY)
+        } catch {
+          // Silently fail if storage is unavailable
+        }
+      }
+    } else {
+      saveIncomeSmoothingPreference(preference)
+    }
+    setIncomeSmoothingState(preference)
+  }, [])
+
   // ── Memoized Computations ──────────────────────────────────────
   /**
    * Daily allowance calculation (memoized)
@@ -764,18 +1033,70 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
    */
   const allowance = useMemo<DailyAllowance | null>(() => {
     if (budgets.length === 0 && transactions.length === 0 && !isLoading) {
-      // No data yet - return null to indicate uninitialized state
-      return null
+      // Task 66: Brand-new user with zero setup — provide a sensible fallback
+      // daily allowance ($50/day, ~$1500/month) so the app delivers value
+      // immediately. The number is clearly marked as estimated with a gentle
+      // prompt to personalize. This replaces the old null/empty state that
+      // showed $0 and felt broken.
+      const FALLBACK_DAILY = 50
+      return {
+        amount: FALLBACK_DAILY,
+        dailyBudget: FALLBACK_DAILY,
+        spentToday: 0,
+        rollover: 0,
+        status: 'healthy' as const,
+        message: "You're all set — start logging when you spend something.",
+        showCelebration: false,
+        isEstimated: true,
+        incomeSource: 'estimate' as const,
+      }
     }
     
     // Calculate monthly income from this month's income transactions
-    const currentMonth = new Date().toISOString().slice(0, 7)
+    const currentMonth = `${currentDay.getUTCFullYear()}-${String(currentDay.getUTCMonth() + 1).padStart(2, '0')}`
     const monthlyIncome = transactions
       .filter(t => t.date.startsWith(currentMonth) && t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0)
     
-    return computeDailyAllowance(budgets, transactions, new Date(), monthlyIncome)
-  }, [budgets, transactions, isLoading])
+    // Convert debt minimum payments into fixed expenses so they are
+    // sunk before computing the daily discretionary allowance.
+    const debtFixedExpenses = debtsToFixedExpenses(debts)
+
+    // Include sinking-fund monthly reserves as a fixed expense
+    const reserveAmount = getTotalMonthlyReserve(sinkingFunds)
+    const sinkingFundFixedExpense: FixedExpense = {
+      id: 'sinking-funds-reserve',
+      userId: '',
+      category: 'other',
+      label: 'Sinking Funds',
+      amount: reserveAmount,
+      dueDay: 1,
+      recurringId: 'sinking-funds-reserve',
+      isActive: true,
+    }
+    const allFixedExpenses = reserveAmount > 0
+      ? [...debtFixedExpenses, sinkingFundFixedExpense]
+      : debtFixedExpenses
+    
+    return computeDailyAllowance(budgets, transactions, currentDay, (monthlyIncome ?? 0) + disbursementBonus, allFixedExpenses, undefined, incomeSmoothing ?? undefined)
+  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, incomeSmoothing, isLoading, currentDay])
+  
+  // ── Cache Write Effect ─────────────────────────────────────────
+  // Update localStorage cache whenever allowance/transactions/budgets change
+  // (covers all mutation triggers: add/delete/update transaction, budget changes, refresh)
+  //
+  // CONSISTENCY GUARANTEE:
+  // The cached allowance is always the output of `computeDailyAllowance` with the
+  // same inputs as the live calculation. On next app open, the cached value is shown
+  // immediately; when fresh data arrives (reconciliation), the live calculation
+  // replaces it. If inputs haven't changed, the output is identical (deterministic
+  // guarantee from the pure function). React's useMemo ensures that if reconciled
+  // data produces the same allowance, no re-render occurs — the hero stays stable
+  // with no jarring jumps.
+  useEffect(() => {
+    if (!userId || isLoading || !allowance) return
+    setHomeCache(userId, { allowance, transactions, budgets })
+  }, [userId, allowance, transactions, budgets, isLoading])
   
   /**
    * Category budget rows (memoized)
@@ -804,18 +1125,32 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   }, [budgets, transactions])
   
   /**
-   * Total set-aside (reserved, non-spendable) money this month.
-   * Sums save + invest + setAside from all allocations in the current month.
+   * Reconciled "money set aside" breakdown — the single source of truth that
+   * maps all four features (allocation buckets, sinking funds, goals, emergency
+   * fund) into one model. Computed once here and reused everywhere via props;
+   * no surface should re-derive its own set-aside totals.
+   * See `src/lib/setAside.ts` for the full mental model.
    */
-  const totalSetAside = useMemo<number>(() => {
+  const setAside = useMemo<SetAsideBreakdown>(() => {
     const asIncomeAllocations: IncomeAllocation[] = allocations.map(a => ({
       spend: a.spend,
       save: a.save,
       invest: a.invest,
       setAside: a.setAside,
     }))
-    return computeTotalSetAside(asIncomeAllocations)
-  }, [allocations])
+    return computeSetAside({
+      allocations: asIncomeAllocations,
+      sinkingFunds,
+      goals,
+      now: currentDay,
+    })
+  }, [allocations, sinkingFunds, goals, currentDay])
+
+  /**
+   * Headline "set aside this month" number (flow): allocation buckets +
+   * sinking-fund monthly reserves. Derived from the single breakdown above.
+   */
+  const totalSetAside = setAside.reservedThisMonth
   
   /**
    * Total savings balance (memoized)
@@ -846,16 +1181,21 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     goals,
     lessonProgress,
     savingsAccounts,
+    paySchedule,
+    incomeSmoothing,
     
     // Computed values (memoized)
     allowance,
     categoryRows,
     totalSetAside,
+    setAside,
     totalSavingsBalance,
     savingsRate,
     
     // Loading state
     isLoading,
+    isSyncing,
+    isStale,
     
     // Mutation functions
     refresh,
@@ -884,9 +1224,17 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     deleteSavingsAccount: deleteSavingsAccountFn,
     contributeToSavingsAccount,
     
+    // Sinking fund mutations
+    sinkingFunds,
+    addSinkingFund,
+    updateSinkingFund: updateSinkingFundFn,
+    deleteSinkingFund: deleteSinkingFundFn,
+    
     // Direct state setters (for advanced optimistic updates)
     setTransactions,
     setBudgets,
     setGoals,
+    setDisbursementBonus,
+    setIncomeSmoothing,
   }
 }

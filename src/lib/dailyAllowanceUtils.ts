@@ -2,6 +2,7 @@ import type { Budget, Transaction } from '@/types'
 import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList } from '@/lib/fixedExpenses'
+import { getStatusMessage } from '@/lib/vocabulary'
 
 /**
  * Formats a Date object into YYYY-MM-DD string format
@@ -87,51 +88,11 @@ export function getStatus(remainingAmount: number, dailyBudget: number): Allowan
  * 
  * **Validates: Requirements 1.10, 2.3**
  * 
- * Messages follow UX guidelines:
- * - Encouraging and non-judgmental tone
- * - Short and human language
- * - Actionable context when appropriate
- * - Warm and supportive rather than shame-based
+ * Delegates to the canonical vocabulary's getStatusMessage for a single
+ * source of truth — ensuring all surfaces show the same tone and copy.
  */
 export function generateEncouragingMessage(status: AllowanceStatus, amount: number, spentToday: number): string {
-  // Format amounts for contextual messages
-  const amountStr = amount > 0 ? `$${Math.round(amount)}` : '$0'
-  
-  switch (status) {
-    case 'healthy':
-      if (amount >= 50) {
-        return `Nice! You've got ${amountStr} left today.`
-      } else if (amount >= 20) {
-        return `You're doing great — ${amountStr} to go.`
-      } else {
-        return `Still ${amountStr} left. You're on track!`
-      }
-      
-    case 'caution':
-      if (amount >= 10) {
-        return `Heads up, you're close to today's limit. ${amountStr} left.`
-      } else {
-        return `Getting close — ${amountStr} left. You've got this.`
-      }
-      
-    case 'warning':
-      if (amount > 0) {
-        return `Almost there — just ${amountStr} left today.`
-      } else {
-        return `Right at your limit. Nice job staying on track.`
-      }
-      
-    case 'over':
-      if (spentToday < 50) {
-        return 'A little tight today — tomorrow resets.'
-      } else {
-        return 'Over today, but no stress. Tomorrow\'s a fresh start.'
-      }
-      
-    default:
-      // Fallback for any unexpected status values
-      return 'No stress — let\'s keep it simple.'
-  }
+  return getStatusMessage(status, amount, spentToday)
 }
 
 /**
@@ -145,13 +106,33 @@ function shouldCelebrate(status: AllowanceStatus, spentToday: number, dailyBudge
 /**
  * Computes smoothed monthly income from transaction history.
  * - 'current_month': sums income transactions in the current month (existing behavior)
- * - 'trailing_average': averages income over the last N months (including current if partially complete)
+ * - 'trailing_average': spreads total income across the whole trailing window of
+ *   N months (current month + N−1 previous months) by dividing by the window length.
  *
- * For gig workers with irregular income, trailing_average produces a more stable
- * daily budget by smoothing over recent months rather than relying on a single month.
+ * ─────────────────────────────────────────────────────────────────────────────────
+ * Why divide by the FULL window (not just non-zero months)?
+ * ─────────────────────────────────────────────────────────────────────────────────
+ * Students and gig workers rarely have steady paychecks — income arrives in lumps
+ * (aid disbursements, occasional gig payments, Venmo from a friend) with quiet
+ * stretches in between. Two properties matter for the daily number:
  *
- * Non-zero months only are averaged to avoid dragging the average down when no data
- * exists for a given month (e.g. first month of use).
+ *   1. Stability day-to-day — the denominator must be fixed (the window length),
+ *      so logging one paycheck moves the monthly figure by only 1/windowMonths of
+ *      that paycheck instead of the whole amount.
+ *
+ *   2. No single-paycheck spike — a lump sum is spread across the window rather
+ *      than counting at full weight. e.g. a $3,000 gig payment with a 3-month
+ *      window contributes $1,000/month, not $3,000.
+ *
+ * The earlier implementation averaged ONLY non-zero months. That defeated both
+ * goals: with a single month of history a lone large paycheck averaged to itself
+ * (full spike, no smoothing), and during lean months the number stayed
+ * artificially high (dangerous — it implied spendable money that was not earned
+ * recently). Dividing by the fixed window length fixes both: lumps are damped and
+ * quiet months pull the sustainable daily number down, which is the safe direction.
+ *
+ * When the entire window contains no income, this returns 0 so the caller falls
+ * back to the estimate / zero-setup path unchanged.
  *
  * **Validates: Requirements 1.1, new**
  */
@@ -169,7 +150,9 @@ export function computeSmoothedIncome(
   }
 
   // trailing_average strategy
-  const windowMonths = smoothing.windowMonths ?? 3
+  // Guard against a non-positive/undefined window; a window of at least 1 month
+  // keeps the divisor safe and, at windowMonths === 1, degrades to current-month.
+  const windowMonths = Math.max(1, Math.floor(smoothing.windowMonths ?? 3))
 
   // Build month prefixes for each month in the window (current month + previous months)
   const monthPrefixes: string[] = []
@@ -179,32 +162,109 @@ export function computeSmoothedIncome(
     monthPrefixes.push(prefix)
   }
 
-  // Sum income per month
-  const monthlyTotals: number[] = monthPrefixes.map(prefix =>
-    transactions
+  // Sum income across the whole window
+  const totalWindowIncome = monthPrefixes.reduce((windowSum, prefix) => {
+    const monthIncome = transactions
       .filter(t => t.type === 'income' && t.date.startsWith(prefix))
       .reduce((sum, t) => sum + t.amount, 0)
-  )
+    return windowSum + monthIncome
+  }, 0)
 
-  // Average only non-zero months to avoid dragging down the average
-  // when no data exists (e.g. first month of use)
-  const nonZeroTotals = monthlyTotals.filter(total => total > 0)
-
-  if (nonZeroTotals.length === 0) {
+  // No income anywhere in the window → let the caller fall back to estimate/zero-setup.
+  if (totalWindowIncome <= 0) {
     return 0
   }
 
-  return nonZeroTotals.reduce((sum, t) => sum + t, 0) / nonZeroTotals.length
+  // Spread the total across the fixed window length. Dividing by windowMonths
+  // (rather than only the months that had income) is what damps a single large
+  // paycheck and keeps the number stable day-to-day.
+  return totalWindowIncome / windowMonths
 }
 
 /**
- * Computes daily allowance with rollover and status.
- * 
- * Fixed monthly obligations (rent, subscriptions, etc.) are subtracted from the
- * monthly pool up front so only discretionary money is spread across remaining days.
- * 
+ * Computes the user's daily discretionary allowance — the single number answering
+ * "Can I afford this today?"
+ *
+ * ─────────────────────────────────────────────────────────────────────────────────
+ * SOURCE-OF-TRUTH: Daily Allowance Formula
+ * ─────────────────────────────────────────────────────────────────────────────────
+ *
+ * The formula follows these steps in order:
+ *
+ *   1. Determine the monthly discretionary pool:
+ *        pool = incomeOrBudget − totalFixedExpenses
+ *
+ *      Income source priority:
+ *        a) Budget limits (sum of all category monthlyLimit values)
+ *        b) Actual income transactions this month (optionally smoothed)
+ *        c) User-provided estimate (monthlyIncome param)
+ *
+ *   2. Compute daily budget:
+ *        • Budget/Transactions source: pool / effectiveDays
+ *          where effectiveDays = daysRemainingFrom(setupDate) or daysInMonth
+ *        • Estimate source: pool / 30
+ *          (intentionally uses a fixed 30-day divisor for a simpler, rougher
+ *           number — this matches the onboarding tutorial formula and avoids
+ *           confusing fluctuations between 28–31 day months when the user
+ *           hasn't set precise budgets)
+ *
+ *   3. Compute spentToday:
+ *        Sum of today's expense transactions, EXCLUDING fixed/recurring
+ *        (those are already sunk in Step 1)
+ *
+ *   4. Compute rollover (savings/deficit from prior days this month):
+ *        rawRollover = expectedSpend(setupDay→yesterday) − actualSpend(setupDay→yesterday)
+ *        rollover = clamp(rawRollover, −2×dailyBudget, +2×dailyBudget)
+ *
+ *      The ±2-day cap prevents extreme accumulation or debt spiraling.
+ *      On the first day of a new month, daysElapsed = 0, so rollover is always 0
+ *      — the month boundary naturally resets the rollover scope.
+ *
+ *   5. Final allowance:
+ *        amount = max(0, dailyBudget + rollover − spentToday)
+ *
+ *   6. Status & messaging derived from rawAmount vs dailyBudget.
+ *
+ *   7. reservedForBills (INFORMATIONAL ONLY — see note below):
+ *        Sum of upcoming unpaid fixed bills remaining this month.
+ *        ⚠️  This value is for UI display purposes only. It does NOT further
+ *        reduce the daily allowance — those bills are already subtracted from
+ *        the monthly pool in Step 1 via totalFixedExpenses.
+ *
+ *   8. Month-boundary carryover (optional):
+ *        On the 1st of the month with carryoverEnabled, computes excess savings
+ *        from the previous month beyond the ±2-day cap as advisory savings info.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────────
+ * Edge Cases & Invariants
+ * ─────────────────────────────────────────────────────────────────────────────────
+ *
+ * • Month boundaries: Rollover resets naturally because the calculation scope
+ *   (setupDay→yesterday) is bounded to the current month. On day 1, there are
+ *   no prior days in scope, so rollover = 0.
+ *
+ * • Mid-month setup: When setupDate is within the current month, the pool is
+ *   divided only by the days remaining from that date, not the full month.
+ *   Rollover also only considers days from setupDate onward.
+ *
+ * • Fixed expenses vs category budgets: Fixed expenses (debts, recurring bills)
+ *   are subtracted from the income pool up front. If a user ALSO has a budget
+ *   category for the same expense (e.g., "rent" budget AND "rent" fixed expense),
+ *   the budget limit includes that amount while fixed subtraction removes it —
+ *   effectively zeroing it out of the discretionary pool. This is intentional:
+ *   fixed transactions are also excluded from spentToday and rollover calculations,
+ *   keeping the system internally consistent.
+ *
+ * • reservedForBills double-count appearance: The UI may show "$X reserved for
+ *   N upcoming bills" alongside the daily allowance. This is purely informational —
+ *   the daily allowance already accounts for ALL fixed bills via the pool subtraction.
+ *   The UI tip helps users understand why their allowance is what it is, not that
+ *   an additional reduction is happening.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────────
+ *
  * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 14.2**
- * 
+ *
  * @param budgets - Array of budget limits by category
  * @param transactions - Array of all transactions
  * @param currentDate - Current date (for testing purposes)
@@ -218,6 +278,11 @@ export function computeSmoothedIncome(
  * @param carryoverEnabled - Optional flag to enable month-boundary savings carryover.
  *   When true and it's the first day of the month, computes leftover savings from the previous month.
  * @returns DailyAllowance object with amount, status, and message
+ *
+ * @pure This function is a pure function: given the same inputs it always
+ * produces the same output with no side effects, no internal Date.now() calls,
+ * and no dependency on external mutable state. The `currentDate` parameter must
+ * be passed explicitly by the caller to guarantee determinism across re-renders.
  */
 export function computeDailyAllowance(
   budgets: Budget[],
@@ -261,10 +326,17 @@ export function computeDailyAllowance(
     ? computeSmoothedIncome(transactions, currentDate, incomeSmoothing)
     : actualMonthlyIncome
 
-  const isEstimated = incomeSource === 'estimate' && hasEstimate
+  const isEstimated = incomeSource === 'estimate'
   
   // Step 1b: Subtract fixed monthly obligations up front (rent, subscriptions, etc.)
   // Only discretionary money is spread across the remaining days.
+  //
+  // Relationship with category budgets: If a user has BOTH a budget category for an
+  // expense (e.g., "rent" at $1500) AND a corresponding fixed expense entry ($1500),
+  // the budget limit includes the amount while this subtraction removes it — effectively
+  // zeroing it from the discretionary pool. This is intentional and internally consistent
+  // because isFixedTransaction() also excludes those transactions from spentToday and
+  // rollover calculations in Steps 3–4.
   const totalFixed = getTotalFixedMonthly(fixedExpenses ?? [])
   
   // Step 2: Calculate daily budget from discretionary pool
@@ -290,7 +362,22 @@ export function computeDailyAllowance(
       dailyBudget = Math.max(0, smoothedIncome - totalFixed) / effectiveDays
       break
     case 'estimate':
-      dailyBudget = hasEstimate ? Math.max(0, monthlyIncome! - totalFixed) / 30 : 0
+      // Intentionally uses a fixed 30-day divisor (not daysInMonth) for estimates.
+      // This matches the onboarding tutorial formula and provides a stable, simpler
+      // number when the user hasn't configured precise budgets. The slight inaccuracy
+      // (±1 day) is acceptable for a rough estimate and avoids confusing month-to-month
+      // fluctuations for users who haven't opted into detailed budget tracking.
+      //
+      // Task 66: When estimate is provided, use it. When it's 0, fall back to a
+      // sensible default ($1500/month ≈ $50/day) so new users always see a useful
+      // number rather than $0. The fallback is clearly signaled via isEstimated.
+      if (hasEstimate) {
+        dailyBudget = Math.max(0, monthlyIncome! - totalFixed) / 30
+      } else {
+        // Sensible fallback for zero-setup users (~$50/day)
+        const FALLBACK_MONTHLY = 1500
+        dailyBudget = Math.max(0, FALLBACK_MONTHLY - totalFixed) / 30
+      }
       break
   }
   
@@ -301,7 +388,13 @@ export function computeDailyAllowance(
     .reduce((sum, t) => sum + t.amount, 0)
   
   // Step 4: Calculate rollover from previous days
-  // Rollover = what was saved/overspent from setupDate (or day 1) to yesterday
+  // Rollover = what was saved/overspent from setupDate (or day 1) to yesterday.
+  //
+  // Month boundary behavior: On day 1 of a new month, daysElapsedSinceSetup = 0
+  // because dayOfMonth (1) - setupDay (1) = 0. This means rollover is always 0 on
+  // the first day — the month boundary resets naturally without special-case logic.
+  // On day 2, rollover only reflects day 1's delta, which is inherently within the
+  // ±2-day cap since it's a single day's variance.
   const dayOfMonth = currentDate.getUTCDate()
   
   // When mid-month setup, rollover only covers days from setupDate to yesterday
@@ -344,7 +437,11 @@ export function computeDailyAllowance(
   const message = generateEncouragingMessage(status, amount, spentToday)
   const showCelebration = shouldCelebrate(status, spentToday, dailyBudget)
   
-  // Step 7: Reserve upcoming bills from the spendable pool (informational)
+  // Step 7: Reserve upcoming bills — DISPLAY ONLY, does NOT reduce the allowance.
+  // ⚠️  These bills are already fully accounted for in Step 1b (totalFixed subtraction
+  // from the monthly pool). The reservedForBills value exists solely so the UI can
+  // show the user WHY their daily budget is what it is ("$X reserved for N upcoming
+  // bills"). It does NOT further reduce `amount` above.
   const upcomingBills = getUpcomingBillsList(fixedExpenses ?? [], currentDate)
   const reservedForBills = upcomingBills.reduce((sum, bill) => sum + bill.amount, 0)
   const upcomingBillCount = upcomingBills.length
