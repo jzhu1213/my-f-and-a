@@ -1,33 +1,52 @@
 /**
  * WCAG 2.1 AA Color Contrast Verification Script
- * 
- * Calculates contrast ratios for all theme color combinations
- * using the official WCAG relative luminance formula.
+ *
+ * Calculates contrast ratios for all theme color combinations using the
+ * official WCAG relative luminance formula. Updated to reflect the current
+ * warm-purple default theme and dark theme values from globals.css, plus
+ * GlassCard effective-surface checks (rgba(255,255,255,0.03) blended over
+ * each background surface).
  */
 
-// Convert hex to linear RGB
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+/** Convert hex (#rrggbb) to linear RGB channels. */
 function hexToLinearRGB(hex) {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
   const b = parseInt(hex.slice(5, 7), 16) / 255;
-  
-  // Linearize sRGB values
-  const linearize = (c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  
+
+  const linearize = (c) =>
+    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+
+  return { r: linearize(r), g: linearize(g), b: linearize(b) };
+}
+
+/** Parse hex to 0-255 sRGB channels. */
+function hexToRGB(hex) {
   return {
-    r: linearize(r),
-    g: linearize(g),
-    b: linearize(b)
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16),
   };
 }
 
-// Calculate relative luminance
+/** Blend rgba overlay (0-255 + alpha 0-1) over an opaque hex background, return hex. */
+function blendOver(bgHex, overlayR, overlayG, overlayB, overlayA) {
+  const bg = hexToRGB(bgHex);
+  const r = Math.round(overlayR * overlayA + bg.r * (1 - overlayA));
+  const g = Math.round(overlayG * overlayA + bg.g * (1 - overlayA));
+  const b = Math.round(overlayB * overlayA + bg.b * (1 - overlayA));
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+/** Calculate relative luminance per WCAG 2.1. */
 function relativeLuminance(hex) {
   const { r, g, b } = hexToLinearRGB(hex);
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-// Calculate contrast ratio
+/** Calculate contrast ratio between two hex colors. */
 function contrastRatio(color1, color2) {
   const L1 = relativeLuminance(color1);
   const L2 = relativeLuminance(color2);
@@ -36,79 +55,28 @@ function contrastRatio(color1, color2) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-// WCAG AA thresholds
+// ── WCAG AA Thresholds ─────────────────────────────────────────────────────
+
 const NORMAL_TEXT_MIN = 4.5;
 const LARGE_TEXT_MIN = 3.0;
 const UI_COMPONENT_MIN = 3.0;
 
-console.log('═══════════════════════════════════════════════════════════════');
-console.log(' WCAG 2.1 AA Color Contrast Verification');
-console.log('═══════════════════════════════════════════════════════════════\n');
+// ── Theme Definitions (current values from globals.css) ────────────────────
 
-// ── Default Theme (Cool Futuristic) ──
-console.log('┌─────────────────────────────────────────────────────────────┐');
-console.log('│ DEFAULT THEME (Cool Futuristic)                             │');
-console.log('└─────────────────────────────────────────────────────────────┘\n');
-
+// Default warm-purple theme
 const defaultBgs = {
-  '--bg (#0a0f1a)': '#0a0f1a',
-  '--surface (#111827)': '#111827',
-  '--raised (#1a2332)': '#1a2332',
+  '--bg (#12121f)': '#12121f',
+  '--surface (#1a1a2e)': '#1a1a2e',
+  '--raised (#22223a)': '#22223a',
 };
 
 const defaultTextColors = {
   '--text (#ffffff)': '#ffffff',
-  '--sub (#94a3b8)': '#94a3b8',
-  '--muted (#728da2)': '#728da2',
+  '--sub (#b4b4d4)': '#b4b4d4',
+  '--muted (#9494b8)': '#9494b8',
 };
 
-const semanticColors = {
-  '--success (#06d6a0)': '#06d6a0',
-  '--warning (#f59e0b)': '#f59e0b',
-  '--error (#ef4444)': '#ef4444',
-  '--accent (#4cc9f0)': '#4cc9f0',
-};
-
-let allPass = true;
-
-console.log('Text colors on backgrounds (need 4.5:1 for normal text):');
-console.log('─────────────────────────────────────────────────────────');
-for (const [textName, textHex] of Object.entries(defaultTextColors)) {
-  for (const [bgName, bgHex] of Object.entries(defaultBgs)) {
-    const ratio = contrastRatio(textHex, bgHex);
-    const pass = ratio >= NORMAL_TEXT_MIN;
-    if (!pass) allPass = false;
-    const icon = pass ? '✓' : '✗';
-    console.log(`  ${icon} ${textName} on ${bgName}: ${ratio.toFixed(2)}:1 ${pass ? '' : '⚠️ FAIL'}`);
-  }
-  console.log('');
-}
-
-console.log('Semantic/accent colors on backgrounds (need 3:1 for UI components):');
-console.log('───────────────────────────────────────────────────────────────────');
-for (const [colorName, colorHex] of Object.entries(semanticColors)) {
-  for (const [bgName, bgHex] of Object.entries(defaultBgs)) {
-    const ratio = contrastRatio(colorHex, bgHex);
-    const pass = ratio >= UI_COMPONENT_MIN;
-    if (!pass) allPass = false;
-    const icon = pass ? '✓' : '✗';
-    console.log(`  ${icon} ${colorName} on ${bgName}: ${ratio.toFixed(2)}:1 ${pass ? '' : '⚠️ FAIL (UI component)'}`);
-  }
-  console.log('');
-}
-
-console.log('Button text (#000) on accent (#4cc9f0):');
-console.log('────────────────────────────────────────');
-const btnRatio = contrastRatio('#000000', '#4cc9f0');
-const btnPass = btnRatio >= NORMAL_TEXT_MIN;
-if (!btnPass) allPass = false;
-console.log(`  ${btnPass ? '✓' : '✗'} #000 on #4cc9f0: ${btnRatio.toFixed(2)}:1 ${btnPass ? '' : '⚠️ FAIL'}\n`);
-
-// ── Dark Theme ──
-console.log('┌─────────────────────────────────────────────────────────────┐');
-console.log('│ DARK THEME                                                  │');
-console.log('└─────────────────────────────────────────────────────────────┘\n');
-
+// Dark theme
 const darkBgs = {
   '--bg (#000000)': '#000000',
   '--surface (#0d0d0d)': '#0d0d0d',
@@ -118,34 +86,141 @@ const darkBgs = {
 const darkTextColors = {
   '--text (#ffffff)': '#ffffff',
   '--sub (#888888)': '#888888',
-  '--muted (#808080)': '#808080',
+  '--muted (#868686)': '#868686',
 };
 
-console.log('Text colors on backgrounds (need 4.5:1 for normal text):');
-console.log('─────────────────────────────────────────────────────────');
-for (const [textName, textHex] of Object.entries(darkTextColors)) {
-  for (const [bgName, bgHex] of Object.entries(darkBgs)) {
-    const ratio = contrastRatio(textHex, bgHex);
-    const pass = ratio >= NORMAL_TEXT_MIN;
-    if (!pass) allPass = false;
-    const icon = pass ? '✓' : '✗';
-    console.log(`  ${icon} ${textName} on ${bgName}: ${ratio.toFixed(2)}:1 ${pass ? '' : '⚠️ FAIL'}`);
+// Semantic/accent colors (shared across both themes)
+const semanticColors = {
+  '--success (#4ade80)': '#4ade80',
+  '--warning (#fbbf24)': '#fbbf24',
+  '--error (#f87171)': '#f87171',
+  '--blue (#60a5fa)': '#60a5fa',
+  '--accent (#818cf8)': '#818cf8',
+};
+
+// ── GlassCard effective surface (rgba(255,255,255,0.03) over each bg) ──────
+
+function glassCardSurfaces(bgs) {
+  const result = {};
+  for (const [name, hex] of Object.entries(bgs)) {
+    const blended = blendOver(hex, 255, 255, 255, 0.03);
+    const shortName = name.replace(/--(\w+)\s.*/, '$1');
+    result[`glass on ${shortName} (${blended})`] = blended;
   }
-  console.log('');
+  return result;
 }
 
-console.log('Semantic/accent colors on backgrounds (need 3:1 for UI components):');
-console.log('───────────────────────────────────────────────────────────────────');
-for (const [colorName, colorHex] of Object.entries(semanticColors)) {
-  for (const [bgName, bgHex] of Object.entries(darkBgs)) {
-    const ratio = contrastRatio(colorHex, bgHex);
-    const pass = ratio >= UI_COMPONENT_MIN;
-    if (!pass) allPass = false;
-    const icon = pass ? '✓' : '✗';
-    console.log(`  ${icon} ${colorName} on ${bgName}: ${ratio.toFixed(2)}:1 ${pass ? '' : '⚠️ FAIL (UI component)'}`);
+// ── Run Checks ─────────────────────────────────────────────────────────────
+
+let allPass = true;
+
+function checkSection(title, textColors, bgColors, threshold, thresholdLabel) {
+  console.log(`${thresholdLabel} (need ${threshold}:1):`);
+  console.log('─'.repeat(65));
+  for (const [textName, textHex] of Object.entries(textColors)) {
+    for (const [bgName, bgHex] of Object.entries(bgColors)) {
+      const ratio = contrastRatio(textHex, bgHex);
+      const pass = ratio >= threshold;
+      if (!pass) allPass = false;
+      const icon = pass ? '✓' : '✗';
+      console.log(`  ${icon} ${textName} on ${bgName}: ${ratio.toFixed(2)}:1 ${pass ? '' : '⚠️ FAIL'}`);
+    }
+    console.log('');
   }
-  console.log('');
 }
+
+console.log('═══════════════════════════════════════════════════════════════');
+console.log(' WCAG 2.1 AA Color Contrast Verification');
+console.log(' (Updated for current warm-purple + dark themes)');
+console.log('═══════════════════════════════════════════════════════════════\n');
+
+// ── Default (Warm Purple) Theme ──
+console.log('┌─────────────────────────────────────────────────────────────┐');
+console.log('│ DEFAULT THEME (Warm Purple)                                 │');
+console.log('└─────────────────────────────────────────────────────────────┘\n');
+
+checkSection(
+  'Default text on backgrounds',
+  defaultTextColors,
+  defaultBgs,
+  NORMAL_TEXT_MIN,
+  'Text colors on backgrounds'
+);
+
+checkSection(
+  'Default semantic on backgrounds',
+  semanticColors,
+  defaultBgs,
+  UI_COMPONENT_MIN,
+  'Semantic/accent colors on backgrounds (UI components / large text)'
+);
+
+// GlassCard surfaces for default theme
+const defaultGlassBgs = glassCardSurfaces(defaultBgs);
+console.log('┌─ GlassCard effective surfaces (rgba(255,255,255,0.03) over bg) ─┐\n');
+checkSection(
+  'Text on GlassCard (default)',
+  defaultTextColors,
+  defaultGlassBgs,
+  NORMAL_TEXT_MIN,
+  'Text colors on GlassCard surfaces'
+);
+
+checkSection(
+  'Semantic on GlassCard (default)',
+  semanticColors,
+  defaultGlassBgs,
+  UI_COMPONENT_MIN,
+  'Semantic/accent colors on GlassCard surfaces'
+);
+
+// Button text on accent
+console.log('Button text (#000) on accent (#818cf8):');
+console.log('─'.repeat(40));
+const btnRatio = contrastRatio('#000000', '#818cf8');
+const btnPass = btnRatio >= NORMAL_TEXT_MIN;
+if (!btnPass) allPass = false;
+console.log(`  ${btnPass ? '✓' : '✗'} #000 on #818cf8: ${btnRatio.toFixed(2)}:1 ${btnPass ? '' : '⚠️ FAIL'}\n`);
+
+// ── Dark Theme ──
+console.log('┌─────────────────────────────────────────────────────────────┐');
+console.log('│ DARK THEME                                                  │');
+console.log('└─────────────────────────────────────────────────────────────┘\n');
+
+checkSection(
+  'Dark text on backgrounds',
+  darkTextColors,
+  darkBgs,
+  NORMAL_TEXT_MIN,
+  'Text colors on backgrounds'
+);
+
+checkSection(
+  'Dark semantic on backgrounds',
+  semanticColors,
+  darkBgs,
+  UI_COMPONENT_MIN,
+  'Semantic/accent colors on backgrounds (UI components / large text)'
+);
+
+// GlassCard surfaces for dark theme
+const darkGlassBgs = glassCardSurfaces(darkBgs);
+console.log('┌─ GlassCard effective surfaces (rgba(255,255,255,0.03) over bg) ─┐\n');
+checkSection(
+  'Text on GlassCard (dark)',
+  darkTextColors,
+  darkGlassBgs,
+  NORMAL_TEXT_MIN,
+  'Text colors on GlassCard surfaces'
+);
+
+checkSection(
+  'Semantic on GlassCard (dark)',
+  semanticColors,
+  darkGlassBgs,
+  UI_COMPONENT_MIN,
+  'Semantic/accent colors on GlassCard surfaces'
+);
 
 // ── Summary ──
 console.log('═══════════════════════════════════════════════════════════════');
@@ -156,37 +231,24 @@ if (allPass) {
 }
 console.log('═══════════════════════════════════════════════════════════════');
 
-// Print summary ranges for documentation
+// ── Documentation ranges ──
 console.log('\n── Documentation Ranges ──\n');
 
 function getRangeStr(textHex, bgs) {
-  const ratios = Object.values(bgs).map(bg => contrastRatio(textHex, bg));
+  const ratios = Object.values(bgs).map((bg) => contrastRatio(textHex, bg));
   return `${Math.min(...ratios).toFixed(1)}–${Math.max(...ratios).toFixed(1)}:1`;
 }
 
-console.log('Default theme:');
+console.log('Default theme (warm purple):');
 console.log(`  --text (#fff) on --bg/--surface/--raised: ${getRangeStr('#ffffff', defaultBgs)}`);
-console.log(`  --sub (#94a3b8) on --bg/--surface/--raised: ${getRangeStr('#94a3b8', defaultBgs)}`);
-console.log(`  --muted (#728da2) on --bg/--surface/--raised: ${getRangeStr('#728da2', defaultBgs)}`);
-
-const semRatiosDefault = [];
-for (const colorHex of Object.values(semanticColors)) {
-  for (const bgHex of Object.values(defaultBgs)) {
-    semRatiosDefault.push(contrastRatio(colorHex, bgHex));
-  }
-}
-console.log(`  Semantic colors on --bg/--surface: ${Math.min(...semRatiosDefault).toFixed(1)}–${Math.max(...semRatiosDefault).toFixed(1)}:1`);
-console.log(`  Button text (#000) on --accent (#4cc9f0): ${btnRatio.toFixed(1)}:1`);
+console.log(`  --sub (#b4b4d4) on --bg/--surface/--raised: ${getRangeStr('#b4b4d4', defaultBgs)}`);
+console.log(`  --muted (#9494b8) on --bg/--surface/--raised: ${getRangeStr('#9494b8', defaultBgs)}`);
+console.log(`  --text (#fff) on GlassCard surfaces: ${getRangeStr('#ffffff', defaultGlassBgs)}`);
 
 console.log('\nDark theme:');
 console.log(`  --text (#fff) on --bg/--surface/--raised: ${getRangeStr('#ffffff', darkBgs)}`);
-console.log(`  --sub (#888888) on --bg/--surface/--raised: ${getRangeStr('#888888', darkBgs)}`);
-console.log(`  --muted (#808080) on --bg/--surface/--raised: ${getRangeStr('#808080', darkBgs)}`);
+console.log(`  --sub (#888) on --bg/--surface/--raised: ${getRangeStr('#888888', darkBgs)}`);
+console.log(`  --muted (#868686) on --bg/--surface/--raised: ${getRangeStr('#868686', darkBgs)}`);
+console.log(`  --text (#fff) on GlassCard surfaces: ${getRangeStr('#ffffff', darkGlassBgs)}`);
 
-const semRatiosDark = [];
-for (const colorHex of Object.values(semanticColors)) {
-  for (const bgHex of Object.values(darkBgs)) {
-    semRatiosDark.push(contrastRatio(colorHex, bgHex));
-  }
-}
-console.log(`  Semantic colors on --bg: ${Math.min(...semRatiosDark).toFixed(1)}–${Math.max(...semRatiosDark).toFixed(1)}:1`);
+process.exit(allPass ? 0 : 1);

@@ -585,11 +585,12 @@ export function GoalsScreen({
       {/* ── Empty state ────────────────────────────────────────────────────── */}
       {goals.length === 0 && (
         <GlassCard elevation="low" style={{ padding: "32px 20px", textAlign: "center", marginBottom: 16 }}>
+          <p style={{ fontSize: 28, marginBottom: 10 }} aria-hidden="true">🎯</p>
           <p style={{ fontSize: 15, color: "var(--text)", marginBottom: 6, fontWeight: 500 }}>
-            No goals yet
+            What are you saving for?
           </p>
           <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.5 }}>
-            Add your first goal to start saving toward something.
+            Set a goal and Folio will help you get there — one day at a time.
           </p>
         </GlassCard>
       )}

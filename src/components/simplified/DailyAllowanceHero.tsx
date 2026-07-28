@@ -102,7 +102,7 @@ function triggerHaptic(): void {
 }
 
 /** Spring used by the animated counter — soft settle with a tiny overshoot. */
-const HERO_COUNTER_SPRING = { stiffness: 90, damping: 18, restDelta: 0.5 }
+const HERO_COUNTER_SPRING = { ...springs.gentle, restDelta: 0.5 }
 
 /**
  * AnimatedAmount — the large dollar amount rendered with a spring-driven
@@ -126,10 +126,11 @@ function AnimatedAmount({
 }) {
   const grad = getStatusGradient(status)
 
-  // Start from 0 for a count-up on mount (skipped under reduced motion).
-  const motionValue = useMotionValue(prefersReducedMotion ? value : 0)
+  // Start from the actual value so the hero paints immediately (task 3.5).
+  // On subsequent updates the spring animates the transition.
+  const motionValue = useMotionValue(value)
   const spring = useSpring(motionValue, HERO_COUNTER_SPRING)
-  const [display, setDisplay] = useState(prefersReducedMotion ? value : 0)
+  const [display, setDisplay] = useState(value)
 
   // Subscribe to the spring so the visible number ticks through integers.
   useEffect(() => {

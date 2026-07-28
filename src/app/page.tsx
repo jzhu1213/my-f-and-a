@@ -1,6 +1,7 @@
 "use client"
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { timings } from '@/lib/animations'
 import {
   Toast,
   AppShell,
@@ -743,7 +744,7 @@ export default function FolioApp() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            transition={timings.normal}
           >
             {activeNav === 'home' && (
               <HomeScreen
@@ -765,6 +766,7 @@ export default function FolioApp() {
                 onRefresh={refresh}
                 celebrationEvent={celebrationEvent}
                 onCelebrationDismiss={() => setCelebrationEvent(null)}
+                onOpenBudgetSettings={() => setShowBudgetSettings(true)}
               />
             )}
             {activeNav === 'history' && (

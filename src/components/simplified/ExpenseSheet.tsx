@@ -44,8 +44,8 @@ const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: stri
 
 const MAX_AMOUNT = 99999
 
-/** Spring config matching QuickLogArea's ICON_BOUNCE_SPRING (task 9.4). */
-const ICON_BOUNCE_SPRING = { type: "spring" as const, stiffness: 400, damping: 17 }
+/** Spring config matching animations.ts snappy preset (task 3.5, task 9.4). */
+const ICON_BOUNCE_SPRING = springs.snappy
 
 /** Expense categories (excludes income-only categories). */
 const EXPENSE_CATEGORIES = new Set<TransactionCategory>(['food', 'transport', 'fun', 'school', 'rent', 'other'])

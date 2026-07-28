@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { timings, springs } from "@/lib/animations"
 import type { Transaction } from "@/types"
 import {
   getNoSpendStreak,
@@ -80,7 +81,7 @@ export function NoSpendChallengeCard({ transactions }: NoSpendChallengeCardProps
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, height: 0, marginTop: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            transition={timings.normal}
           >
             <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -147,7 +148,7 @@ export function NoSpendChallengeCard({ transactions }: NoSpendChallengeCardProps
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, height: 0, marginTop: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={timings.normal}
         >
           <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -199,7 +200,7 @@ export function NoSpendChallengeCard({ transactions }: NoSpendChallengeCardProps
                     animate={{
                       width: `${(challengeStatus.completedDays / challengeStatus.totalDays) * 100}%`,
                     }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    transition={springs.gentle}
                     style={{
                       height: "100%",
                       background: "var(--success)",
@@ -240,7 +241,7 @@ export function NoSpendChallengeCard({ transactions }: NoSpendChallengeCardProps
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, height: 0, marginTop: 0 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        transition={timings.normal}
       >
         <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>

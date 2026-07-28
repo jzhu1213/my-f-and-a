@@ -107,8 +107,8 @@ export function InlineTransactionEditor({
   const animationVariants = prefersReducedMotion
     ? {
         hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { duration: 0.1 } },
-        exit: { opacity: 0, transition: { duration: 0.1 } },
+        visible: { opacity: 1, transition: timings.fast },
+        exit: { opacity: 0, transition: timings.fast },
       }
     : {
         hidden: { opacity: 0, height: 0, marginTop: 0, marginBottom: 0 },
@@ -117,14 +117,14 @@ export function InlineTransactionEditor({
           height: "auto",
           marginTop: 0,
           marginBottom: 0,
-          transition: { opacity: { duration: 0.15 }, height: springs.snappy },
+          transition: { opacity: timings.fast, height: springs.snappy },
         },
         exit: {
           opacity: 0,
           height: 0,
           marginTop: 0,
           marginBottom: 0,
-          transition: { opacity: { duration: 0.1 }, height: { duration: 0.2 } },
+          transition: { opacity: timings.fast, height: timings.normal },
         },
       }
 

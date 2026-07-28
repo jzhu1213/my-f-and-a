@@ -385,7 +385,7 @@ export function HistoryDrawer({
                       fontFamily: 'Inter, sans-serif',
                     }}
                   >
-                    No transactions yet
+                    Your story starts here
                   </p>
                   <p
                     style={{
@@ -396,7 +396,7 @@ export function HistoryDrawer({
                       maxWidth: 280,
                     }}
                   >
-                    Your spending history will appear here once you start logging expenses
+                    Log an expense and your spending history will build up day by day
                   </p>
                 </div>
               ) : (

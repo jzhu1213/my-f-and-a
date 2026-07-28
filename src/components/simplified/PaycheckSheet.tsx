@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { springs } from '@/lib/animations'
+import { springs, timings } from '@/lib/animations'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useToast } from '@/contexts/ToastContext'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -385,7 +385,7 @@ export function PaycheckSheet({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    transition={timings.fast}
                   >
                     {/* ── Preset Buttons ───────────────────────────── */}
                     <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -572,7 +572,7 @@ export function PaycheckSheet({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    transition={timings.fast}
                   >
                     {/* ── Allocation Summary ───────────────────────── */}
                     <GlassCard
