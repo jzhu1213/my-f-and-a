@@ -16,9 +16,16 @@ import {
   sectionHeadingStrong,
   linkButton,
   listRow,
+  borderRadius,
+  segmentedControl,
+  segmentedButtonBase,
+  segmentedButtonActive,
+  segmentedButtonInactive,
+  dangerZone,
 } from "@/styles/shared"
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 import { DailyReminderSetting } from "./DailyReminderSetting"
+import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
 
 // ============================================================================
 // Types
@@ -27,16 +34,12 @@ import { DailyReminderSetting } from "./DailyReminderSetting"
 export interface SettingsScreenProps {
   budgets: Budget[]
   goals: Goal[]
-  totalSetAside?: number
-  savingsRate?: number
   userEmail?: string
   incomeSmoothing?: IncomeSmoothing | null
   onSetIncomeSmoothing?: (s: IncomeSmoothing) => void
   onOpenBudgetSettings: () => void
-  onOpenRecurringBills?: () => void
   onOpenGoals: () => void
   onOpenTools?: () => void
-  onOpenReimbursements?: () => void
   onOpenProfile: () => void
   onSignOut: () => void
   onResetOnboarding?: () => void
@@ -105,16 +108,12 @@ function getDaysInMonth(): number {
 export function SettingsScreen({
   budgets,
   goals,
-  totalSetAside,
-  savingsRate,
   userEmail,
   incomeSmoothing,
   onSetIncomeSmoothing,
   onOpenBudgetSettings,
-  onOpenRecurringBills,
   onOpenGoals,
   onOpenTools,
-  onOpenReimbursements,
   onOpenProfile,
   onSignOut,
   onResetOnboarding,
@@ -124,6 +123,7 @@ export function SettingsScreen({
   const { theme, setTheme } = useTheme()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [insightsEnabled, setInsightsEnabledState] = useState(() => getInsightsEnabled())
 
   // ── Budget summary computations ────────────────────────────────────────────
   const totalMonthly = budgets.reduce((sum, b) => sum + b.monthlyLimit, 0)
@@ -231,14 +231,7 @@ export function SettingsScreen({
 
           {/* Segmented control — same pattern as Appearance */}
           <div
-            style={{
-              display: "flex",
-              gap: 6,
-              padding: 4,
-              borderRadius: 12,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid var(--border)",
-            }}
+            style={segmentedControl}
           >
             {INCOME_OPTIONS.map(opt => {
               const isActive = (incomeSmoothing?.strategy ?? 'current_month') === opt.key
@@ -249,19 +242,10 @@ export function SettingsScreen({
                   whileTap={{ scale: 0.97 }}
                   transition={springs.snappy}
                   style={{
-                    flex: 1,
+                    ...segmentedButtonBase,
+                    ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
                     padding: "10px 8px",
-                    borderRadius: 9,
-                    border: "none",
                     fontSize: 12,
-                    fontWeight: 500,
-                    fontFamily: FONT_FAMILY,
-                    cursor: "pointer",
-                    color: isActive ? "var(--text)" : "var(--muted)",
-                    background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
-                    boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
-                    transition: "background 0.2s, color 0.2s, box-shadow 0.2s",
-                    textAlign: "center",
                     lineHeight: 1.3,
                   }}
                   aria-pressed={isActive}
@@ -276,72 +260,15 @@ export function SettingsScreen({
         </GlassCard>
       )}
 
-      {/* ── Set Aside This Month ─────────────────────────────────────────── */}
-      {(totalSetAside ?? 0) > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 20 }} aria-hidden="true">🏦</span>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>
-                Set aside this month
-              </p>
-              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-                ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
-              </p>
-            </div>
-          </div>
-        </GlassCard>
-      )}
-
-      {/* ── Savings Rate ──────────────────────────────────────────────────── */}
-      {(savingsRate ?? 0) > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 20 }} aria-hidden="true">💪</span>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>
-                Savings rate
-              </p>
-              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
-                {savingsRate}%
-              </p>
-            </div>
-          </div>
-        </GlassCard>
-      )}
-
-      {/* ── Recurring Bills ──────────────────────────────────────────────── */}
-      {onOpenRecurringBills && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>
-            Recurring Bills
-          </p>
-
-          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
-            Track your monthly fixed costs like rent, subscriptions, and utilities.
-          </p>
-
-          <motion.button
-            onClick={onOpenRecurringBills}
-            whileTap={{ scale: 0.97 }}
-            transition={springs.snappy}
-            style={linkButton}
-            aria-label="Manage recurring bills"
-          >
-            Manage bills →
-          </motion.button>
-        </GlassCard>
-      )}
-
-      {/* ── Tools & Calculators ─────────────────────────────────────── */}
+      {/* ── Tools & More ──────────────────────────────────────────── */}
       {onOpenTools && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
           <p style={{ ...sectionHeadingStrong }}>
-            Tools & Calculators
+            More & Tools
           </p>
 
           <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
-            Advanced tools — compound growth, credit payoff, subscriptions, sinking funds, and more.
+            Debt tracking, recurring bills, IOUs, calculators, and more advanced features.
           </p>
 
           <motion.button
@@ -349,9 +276,9 @@ export function SettingsScreen({
             whileTap={{ scale: 0.97 }}
             transition={springs.snappy}
             style={linkButton}
-            aria-label="Open tools and calculators"
+            aria-label="Open more tools and advanced features"
           >
-            Open tools →
+            Open more →
           </motion.button>
         </GlassCard>
       )}
@@ -406,29 +333,6 @@ export function SettingsScreen({
         </motion.button>
       </GlassCard>
 
-      {/* ── IOUs & Reimbursements ────────────────────────────────────── */}
-      {onOpenReimbursements && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>
-            IOUs & Reimbursements
-          </p>
-
-          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
-            Track money friends owe you — or that you owe them.
-          </p>
-
-          <motion.button
-            onClick={onOpenReimbursements}
-            whileTap={{ scale: 0.97 }}
-            transition={springs.snappy}
-            style={linkButton}
-            aria-label="Manage IOUs and reimbursements"
-          >
-            Manage IOUs →
-          </motion.button>
-        </GlassCard>
-      )}
-
       {/* ── Appearance ─────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
         <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
@@ -437,14 +341,7 @@ export function SettingsScreen({
 
         {/* Segmented theme toggle */}
         <div
-          style={{
-            display: "flex",
-            gap: 6,
-            padding: 4,
-            borderRadius: 12,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid var(--border)",
-          }}
+          style={segmentedControl}
         >
           {THEME_OPTIONS.map(opt => {
             const isActive = theme === opt.key
@@ -455,22 +352,8 @@ export function SettingsScreen({
                 whileTap={{ scale: 0.97 }}
                 transition={springs.snappy}
                 style={{
-                  flex: 1,
-                  padding: "10px 0",
-                  borderRadius: 9,
-                  border: "none",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  fontFamily: FONT_FAMILY,
-                  cursor: "pointer",
-                  color: isActive ? "var(--text)" : "var(--muted)",
-                  background: isActive
-                    ? "rgba(255,255,255,0.08)"
-                    : "transparent",
-                  boxShadow: isActive
-                    ? "0 1px 4px rgba(0,0,0,0.12)"
-                    : "none",
-                  transition: "background 0.2s, color 0.2s, box-shadow 0.2s",
+                  ...segmentedButtonBase,
+                  ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
                 }}
                 aria-pressed={isActive}
                 aria-label={`Set theme to ${opt.label}`}
@@ -500,6 +383,66 @@ export function SettingsScreen({
         >
           <span style={{ fontSize: 14, color: "var(--text)" }}>Currency</span>
           <span style={{ fontSize: 14, color: "var(--sub)" }}>USD ($)</span>
+        </div>
+
+        {/* Show daily insights toggle */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "12px 0",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div style={{ flex: 1, marginRight: 12 }}>
+            <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
+              Show daily insight
+            </span>
+            <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
+              A brief, rotating tip or celebration on your home screen
+            </span>
+          </div>
+          <motion.button
+            type="button"
+            role="switch"
+            aria-checked={insightsEnabled}
+            aria-label="Show daily insight on home screen"
+            onClick={() => {
+              const next = !insightsEnabled
+              setInsightsEnabledState(next)
+              setInsightsEnabled(next)
+            }}
+            whileTap={{ scale: 0.92 }}
+            transition={springs.snappy}
+            style={{
+              flexShrink: 0,
+              width: 44,
+              height: 26,
+              borderRadius: 13,
+              border: "none",
+              cursor: "pointer",
+              background: insightsEnabled
+                ? "rgba(167, 139, 250, 0.6)"
+                : "rgba(255, 255, 255, 0.1)",
+              position: "relative",
+              transition: "background 0.2s ease",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: 3,
+                left: insightsEnabled ? 21 : 3,
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                background: insightsEnabled ? "#fff" : "rgba(255,255,255,0.4)",
+                transition: "left 0.2s ease, background 0.2s ease",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+              }}
+            />
+          </motion.button>
         </div>
 
         {/* Reset Tutorial/Onboarding */}
@@ -569,11 +512,8 @@ export function SettingsScreen({
         {showDeleteConfirm && (
           <div
             style={{
+              ...dangerZone,
               marginTop: 12,
-              padding: 16,
-              borderRadius: 12,
-              background: "rgba(248, 113, 113, 0.1)",
-              border: "1px solid rgba(248, 113, 113, 0.3)",
             }}
           >
             <p
@@ -619,7 +559,7 @@ export function SettingsScreen({
                 color: "var(--text)",
                 background: "rgba(0, 0, 0, 0.2)",
                 border: "1px solid var(--border)",
-                borderRadius: 8,
+                borderRadius: borderRadius.sm,
                 outline: "none",
               }}
               aria-label="Type DELETE to confirm account deletion"
@@ -641,7 +581,7 @@ export function SettingsScreen({
                   color: "var(--text)",
                   background: "rgba(255, 255, 255, 0.06)",
                   border: "1px solid var(--border)",
-                  borderRadius: 8,
+                  borderRadius: borderRadius.sm,
                   cursor: "pointer",
                 }}
                 aria-label="Cancel account deletion"
@@ -668,7 +608,7 @@ export function SettingsScreen({
                     ? "var(--error)" 
                     : "rgba(255, 255, 255, 0.03)",
                   border: "none",
-                  borderRadius: 8,
+                  borderRadius: borderRadius.sm,
                   cursor: deleteConfirmText === "DELETE" ? "pointer" : "not-allowed",
                   opacity: deleteConfirmText === "DELETE" ? 1 : 0.5,
                 }}

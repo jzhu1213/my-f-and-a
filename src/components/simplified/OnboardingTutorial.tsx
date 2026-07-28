@@ -3,6 +3,7 @@
 import { useState, useCallback, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs } from '@/lib/animations'
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ============================================================================
 // Types
@@ -136,7 +137,7 @@ export function OnboardingTutorial({
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ background: 'var(--bg)', fontFamily: 'Inter, sans-serif' }}
+      style={{ background: 'var(--bg)', fontFamily: FONT_FAMILY }}
       role="region"
       aria-label="Onboarding tutorial"
     >

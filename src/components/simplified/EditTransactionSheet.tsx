@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { springs, timings, useReducedMotion } from '@/lib/animations'
+import { motion } from 'framer-motion'
+import { springs, useReducedMotion } from '@/lib/animations'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { Transaction, TransactionCategory } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
+import { FONT_FAMILY } from '@/styles/typography'
 
 interface EditTransactionSheetProps {
   isOpen: boolean
@@ -157,75 +159,15 @@ export function EditTransactionSheet({
     )
   })()
 
-  // Sheet animation variants
-  const sheetVariants = prefersReducedMotion
-    ? {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: timings.fast },
-        exit: { opacity: 0, transition: timings.fast },
-      }
-    : {
-        hidden: { y: '100%' },
-        visible: { y: 0, transition: springs.gentle },
-        exit: { y: '100%', transition: timings.normal },
-      }
-
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: timings.fast },
-    exit: { opacity: 0, transition: timings.fast },
-  }
-
   return (
-    <AnimatePresence>
-      {isOpen && transaction && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="edit-tx-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={onClose}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 60,
-              background: 'rgba(0, 0, 0, 0.6)',
-            }}
-          />
-
-          {/* Sheet */}
-          <motion.div
-            key="edit-tx-sheet"
-            variants={sheetVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            style={{
-              position: 'fixed',
-              insetInline: 0,
-              bottom: 0,
-              zIndex: 70,
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--line)',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Handle */}
-            <div className="sheet-handle" />
-
-            <div style={{ padding: '0 24px 32px' }}>
+    <BottomSheet isOpen={isOpen && !!transaction} onClose={onClose} ariaLabel="Edit transaction" preventClose={isSaving}>
+      {transaction && (
+        <div style={{ padding: '0 24px 32px' }}>
               {/* ── Header ────────────────────────────────────── */}
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 <p style={{
                   fontSize: 15,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontWeight: 600,
                   color: 'var(--text)',
                 }}>
@@ -233,7 +175,7 @@ export function EditTransactionSheet({
                 </p>
                 <p style={{
                   fontSize: 12,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   color: 'var(--muted)',
                   marginTop: 4,
                 }}>
@@ -251,7 +193,7 @@ export function EditTransactionSheet({
                 }}>
                   <span style={{
                     fontSize: 28,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontWeight: 300,
                     color: transaction.type === 'income' ? 'var(--success)' : 'var(--muted)',
                   }}>
@@ -276,7 +218,7 @@ export function EditTransactionSheet({
                       border: 'none',
                       outline: 'none',
                       fontSize: 48,
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: FONT_FAMILY,
                       fontWeight: 600,
                       color: 'var(--text)',
                       textAlign: 'center',
@@ -337,7 +279,7 @@ export function EditTransactionSheet({
                           {cat.emoji}
                         </span>
                         <span style={{
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontSize: 12,
                           fontWeight: 500,
                           color: selected ? 'var(--text)' : 'var(--sub)',
@@ -363,7 +305,7 @@ export function EditTransactionSheet({
                       borderRadius: 'var(--radius-md)',
                       padding: '10px 16px',
                       fontSize: 13,
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: FONT_FAMILY,
                       fontWeight: 400,
                       color: 'var(--sub)',
                       cursor: 'pointer',
@@ -392,7 +334,7 @@ export function EditTransactionSheet({
                         borderBottom: '1px solid var(--line)',
                         outline: 'none',
                         fontSize: 15,
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         color: 'var(--text)',
                         padding: '12px 0',
                         caretColor: 'var(--text)',
@@ -404,7 +346,7 @@ export function EditTransactionSheet({
                         right: 0,
                         bottom: 14,
                         fontSize: 11,
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         fontWeight: 400,
                         color: 'var(--muted)',
                       }}>
@@ -430,7 +372,7 @@ export function EditTransactionSheet({
                     ? 'linear-gradient(135deg, #a78bfa, #7c3aed)'
                     : 'var(--dim)',
                   color: canSubmit && hasChanges ? '#fff' : 'var(--muted)',
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontSize: 16,
                   fontWeight: 600,
                   borderRadius: 'var(--radius-md)',
@@ -454,7 +396,7 @@ export function EditTransactionSheet({
                       border: 'none',
                       cursor: 'pointer',
                       fontSize: 13,
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: FONT_FAMILY,
                       fontWeight: 500,
                       color: 'var(--success)',
                       padding: '8px 16px',
@@ -466,9 +408,7 @@ export function EditTransactionSheet({
                 </div>
               )}
             </div>
-          </motion.div>
-        </>
       )}
-    </AnimatePresence>
+    </BottomSheet>
   )
 }

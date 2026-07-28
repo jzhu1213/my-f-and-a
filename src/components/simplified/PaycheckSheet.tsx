@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { springs, timings, useReducedMotion } from '@/lib/animations'
+import { springs } from '@/lib/animations'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useToast } from '@/contexts/ToastContext'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { computeTaxSetAside, DEFAULT_GIG_TAX_RATE } from '@/lib/taxSetAside'
@@ -13,6 +14,7 @@ import {
   type AutoContribution,
 } from '@/lib/autoContributeUtils'
 import type { Goal, IncomeAllocation, AllocationPreset } from '@/types'
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ── Default presets ──────────────────────────────────────────────────────────
 
@@ -26,9 +28,9 @@ const ALLOCATION_PRESETS: AllocationPreset[] = [
 
 const BUCKETS: { key: keyof IncomeAllocation; label: string; emoji: string; color: string }[] = [
   { key: 'spend', label: 'Spend', emoji: '💸', color: 'var(--text)' },
-  { key: 'save', label: 'Save', emoji: '🏦', color: '#4ade80' },
+  { key: 'save', label: 'Save', emoji: '🏦', color: 'var(--success)' },
   { key: 'invest', label: 'Invest', emoji: '📈', color: '#818cf8' },
-  { key: 'setAside', label: 'Set Aside', emoji: '🎯', color: '#fbbf24' },
+  { key: 'setAside', label: 'Set Aside', emoji: '🎯', color: 'var(--warning)' },
 ]
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -62,7 +64,6 @@ export function PaycheckSheet({
   onClose,
   isGigIncome,
 }: PaycheckSheetProps) {
-  const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
 
   // ── State ─────────────────────────────────────────────────────
@@ -188,77 +189,16 @@ export function PaycheckSheet({
     onClose()
   }, [showToast, onClose])
 
-  // ── Animation variants ────────────────────────────────────────
-  const sheetVariants = prefersReducedMotion
-    ? {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: timings.fast },
-        exit: { opacity: 0, transition: timings.fast },
-      }
-    : {
-        hidden: { y: '100%' },
-        visible: { y: 0, transition: springs.gentle },
-        exit: { y: '100%', transition: timings.normal },
-      }
-
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: timings.fast },
-    exit: { opacity: 0, transition: timings.fast },
-  }
-
   // ── Render ────────────────────────────────────────────────────
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="paycheck-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={onClose}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 40,
-              background: 'rgba(0, 0, 0, 0.6)',
-            }}
-          />
-
-          {/* Sheet */}
-          <motion.div
-            key="paycheck-sheet"
-            variants={sheetVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            style={{
-              position: 'fixed',
-              insetInline: 0,
-              bottom: 0,
-              zIndex: 50,
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--line)',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              maxHeight: '85vh',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Handle */}
-            <div className="sheet-handle" />
-
-            <div style={{ padding: '0 24px 32px' }}>
+    <BottomSheet isOpen={isOpen} onClose={onClose} maxHeight="85vh" ariaLabel="Allocate paycheck">
+      <div style={{ padding: '0 24px 32px' }}>
               {/* ── Header ──────────────────────────────────────── */}
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 <p
                   style={{
                     fontSize: 13,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontWeight: 500,
                     color: 'var(--muted)',
                     textTransform: 'uppercase',
@@ -271,7 +211,7 @@ export function PaycheckSheet({
                 <p
                   style={{
                     fontSize: 40,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontWeight: 300,
                     color: 'var(--success)',
                     lineHeight: 1,
@@ -282,7 +222,7 @@ export function PaycheckSheet({
                 <p
                   style={{
                     fontSize: 14,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     color: 'var(--muted)',
                     marginTop: 10,
                   }}
@@ -311,9 +251,9 @@ export function PaycheckSheet({
                       <p
                         style={{
                           fontSize: 13,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontWeight: 500,
-                          color: '#fbbf24',
+                          color: 'var(--warning)',
                           marginBottom: 4,
                         }}
                       >
@@ -322,7 +262,7 @@ export function PaycheckSheet({
                       <p
                         style={{
                           fontSize: 12,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           color: 'var(--sub)',
                           lineHeight: 1.4,
                         }}
@@ -332,7 +272,7 @@ export function PaycheckSheet({
                       <p
                         style={{
                           fontSize: 11,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           color: 'var(--muted)',
                           marginTop: 4,
                           lineHeight: 1.3,
@@ -378,9 +318,9 @@ export function PaycheckSheet({
                       <p
                         style={{
                           fontSize: 13,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontWeight: 500,
-                          color: '#4ade80',
+                          color: 'var(--success)',
                           marginBottom: 4,
                         }}
                       >
@@ -389,7 +329,7 @@ export function PaycheckSheet({
                       <p
                         style={{
                           fontSize: 12,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           color: 'var(--sub)',
                           lineHeight: 1.4,
                         }}
@@ -404,7 +344,7 @@ export function PaycheckSheet({
                             key={c.goalId}
                             style={{
                               fontSize: 11,
-                              fontFamily: 'Inter, sans-serif',
+                              fontFamily: FONT_FAMILY,
                               color: 'var(--muted)',
                               background: 'rgba(255,255,255,0.05)',
                               borderRadius: 6,
@@ -425,7 +365,7 @@ export function PaycheckSheet({
                         border: 'none',
                         color: 'var(--muted)',
                         fontSize: 12,
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         cursor: 'pointer',
                         padding: '2px 6px',
                         textDecoration: 'underline',
@@ -458,7 +398,7 @@ export function PaycheckSheet({
                             flex: 1,
                             padding: '10px 6px',
                             fontSize: 12,
-                            fontFamily: 'Inter, sans-serif',
+                            fontFamily: FONT_FAMILY,
                             fontWeight: 600,
                             color: activePreset === idx ? '#fff' : 'var(--text)',
                             background: activePreset === idx
@@ -497,7 +437,7 @@ export function PaycheckSheet({
                           flex: 1,
                           padding: '10px 6px',
                           fontSize: 12,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontWeight: 600,
                           color: activePreset === null ? '#fff' : 'var(--text)',
                           background: activePreset === null
@@ -527,7 +467,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 14,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 500,
                                     color: bucket.color,
                                   }}
@@ -537,7 +477,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 14,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 600,
                                     color: 'var(--text)',
                                   }}
@@ -564,7 +504,7 @@ export function PaycheckSheet({
                                 <span
                                   style={{
                                     fontSize: 12,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 500,
                                     color: 'var(--muted)',
                                     minWidth: 32,
@@ -585,7 +525,7 @@ export function PaycheckSheet({
                       <p
                         style={{
                           fontSize: 12,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           color: totalPercent > 100 ? 'var(--error)' : 'var(--warning)',
                           textAlign: 'center',
                           marginBottom: 12,
@@ -612,7 +552,7 @@ export function PaycheckSheet({
                           ? 'linear-gradient(135deg, #4ade80, #22c55e)'
                           : 'var(--dim)',
                         color: isValid ? '#fff' : 'var(--muted)',
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         fontSize: 16,
                         fontWeight: 600,
                         borderRadius: 'var(--radius-md)',
@@ -643,10 +583,10 @@ export function PaycheckSheet({
                       <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                         {BUCKETS.map(bucket => (
                           <div key={bucket.key} style={{ textAlign: 'center' }}>
-                            <p style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: 'var(--muted)' }}>
+                            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>
                               {bucket.emoji} {bucket.label}
                             </p>
-                            <p style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', fontWeight: 600, color: bucket.color }}>
+                            <p style={{ fontSize: 14, fontFamily: FONT_FAMILY, fontWeight: 600, color: bucket.color }}>
                               ${allocation[bucket.key].toLocaleString()}
                             </p>
                           </div>
@@ -658,7 +598,7 @@ export function PaycheckSheet({
                     <p
                       style={{
                         fontSize: 13,
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         color: 'var(--muted)',
                         marginBottom: 10,
                       }}
@@ -682,7 +622,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 15,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 500,
                                     color: 'var(--text)',
                                     overflow: 'hidden',
@@ -695,7 +635,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 12,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     color: 'var(--muted)',
                                     marginTop: 2,
                                   }}
@@ -716,7 +656,7 @@ export function PaycheckSheet({
                                     flex: 1,
                                     padding: '10px 0',
                                     fontSize: 14,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     fontWeight: 600,
                                     color: 'var(--text)',
                                     background: 'rgba(255, 255, 255, 0.06)',
@@ -731,7 +671,7 @@ export function PaycheckSheet({
                                 <p
                                   style={{
                                     fontSize: 12,
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: FONT_FAMILY,
                                     color: 'var(--muted)',
                                     padding: '10px 0',
                                   }}
@@ -757,7 +697,7 @@ export function PaycheckSheet({
                         justifyContent: 'center',
                         background: 'linear-gradient(135deg, #4ade80, #22c55e)',
                         color: '#fff',
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         fontSize: 16,
                         fontWeight: 600,
                         borderRadius: 'var(--radius-md)',
@@ -771,9 +711,6 @@ export function PaycheckSheet({
                 )}
               </AnimatePresence>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    </BottomSheet>
   )
 }

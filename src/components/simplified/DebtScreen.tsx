@@ -13,6 +13,7 @@ import {
   DOCK_PADDING_BOTTOM,
   sectionHeadingStrong,
   listRow,
+  borderRadius,
 } from "@/styles/shared"
 import {
   getTotalDebtBalance,
@@ -200,7 +201,7 @@ export function DebtScreen({
           style={{
             background: "rgba(255,255,255,0.06)",
             border: "1px solid var(--border)",
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             width: 36,
             height: 36,
             display: "flex",
@@ -363,7 +364,7 @@ export function DebtScreen({
               padding: "12px 0",
               background: "rgba(255,255,255,0.04)",
               border: "1.5px dashed var(--border)",
-              borderRadius: 12,
+              borderRadius: borderRadius.md,
               color: "var(--sub)",
               fontSize: 14,
               fontWeight: 500,
@@ -398,7 +399,7 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
     <div
       style={{
         padding: 14,
-        borderRadius: 12,
+        borderRadius: borderRadius.md,
         background: "rgba(255,255,255,0.03)",
         border: "1px solid var(--border)",
       }}
@@ -431,7 +432,7 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
                 transition={springs.snappy}
                 style={{
                   padding: "8px 14px",
-                  borderRadius: 99,
+                  borderRadius: borderRadius.full,
                   border: isActive ? "1.5px solid var(--success)" : "1px solid var(--border)",
                   background: isActive ? "rgba(6, 214, 160, 0.1)" : "rgba(0,0,0,0.15)",
                   color: isActive ? "var(--success)" : "var(--sub)",
@@ -510,7 +511,7 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
             color: "var(--text)",
             background: "rgba(255, 255, 255, 0.06)",
             border: "1px solid var(--border)",
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             cursor: "pointer",
           }}
           aria-label="Cancel"
@@ -533,7 +534,7 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
               ? "rgba(255,255,255,0.06)"
               : "var(--success)",
             border: "none",
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             cursor: saving || !form.name.trim() || form.balance <= 0 ? "not-allowed" : "pointer",
             opacity: saving || !form.name.trim() || form.balance <= 0 ? 0.5 : 1,
           }}

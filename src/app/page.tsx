@@ -19,25 +19,30 @@ import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
 import { EditTransactionSheet } from '@/components/simplified/EditTransactionSheet'
 import { RecurringBillsScreen } from '@/components/simplified/RecurringBillsScreen'
+import { ReimbursementLedger } from '@/components/simplified/ReimbursementLedger'
+import { DebtScreen } from '@/components/simplified/DebtScreen'
 import { RefundSheet } from '@/components/simplified/RefundSheet'
 import { OnboardingTutorial } from '@/components/simplified/OnboardingTutorial'
 import { ProfileSheet } from '@/components/ui/ProfileSheet'
 import { TutorialSetupStepRenderer, TUTORIAL_FEATURE_STEPS, TUTORIAL_SETUP_STEPS, TutorialSetupState, buildOnboardingResult, computeDailyAllowance } from '@/components/simplified/TutorialSteps'
 import { LessonsScreen } from '@/components/finance/LessonsScreen'
+import { CompoundGrowthCalculator, CreditPayoffCalculator } from '@/components/finance'
 import { detectSubscriptions } from '@/lib/subscriptionDetector'
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
-import { carryForwardBudgetLimits, insertAllocation } from '@/lib/supabaseData'
+import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts } from '@/lib/supabaseData'
 import { exportUserData, deleteUserAccount } from '@/lib/accountUtils'
 import type { TransactionCategory, Transaction } from '@/types'
-import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation } from '@/types/folio'
+import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
 import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { createRefundTransaction } from '@/lib/refundUtils'
 import { useRecurringBills } from '@/hooks/useRecurringBills'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
+import { useOfflineSync } from '@/hooks/useOfflineSync'
+import { SyncIndicator } from '@/components/simplified/SyncIndicator'
 
 type OnboardingStep = 'loading' | 'tutorial' | 'done'
 
@@ -53,7 +58,11 @@ export default function FolioApp() {
   const [showSinkingFunds, setShowSinkingFunds] = useState(false)
   const [showSubscriptionAudit, setShowSubscriptionAudit] = useState(false)
   const [showRecurringBills, setShowRecurringBills] = useState(false)
+  const [showDebt, setShowDebt] = useState(false)
+  const [showReimbursements, setShowReimbursements] = useState(false)
   const [showLearn, setShowLearn] = useState(false)
+  const [showCompoundGrowth, setShowCompoundGrowth] = useState(false)
+  const [showCreditPayoff, setShowCreditPayoff] = useState(false)
   const [profileSheetOpen, setProfileSheetOpen] = useState(false)
 
   // ── Tutorial Setup State ───────────────────────────────────────
@@ -119,8 +128,49 @@ export default function FolioApp() {
   // ── Custom Categories ──────────────────────────────────────────
   const { customCategories, addCustomCategory } = useCustomCategories(user?.id)
 
+  // ── Offline Sync (background retry of queued expenses) ─────────
+  const {
+    pendingCount: offlinePendingCount,
+    hasFailed: offlineHasFailed,
+    retryAll: retryOfflineSync,
+    refresh: refreshOfflineSync,
+  } = useOfflineSync(user?.id ?? undefined)
+
   // ── Recurring Bills (task 65 — set-and-forget bills) ───────────
   const { bills: recurringBills, addBill, updateBill, deleteBill } = useRecurringBills(user?.id)
+
+  // ── Debts (loaded on demand when DebtScreen opens) ─────────────
+  const [debts, setDebts] = useState<Debt[]>([])
+  const [debtsLoaded, setDebtsLoaded] = useState(false)
+
+  const handleOpenDebt = useCallback(async () => {
+    if (!debtsLoaded && user?.id) {
+      const data = await getDebts(user.id).catch(() => [] as Debt[])
+      setDebts(data)
+      setDebtsLoaded(true)
+    }
+    setShowDebt(true)
+  }, [debtsLoaded, user?.id])
+
+  const handleAddDebt = useCallback(async (debt: Omit<Debt, "id" | "userId" | "createdAt">) => {
+    if (!user?.id) return
+    await createDebt(user.id, debt)
+    const data = await getDebts(user.id).catch(() => [] as Debt[])
+    setDebts(data)
+  }, [user?.id])
+
+  const handleUpdateDebt = useCallback(async (id: string, updates: Partial<Debt>) => {
+    if (!user?.id) return
+    await updateDebt(user.id, id, updates)
+    const data = await getDebts(user.id).catch(() => [] as Debt[])
+    setDebts(data)
+  }, [user?.id])
+
+  const handleDeleteDebt = useCallback(async (id: string) => {
+    if (!user?.id) return
+    await deleteDebt(user.id, id)
+    setDebts(prev => prev.filter(d => d.id !== id))
+  }, [user?.id])
 
   // ── Service Worker registration (task 77 — PWA notifications) ──
   useServiceWorker()
@@ -227,9 +277,12 @@ export default function FolioApp() {
     if (result) {
       setLastLoggedId(result.id)
     } else {
+      // addTransaction queued the expense locally on failure; reflect it in the
+      // sync indicator so the user can see it is pending background retry.
+      refreshOfflineSync()
       showToast('Saved offline — will sync when connected', 'success')
     }
-  }, [user?.id, addTransaction, showToast])
+  }, [user?.id, addTransaction, showToast, refreshOfflineSync])
 
   const handleExpenseUndo = useCallback(async () => {
     if (!lastLoggedId) return
@@ -257,7 +310,8 @@ export default function FolioApp() {
     if (result) {
       setLastLoggedId(result.id)
     } else {
-      showToast('Saved offline — will sync when connected', 'success')
+      // Income is not replayed by the offline queue, so don't claim it was saved.
+      showToast("Couldn't save income — check your connection and try again", 'error')
     }
   }, [user?.id, addTransaction, showToast])
 
@@ -312,10 +366,14 @@ export default function FolioApp() {
           showToast('Removed')
         },
       })
-    } else {
+    } else if (repeat.type === 'expense') {
+      // Expense was queued locally for background retry.
+      refreshOfflineSync()
       showToast('Saved offline — will sync when connected', 'success')
+    } else {
+      showToast("Couldn't save — check your connection and try again", 'error')
     }
-  }, [user?.id, addTransaction, deleteTransaction, showToast])
+  }, [user?.id, addTransaction, deleteTransaction, showToast, refreshOfflineSync])
 
   // ── Transaction Delete ─────────────────────────────────────────
   const handleDeleteTransaction = useCallback(async (id: string) => {
@@ -584,6 +642,33 @@ export default function FolioApp() {
     )
   }
 
+  // ── Debt Tracking (full-screen overlay) ────────────────────────
+  if (showDebt) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <DebtScreen
+          debts={debts}
+          onAddDebt={handleAddDebt}
+          onUpdateDebt={handleUpdateDebt}
+          onDeleteDebt={handleDeleteDebt}
+          onClose={() => setShowDebt(false)}
+        />
+      </div>
+    )
+  }
+
+  // ── IOUs & Reimbursements (full-screen overlay) ────────────────
+  if (showReimbursements && user?.id) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <ReimbursementLedger
+          userId={user.id}
+          onBack={() => setShowReimbursements(false)}
+        />
+      </div>
+    )
+  }
+
   // ── Learn / Lessons (full-screen overlay) ──────────────────────
   if (showLearn) {
     return (
@@ -613,6 +698,24 @@ export default function FolioApp() {
     )
   }
 
+  // ── Compound Growth Calculator (full-screen overlay, Tools tab) ─
+  if (showCompoundGrowth) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <CompoundGrowthCalculator onBack={() => setShowCompoundGrowth(false)} />
+      </div>
+    )
+  }
+
+  // ── Credit Payoff Calculator (full-screen overlay, Tools tab) ──
+  if (showCreditPayoff) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <CreditPayoffCalculator onBack={() => setShowCreditPayoff(false)} />
+      </div>
+    )
+  }
+
   // ── Main App Shell ─────────────────────────────────────────────
   return (
     <>
@@ -625,6 +728,15 @@ export default function FolioApp() {
         meshVariant="home"
         onQuickLog={() => setExpenseSheetOpen(true)}
       >
+        {offlinePendingCount > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <SyncIndicator
+              pendingCount={offlinePendingCount}
+              hasFailed={offlineHasFailed}
+              onRetry={retryOfflineSync}
+            />
+          </div>
+        )}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeNav}
@@ -666,25 +778,27 @@ export default function FolioApp() {
             )}
             {activeNav === 'tools' && (
               <ToolsScreen
-                onOpenCompoundGrowth={undefined}
-                onOpenCreditPayoff={undefined}
+                onOpenCompoundGrowth={() => setShowCompoundGrowth(true)}
+                onOpenCreditPayoff={() => setShowCreditPayoff(true)}
                 onOpenSubscriptions={() => setShowSubscriptionAudit(true)}
                 onOpenSinkingFunds={() => setShowSinkingFunds(true)}
                 onOpenLearn={() => setShowLearn(true)}
                 onOpenSavingsProjections={undefined}
+                onOpenDebt={handleOpenDebt}
+                onOpenRecurringBills={() => setShowRecurringBills(true)}
+                onOpenReimbursements={() => setShowReimbursements(true)}
+                totalSetAside={totalSetAside}
+                savingsRate={savingsRate}
               />
             )}
             {activeNav === 'settings' && (
               <SettingsScreen
                 budgets={budgets}
                 goals={goals}
-                totalSetAside={totalSetAside}
-                savingsRate={savingsRate}
                 userEmail={user?.email}
                 incomeSmoothing={incomeSmoothing}
                 onSetIncomeSmoothing={setIncomeSmoothing}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
-                onOpenRecurringBills={() => setShowRecurringBills(true)}
                 onOpenGoals={() => setShowGoals(true)}
                 onOpenTools={() => setActiveNav('tools')}
                 onOpenProfile={handleOpenProfile}

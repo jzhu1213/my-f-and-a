@@ -16,6 +16,8 @@ import {
   type AutoContributeRule,
 } from "@/lib/autoContributeUtils"
 import type { Goal } from "@/types"
+import { FONT_FAMILY } from "@/styles/typography"
+import { borderRadius } from "@/styles/shared"
 
 // ============================================================================
 // Types
@@ -174,7 +176,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
         style={{
           height: 8,
           width: "100%",
-          borderRadius: 999,
+          borderRadius: borderRadius.full,
           background: "rgba(255,255,255,0.06)",
           overflow: "hidden",
           marginBottom: deadlineInfo && !complete ? 8 : 12,
@@ -186,7 +188,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
           transition={reducedMotion ? timings.fast : springs.gentle}
           style={{
             height: "100%",
-            borderRadius: 999,
+            borderRadius: borderRadius.full,
             background: fillColor,
           }}
         />
@@ -244,7 +246,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
               padding: "9px 0",
               fontSize: 13,
               fontWeight: 600,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
               color: "var(--accent)",
               background: "var(--accent-muted)",
               border: "1px solid rgba(129, 140, 248, 0.25)",
@@ -267,7 +269,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
               padding: "9px 16px",
               fontSize: 13,
               fontWeight: 500,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
               color: "var(--sub)",
               background: "rgba(255,255,255,0.04)",
               border: "1px solid var(--border)",
@@ -291,7 +293,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
                 padding: "9px 12px",
                 fontSize: 13,
                 fontWeight: 500,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 color: "var(--sub)",
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid var(--border)",
@@ -314,7 +316,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
                 padding: "9px 14px",
                 fontSize: 13,
                 fontWeight: 600,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 color: "#fff",
                 background: "var(--error)",
                 border: "1px solid var(--error)",
@@ -336,7 +338,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
               padding: "9px 12px",
               fontSize: 13,
               fontWeight: 500,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
               color: "var(--error)",
               background: "rgba(239, 68, 68, 0.08)",
               border: "1px solid rgba(239, 68, 68, 0.2)",
@@ -463,7 +465,7 @@ export function GoalsScreen({
         maxWidth: 560,
         margin: "0 auto",
         padding: "24px 20px 100px",
-        fontFamily: "Inter, sans-serif",
+        fontFamily: FONT_FAMILY,
       }}
     >
       {/* ── Back button ────────────────────────────────────────────────────── */}
@@ -481,7 +483,7 @@ export function GoalsScreen({
             border: "none",
             color: "var(--muted)",
             cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
             fontSize: 14,
           }}
           aria-label="Back"
@@ -620,7 +622,7 @@ export function GoalsScreen({
             padding: "14px 20px",
             fontSize: 14,
             fontWeight: 600,
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
             color: "var(--text)",
             background: "var(--accent-muted)",
             border: "1px solid rgba(129, 140, 248, 0.25)",
@@ -651,7 +653,7 @@ export function GoalsScreen({
           marginTop: 12,
           fontSize: 14,
           fontWeight: 500,
-          fontFamily: "Inter, sans-serif",
+          fontFamily: FONT_FAMILY,
           color: "var(--sub)",
           background: "none",
           border: "1px dashed var(--border)",
@@ -701,7 +703,7 @@ export function GoalsScreen({
                       <p
                         style={{
                           fontSize: 13,
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: FONT_FAMILY,
                           fontWeight: 500,
                           color: "var(--text)",
                           overflow: "hidden",
@@ -797,7 +799,7 @@ export function GoalsScreen({
                             width: 60,
                             padding: "4px 8px",
                             fontSize: 13,
-                            fontFamily: "Inter, sans-serif",
+                            fontFamily: FONT_FAMILY,
                             color: "var(--text)",
                             background: "rgba(255,255,255,0.06)",
                             border: "1px solid var(--line)",
@@ -813,7 +815,7 @@ export function GoalsScreen({
                             padding: "4px 10px",
                             fontSize: 12,
                             fontWeight: 600,
-                            fontFamily: "Inter, sans-serif",
+                            fontFamily: FONT_FAMILY,
                             color: "#fff",
                             background: "#4ade80",
                             border: "none",
@@ -829,7 +831,7 @@ export function GoalsScreen({
                           style={{
                             padding: "4px 8px",
                             fontSize: 12,
-                            fontFamily: "Inter, sans-serif",
+                            fontFamily: FONT_FAMILY,
                             color: "var(--muted)",
                             background: "transparent",
                             border: "none",
@@ -847,7 +849,7 @@ export function GoalsScreen({
                           padding: "6px 12px",
                           fontSize: 12,
                           fontWeight: 500,
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: FONT_FAMILY,
                           color: "var(--accent)",
                           background: "var(--accent-muted)",
                           border: "1px solid rgba(129, 140, 248, 0.2)",

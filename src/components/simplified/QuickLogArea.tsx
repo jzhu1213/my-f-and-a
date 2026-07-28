@@ -9,6 +9,8 @@ import { generateSmartSuggestions } from "@/lib/suggestionUtils"
 import { useToast } from "@/contexts/ToastContext"
 import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
 import { getCategoryEmoji } from "@/lib/vocabulary"
+import { FONT_FAMILY } from '@/styles/typography'
+import { borderRadius } from '@/styles/shared'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -222,7 +224,7 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion }: Sugg
         justifyContent: "center",
         gap: 2,
         padding: "10px 16px",
-        borderRadius: 999,
+        borderRadius: borderRadius.full,
       }}
       onClick={onTap}
       onPointerDown={handlePointerDown}
@@ -678,7 +680,7 @@ export function QuickLogArea({
             color: "var(--muted)",
             textAlign: "center",
             padding: "4px 0",
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
           }}
         >
           Tap a category to see common amounts and log your first expense
@@ -710,7 +712,7 @@ export function QuickLogArea({
                   color: "var(--muted)",
                   fontWeight: 500,
                   marginBottom: 6,
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: FONT_FAMILY,
                 }}
               >
                 Common amounts

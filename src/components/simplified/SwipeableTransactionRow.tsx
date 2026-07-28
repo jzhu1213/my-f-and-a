@@ -3,6 +3,7 @@
 import { useState, useRef } from "react"
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion"
 import { springs, timings } from "@/lib/animations"
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ============================================================================
 // SwipeableTransactionRow
@@ -125,7 +126,7 @@ export function SwipeableTransactionRow({
               style={{
                 fontSize: 12,
                 fontWeight: 600,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 color: "#fff",
                 background: "var(--error, #f87171)",
                 borderRadius: 8,
@@ -158,7 +159,7 @@ export function SwipeableTransactionRow({
                 style={{
                   fontSize: 12,
                   fontWeight: 600,
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: FONT_FAMILY,
                   color: "#fff",
                   background: "rgba(129, 140, 248, 0.9)",
                   borderRadius: 8,

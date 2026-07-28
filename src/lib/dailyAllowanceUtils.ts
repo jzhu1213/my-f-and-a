@@ -106,13 +106,33 @@ function shouldCelebrate(status: AllowanceStatus, spentToday: number, dailyBudge
 /**
  * Computes smoothed monthly income from transaction history.
  * - 'current_month': sums income transactions in the current month (existing behavior)
- * - 'trailing_average': averages income over the last N months (including current if partially complete)
+ * - 'trailing_average': spreads total income across the whole trailing window of
+ *   N months (current month + N−1 previous months) by dividing by the window length.
  *
- * For gig workers with irregular income, trailing_average produces a more stable
- * daily budget by smoothing over recent months rather than relying on a single month.
+ * ─────────────────────────────────────────────────────────────────────────────────
+ * Why divide by the FULL window (not just non-zero months)?
+ * ─────────────────────────────────────────────────────────────────────────────────
+ * Students and gig workers rarely have steady paychecks — income arrives in lumps
+ * (aid disbursements, occasional gig payments, Venmo from a friend) with quiet
+ * stretches in between. Two properties matter for the daily number:
  *
- * Non-zero months only are averaged to avoid dragging the average down when no data
- * exists for a given month (e.g. first month of use).
+ *   1. Stability day-to-day — the denominator must be fixed (the window length),
+ *      so logging one paycheck moves the monthly figure by only 1/windowMonths of
+ *      that paycheck instead of the whole amount.
+ *
+ *   2. No single-paycheck spike — a lump sum is spread across the window rather
+ *      than counting at full weight. e.g. a $3,000 gig payment with a 3-month
+ *      window contributes $1,000/month, not $3,000.
+ *
+ * The earlier implementation averaged ONLY non-zero months. That defeated both
+ * goals: with a single month of history a lone large paycheck averaged to itself
+ * (full spike, no smoothing), and during lean months the number stayed
+ * artificially high (dangerous — it implied spendable money that was not earned
+ * recently). Dividing by the fixed window length fixes both: lumps are damped and
+ * quiet months pull the sustainable daily number down, which is the safe direction.
+ *
+ * When the entire window contains no income, this returns 0 so the caller falls
+ * back to the estimate / zero-setup path unchanged.
  *
  * **Validates: Requirements 1.1, new**
  */
@@ -130,7 +150,9 @@ export function computeSmoothedIncome(
   }
 
   // trailing_average strategy
-  const windowMonths = smoothing.windowMonths ?? 3
+  // Guard against a non-positive/undefined window; a window of at least 1 month
+  // keeps the divisor safe and, at windowMonths === 1, degrades to current-month.
+  const windowMonths = Math.max(1, Math.floor(smoothing.windowMonths ?? 3))
 
   // Build month prefixes for each month in the window (current month + previous months)
   const monthPrefixes: string[] = []
@@ -140,22 +162,23 @@ export function computeSmoothedIncome(
     monthPrefixes.push(prefix)
   }
 
-  // Sum income per month
-  const monthlyTotals: number[] = monthPrefixes.map(prefix =>
-    transactions
+  // Sum income across the whole window
+  const totalWindowIncome = monthPrefixes.reduce((windowSum, prefix) => {
+    const monthIncome = transactions
       .filter(t => t.type === 'income' && t.date.startsWith(prefix))
       .reduce((sum, t) => sum + t.amount, 0)
-  )
+    return windowSum + monthIncome
+  }, 0)
 
-  // Average only non-zero months to avoid dragging down the average
-  // when no data exists (e.g. first month of use)
-  const nonZeroTotals = monthlyTotals.filter(total => total > 0)
-
-  if (nonZeroTotals.length === 0) {
+  // No income anywhere in the window → let the caller fall back to estimate/zero-setup.
+  if (totalWindowIncome <= 0) {
     return 0
   }
 
-  return nonZeroTotals.reduce((sum, t) => sum + t, 0) / nonZeroTotals.length
+  // Spread the total across the fixed window length. Dividing by windowMonths
+  // (rather than only the months that had income) is what damps a single large
+  // paycheck and keeps the number stable day-to-day.
+  return totalWindowIncome / windowMonths
 }
 
 /**
@@ -255,6 +278,11 @@ export function computeSmoothedIncome(
  * @param carryoverEnabled - Optional flag to enable month-boundary savings carryover.
  *   When true and it's the first day of the month, computes leftover savings from the previous month.
  * @returns DailyAllowance object with amount, status, and message
+ *
+ * @pure This function is a pure function: given the same inputs it always
+ * produces the same output with no side effects, no internal Date.now() calls,
+ * and no dependency on external mutable state. The `currentDate` parameter must
+ * be passed explicitly by the caller to guarantee determinism across re-renders.
  */
 export function computeDailyAllowance(
   budgets: Budget[],

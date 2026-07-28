@@ -36,7 +36,15 @@ import { motion } from 'framer-motion'
 import { GradientMesh, type GradientMeshVariant } from './GradientMesh'
 import { useReducedMotion, springs, timings } from '@/lib/animations'
 
-/** The four primary destinations reachable from the dock. */
+/**
+ * App navigation keys.
+ *
+ * The primary dock exposes only `home`, `history`, and `settings` (a 3-tab
+ * dock per the simplification spec). `tools` remains a valid destination but is
+ * reached through progressive disclosure from the Settings screen rather than a
+ * dedicated dock tab (Requirement 9.5), so it is intentionally absent from the
+ * dock's `navItems`.
+ */
 export type AppNavKey = 'home' | 'history' | 'tools' | 'settings'
 
 export interface AppShellProps {
@@ -109,14 +117,6 @@ function SettingsIcon() {
   )
 }
 
-function ToolsIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z" />
-    </svg>
-  )
-}
-
 function PersonIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -140,14 +140,21 @@ export function AppShell({
 }: AppShellProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
+  // 3-tab primary dock: Home / History / Settings. Advanced features (the Tools
+  // surface, which includes Learn) are reached via progressive disclosure from
+  // the Settings screen, not a dedicated dock tab (Requirement 9.5).
   const navItems: NavItem[] = [
     { key: 'home', label: 'Home', icon: <HomeIcon /> },
     { key: 'history', label: 'History', icon: <HistoryIcon /> },
-    { key: 'tools', label: 'Tools', icon: <ToolsIcon /> },
     { key: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ]
 
   const handleSettingsTop = onOpenSettings ?? (() => onNavChange('settings'))
+
+  // The Tools surface has no dedicated dock tab; it is reached from Settings, so
+  // keep the Settings dock item highlighted while it is open. This preserves a
+  // valid `aria-current="page"` target and keyboard roving-tabindex focus.
+  const dockActiveNav: AppNavKey = activeNav === 'tools' ? 'settings' : activeNav
 
   return (
     <div className="app-shell">
@@ -211,7 +218,7 @@ export function AppShell({
           className="app-dock__list"
           onKeyDown={(e) => {
             const keys = navItems.map(n => n.key)
-            const currentIndex = keys.indexOf(activeNav)
+            const currentIndex = keys.indexOf(dockActiveNav)
             let nextIndex = -1
             if (e.key === "ArrowRight" || e.key === "ArrowDown") {
               e.preventDefault()
@@ -229,7 +236,7 @@ export function AppShell({
           }}
         >
           {navItems.map(({ key, label, icon }) => {
-            const isActive = activeNav === key
+            const isActive = dockActiveNav === key
             return (
               <li key={key} className="app-dock__item-wrap">
                 <motion.button

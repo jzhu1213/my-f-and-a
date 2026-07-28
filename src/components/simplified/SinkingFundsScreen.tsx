@@ -24,6 +24,7 @@ import {
   DOCK_PADDING_BOTTOM,
   sectionHeadingStrong,
   listRow,
+  borderRadius,
 } from "@/styles/shared"
 
 // ============================================================================
@@ -231,7 +232,7 @@ export function SinkingFundsScreen({
           style={{
             background: "rgba(255,255,255,0.06)",
             border: "1px solid var(--border)",
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             width: 36,
             height: 36,
             display: "flex",
@@ -539,7 +540,7 @@ function DisbursementSection({ onSetDisbursement }: DisbursementSectionProps) {
                 color: "#fff",
                 background: lumpSum <= 0 ? "rgba(255,255,255,0.06)" : "var(--success)",
                 border: "none",
-                borderRadius: 99,
+                borderRadius: borderRadius.full,
                 cursor: lumpSum <= 0 ? "not-allowed" : "pointer",
                 opacity: lumpSum <= 0 ? 0.5 : 1,
               }}
@@ -634,7 +635,7 @@ function FundRow({ fund, now, onEdit, onDelete }: FundRowProps) {
         style={{
           marginTop: 8,
           height: 4,
-          borderRadius: 99,
+          borderRadius: borderRadius.full,
           background: "rgba(255,255,255,0.08)",
           overflow: "hidden",
         }}
@@ -648,7 +649,7 @@ function FundRow({ fund, now, onEdit, onDelete }: FundRowProps) {
           style={{
             height: "100%",
             width: `${Math.round(progress * 100)}%`,
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             background: funded ? "var(--success)" : "var(--accent)",
             transition: "width 0.4s ease",
           }}
@@ -808,7 +809,7 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
                 transition={springs.snappy}
                 style={{
                   padding: "8px 14px",
-                  borderRadius: 99,
+                  borderRadius: borderRadius.full,
                   border: isActive ? "1.5px solid var(--success)" : "1px solid var(--border)",
                   background: isActive ? "rgba(6, 214, 160, 0.1)" : "rgba(0,0,0,0.15)",
                   color: isActive ? "var(--success)" : "var(--sub)",
@@ -853,7 +854,7 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
             color: "var(--text)",
             background: "rgba(255, 255, 255, 0.06)",
             border: "1px solid var(--border)",
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             cursor: "pointer",
           }}
           aria-label="Cancel"
@@ -874,7 +875,7 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
             color: "#fff",
             background: saving || !canSave ? "rgba(255,255,255,0.06)" : "var(--success)",
             border: "none",
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             cursor: saving || !canSave ? "not-allowed" : "pointer",
             opacity: saving || !canSave ? 0.5 : 1,
           }}

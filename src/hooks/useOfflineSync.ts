@@ -58,6 +58,18 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     }
   }, [userId, refresh])
 
+  // Retry pending items in the background as soon as connectivity returns.
+  // This is what clears the sync indicator after an offline write eventually
+  // succeeds. (Requirements 10.2, 10.4)
+  useEffect(() => {
+    if (!userId || typeof window === 'undefined') return
+    const handleOnline = () => {
+      processOfflineQueue(userId).then(() => refresh())
+    }
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
+  }, [userId, refresh])
+
   const retryAll = useCallback(async () => {
     if (!userId || isSyncing) return
     setIsSyncing(true)

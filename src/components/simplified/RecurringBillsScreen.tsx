@@ -14,6 +14,7 @@ import {
   DOCK_PADDING_BOTTOM,
   sectionHeadingStrong,
   listRow,
+  borderRadius,
 } from "@/styles/shared"
 
 // ============================================================================
@@ -192,7 +193,7 @@ export function RecurringBillsScreen({
           style={{
             background: "rgba(255,255,255,0.06)",
             border: "1px solid var(--border)",
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             width: 36,
             height: 36,
             display: "flex",
@@ -457,7 +458,7 @@ function BillForm({ form, setForm, onSave, onCancel, saving, isEdit }: BillFormP
                 transition={springs.snappy}
                 style={{
                   padding: "8px 14px",
-                  borderRadius: 99,
+                  borderRadius: borderRadius.full,
                   border: isActive ? "1.5px solid var(--success)" : "1px solid var(--border)",
                   background: isActive ? "rgba(6, 214, 160, 0.1)" : "rgba(0,0,0,0.15)",
                   color: isActive ? "var(--success)" : "var(--sub)",
@@ -491,7 +492,7 @@ function BillForm({ form, setForm, onSave, onCancel, saving, isEdit }: BillFormP
             color: "var(--text)",
             background: "rgba(255, 255, 255, 0.06)",
             border: "1px solid var(--border)",
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             cursor: "pointer",
           }}
           aria-label="Cancel"
@@ -514,7 +515,7 @@ function BillForm({ form, setForm, onSave, onCancel, saving, isEdit }: BillFormP
               ? "rgba(255,255,255,0.06)"
               : "var(--success)",
             border: "none",
-            borderRadius: 99,
+            borderRadius: borderRadius.full,
             cursor: saving || !form.label.trim() || form.amount <= 0 ? "not-allowed" : "pointer",
             opacity: saving || !form.label.trim() || form.amount <= 0 ? 0.5 : 1,
           }}

@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeadingStrong } from "@/styles/shared"
+import { sectionHeadingStrong, borderRadius, segmentedControl, segmentedButtonBase, segmentedButtonActive, segmentedButtonInactive } from "@/styles/shared"
 import {
   getReminderPreferences,
   setReminderPreferences,
@@ -181,12 +181,7 @@ export function DailyReminderSetting() {
           </p>
           <div
             style={{
-              display: "flex",
-              gap: 6,
-              padding: 4,
-              borderRadius: 12,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid var(--border)",
+              ...segmentedControl,
               marginBottom: 14,
             }}
           >
@@ -200,19 +195,10 @@ export function DailyReminderSetting() {
                   whileTap={{ scale: 0.97 }}
                   transition={springs.snappy}
                   style={{
-                    flex: 1,
+                    ...segmentedButtonBase,
+                    ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
                     padding: "9px 6px",
-                    borderRadius: 9,
-                    border: "none",
                     fontSize: 12,
-                    fontWeight: 500,
-                    fontFamily: FONT_FAMILY,
-                    cursor: "pointer",
-                    color: isActive ? "var(--text)" : "var(--muted)",
-                    background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
-                    boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
-                    transition: "background 0.2s, color 0.2s, box-shadow 0.2s",
-                    textAlign: "center",
                     lineHeight: 1.3,
                   }}
                   aria-pressed={isActive}
@@ -258,7 +244,7 @@ export function DailyReminderSetting() {
                 lineHeight: 1.5,
                 padding: "8px 12px",
                 background: "rgba(255,255,255,0.03)",
-                borderRadius: 8,
+                borderRadius: borderRadius.sm,
               }}
             >
               Notifications are blocked by your browser. The reminder will show as an in-app badge instead.

@@ -1,5 +1,5 @@
-import type { TransactionCategory } from '@/types'
-import type { ContextualTip } from '@/types/folio'
+import type { Transaction, TransactionCategory } from '@/types'
+import type { ContextualTip, DailyAllowance } from '@/types/folio'
 import { TIP_EMOJI, TIP_TITLES } from '@/lib/vocabulary'
 
 // ============================================================================
@@ -192,6 +192,69 @@ export interface UserContext {
   lumpIncomeSpikeAmount?: number
   /** The trailing-average monthly income used as baseline for spike detection. */
   lumpIncomeBaselineAverage?: number
+}
+
+/** Inputs required to derive a {@link UserContext} for tip selection. */
+export interface BuildUserContextParams {
+  /** All of the user's transactions (any order). */
+  transactions: Transaction[]
+  /** The computed daily allowance, or null while loading. */
+  allowance: DailyAllowance | null
+  /** Consecutive days under budget (already derived elsewhere). */
+  underBudgetStreak: number
+  /** Bills due within the next 3 days. */
+  upcomingBills?: { label: string; amount: number; dueDay: number }[]
+  /**
+   * The "today" date as a `YYYY-MM-DD` string. Injected so callers can memoize
+   * it once per render pass and keep this function pure/deterministic.
+   */
+  today: string
+}
+
+/**
+ * Derives the {@link UserContext} used to pick a contextual tip.
+ *
+ * This is a pure function: given the same inputs it always returns the same
+ * result and performs no I/O. It makes a single pass over `transactions` to
+ * accumulate today's spend-by-category (avoiding a separate filter + reduce),
+ * then derives the top category and today's spent percentage.
+ *
+ * Business logic lives here (per the Folio guidelines) rather than inline in
+ * the HomeScreen component body, and keeping it out of the component means it
+ * only re-runs when its memo dependencies actually change.
+ */
+export function buildUserContext(params: BuildUserContextParams): UserContext {
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today } = params
+
+  // Single pass: accumulate today's expense spend per category.
+  const categorySpend: Partial<Record<TransactionCategory, number>> = {}
+  let topCategory: TransactionCategory = 'food'
+  let topCategoryTotal = 0
+  for (const tx of transactions) {
+    if (tx.type !== 'expense' || !tx.date.startsWith(today)) continue
+    const next = (categorySpend[tx.category] ?? 0) + tx.amount
+    categorySpend[tx.category] = next
+    if (next > topCategoryTotal) {
+      topCategoryTotal = next
+      topCategory = tx.category
+    }
+  }
+
+  const dailyBudget = allowance?.dailyBudget ?? 0
+  const spentToday = allowance?.spentToday ?? 0
+  const todaySpentPercent = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0
+
+  return {
+    underBudgetStreak,
+    todaySpentPercent,
+    totalTransactions: transactions.length,
+    topCategory,
+    allowance: {
+      amount: allowance?.amount ?? 0,
+      dailyBudget,
+    },
+    upcomingBills,
+  }
 }
 
 /**

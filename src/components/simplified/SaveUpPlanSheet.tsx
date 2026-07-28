@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
+import { BottomSheet } from "@/components/ui/BottomSheet"
 import { GlassCard } from "@/components/ui/GlassCard"
 import {
   generateSaveUpScenarios,
@@ -10,6 +11,7 @@ import {
   DEFAULT_WEEKLY_RATES,
   type SaveUpScenario,
 } from "@/lib/saveUpPlanUtils"
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ============================================================================
 // Types
@@ -89,73 +91,34 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
   }, [onClose])
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={timings.fast}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-            background: "rgba(0, 0, 0, 0.5)",
-            backdropFilter: "blur(4px)",
-          }}
-          onClick={handleClose}
-          aria-label="Close save-up plan"
-        >
-          <motion.div
-            initial={{ y: prefersReducedMotion ? 0 : 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: prefersReducedMotion ? 0 : 40, opacity: 0 }}
-            transition={prefersReducedMotion ? timings.fast : springs.gentle}
-            onClick={(e) => e.stopPropagation()}
+    <BottomSheet isOpen={isOpen} onClose={handleClose} maxHeight="85vh" ariaLabel="Plan a big purchase">
+      <div style={{ padding: "0 20px 36px" }}>
+        {/* ── Header ──────────────────────────────────────────────── */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>
+            Plan a big purchase
+          </h2>
+          <motion.button
+            onClick={handleClose}
+            whileTap={{ scale: prefersReducedMotion ? 1 : 0.95 }}
+            transition={springs.snappy}
             style={{
-              width: "100%",
-              maxWidth: 480,
-              maxHeight: "85vh",
-              overflowY: "auto",
-              borderRadius: "20px 20px 0 0",
-              padding: "28px 20px 36px",
-              fontFamily: "Inter, sans-serif",
-              background: "var(--bg)",
-              borderTop: "1px solid var(--border)",
+              background: "none",
+              border: "none",
+              color: "var(--muted)",
+              cursor: "pointer",
+              fontSize: 22,
+              lineHeight: 1,
+              padding: 4,
             }}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Plan a big purchase"
+            aria-label="Close"
           >
-            {/* ── Header ──────────────────────────────────────────────── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>
-                Plan a big purchase
-              </h2>
-              <motion.button
-                onClick={handleClose}
-                whileTap={{ scale: prefersReducedMotion ? 1 : 0.95 }}
-                transition={springs.snappy}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "var(--muted)",
-                  cursor: "pointer",
-                  fontSize: 22,
-                  lineHeight: 1,
-                  padding: 4,
-                }}
-                aria-label="Close"
-              >
-                ×
-              </motion.button>
-            </div>
-            <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 24, lineHeight: 1.5 }}>
-              See how long it takes to save at different rates. No pressure — just a plan.
-            </p>
+            ×
+          </motion.button>
+        </div>
+        <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 24, lineHeight: 1.5 }}>
+          See how long it takes to save at different rates. No pressure — just a plan.
+        </p>
 
             {/* ── Target amount input ─────────────────────────────────── */}
             <label
@@ -172,7 +135,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                 width: "100%",
                 padding: "12px 14px",
                 fontSize: 15,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 color: "var(--text)",
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid var(--border)",
@@ -199,7 +162,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                 padding: "14px 16px",
                 fontSize: 22,
                 fontWeight: 600,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 color: "var(--text)",
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid var(--border)",
@@ -225,7 +188,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                 width: "100%",
                 padding: "12px 14px",
                 fontSize: 15,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 color: "var(--text)",
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid var(--border)",
@@ -280,7 +243,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                                 textAlign: "left",
                                 cursor: "pointer",
                                 padding: 0,
-                                fontFamily: "Inter, sans-serif",
+                                fontFamily: FONT_FAMILY,
                               }}
                               aria-label={formatScenarioTimeline(scenario)}
                               aria-pressed={isSelected}
@@ -330,7 +293,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                     padding: "14px 20px",
                     fontSize: 15,
                     fontWeight: 600,
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: FONT_FAMILY,
                     color: "#fff",
                     background: "var(--accent)",
                     border: "none",
@@ -346,9 +309,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                 </p>
               </motion.div>
             )}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      </div>
+    </BottomSheet>
   )
 }

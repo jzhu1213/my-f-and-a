@@ -4,13 +4,12 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import type { Transaction, Budget, Goal, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { CelebrationEvent } from "@/types/folio"
-import type { DailyAllowance, IncomeSmoothing, QuickTransaction } from "@/types/folio"
+import type { DailyAllowance } from "@/types/folio"
 import type { TransactionRepeat } from "@/lib/transactionUtils"
 import { getRecentRepeats } from "@/lib/transactionUtils"
 import { computeCategoryBudgets } from "@/lib/budgetUtils"
 import type { CategoryBudgetRow } from "@/lib/budgetUtils"
-import { selectContextualTip } from "@/lib/tipUtils"
-import type { UserContext } from "@/lib/tipUtils"
+import { buildUserContext, selectContextualTip } from "@/lib/tipUtils"
 import {
   shouldShowContextualContent,
   markSessionTipShown,
@@ -20,6 +19,7 @@ import {
 import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
 import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/vocabulary"
 import { recordLastActive } from "@/lib/reminderPreferences"
+import { getInsightsEnabled } from "@/lib/insightPreferences"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -33,7 +33,8 @@ import {
   emptyStateSubtitle,
   linkButton,
   chipButton,
-  pillButton,
+  borderRadius,
+  progressTrack,
 } from "@/styles/shared"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
 import { ContextualTipCard } from "./ContextualTipCard"
@@ -85,10 +86,10 @@ const CelebrationOverlay = dynamic(
  *   The user returns to the hero immediately.
  *
  * HOME SCREEN AS LAUNCHPAD:
- *   - Hero + quick actions + repeat chips are above the fold
- *   - Insight cards are collapsed by default (expandable toggle)
- *   - Contextual tip and no-spend challenge are disabled (commented out)
- *   - Monthly summary is collapsed by default
+ *   - Hero + quick actions own the first screenful (above the fold)
+ *   - OverBudgetStrip is contextual to hero, stays above fold when shown
+ *   - Log Again repeats, insights, category cards are below the fold
+ *   - Contextual tip is opt-in via Settings → Preferences → "Show daily insight"
  *   - No infinite scroll or feed patterns
  * ─────────────────────────────────────────────────────────────────────────────
  */
@@ -145,7 +146,7 @@ function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
         gap: 12,
         background: 'rgba(248, 113, 113, 0.06)',
         border: '1px solid rgba(248, 113, 113, 0.18)',
-        borderRadius: 12,
+        borderRadius: borderRadius.md,
         padding: '12px 16px',
       }}
     >
@@ -172,9 +173,9 @@ function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
           flexShrink: 0,
           background: 'rgba(248, 113, 113, 0.12)',
           border: '1px solid rgba(248, 113, 113, 0.30)',
-          borderRadius: 999,
+          borderRadius: borderRadius.full,
           padding: '7px 14px',
-          color: '#f87171',
+          color: 'var(--error)',
           fontSize: 13,
           fontWeight: 500,
           fontFamily: FONT_FAMILY,
@@ -253,9 +254,16 @@ export interface HomeScreenProps {
  * background, glass top bar, and floating dock). This component is a single
  * scrollable column with comfortable spacing:
  *
- *   Hero → Quick Actions → Category Budget Cards → Recent Transactions → Monthly Summary
+ *   ── ABOVE THE FOLD (first screenful) ──
+ *   Hero (DailyAllowanceHero + contextual indicators)
+ *   OverBudgetStrip (when applicable)
+ *   Quick Actions (Log expense / Log income)
  *
- * Each section is scaffolded here and will be enhanced in tasks 10.2–10.7.
+ *   ── BELOW THE FOLD (scroll to see) ──
+ *   Log Again Repeats
+ *   WelcomeBackBadge
+ *   Category Budget Cards
+ *   Recent Transactions
  *
  * Requirements: 9.1, 8.1, 8.4
  */
@@ -328,9 +336,22 @@ export function HomeScreen({
     }
   })
 
+  // ── Insights opt-in preference ──────────────────────────────────────────
+  const [insightsEnabled] = useState(() => getInsightsEnabled())
+
   // ── Derived data ──────────────────────────────────────────────────────────
-  const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
-  const recentTransactions = transactions.slice(0, 5)
+  // Compute the current month + today's date once per mount rather than on
+  // every render (these are stable for the duration of a session). Deriving
+  // them here keeps the dependent memos from re-running on unrelated state
+  // changes (opening a sheet, celebrations, inline edits, tip dismissals).
+  const { currentMonth, todayStr } = useMemo(() => {
+    const iso = new Date().toISOString()
+    return { currentMonth: iso.slice(0, 7), todayStr: iso.slice(0, 10) }
+  }, [])
+
+  // Only the 5 most recent transactions are rendered; recompute this slice only
+  // when the transactions array itself changes, not on every render.
+  const recentTransactions = useMemo(() => transactions.slice(0, 5), [transactions])
 
   // ── Category budget rows (sorted) ────────────────────────────────────────
   const categoryRows = useMemo(() => {
@@ -362,38 +383,19 @@ export function HomeScreen({
   )
 
   // ── Contextual tip selection (simplified — many advanced features removed) ──────────────────────────────────────────────
-  const userContext = useMemo((): UserContext => {
-    const todayStr = new Date().toISOString().slice(0, 10)
-    const todayTxs = transactions.filter(
-      (t) => t.date.startsWith(todayStr) && t.type === "expense"
-    )
-
-    // Derive top category from today's expenses, default to "food"
-    const categorySpend: Partial<Record<TransactionCategory, number>> = {}
-    for (const tx of todayTxs) {
-      categorySpend[tx.category] = (categorySpend[tx.category] ?? 0) + tx.amount
-    }
-    const topCategory: TransactionCategory =
-      (Object.entries(categorySpend).sort(
-        ([, a], [, b]) => (b as number) - (a as number)
-      )[0]?.[0] as TransactionCategory) ?? "food"
-
-    const dailyBudget = allowance?.dailyBudget ?? 0
-    const spentToday = allowance?.spentToday ?? 0
-    const todaySpentPercent = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0
-
-    return {
-      underBudgetStreak,
-      todaySpentPercent,
-      totalTransactions: transactions.length,
-      topCategory,
-      allowance: {
-        amount: allowance?.amount ?? 0,
-        dailyBudget,
-      },
-      upcomingBills,
-    }
-  }, [transactions, allowance, underBudgetStreak, upcomingBills])
+  // Heavy derivation lives in a pure lib function (buildUserContext); the memo
+  // only re-runs when its inputs actually change.
+  const userContext = useMemo(
+    () =>
+      buildUserContext({
+        transactions,
+        allowance,
+        underBudgetStreak,
+        upcomingBills,
+        today: todayStr,
+      }),
+    [transactions, allowance, underBudgetStreak, upcomingBills, todayStr]
+  )
 
   const activeTip = useMemo(
     () => {
@@ -533,10 +535,147 @@ export function HomeScreen({
           display: "flex",
           flexDirection: "column",
           gap: 28,
-          paddingTop: 16,
+          paddingTop: 24,
           paddingBottom: DOCK_PADDING_BOTTOM,
         }}
       >
+        {/* ══════════════════════════════════════════════════════════════════
+            AUDIT: Hero Secondary Elements (task 78.1)
+            ─────────────────────────────────────────────────────────────────
+            All conditional elements below <DailyAllowanceHero>:
+
+            ┌─────────────────────────────────────────────────────────────────┐
+            │ #  Element                     Condition             Position   │
+            ├─────────────────────────────────────────────────────────────────┤
+            │ 1  "New day" micro-celebration  showNewDayRefresh     marginTop │
+            │    (task 74)                    (first open of new    10px,     │
+            │                                 calendar day, auto-   centered  │
+            │                                 dismiss after 2.5s)   12px font │
+            │                                                                 │
+            │ 2  Estimated-budget explainer   allowance.isEstimated marginTop │
+            │    + "Want a more accurate      === true              10px,     │
+            │    number?" CTA                 (!isLoading)          padding   │
+            │                                                       12px 16px │
+            │                                                       bg purple │
+            │                                                       0.08      │
+            │                                                                 │
+            │ 3  "Spent today" stat           !allowance.isEstimated marginTop│
+            │                                 (!isLoading)           10px,    │
+            │                                                        12px,   │
+            │                                                        opacity │
+            │                                                        0.75    │
+            │                                                                 │
+            │ 4  OverBudgetStrip (task 70.3)  allowance.status ===  After    │
+            │    "Tomorrow resets" + Log      'over' (!isLoading)   </section>│
+            │    income CTA                                         own block │
+            │                                                                 │
+            │ 5a Log expense button           ALWAYS                Quick     │
+            │ 5b Log income button            ALWAYS                Actions   │
+            │ 5c "Can I afford this?" button  ALWAYS                section   │
+            └─────────────────────────────────────────────────────────────────┘
+
+            MUTUAL EXCLUSIVITY:
+            • Elements 2 & 3 are mutually exclusive (isEstimated XOR !isEstimated)
+            • Element 4 can only co-occur with 3 (estimated users can't go "over")
+
+            CO-OCCURRENCE:
+            • Element 1 (new day) can appear with either 2 or 3
+            • Element 5 (quick actions) ALWAYS renders regardless of other state
+
+            WORST-CASE VERTICAL STACK (max density):
+            Hero → New day text → Spent today stat → OverBudgetStrip →
+            Quick Actions (Log expense + Log income row + Can I afford pill)
+            = GlassCard + 3 info elements + strip + 3 buttons
+
+            PLANNED BUT NOT YET RENDERED:
+            • safe-spend-per-day badge (task 51.2) — DailyAllowance type ready
+            • income-smoothing stability badge (task 68.3) — config in Settings
+            • reserved-for-bills notice — DailyAllowance.reservedForBills computed
+              but never displayed on HomeScreen
+
+            These planned elements would increase worst-case stacking further.
+            Simplification (task 78+) aims to consolidate into a single
+            contextual secondary line below the hero number.
+
+            Validates: Requirements 2.1, 2.3
+
+            ═══════════════════════════════════════════════════════════════════
+            DESIGN DECISION: Cleaner Hero Layout (task 78.2)
+            ─────────────────────────────────────────────────────────────────
+            CHOSEN DIRECTION: Option (c) + (d) combined
+            ─────────────────────────────────────────────────────────────────
+
+            GOAL: Reduce vertical stacking below the hero so the above-the-fold
+            content feels like "Hero → (1 contextual line) → Quick Actions"
+            instead of the current "Hero → 3–4 distinct blocks → Quick Actions".
+
+            CHANGES (to be implemented in task 78.3):
+
+            1. REMOVE "Can I afford this?" from quick actions section.
+               - It's a tertiary action adding a full-width pill with its own
+                 border and color scheme — heavy visual weight for an infrequent
+                 action.
+               - RELOCATE: Move to a subtle text link BELOW the two primary
+                 quick action buttons (same row, smaller size, no border/fill).
+                 Format: "🤔 Can I afford this?" as a plain 12px link-style
+                 button centered under the Log expense / Log income row.
+               - This keeps it accessible and discoverable but visually quiet.
+
+            2. REMOVE standalone "Spent today: $X" line.
+               - This stat is already visible inside the hero breakdown (tap to
+                 reveal). Showing it redundantly adds an extra visual block.
+               - The hero ring + dollar amount already conveys spending progress.
+               - CHANGE: Remove the standalone <p> element entirely. Users who
+                 want the number can tap the hero for the full breakdown.
+
+            3. KEEP estimated-budget explainer but COMPACT it.
+               - Reduce padding from 12px 16px → 8px 14px
+               - Reduce font size from 13px → 12px
+               - Remove the separate <button> element; make the entire block
+                 tappable (onClick={onLogIncome} on the container) with an
+                 inline "→" affordance instead of a separate underlined link.
+               - Net: same info, ~40% less vertical space.
+
+            4. KEEP OverBudgetStrip but REDUCE gap between hero and strip.
+               - Remove the extra section gap (currently 28px from flex gap).
+               - Move OverBudgetStrip INSIDE the hero <section> so it shares
+                 the hero's visual group with only 10px margin-top.
+               - This makes it feel like a "status extension" of the hero rather
+                 than a separate distinct block.
+
+            5. "New day" text UNCHANGED (already ephemeral — auto-dismisses
+               after 2.5s, so it contributes no permanent clutter).
+
+            RESULTING VISUAL HIERARCHY (above the fold):
+
+            ┌──────────────────────────────────────────────────────────────┐
+            │  DailyAllowanceHero (glass card, ring, big number)          │
+            │    └─ [optional, 2.5s] "☀️ Fresh start" (12px, centered)   │
+            │    └─ [if estimated] Compact explainer (12px, tappable)     │
+            │    └─ [if over] OverBudgetStrip (tight to hero, no gap)     │
+            ├──────────────────────────────────────────────────────────────┤
+            │  Quick Actions                                               │
+            │    [══ Log expense ══]  [Log income]   ← 2 primary buttons  │
+            │         🤔 Can I afford this?          ← 12px text link     │
+            └──────────────────────────────────────────────────────────────┘
+
+            NET RESULT:
+            • Worst-case above-fold: Hero + 1 contextual element + 2 buttons
+              + 1 subtle text link (vs. current 3 blocks + 3 buttons)
+            • Removed visual elements: 1 full-width bordered pill, 1 standalone
+              stat line
+            • Visual weight reduction: ~35% less secondary chrome above fold
+            • Zero functionality removed — everything is still reachable
+
+            CONSTRAINTS RESPECTED:
+            ✓ Hero number stays dominant (largest element, untouched)
+            ✓ No functionality removed (affordability moved, not deleted)
+            ✓ Warm design language maintained (glass surfaces, Inter, purple)
+            ✓ Mobile-first / thumb-friendly (primary buttons stay large)
+            ✓ "Radical simplicity" + "clean uncluttered home canvas"
+
+            Validates: Requirements 8.1, 8.4
+            ══════════════════════════════════════════════════════════════════ */}
         {/* ── 1. Hero: Daily Allowance ────────────────────────────── */}
         <section aria-label="Daily allowance" style={{ position: "relative" }}>
           {/* Stale data indicator — only shown when cache is outdated */}
@@ -610,74 +749,40 @@ export function HomeScreen({
             )}
           </AnimatePresence>
           {!isLoading && allowance && allowance.isEstimated && (
-            <motion.div
+            <motion.button
+              type="button"
+              onClick={onLogIncome}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
-              style={{
-                fontSize: 13,
-                color: "var(--sub)",
-                textAlign: "center",
-                fontFamily: FONT_FAMILY,
-                marginTop: 10,
-                padding: "12px 16px",
-                background: "rgba(167, 139, 250, 0.08)",
-                borderRadius: 12,
-                lineHeight: 1.5,
-              }}
-              aria-label="This is an estimated daily budget. Tap to personalize it."
-            >
-              <p style={{ margin: 0, fontSize: 13, opacity: 0.95 }}>
-                ✨ This is a starting estimate — no setup needed
-              </p>
-              <button
-                type="button"
-                onClick={onLogIncome}
-                style={{
-                  marginTop: 8,
-                  fontSize: 12,
-                  color: "var(--accent)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  textUnderlineOffset: "2px",
-                  fontFamily: FONT_FAMILY,
-                }}
-                aria-label="Set your income for a more accurate daily budget"
-              >
-                Want a more accurate number? Log your income →
-              </button>
-            </motion.div>
-          )}
-          {!isLoading && allowance && !allowance.isEstimated && (
-            <p
-              role="status"
-              aria-live="polite"
               style={{
                 fontSize: 12,
                 color: "var(--sub)",
                 textAlign: "center",
                 fontFamily: FONT_FAMILY,
                 marginTop: 10,
-                opacity: 0.75,
+                padding: "8px 14px",
+                background: "rgba(167, 139, 250, 0.08)",
+                borderRadius: borderRadius.md,
+                lineHeight: 1.5,
+                border: "none",
+                cursor: "pointer",
+                width: "100%",
               }}
-              aria-label={`Spent today: $${Math.round(allowance.spentToday)}`}
+              aria-label="Estimated budget — tap to log income for a more accurate daily budget"
             >
-              Spent today: ${Math.round(allowance.spentToday)}
-            </p>
+              ✨ Estimated — tap to log income for accuracy →
+            </motion.button>
           )}
+          {/* ── Over-budget strip (task 70.3) — inside hero section ───── */}
+          <AnimatePresence>
+            {!isLoading && allowance?.status === 'over' && (
+              <div style={{ marginTop: 10 }}>
+                <OverBudgetStrip onLogIncome={onLogIncome} />
+              </div>
+            )}
+          </AnimatePresence>
         </section>
-
-        {/* ── 1.4. Welcome-back badge (task 77) ────────────────── */}
-        <WelcomeBackBadge />
-
-        {/* ── 1.5. Over-budget "what's next" strip (task 70.3) ───── */}
-        <AnimatePresence>
-          {!isLoading && allowance?.status === 'over' && (
-            <OverBudgetStrip onLogIncome={onLogIncome} />
-          )}
-        </AnimatePresence>
 
         {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}
         <section aria-label="Quick actions">
@@ -692,7 +797,7 @@ export function HomeScreen({
                 flex: 1.6,
                 background: "linear-gradient(135deg, #a78bfa 0%, #7c3aed 50%, #6d28d9 100%)",
                 border: "none",
-                borderRadius: 99,
+                borderRadius: borderRadius.full,
                 padding: "18px 24px",
                 color: "#fff",
                 fontSize: 16,
@@ -716,7 +821,7 @@ export function HomeScreen({
                 flex: 1,
                 background: "transparent",
                 border: "1.5px solid rgba(74, 222, 128, 0.4)",
-                borderRadius: 99,
+                borderRadius: borderRadius.full,
                 padding: "16px 20px",
                 color: "var(--success)",
                 fontSize: 15,
@@ -729,7 +834,54 @@ export function HomeScreen({
               Log income
             </motion.button>
           </div>
+
+          {/* Tertiary: Can I afford this? — subtle text link below primary buttons */}
+          <button
+            type="button"
+            onClick={() => setShowAffordabilitySheet(true)}
+            aria-label="Check if you can afford something"
+            style={{
+              fontSize: 13,
+              color: 'var(--sub)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: FONT_FAMILY,
+              opacity: 0.7,
+              marginTop: 8,
+              textAlign: 'center',
+              width: '100%',
+            }}
+          >
+            🤔 Can I afford this?
+          </button>
         </section>
+
+        {/* ══════════════════════════════════════════════════════════
+            ── BELOW THE FOLD ──────────────────────────────────────────
+            Everything below this spacer requires scrolling on typical
+            mobile viewports (667–812px). The hero + quick actions fill
+            the first screenful comfortably.
+            ══════════════════════════════════════════════════════════ */}
+        <div
+          aria-hidden="true"
+          style={{
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Subtle scroll affordance — a soft divider line */}
+          <div
+            style={{
+              width: 40,
+              height: 3,
+              borderRadius: 2,
+              background: 'rgba(255, 255, 255, 0.08)',
+            }}
+          />
+        </div>
 
         {/* ── 2.5. Log Again — Quick Repeat (max 3 items for cleanliness) ────────────────────── */}
         {repeats.length > 0 && (
@@ -767,6 +919,21 @@ export function HomeScreen({
           </section>
         )}
 
+        {/* ── 2.6. Welcome-back badge (task 77) — below fold ───── */}
+        <WelcomeBackBadge />
+
+        {/* ── 2.7. Contextual Insight (opt-in, at most one) ─────── */}
+        <AnimatePresence>
+          {insightsEnabled && activeTip && (
+            <ContextualTipCard
+              tip={activeTip}
+              onDismiss={handleDismissTip}
+              onLearnMore={() => {}}
+              onActionComplete={() => {}}
+            />
+          )}
+        </AnimatePresence>
+
         {/* ── 3. Category Budget Cards (top 4 only for cleanliness) ────────────────────────────── */}
         <section aria-label="Budget categories">
           <div
@@ -801,7 +968,7 @@ export function HomeScreen({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
-              <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: 14 }}>
+              <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: borderRadius.lg }}>
                 <div style={emptyStateContainer}>
                   <span style={{ fontSize: 32 }} aria-hidden="true">🎯</span>
                   <p style={emptyStateTitle}>
@@ -847,7 +1014,7 @@ export function HomeScreen({
                       elevation="low"
                       style={{
                         padding: "14px",
-                        borderRadius: 14,
+                        borderRadius: borderRadius.lg,
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
@@ -874,11 +1041,7 @@ export function HomeScreen({
                         <>
                           <div
                             style={{
-                              width: "100%",
-                              height: 4,
-                              borderRadius: 2,
-                              background: "rgba(255,255,255,0.08)",
-                              overflow: "hidden",
+                              ...progressTrack,
                               marginTop: 2,
                             }}
                           >
@@ -974,7 +1137,7 @@ export function HomeScreen({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
-              <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: 14 }}>
+              <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: borderRadius.lg }}>
                 <div style={emptyStateContainer}>
                   <span style={{ fontSize: 32 }} aria-hidden="true">✨</span>
                   <p style={emptyStateTitle}>
@@ -987,7 +1150,7 @@ export function HomeScreen({
               </GlassCard>
             </motion.div>
           ) : (
-            <GlassCard elevation="low" style={{ padding: "12px 0", borderRadius: 14 }}>
+            <GlassCard elevation="low" style={{ padding: "12px 0", borderRadius: borderRadius.lg }}>
               {(() => {
                 // Group transactions by date
                 const grouped: { date: string; txs: Transaction[] }[] = []

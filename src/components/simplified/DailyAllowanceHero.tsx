@@ -278,6 +278,7 @@ export function DailyAllowanceHero({
   onTapForDetails,
 }: DailyAllowanceHeroProps) {
   const [showBreakdown, setShowBreakdown] = useState(false)
+  const [showExplainer, setShowExplainer] = useState(false)
   const { prefersReducedMotion, listContainer, listItem } = useReducedMotion()
 
   // Determine status and message
@@ -484,6 +485,71 @@ export function DailyAllowanceHero({
                   </motion.div>
                 ))}
               </motion.div>
+
+              {/* "How is this calculated?" explainer toggle */}
+              <div className="flex justify-center mt-2 mb-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowExplainer((prev) => !prev)
+                  }}
+                  className="text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20 rounded px-2 py-1"
+                  style={{
+                    color: "var(--sub)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    opacity: 0.8,
+                    textDecoration: "underline",
+                    textDecorationStyle: "dotted",
+                    textUnderlineOffset: "3px",
+                  }}
+                  aria-label="How is this calculated? Toggle formula explanation"
+                  aria-expanded={showExplainer}
+                >
+                  {showExplainer ? "Hide formula" : "How is this calculated?"}
+                </button>
+              </div>
+
+              {/* Explainer content */}
+              <AnimatePresence>
+                {showExplainer && (
+                  <motion.div
+                    className="mt-1"
+                    style={{
+                      background: "rgba(255,255,255,0.02)",
+                      borderRadius: "var(--radius-md)",
+                      padding: "12px 14px",
+                      border: "1px solid var(--border)",
+                    }}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={prefersReducedMotion ? timings.fast : timings.normal}
+                    role="region"
+                    aria-label="Daily allowance formula explanation"
+                  >
+                    <ol
+                      className="flex flex-col gap-2 text-xs"
+                      style={{ color: "var(--sub)", margin: 0, paddingLeft: 16 }}
+                    >
+                      <li>
+                        <strong style={{ color: "var(--text)" }}>Daily budget</strong> = (monthly income − fixed bills) ÷ days in month
+                      </li>
+                      <li>
+                        <strong style={{ color: "var(--text)" }}>Rollover</strong> = what you saved or overspent from previous days (capped at ±2 days)
+                      </li>
+                      <li>
+                        <strong style={{ color: "var(--text)" }}>Today&apos;s allowance</strong> = daily budget + rollover − spent today
+                      </li>
+                      <li>
+                        The number is always $0 or more — if you overspend, tomorrow resets.
+                      </li>
+                    </ol>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>

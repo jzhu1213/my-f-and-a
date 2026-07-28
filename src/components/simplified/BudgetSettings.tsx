@@ -7,6 +7,8 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { isCategoryRolloverEnabled, setCategoryRolloverEnabled } from "@/lib/budgetUtils"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, TransactionCategory } from "@/types"
+import { FONT_FAMILY } from "@/styles/typography"
+import { borderRadius } from "@/styles/shared"
 
 // ============================================================================
 // Types
@@ -197,7 +199,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
         maxWidth: 560,
         margin: "0 auto",
         padding: "0 20px",
-        fontFamily: "Inter, sans-serif",
+        fontFamily: FONT_FAMILY,
       }}
     >
       {/* ── Back Button ────────────────────────────────────────────────────── */}
@@ -215,7 +217,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
             border: "none",
             color: "var(--muted)",
             cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
             fontSize: 14,
           }}
         >
@@ -233,7 +235,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
             fontSize: 13,
             color: "var(--muted)",
             marginBottom: 8,
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
             letterSpacing: "0.02em",
           }}
         >
@@ -244,7 +246,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
             fontSize: 32,
             fontWeight: 700,
             color: "var(--text)",
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
             lineHeight: 1.1,
           }}
         >
@@ -258,7 +260,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
             fontSize: 14,
             color: "var(--sub)",
             marginTop: 6,
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
           }}
         >
           ≈ ${dailyBudget.toFixed(0)}/day
@@ -272,7 +274,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
             style={{
               fontSize: 13,
               color: "var(--muted)",
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
               letterSpacing: "0.02em",
             }}
           >
@@ -303,7 +305,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                   border: "none",
                   borderBottom: "1px solid var(--border)",
                   cursor: "pointer",
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: FONT_FAMILY,
                   textAlign: "left",
                 }}
                 aria-expanded={isExpanded}
@@ -380,7 +382,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                             justifyContent: "center",
                             background: limit > SLIDER_MIN ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
                             border: "1px solid var(--border)",
-                            borderRadius: 8,
+                            borderRadius: borderRadius.sm,
                             cursor: limit > SLIDER_MIN ? "pointer" : "not-allowed",
                             color: limit > SLIDER_MIN ? "var(--text)" : "var(--muted)",
                             fontSize: 18,
@@ -397,7 +399,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                               fontSize: 24,
                               fontWeight: 700,
                               color: "var(--text)",
-                              fontFamily: "Inter, sans-serif",
+                              fontFamily: FONT_FAMILY,
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
@@ -421,7 +423,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                             justifyContent: "center",
                             background: limit < SLIDER_MAX ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
                             border: "1px solid var(--border)",
-                            borderRadius: 8,
+                            borderRadius: borderRadius.sm,
                             cursor: limit < SLIDER_MAX ? "pointer" : "not-allowed",
                             color: limit < SLIDER_MAX ? "var(--text)" : "var(--muted)",
                             fontSize: 18,
@@ -464,7 +466,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                           marginTop: 8,
                           fontSize: 11,
                           color: "var(--muted)",
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: FONT_FAMILY,
                         }}
                       >
                         <span>$0</span>
@@ -479,7 +481,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                           marginTop: 14,
                           fontSize: 13,
                           color: "var(--sub)",
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: FONT_FAMILY,
                         }}
                       >
                         <span>≈ ${weeklyEquiv.toFixed(0)}/week</span>
@@ -495,11 +497,11 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                           marginTop: 14,
                           padding: "8px 14px",
                           fontSize: 12,
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: FONT_FAMILY,
                           color: "var(--error)",
                           background: "rgba(248, 113, 113, 0.08)",
                           border: "1px solid rgba(248, 113, 113, 0.2)",
-                          borderRadius: 8,
+                          borderRadius: borderRadius.sm,
                           cursor: "pointer",
                           fontWeight: 500,
                         }}
@@ -527,12 +529,12 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
             width: "100%",
             padding: "14px 20px",
             fontSize: 14,
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
             fontWeight: 500,
             color: "var(--sub)",
             background: "rgba(255,255,255,0.03)",
             border: "1px solid var(--border)",
-            borderRadius: 12,
+            borderRadius: borderRadius.md,
             cursor: "pointer",
             textAlign: "center",
             marginBottom: 40,
@@ -547,7 +549,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
             style={{
               fontSize: 14,
               color: "var(--text)",
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
               marginBottom: 12,
             }}
           >
@@ -562,12 +564,12 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                 flex: 1,
                 padding: "10px 16px",
                 fontSize: 13,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 fontWeight: 500,
                 color: "var(--sub)",
                 background: "rgba(255,255,255,0.03)",
                 border: "1px solid var(--border)",
-                borderRadius: 8,
+                borderRadius: borderRadius.sm,
                 cursor: "pointer",
               }}
             >
@@ -581,12 +583,12 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                 flex: 1,
                 padding: "10px 16px",
                 fontSize: 13,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: FONT_FAMILY,
                 fontWeight: 500,
                 color: "var(--text)",
                 background: "var(--accent)",
                 border: "1px solid var(--accent)",
-                borderRadius: 8,
+                borderRadius: borderRadius.sm,
                 cursor: "pointer",
               }}
             >
@@ -611,7 +613,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
               fontSize: 14,
               fontWeight: 500,
               color: "var(--text)",
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
             }}
           >
             Roll unused budget to next week
@@ -649,7 +651,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                 left: 0,
                 width: 24,
                 height: 24,
-                borderRadius: 12,
+                borderRadius: borderRadius.md,
                 background: "#fff",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
               }}
@@ -662,7 +664,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
             fontSize: 12,
             color: "var(--sub)",
             lineHeight: 1.5,
-            fontFamily: "Inter, sans-serif",
+            fontFamily: FONT_FAMILY,
           }}
         >
           Unspent category budget carries over (up to 50%)
@@ -674,10 +676,10 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
               fontSize: 12,
               color: "var(--muted)",
               lineHeight: 1.5,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: FONT_FAMILY,
               marginTop: 8,
               padding: "8px 12px",
-              borderRadius: 8,
+              borderRadius: borderRadius.sm,
               background: "rgba(255,255,255,0.03)",
               border: "1px solid var(--border)",
             }}

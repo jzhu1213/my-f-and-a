@@ -7,6 +7,7 @@ import type { TutorialStep } from './OnboardingTutorial'
 import type { BudgetPreset, OnboardingResult } from '@/types/folio'
 import type { TransactionCategory } from '@/types'
 import { getCategoryEmoji, PRESET_EMOJI } from '@/lib/vocabulary'
+import { borderRadius } from '@/styles/shared'
 
 // ============================================================================
 // Step Definitions
@@ -137,7 +138,7 @@ function TryLogExpense({ onComplete }: { onComplete: () => void }) {
               aria-label={`Amount: ${amt}`}
               style={{
                 padding: '10px 20px',
-                borderRadius: 99,
+                borderRadius: borderRadius.full,
                 background: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 color: 'var(--text)',
@@ -207,7 +208,7 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
             fontSize: 38,
             fontFamily: 'Inter, sans-serif',
             fontWeight: 700,
-            color: '#4ade80',
+            color: 'var(--success)',
           }}
         >
           $42

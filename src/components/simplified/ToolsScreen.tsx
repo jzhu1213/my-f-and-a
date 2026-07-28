@@ -21,6 +21,13 @@ export interface ToolsScreenProps {
   onOpenSinkingFunds?: () => void
   onOpenLearn?: () => void
   onOpenSavingsProjections?: () => void
+  onOpenDebt?: () => void
+  onOpenRecurringBills?: () => void
+  onOpenReimbursements?: () => void
+  /** Display-only: total set-aside amount this month */
+  totalSetAside?: number
+  /** Display-only: savings rate percentage */
+  savingsRate?: number
 }
 
 // ============================================================================
@@ -53,28 +60,33 @@ export function ToolsScreen({
   onOpenSinkingFunds,
   onOpenLearn,
   onOpenSavingsProjections,
+  onOpenDebt,
+  onOpenRecurringBills,
+  onOpenReimbursements,
+  totalSetAside,
+  savingsRate,
 }: ToolsScreenProps) {
   const tools: ToolItem[] = [
     {
-      id: "compound-growth",
-      emoji: "📈",
-      title: "Compound Growth Calculator",
-      description: "See how your savings could grow over time with compound interest.",
-      onOpen: onOpenCompoundGrowth,
-    },
-    {
-      id: "credit-payoff",
+      id: "debt",
       emoji: "💳",
-      title: "Credit Payoff Calculator",
-      description: "Plan how to pay off credit card debt faster.",
-      onOpen: onOpenCreditPayoff,
+      title: "Debt Tracking",
+      description: "Track balances, APRs, and payoff timelines for your debts.",
+      onOpen: onOpenDebt,
     },
     {
-      id: "subscriptions",
-      emoji: "🔄",
-      title: "Subscription Audit",
-      description: "Review detected recurring charges and decide what's worth keeping.",
-      onOpen: onOpenSubscriptions,
+      id: "recurring-bills",
+      emoji: "📅",
+      title: "Recurring Bills",
+      description: "Track your monthly fixed costs like rent, subscriptions, and utilities.",
+      onOpen: onOpenRecurringBills,
+    },
+    {
+      id: "reimbursements",
+      emoji: "🤝",
+      title: "IOUs & Reimbursements",
+      description: "Track money friends owe you — or that you owe them.",
+      onOpen: onOpenReimbursements,
     },
     {
       id: "sinking-funds",
@@ -84,11 +96,32 @@ export function ToolsScreen({
       onOpen: onOpenSinkingFunds,
     },
     {
+      id: "subscriptions",
+      emoji: "🔄",
+      title: "Subscription Audit",
+      description: "Review detected recurring charges and decide what's worth keeping.",
+      onOpen: onOpenSubscriptions,
+    },
+    {
       id: "savings-projections",
       emoji: "🏦",
       title: "Savings Projections",
       description: "Project how your savings accounts and investments might grow.",
       onOpen: onOpenSavingsProjections,
+    },
+    {
+      id: "compound-growth",
+      emoji: "📈",
+      title: "Compound Growth Calculator",
+      description: "See how your savings could grow over time with compound interest.",
+      onOpen: onOpenCompoundGrowth,
+    },
+    {
+      id: "credit-payoff",
+      emoji: "💰",
+      title: "Credit Payoff Calculator",
+      description: "Plan how to pay off credit card debt faster.",
+      onOpen: onOpenCreditPayoff,
     },
     {
       id: "learn",
@@ -117,7 +150,7 @@ export function ToolsScreen({
           marginBottom: 8,
         }}
       >
-        Tools & Calculators
+        More & Tools
       </h2>
       <p
         style={{
@@ -127,8 +160,44 @@ export function ToolsScreen({
           lineHeight: 1.5,
         }}
       >
-        Advanced tools for when you want to dig deeper into your finances.
+        Advanced features, calculators, and tracking tools.
       </p>
+
+      {/* ── Stat Cards (Set Aside / Savings Rate) ──────────────────────── */}
+      {((totalSetAside ?? 0) > 0 || (savingsRate ?? 0) > 0) && (
+        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+          {(totalSetAside ?? 0) > 0 && (
+            <GlassCard elevation="low" style={{ padding: "14px 16px", flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 18 }} aria-hidden="true">🏦</span>
+                <div>
+                  <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2 }}>
+                    Set aside this month
+                  </p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+                    ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          )}
+          {(savingsRate ?? 0) > 0 && (
+            <GlassCard elevation="low" style={{ padding: "14px 16px", flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 18 }} aria-hidden="true">💪</span>
+                <div>
+                  <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2 }}>
+                    Savings rate
+                  </p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
+                    {savingsRate}%
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          )}
+        </div>
+      )}
 
       {/* ── Tool Cards ─────────────────────────────────────────────────── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

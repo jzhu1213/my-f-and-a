@@ -1,9 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
+import { BottomSheet } from "@/components/ui/BottomSheet"
 import type { Goal } from "@/types"
+import { FONT_FAMILY } from "@/styles/typography"
+import { borderRadius } from "@/styles/shared"
 
 // ============================================================================
 // Config
@@ -116,74 +119,15 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
     : 0
   const remaining = displayGoal ? Math.max(0, displayGoal.targetAmount - displayGoal.currentAmount) : 0
 
-  // ── Animation variants (shared language with ExpenseSheet/IncomeSheet) ──
-  const sheetVariants = prefersReducedMotion
-    ? {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: timings.fast },
-        exit: { opacity: 0, transition: timings.fast },
-      }
-    : {
-        hidden: { y: "100%" },
-        visible: { y: 0, transition: springs.gentle },
-        exit: { y: "100%", transition: timings.normal },
-      }
-
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: timings.fast },
-    exit: { opacity: 0, transition: timings.fast },
-  }
-
   return (
-    <AnimatePresence>
-      {isOpen && displayGoal && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="goal-contribute-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={submitting ? undefined : onClose}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 40,
-              background: "rgba(0, 0, 0, 0.6)",
-            }}
-          />
-
-          {/* Sheet */}
-          <motion.div
-            key="goal-contribute-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Add money to ${displayGoal.name}`}
-            variants={sheetVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            style={{
-              position: "fixed",
-              insetInline: 0,
-              bottom: 0,
-              zIndex: 50,
-              display: "flex",
-              flexDirection: "column",
-              background: "var(--surface)",
-              borderTop: "1px solid var(--line)",
-              borderRadius: "var(--radius-lg) var(--radius-lg) 0 0",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              fontFamily: "Inter, sans-serif",
-            }}
-          >
-            {/* Handle */}
-            <div className="sheet-handle" />
-
-            <div style={{ padding: "0 24px 32px" }}>
+    <BottomSheet
+      isOpen={isOpen && !!displayGoal}
+      onClose={onClose}
+      ariaLabel={displayGoal ? `Add money to ${displayGoal.name}` : "Add money to goal"}
+      preventClose={submitting}
+    >
+      {displayGoal && (
+        <div style={{ padding: "0 24px 32px" }}>
               {/* ── Goal header + progress ─────────────────────────── */}
               <div
                 style={{
@@ -229,7 +173,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                     width: 32,
                     height: 32,
                     flexShrink: 0,
-                    borderRadius: 999,
+                    borderRadius: borderRadius.full,
                     background: "rgba(255,255,255,0.04)",
                     border: "1px solid var(--border)",
                     color: "var(--muted)",
@@ -252,7 +196,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                 style={{
                   height: 8,
                   width: "100%",
-                  borderRadius: 999,
+                  borderRadius: borderRadius.full,
                   background: "rgba(255,255,255,0.06)",
                   overflow: "hidden",
                   marginBottom: 8,
@@ -262,7 +206,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                   initial={{ width: prefersReducedMotion ? `${pct}%` : 0 }}
                   animate={{ width: `${pct}%` }}
                   transition={prefersReducedMotion ? timings.fast : springs.gentle}
-                  style={{ height: "100%", borderRadius: 999, background: "var(--accent)" }}
+                  style={{ height: "100%", borderRadius: borderRadius.full, background: "var(--accent)" }}
                 />
               </div>
               <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 24, fontVariantNumeric: "tabular-nums" }}>
@@ -288,7 +232,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                         padding: "12px 0",
                         fontSize: 15,
                         fontWeight: 600,
-                        fontFamily: "Inter, sans-serif",
+                        fontFamily: FONT_FAMILY,
                         borderRadius: "var(--radius-md)",
                         cursor: "pointer",
                         color: active ? "var(--text)" : "var(--sub)",
@@ -336,7 +280,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                     outline: "none",
                     fontSize: 32,
                     fontWeight: 600,
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: FONT_FAMILY,
                     color: "var(--text)",
                     padding: "4px 0 6px",
                     caretColor: "var(--text)",
@@ -369,7 +313,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                     ? "linear-gradient(135deg, rgba(129, 140, 248, 1) 0%, rgba(99, 102, 241, 1) 100%)"
                     : "var(--dim)",
                   color: canSubmit ? "#fff" : "var(--muted)",
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: FONT_FAMILY,
                   fontSize: 17,
                   fontWeight: 600,
                   borderRadius: "var(--radius-md)",
@@ -382,9 +326,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                 {submitting ? "Adding…" : parsed > 0 ? `Add $${formatAmount(parsed)}` : "Add money"}
               </motion.button>
             </div>
-          </motion.div>
-        </>
       )}
-    </AnimatePresence>
+    </BottomSheet>
   )
 }

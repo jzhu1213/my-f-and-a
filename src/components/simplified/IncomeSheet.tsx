@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { springs, timings, useReducedMotion } from '@/lib/animations'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useToast } from '@/contexts/ToastContext'
+import { FONT_FAMILY } from '@/styles/typography'
+import { borderRadius } from '@/styles/shared'
 
 interface IncomeSheetProps {
   isOpen: boolean
@@ -18,7 +19,6 @@ interface IncomeSheetProps {
 const MAX_AMOUNT = 99999
 
 export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo }: IncomeSheetProps) {
-  const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
   const amountRef = useRef<HTMLInputElement>(null)
 
@@ -34,7 +34,8 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
       setNote('')
       setShowNoteField(false)
       setIsGigIncome(false)
-      setTimeout(() => amountRef.current?.focus(), 120)
+      // Task 73: removed setTimeout for instant focus
+      amountRef.current?.focus()
     }
   }, [isOpen])
 
@@ -91,71 +92,9 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
     return !!parsed && parsed > 0 && parsed <= MAX_AMOUNT
   })()
 
-  // Sheet animation variants
-  const sheetVariants = prefersReducedMotion
-    ? {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: timings.fast },
-        exit: { opacity: 0, transition: timings.fast },
-      }
-    : {
-        hidden: { y: '100%' },
-        visible: { y: 0, transition: springs.gentle },
-        exit: { y: '100%', transition: timings.normal },
-      }
-
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: timings.fast },
-    exit: { opacity: 0, transition: timings.fast },
-  }
-
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="income-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={onClose}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 40,
-              background: 'rgba(0, 0, 0, 0.6)',
-            }}
-          />
-
-          {/* Sheet */}
-          <motion.div
-            key="income-sheet"
-            variants={sheetVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            style={{
-              position: 'fixed',
-              insetInline: 0,
-              bottom: 0,
-              zIndex: 50,
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--line)',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              maxHeight: '90vh',
-              minHeight: '50vh',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Handle */}
-            <div className="sheet-handle" />
-
-            <div style={{ padding: '0 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+    <BottomSheet isOpen={isOpen} onClose={onClose} minHeight="50vh" ariaLabel="Log income">
+      <div style={{ padding: '0 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
               {/* ── Amount Input (calculator-style) ─────────────────── */}
               <div style={{ textAlign: 'center', marginBottom: 28 }}>
                 {/* Quick income presets — common student amounts (task 65) */}
@@ -183,11 +122,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                         border: amount === String(preset)
                           ? '1px solid rgba(74, 222, 128, 0.4)'
                           : '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: 99,
+                        borderRadius: borderRadius.full,
                         cursor: 'pointer',
                         fontSize: 14,
                         fontWeight: 500,
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         color: amount === String(preset) ? 'var(--success)' : 'var(--text)',
                       }}
                     >
@@ -207,7 +146,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                   <span
                     style={{
                       fontSize: 28,
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: FONT_FAMILY,
                       fontWeight: 300,
                       color: 'var(--success)',
                     }}
@@ -233,7 +172,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                       border: 'none',
                       outline: 'none',
                       fontSize: 48,
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: FONT_FAMILY,
                       fontWeight: 600,
                       color: 'var(--text)',
                       textAlign: 'center',
@@ -249,7 +188,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                     fontSize: 13,
                     color: 'var(--muted)',
                     marginTop: 8,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                   }}
                 >
                   How much did you earn?
@@ -269,7 +208,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                       borderRadius: 'var(--radius-md)',
                       padding: '10px 16px',
                       fontSize: 13,
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: FONT_FAMILY,
                       fontWeight: 400,
                       color: 'var(--sub)',
                       cursor: 'pointer',
@@ -298,7 +237,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                         borderBottom: '1px solid var(--line)',
                         outline: 'none',
                         fontSize: 15,
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         color: 'var(--text)',
                         padding: '12px 0',
                         caretColor: 'var(--text)',
@@ -312,7 +251,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                           right: 0,
                           bottom: 14,
                           fontSize: 11,
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontWeight: 400,
                           color: 'var(--muted)',
                         }}
@@ -341,7 +280,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                     borderRadius: 'var(--radius-md)',
                     padding: '10px 16px',
                     fontSize: 13,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontWeight: isGigIncome ? 500 : 400,
                     color: isGigIncome ? '#fbbf24' : 'var(--sub)',
                     cursor: 'pointer',
@@ -372,7 +311,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                     ? 'linear-gradient(135deg, #4ade80, #22c55e)'
                     : 'var(--dim)',
                   color: canSubmit ? '#fff' : 'var(--muted)',
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontSize: 16,
                   fontWeight: 600,
                   borderRadius: 'var(--radius-md)',
@@ -384,9 +323,6 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                 Done
               </button>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    </BottomSheet>
   )
 }

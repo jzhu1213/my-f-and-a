@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { springs, timings, useReducedMotion } from '@/lib/animations'
+import { springs, useReducedMotion } from '@/lib/animations'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { simulatePurchase } from '@/lib/affordabilityUtils'
 import type { AffordabilityResult } from '@/lib/affordabilityUtils'
 import type { Budget, Transaction } from '@/types'
@@ -10,6 +11,7 @@ import type { IncomeSmoothing } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { FONT_FAMILY } from '@/styles/typography'
+import { borderRadius } from '@/styles/shared'
 
 // ============================================================================
 // Props
@@ -98,81 +100,16 @@ export function AffordabilitySheet({
     setAmount(raw)
   }, [])
 
-  // Animation variants
-  const sheetVariants = prefersReducedMotion
-    ? {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: timings.fast },
-        exit: { opacity: 0, transition: timings.fast },
-      }
-    : {
-        hidden: { y: '100%' },
-        visible: { y: 0, transition: springs.gentle },
-        exit: { y: '100%', transition: timings.normal },
-      }
-
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: timings.fast },
-    exit: { opacity: 0, transition: timings.fast },
-  }
-
   // Status color for result display
   const statusColor = result
     ? result.canAfford ? 'var(--success)' : 'var(--warning)'
     : 'var(--sub)'
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="afford-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={onClose}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 40,
-              background: 'rgba(0, 0, 0, 0.6)',
-            }}
-            aria-hidden="true"
-          />
-
-          {/* Sheet */}
-          <motion.div
-            key="afford-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Can I afford this?"
-            variants={sheetVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            style={{
-              position: 'fixed',
-              insetInline: 0,
-              bottom: 0,
-              zIndex: 50,
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--line)',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              maxHeight: '70vh',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Drag handle */}
-            <div className="sheet-handle" />
-
-            <div style={{ padding: '0 24px 36px' }}>
-              {/* Header */}
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+    <BottomSheet isOpen={isOpen} onClose={onClose} maxHeight="70vh" ariaLabel="Can I afford this?">
+      <div style={{ padding: '0 24px 36px' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
                 <p
                   style={{
                     fontSize: 16,
@@ -256,7 +193,7 @@ export function AffordabilitySheet({
                       glow={result.canAfford ? 'healthy' : 'caution'}
                       style={{
                         padding: '20px',
-                        borderRadius: 16,
+                        borderRadius: borderRadius.lg,
                         textAlign: 'center',
                       }}
                     >
@@ -373,7 +310,7 @@ export function AffordabilitySheet({
                   style={{
                     background: 'rgba(255, 255, 255, 0.06)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: 99,
+                    borderRadius: borderRadius.full,
                     padding: '12px 28px',
                     color: 'var(--sub)',
                     fontSize: 14,
@@ -386,9 +323,6 @@ export function AffordabilitySheet({
                 </motion.button>
               </div>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    </BottomSheet>
   )
 }

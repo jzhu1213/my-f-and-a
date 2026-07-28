@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs } from '@/lib/animations'
 import type { OnboardingResult, BudgetPreset } from '@/types/folio'
 import { PRESET_EMOJI } from '@/lib/vocabulary'
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ============================================================================
 // Props
@@ -98,7 +99,7 @@ export function WarmOnboarding({ onComplete, onSkip }: WarmOnboardingProps) {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ background: 'var(--bg)', fontFamily: 'Inter, sans-serif' }}
+      style={{ background: 'var(--bg)', fontFamily: FONT_FAMILY }}
     >
       <div className="w-full max-w-sm relative">
         {/* Progress dots */}

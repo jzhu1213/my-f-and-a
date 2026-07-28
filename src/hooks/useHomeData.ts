@@ -30,11 +30,14 @@ import {
   deleteSinkingFund as deleteSinkingFundApi,
 } from '@/lib/supabaseData'
 import { getHomeCache, setHomeCache, isCacheStale } from '@/lib/homeCache'
+import { addToOfflineQueue } from '@/lib/offlineQueue'
 import type { AppAllocation } from '@/lib/supabaseData'
 import type { PaySchedule } from '@/lib/paySchedule'
 import type { SinkingFund } from '@/lib/sinkingFunds'
 import { getTotalMonthlyReserve } from '@/lib/sinkingFunds'
-import { computeTotalSetAside, computeSavingsRate } from '@/lib/allocationUtils'
+import { computeSavingsRate } from '@/lib/allocationUtils'
+import { computeSetAside } from '@/lib/setAside'
+import type { SetAsideBreakdown } from '@/lib/setAside'
 import type { IncomeAllocation } from '@/types/folio'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
 
@@ -67,6 +70,39 @@ import { computeTotalSavingsBalance, computeMonthlyContributions } from '@/lib/s
 import { debtsToFixedExpenses } from '@/lib/debtUtils'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { CategoryBudgetRow } from '@/lib/budgetUtils'
+
+/**
+ * Returns a stable UTC Date representing "today" that only changes when the
+ * calendar date actually changes. Prevents the daily allowance from re-computing
+ * (or "jumping") on mid-day re-renders or if the user opens the app at 11:59 PM
+ * vs 12:01 AM within the same render cycle.
+ *
+ * The returned Date is always midnight UTC of the current day.
+ */
+function useCurrentDay(): Date {
+  const [today, setToday] = useState<Date>(() => {
+    const now = new Date()
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  })
+
+  useEffect(() => {
+    // Check if the calendar day has changed (e.g., app left open overnight)
+    const interval = setInterval(() => {
+      const now = new Date()
+      const currentDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+      setToday(prev => {
+        if (prev.getTime() !== currentDay.getTime()) {
+          return currentDay
+        }
+        return prev
+      })
+    }, 60_000) // Check every minute
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return today
+}
 
 /**
  * useHomeData - Consolidated data layer for the Home Screen
@@ -184,8 +220,18 @@ export interface UseHomeDataReturn {
   allowance: DailyAllowance | null
   /** Category budget rows with weekly spending (Requirement 13.2) */
   categoryRows: CategoryBudgetRow[]
-  /** Total reserved (non-spendable) money set aside this month */
+  /**
+   * Headline "set aside this month" number (reserved, non-spendable flow):
+   * allocation buckets + sinking-fund monthly reserves. Equivalent to
+   * `setAside.reservedThisMonth`. Computed once here and reused across surfaces.
+   */
   totalSetAside: number
+  /**
+   * Full reconciled set-aside breakdown (single source of truth for the four
+   * "money set aside" features). Computed once here; pass down rather than
+   * re-deriving per surface. See `src/lib/setAside.ts` for the mental model.
+   */
+  setAside: SetAsideBreakdown
   /** Total balance across all savings/investment accounts */
   totalSavingsBalance: number
   /** Savings rate as a percentage (0-100) — percent of income saved */
@@ -333,6 +379,9 @@ export interface UseHomeDataReturn {
  * @returns Object containing all home screen data and mutation functions
  */
 export function useHomeData(userId: string | null | undefined): UseHomeDataReturn {
+  // ── Stable "today" date (only changes on calendar day boundary) ──
+  const currentDay = useCurrentDay()
+
   // ── Local State ────────────────────────────────────────────────
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
@@ -503,6 +552,15 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
         if (data.type === 'expense') {
           await recalculateBudgetSpentForCategory(data.category)
         }
+      } else if (data.type === 'expense') {
+        // Persistence failed — queue the expense locally for background retry
+        // so it is not silently lost. Income is intentionally not queued because
+        // the offline queue only replays expenses. (Requirements 10.2, 13.7)
+        addToOfflineQueue(userId, {
+          category: data.category,
+          amount: data.amount,
+          note: data.note,
+        })
       }
       
       return result
@@ -995,7 +1053,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     }
     
     // Calculate monthly income from this month's income transactions
-    const currentMonth = new Date().toISOString().slice(0, 7)
+    const currentMonth = `${currentDay.getUTCFullYear()}-${String(currentDay.getUTCMonth() + 1).padStart(2, '0')}`
     const monthlyIncome = transactions
       .filter(t => t.date.startsWith(currentMonth) && t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0)
@@ -1020,12 +1078,21 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       ? [...debtFixedExpenses, sinkingFundFixedExpense]
       : debtFixedExpenses
     
-    return computeDailyAllowance(budgets, transactions, new Date(), (monthlyIncome ?? 0) + disbursementBonus, allFixedExpenses, undefined, incomeSmoothing ?? undefined)
-  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, incomeSmoothing, isLoading])
+    return computeDailyAllowance(budgets, transactions, currentDay, (monthlyIncome ?? 0) + disbursementBonus, allFixedExpenses, undefined, incomeSmoothing ?? undefined)
+  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, incomeSmoothing, isLoading, currentDay])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
   // (covers all mutation triggers: add/delete/update transaction, budget changes, refresh)
+  //
+  // CONSISTENCY GUARANTEE:
+  // The cached allowance is always the output of `computeDailyAllowance` with the
+  // same inputs as the live calculation. On next app open, the cached value is shown
+  // immediately; when fresh data arrives (reconciliation), the live calculation
+  // replaces it. If inputs haven't changed, the output is identical (deterministic
+  // guarantee from the pure function). React's useMemo ensures that if reconciled
+  // data produces the same allowance, no re-render occurs — the hero stays stable
+  // with no jarring jumps.
   useEffect(() => {
     if (!userId || isLoading || !allowance) return
     setHomeCache(userId, { allowance, transactions, budgets })
@@ -1058,18 +1125,32 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   }, [budgets, transactions])
   
   /**
-   * Total set-aside (reserved, non-spendable) money this month.
-   * Sums save + invest + setAside from all allocations in the current month.
+   * Reconciled "money set aside" breakdown — the single source of truth that
+   * maps all four features (allocation buckets, sinking funds, goals, emergency
+   * fund) into one model. Computed once here and reused everywhere via props;
+   * no surface should re-derive its own set-aside totals.
+   * See `src/lib/setAside.ts` for the full mental model.
    */
-  const totalSetAside = useMemo<number>(() => {
+  const setAside = useMemo<SetAsideBreakdown>(() => {
     const asIncomeAllocations: IncomeAllocation[] = allocations.map(a => ({
       spend: a.spend,
       save: a.save,
       invest: a.invest,
       setAside: a.setAside,
     }))
-    return computeTotalSetAside(asIncomeAllocations)
-  }, [allocations])
+    return computeSetAside({
+      allocations: asIncomeAllocations,
+      sinkingFunds,
+      goals,
+      now: currentDay,
+    })
+  }, [allocations, sinkingFunds, goals, currentDay])
+
+  /**
+   * Headline "set aside this month" number (flow): allocation buckets +
+   * sinking-fund monthly reserves. Derived from the single breakdown above.
+   */
+  const totalSetAside = setAside.reservedThisMonth
   
   /**
    * Total savings balance (memoized)
@@ -1107,6 +1188,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     allowance,
     categoryRows,
     totalSetAside,
+    setAside,
     totalSavingsBalance,
     savingsRate,
     
