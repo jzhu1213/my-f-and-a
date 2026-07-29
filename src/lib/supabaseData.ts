@@ -42,6 +42,7 @@ interface DbProfile {
   display_name?: string
   avatar_url?: string
   created_at: string
+  count_credit_immediately?: boolean
 }
 
 interface DbBudget {
@@ -158,6 +159,7 @@ function dbProfileToApp(db: DbProfile): UserProfile {
     displayName: db.display_name,
     avatarUrl: db.avatar_url,
     createdAt: db.created_at,
+    countCreditImmediately: db.count_credit_immediately,
   }
 }
 
@@ -789,7 +791,7 @@ export async function updateLessonProgress(
 
 export async function updateProfilePreferences(
   userId: string,
-  preferences: { displayName?: string; avatarUrl?: string }
+  preferences: { displayName?: string; avatarUrl?: string; countCreditImmediately?: boolean }
 ): Promise<UserProfile | null> {
   const updates: Record<string, any> = {}
   if (preferences.displayName !== undefined) {
@@ -797,6 +799,9 @@ export async function updateProfilePreferences(
   }
   if (preferences.avatarUrl !== undefined) {
     updates.avatar_url = preferences.avatarUrl
+  }
+  if (preferences.countCreditImmediately !== undefined) {
+    updates.count_credit_immediately = preferences.countCreditImmediately
   }
 
   const { data, error } = await supabase
@@ -1329,6 +1334,7 @@ interface DbReimbursement {
   settled: boolean
   settled_at: string | null
   created_at: string
+  linked_transaction_id?: string | null
 }
 
 function dbReimbursementToApp(db: DbReimbursement): Reimbursement {
@@ -1342,6 +1348,7 @@ function dbReimbursementToApp(db: DbReimbursement): Reimbursement {
     settled: db.settled,
     settledAt: db.settled_at,
     createdAt: db.created_at,
+    linkedTransactionId: db.linked_transaction_id ?? undefined,
   }
 }
 
@@ -1367,6 +1374,7 @@ export async function createReimbursement(
     direction: ReimbursementDirection
     amount: number
     note?: string
+    linkedTransactionId?: string
   }
 ): Promise<Reimbursement | null> {
   const { data, error } = await supabase
@@ -1379,6 +1387,7 @@ export async function createReimbursement(
       note: iou.note?.trim() ?? '',
       settled: false,
       settled_at: null,
+      ...(iou.linkedTransactionId ? { linked_transaction_id: iou.linkedTransactionId } : {}),
     })
     .select()
     .single()
@@ -1453,4 +1462,157 @@ export async function deleteReimbursement(
   }
 
   return true
+}
+
+// ============================================
+// FUNDING SOURCE FUNCTIONS
+// ============================================
+
+import type { FundingSource, FundingSourceKind } from '@/lib/fundingSources'
+
+interface DbFundingSource {
+  id: string
+  user_id: string
+  label: string
+  emoji: string
+  kind: string
+  reduces_balance_now: boolean
+  snapshot_balance: number | null
+  created_at: string
+}
+
+function dbFundingSourceToApp(db: DbFundingSource): FundingSource {
+  return {
+    id: db.id,
+    userId: db.user_id,
+    label: db.label,
+    emoji: db.emoji,
+    kind: db.kind as FundingSourceKind,
+    reducesBalanceNow: db.reduces_balance_now,
+    snapshotBalance: db.snapshot_balance ?? 0,
+    createdAt: db.created_at,
+  }
+}
+
+export async function getFundingSources(userId: string): Promise<FundingSource[]> {
+  const { data, error } = await supabase
+    .from('funding_sources')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching funding sources:', error)
+    return []
+  }
+
+  return (data || []).map(dbFundingSourceToApp)
+}
+
+export async function createFundingSource(
+  userId: string,
+  source: {
+    label: string
+    emoji: string
+    kind: FundingSourceKind
+    reducesBalanceNow: boolean
+    snapshotBalance?: number
+  }
+): Promise<FundingSource | null> {
+  const { data, error } = await supabase
+    .from('funding_sources')
+    .insert({
+      user_id: userId,
+      label: source.label,
+      emoji: source.emoji,
+      kind: source.kind,
+      reduces_balance_now: source.reducesBalanceNow,
+      snapshot_balance: source.snapshotBalance ?? 0,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating funding source:', error)
+    return null
+  }
+
+  return dbFundingSourceToApp(data)
+}
+
+export async function updateFundingSource(
+  userId: string,
+  id: string,
+  updates: {
+    label?: string
+    emoji?: string
+    kind?: FundingSourceKind
+    reducesBalanceNow?: boolean
+    snapshotBalance?: number
+  }
+): Promise<FundingSource | null> {
+  const dbUpdates: Record<string, unknown> = {}
+  if (updates.label !== undefined) dbUpdates.label = updates.label
+  if (updates.emoji !== undefined) dbUpdates.emoji = updates.emoji
+  if (updates.kind !== undefined) dbUpdates.kind = updates.kind
+  if (updates.reducesBalanceNow !== undefined) dbUpdates.reduces_balance_now = updates.reducesBalanceNow
+  if (updates.snapshotBalance !== undefined) dbUpdates.snapshot_balance = updates.snapshotBalance
+
+  const { data, error } = await supabase
+    .from('funding_sources')
+    .update(dbUpdates)
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating funding source:', error)
+    return null
+  }
+
+  return dbFundingSourceToApp(data)
+}
+
+export async function deleteFundingSource(
+  userId: string,
+  id: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('funding_sources')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error deleting funding source:', error)
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Update just the snapshot balance for a funding source.
+ * Used for inline-editing the user's starting balance.
+ */
+export async function updateFundingSourceBalance(
+  userId: string,
+  id: string,
+  snapshotBalance: number
+): Promise<FundingSource | null> {
+  const { data, error } = await supabase
+    .from('funding_sources')
+    .update({ snapshot_balance: snapshotBalance })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating funding source balance:', error)
+    return null
+  }
+
+  return dbFundingSourceToApp(data)
 }

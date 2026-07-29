@@ -5,6 +5,7 @@ import { TRANSACTION_CATEGORIES } from '@/types'
 import type { Transaction, TransactionCategory } from '@/types'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { springs, timings } from '@/lib/animations'
+import { computeDailyTotal } from '@/lib/transactionUtils'
 
 // ── Swipeable row wrapper ────────────────────────────────────────
 const SWIPE_THRESHOLD  = 56   // px to trigger reveal
@@ -330,7 +331,7 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
           const showWeekHeader = weekKey !== lastWeekKey
           lastWeekKey = weekKey
 
-          const dailyTotal = grouped[date].reduce((sum, tx) => sum + (tx.type === 'expense' ? tx.amount : 0), 0)
+          const dailyTotal = computeDailyTotal(grouped[date])
           return (
           <div key={date} style={{ marginBottom: 24 }}>
             {/* Weekly total separator */}

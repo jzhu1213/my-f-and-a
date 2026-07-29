@@ -1,7 +1,4 @@
 export { ProgressRing } from './ProgressRing'
-export { Onboarding } from './Onboarding'
-export { LimitSetupWizard } from './LimitSetupWizard'
-export type { LimitSetupResult } from './LimitSetupWizard'
 export { BottomSheet } from './BottomSheet'
 export type { BottomSheetProps } from './BottomSheet'
 export { Toast } from './Toast'

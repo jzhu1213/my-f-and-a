@@ -5,27 +5,42 @@ import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useToast } from '@/contexts/ToastContext'
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius } from '@/styles/shared'
+import type { FundingSource } from '@/lib/fundingSources'
+import { predictFundingSource } from '@/lib/fundingSources'
+import { motion, AnimatePresence } from 'framer-motion'
+import { springs, useReducedMotion } from '@/lib/animations'
+import { triggerHaptic } from '@/lib/haptics'
+import type { Transaction } from '@/types'
 
 interface IncomeSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; note?: string }) => void
+  onSubmit: (data: { amount: number; note?: string; fundingSourceId?: string }) => void
   /** Called after successful submit to show PaycheckSheet. Receives the logged amount and gig flag. */
   onShowPaycheck?: (amount: number, isGigIncome?: boolean) => void
   /** Called when user taps Undo on the success toast */
   onUndo?: () => void
+  /** Available funding sources (payment methods) for the user */
+  fundingSources?: FundingSource[]
+  /** User's transaction history for smart source prediction */
+  transactions?: Transaction[]
 }
 
 const MAX_AMOUNT = 99999
 
-export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo }: IncomeSheetProps) {
+export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo, fundingSources = [], transactions = [] }: IncomeSheetProps) {
   const { showToast } = useToast()
+  const { prefersReducedMotion } = useReducedMotion()
   const amountRef = useRef<HTMLInputElement>(null)
 
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
   const [showNoteField, setShowNoteField] = useState(false)
   const [isGigIncome, setIsGigIncome] = useState(false)
+
+  // ── Funding source selection state (task 81.1) ─────────────────────────
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
+  const [showSourcePicker, setShowSourcePicker] = useState(false)
 
   // Reset state when opening
   useEffect(() => {
@@ -34,10 +49,18 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
       setNote('')
       setShowNoteField(false)
       setIsGigIncome(false)
+      
+      // Smart source prediction for income (task 81.2)
+      // Use 'income' category for prediction
+      const predictedSourceId = predictFundingSource(transactions, 'income', fundingSources, new Date())
+      // Fall back to first source if no prediction
+      setSelectedSourceId(predictedSourceId ?? (fundingSources.length > 0 ? fundingSources[0].id : null))
+      setShowSourcePicker(false)
+      
       // Task 73: removed setTimeout for instant focus
       amountRef.current?.focus()
     }
-  }, [isOpen])
+  }, [isOpen, fundingSources, transactions])
 
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '')
@@ -68,7 +91,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
     const parsed = parseFloat(amount)
     if (!parsed || parsed <= 0 || parsed > MAX_AMOUNT) return
 
-    const data = { amount: parsed, note: note.trim() || undefined }
+    const data = { amount: parsed, note: note.trim() || undefined, fundingSourceId: selectedSourceId || undefined }
     onSubmit(data)
 
     // Show success toast with undo action
@@ -85,7 +108,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
     }
 
     onClose()
-  }, [amount, note, isGigIncome, onSubmit, onClose, onUndo, showToast, onShowPaycheck])
+  }, [amount, note, isGigIncome, selectedSourceId, onSubmit, onClose, onUndo, showToast, onShowPaycheck])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -193,6 +216,112 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo 
                 >
                   How much did you earn?
                 </p>
+
+                {/* ── Source Chip (optional, task 81.1) ────────────────── */}
+                {fundingSources.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSourcePicker(!showSourcePicker)
+                        triggerHaptic('light')
+                      }}
+                      aria-label={
+                        selectedSourceId
+                          ? `Payment method: ${fundingSources.find(s => s.id === selectedSourceId)?.label ?? 'Unknown'}`
+                          : 'Select payment method'
+                      }
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '6px 12px',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: borderRadius.full,
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontFamily: FONT_FAMILY,
+                        fontWeight: 500,
+                        color: 'var(--sub)',
+                      }}
+                    >
+                      <span style={{ fontSize: 14 }} aria-hidden="true">
+                        {selectedSourceId
+                          ? fundingSources.find(s => s.id === selectedSourceId)?.emoji ?? '💳'
+                          : '💳'}
+                      </span>
+                      <span>
+                        {selectedSourceId
+                          ? fundingSources.find(s => s.id === selectedSourceId)?.label ?? 'Payment method'
+                          : 'Payment method'}
+                      </span>
+                    </button>
+
+                    {/* Source picker overlay */}
+                    <AnimatePresence>
+                      {showSourcePicker && (
+                        <motion.div
+                          key="source-picker"
+                          initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                          animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                          exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                          transition={springs.snappy}
+                          style={{
+                            marginTop: 10,
+                            padding: 12,
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: 'var(--radius-md)',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                            gap: 8,
+                          }}
+                        >
+                          {fundingSources.map((source) => (
+                            <button
+                              key={source.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedSourceId(source.id)
+                                setShowSourcePicker(false)
+                                triggerHaptic('light')
+                              }}
+                              aria-label={`Use ${source.label}`}
+                              aria-pressed={selectedSourceId === source.id}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '10px 8px',
+                                background: selectedSourceId === source.id
+                                  ? 'rgba(74, 222, 128, 0.12)'
+                                  : 'transparent',
+                                border: selectedSourceId === source.id
+                                  ? '1px solid rgba(74, 222, 128, 0.4)'
+                                  : '1px solid transparent',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                fontSize: 11,
+                                fontFamily: FONT_FAMILY,
+                                fontWeight: 500,
+                                color: selectedSourceId === source.id ? 'var(--text)' : 'var(--sub)',
+                              }}
+                            >
+                              <span style={{ fontSize: 20 }} aria-hidden="true">
+                                {source.emoji}
+                              </span>
+                              <span style={{ textAlign: 'center', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {source.label}
+                              </span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
 
               {/* ── Note Input (optional, hidden unless toggled) ───────────────────────────── */}

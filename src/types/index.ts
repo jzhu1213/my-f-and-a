@@ -12,6 +12,7 @@ export interface UserProfile {
   createdAt: string
   displayName?: string
   avatarUrl?: string
+  countCreditImmediately?: boolean
 }
 
 // Transaction Types
@@ -30,6 +31,15 @@ export type TransactionCategory =
 export interface Transaction {
   id: string
   userId: string
+  /**
+   * The financial/effective date of the transaction (YYYY-MM-DD).
+   * This is the date the transaction OCCURRED — set by the user via the date
+   * picker (defaulting to today). All financial calculations (daily allowance,
+   * rollover, budget spent) use this field, NOT `createdAt`.
+   *
+   * A backdated transaction (e.g., logged today for last Tuesday) will have
+   * `date` = last Tuesday and `createdAt` = today's timestamp.
+   */
   date: string
   amount: number
   type: TransactionType
@@ -38,7 +48,19 @@ export interface Transaction {
   isRecurring?: boolean
   recurringId?: string
   accountType: AccountType
+  /**
+   * Timestamp of when the transaction was logged in the app (ISO string).
+   * Used for audit trails and "logged late" indicators, NOT for financial math.
+   */
   createdAt: string
+  fundingSourceId?: string
+  /**
+   * True when the transaction's `date` is in the future relative to when it
+   * was logged. Scheduled transactions are excluded from today's spend and
+   * auto-realize when their date arrives (the pure date-based computation
+   * handles this naturally — no explicit transition needed).
+   */
+  scheduled?: boolean
 }
 
 // Account Types (3 buckets)
@@ -169,11 +191,7 @@ export interface SmartInsight {
   category?: TransactionCategory
 }
 
-// Onboarding Types
-export interface OnboardingData {
-  userType: UserType | null
-  priority: UserPriority | null
-}
+
 
 // Calculator Types
 export interface CreditPayoffResult {

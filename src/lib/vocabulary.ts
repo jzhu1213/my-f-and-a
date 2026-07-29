@@ -105,6 +105,7 @@ export const TIP_EMOJI = {
   subscription_audit: '🔄',
   low_balance: '🫶',
   lump_income: '🎉',
+  source_breakdown: '💳',
 } as const
 
 // ============================================================================

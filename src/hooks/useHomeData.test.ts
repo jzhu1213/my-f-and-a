@@ -15,6 +15,7 @@ vi.mock('@/lib/supabaseData', () => ({
   getDebts: vi.fn().mockResolvedValue([]),
   getPaySchedule: vi.fn().mockResolvedValue(null),
   getSinkingFunds: vi.fn().mockResolvedValue([]),
+  getFundingSources: vi.fn().mockResolvedValue([]),
   updateLessonProgress: vi.fn(),
   insertTransaction: vi.fn(),
   updateTransaction: vi.fn(),
@@ -32,6 +33,9 @@ vi.mock('@/lib/supabaseData', () => ({
   createSinkingFund: vi.fn(),
   updateSinkingFund: vi.fn(),
   deleteSinkingFund: vi.fn(),
+  createFundingSource: vi.fn(),
+  updateFundingSource: vi.fn(),
+  deleteFundingSource: vi.fn(),
 }))
 
 describe('useHomeData', () => {

@@ -16,6 +16,7 @@ import {
   type AutoContributeRule,
 } from "@/lib/autoContributeUtils"
 import type { Goal } from "@/types"
+import { goalProgress, isGoalComplete } from "@/lib/goalUtils"
 import { FONT_FAMILY } from "@/styles/typography"
 import { borderRadius } from "@/styles/shared"
 
@@ -56,17 +57,6 @@ export interface GoalsScreenProps {
 // Helpers
 // ============================================================================
 
-/** Percentage saved toward a goal, clamped to 0–100. */
-function goalProgress(goal: Goal): number {
-  if (goal.targetAmount <= 0) return 0
-  return Math.min((goal.currentAmount / goal.targetAmount) * 100, 100)
-}
-
-/** A goal is complete once it reaches or passes its (positive) target. */
-function isComplete(goal: Goal): boolean {
-  return goal.targetAmount > 0 && goal.currentAmount >= goal.targetAmount
-}
-
 function formatAmount(value: number): string {
   return value.toLocaleString("en-US", { maximumFractionDigits: 0 })
 }
@@ -86,7 +76,7 @@ interface GoalCardProps {
 
 function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, onDelete }: GoalCardProps) {
   const pct = goalProgress(goal)
-  const complete = isComplete(goal)
+  const complete = isGoalComplete(goal)
   const remaining = Math.max(0, goal.targetAmount - goal.currentAmount)
   const fillColor = complete ? "var(--success)" : "var(--accent)"
 
@@ -394,7 +384,7 @@ export function GoalsScreen({
     const active: Goal[] = []
     const completed: Goal[] = []
     for (const goal of goals) {
-      if (isComplete(goal)) completed.push(goal)
+      if (isGoalComplete(goal)) completed.push(goal)
       else active.push(goal)
     }
     return { activeGoals: active, completedGoals: completed }

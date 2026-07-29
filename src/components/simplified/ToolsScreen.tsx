@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
@@ -9,6 +10,15 @@ import {
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
 } from "@/styles/shared"
+import { SourceBalancesView } from "./SourceBalancesView"
+import { ObligationsSummary } from "./ObligationsSummary"
+import { computeNetObligations } from "@/lib/obligationsUtils"
+import { useFeatureFlags } from "@/hooks/useFeatureFlags"
+import type { FeatureFlags } from "@/lib/featureFlags"
+import type { FundingSource } from "@/lib/fundingSources"
+import type { Transaction } from "@/types"
+import type { Debt } from "@/types/folio"
+import type { Reimbursement } from "@/lib/reimbursements"
 
 // ============================================================================
 // Types
@@ -28,6 +38,14 @@ export interface ToolsScreenProps {
   totalSetAside?: number
   /** Display-only: savings rate percentage */
   savingsRate?: number
+  /** Funding sources for the "Where my money is" balance view */
+  fundingSources?: FundingSource[]
+  /** Transactions for computing per-source balances */
+  transactions?: Transaction[]
+  /** Debts for net obligations summary */
+  debts?: Debt[]
+  /** Reimbursements (IOUs) for net obligations summary */
+  reimbursements?: Reimbursement[]
 }
 
 // ============================================================================
@@ -65,8 +83,38 @@ export function ToolsScreen({
   onOpenReimbursements,
   totalSetAside,
   savingsRate,
+  fundingSources,
+  transactions,
+  debts,
+  reimbursements,
 }: ToolsScreenProps) {
-  const tools: ToolItem[] = [
+  const { flags } = useFeatureFlags()
+
+  // Map tool IDs to feature flag keys
+  const toolFlagMap: Record<string, keyof FeatureFlags> = {
+    "debt": "debtTracking",
+    "recurring-bills": "recurringBills",
+    "reimbursements": "reimbursements",
+    "sinking-funds": "sinkingFunds",
+    "subscriptions": "subscriptionAudit",
+    "savings-projections": "savingsProjections",
+    "compound-growth": "compoundGrowthCalculator",
+    "credit-payoff": "creditPayoffCalculator",
+    "learn": "lessons",
+  }
+
+  // Compute net obligations from existing Debt and Reimbursement models
+  const obligations = useMemo(
+    () => computeNetObligations(
+      debts ?? [],
+      reimbursements ?? [],
+      transactions ?? [],
+      fundingSources ?? []
+    ),
+    [debts, reimbursements, transactions, fundingSources]
+  )
+
+  const allTools: ToolItem[] = [
     {
       id: "debt",
       emoji: "💳",
@@ -131,6 +179,13 @@ export function ToolsScreen({
       onOpen: onOpenLearn,
     },
   ]
+
+  // Filter tools by feature flags
+  const tools = allTools.filter(tool => {
+    const flagKey = toolFlagMap[tool.id]
+    if (!flagKey) return true // no flag = always show
+    return flags[flagKey]
+  })
 
   return (
     <div
@@ -198,6 +253,17 @@ export function ToolsScreen({
           )}
         </div>
       )}
+
+      {/* ── Where My Money Is ────────────────────────────────────────── */}
+      {fundingSources && fundingSources.length > 0 && transactions && (
+        <SourceBalancesView
+          fundingSources={fundingSources}
+          transactions={transactions}
+        />
+      )}
+
+      {/* ── Net Obligations Summary ──────────────────────────────────── */}
+      <ObligationsSummary obligations={obligations} />
 
       {/* ── Tool Cards ─────────────────────────────────────────────────── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

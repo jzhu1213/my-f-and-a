@@ -25,6 +25,8 @@ export interface Reimbursement {
   settled: boolean
   settledAt: string | null
   createdAt: string
+  /** Optional link back to the transaction that generated this IOU */
+  linkedTransactionId?: string
 }
 
 // ============================================================================
