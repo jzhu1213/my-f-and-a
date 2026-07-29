@@ -37,6 +37,10 @@ export interface DailyAllowance {
   deferredSpending?: number
   /** Amount spent on borrowed/parents' sources today (doesn't count against allowance) */
   borrowedSpending?: number
+  /** Total amount of future-dated (scheduled) expenses within the current month — informational only */
+  reservedForScheduled?: number
+  /** Number of future-dated (scheduled) transactions this month */
+  scheduledCount?: number
 }
 
 /**

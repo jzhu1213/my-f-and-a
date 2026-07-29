@@ -739,6 +739,8 @@ export function HomeScreen({
             deferredSpending={allowance?.deferredSpending}
             reservedForBills={allowance?.reservedForBills}
             upcomingBillCount={allowance?.upcomingBillCount}
+            reservedForScheduled={allowance?.reservedForScheduled}
+            scheduledCount={allowance?.scheduledCount}
             onTapForDetails={onHeroTapDetails}
           />
 

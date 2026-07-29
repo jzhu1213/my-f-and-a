@@ -2,9 +2,76 @@ import type { Budget, Transaction } from '@/types'
 import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { FundingSource } from '@/lib/fundingSources'
-import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList } from '@/lib/fixedExpenses'
+import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList, isScheduledForKnownBill } from '@/lib/fixedExpenses'
 import { isBorrowedTransaction } from '@/lib/fundingSources'
 import { getStatusMessage } from '@/lib/vocabulary'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DESIGN DECISION: Financial Date vs. Logged Date (Task 89.1)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// All financial calculations in this module use `Transaction.date` — the date
+// the transaction OCCURRED (i.e. the financial/effective date chosen by the user
+// via the date picker). This is distinct from `Transaction.createdAt`, which
+// records WHEN the user logged the transaction in the app.
+//
+// This means:
+//   • A paycheck logged today for June 30 contributes to June's income pool
+//   • An expense backdated to last Tuesday affects that day's rollover, not today's
+//   • Rollover (Step 4) compares expected vs actual spend using `t.date` ranges
+//   • spentToday (Step 3) filters by `t.date === todayStr`
+//
+// `createdAt` is intentionally NOT used here. It is reserved for:
+//   • Audit trails and "logged late" UI indicators
+//   • Smart suggestions (habitEngine.ts) that predict based on logging behavior
+//   • Most-recently-logged ordering for UI defaults
+//
+// This separation ensures that backdated entries always produce correct
+// historical rollover without requiring any special recomputation — the pure
+// function naturally yields the right result for any input date.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// DESIGN DECISION: Future-Dated (Scheduled) Transactions (Task 90.1)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// A transaction with `date` > today is "scheduled" — an upcoming bill or
+// expected paycheck the user wants to plan for. These items:
+//
+//   • Are EXCLUDED from spentToday (Step 3 filters `t.date === todayStr`)
+//   • Are EXCLUDED from rollover (Step 4 only considers setupDate→yesterday)
+//   • Are INCLUDED in `reservedForScheduled` (Step 9) for informational display
+//
+// Auto-realization: When the calendar reaches the transaction's `date`, it
+// automatically appears in spentToday via the existing `t.date === todayStr`
+// filter. No cron job, no explicit status transition — the pure date-based
+// computation handles this naturally.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// DESIGN DECISION: Reconciliation — Bills vs Scheduled (Task 90.2)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// A recurring bill (FixedExpense) is already "reserved" via:
+//   • Step 1b: totalFixed subtracts ALL active bills from the monthly pool
+//   • Step 7: reservedForBills shows upcoming unpaid bills (informational)
+//
+// If a user ALSO logs a future-dated transaction for the same bill, we must
+// prevent double-counting. `isScheduledForKnownBill` detects overlap via:
+//   1. Matching recurringId (definitive)
+//   2. Same category + amount within 10% (heuristic)
+//   3. Note keywords matching the bill label (fuzzy)
+//
+// When a match is found, the transaction is excluded from reservedForScheduled
+// (Step 9) — the bill is already spoken for via the recurring path.
+//
+// Auto-realization for recurring vs non-recurring:
+//   • Recurring bill on its date: The `isFixedTransaction` filter keeps it OUT
+//     of spentToday and rollover. The monthly pool subtraction (Step 1b) already
+//     accounts for it. The logged transaction is a "confirmation" record — it
+//     doesn't reduce the daily allowance again.
+//   • Non-recurring scheduled item on its date: Enters spentToday normally via
+//     the `date === todayStr` filter, reducing that day's allowance as expected.
+//     The reservedForScheduled amount drops by the realized amount automatically.
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Formats a Date object into YYYY-MM-DD string format
@@ -404,6 +471,10 @@ export function computeDailyAllowance(
   
   // Step 3: Calculate spentToday (exclude fixed/recurring — already sunk in Step 1b)
   // When countCreditImmediately is false, only count immediate-settlement transactions
+  //
+  // NOTE (Task 89.1): We filter by `t.date` (the financial/effective date), NOT
+  // `t.createdAt` (when the user logged it). A backdated expense contributes to
+  // the correct historical day's spend, ensuring rollover is always accurate.
   const todayStr = formatDateString(currentDate)
   const shouldCountCreditImmediately = countCreditImmediately ?? true
   
@@ -520,6 +591,38 @@ export function computeDailyAllowance(
     )
   }
 
+  // Step 9: Compute reservedForScheduled — sum of future-dated expenses within this month.
+  // These items are excluded from spentToday and rollover naturally (date > todayStr), but
+  // the user benefits from seeing how much is "spoken for" in upcoming planned transactions.
+  // This auto-realizes implicitly: when a scheduled transaction's date arrives, it becomes
+  // part of spentToday via the normal date === todayStr filter — no cron or status change needed.
+  //
+  // ─────────────────────────────────────────────────────────────────────────────────
+  // RECONCILIATION WITH RECURRING BILLS (Task 90.2)
+  // ─────────────────────────────────────────────────────────────────────────────────
+  // We exclude transactions that match a known recurring bill (via isScheduledForKnownBill)
+  // to prevent double-counting. Those bills are already accounted for in:
+  //   • Step 1b: totalFixed subtraction from the monthly pool
+  //   • Step 7: reservedForBills informational display
+  //
+  // Only truly NEW one-off scheduled items appear in reservedForScheduled.
+  //
+  // Auto-realization behavior:
+  //   • Recurring bill on its date: isFixedTransaction keeps it out of spentToday — the
+  //     monthly pool subtraction already covers it. The transaction is a "confirmation" record.
+  //   • Non-recurring scheduled item on its date: enters spentToday normally via the
+  //     date === todayStr filter, reducing the daily allowance as expected.
+  // ─────────────────────────────────────────────────────────────────────────────────
+  const scheduledExpenses = transactions.filter(t =>
+    t.type === 'expense' &&
+    t.date > todayStr &&
+    t.date.startsWith(currentMonthPrefix) &&
+    !isFixedTransaction(t) &&
+    !isScheduledForKnownBill(t, fixedExpenses ?? [])
+  )
+  const reservedForScheduled = scheduledExpenses.reduce((sum, t) => sum + t.amount, 0)
+  const scheduledCount = scheduledExpenses.length
+
   // Return valid DailyAllowance
   return {
     amount,
@@ -536,6 +639,8 @@ export function computeDailyAllowance(
     monthBoundaryCarryover,
     deferredSpending: deferredSpending !== undefined && deferredSpending > 0 ? deferredSpending : undefined,
     borrowedSpending: borrowedSpending > 0 ? borrowedSpending : undefined,
+    reservedForScheduled: reservedForScheduled > 0 ? reservedForScheduled : undefined,
+    scheduledCount: scheduledCount > 0 ? scheduledCount : undefined,
   }
 }
 

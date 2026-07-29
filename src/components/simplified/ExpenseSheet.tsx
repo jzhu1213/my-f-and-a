@@ -25,7 +25,7 @@ import { predictFundingSource } from '@/lib/fundingSources'
 interface ExpenseSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string; fundingSourceId?: string; trackAsIOU?: boolean; splitWith?: string; splitOwedAmount?: number }) => void
+  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string; date?: string; fundingSourceId?: string; trackAsIOU?: boolean; splitWith?: string; splitOwedAmount?: number }) => void
   onUndo?: () => void
   defaultCategory?: TransactionCategory
   transactions?: Transaction[]
@@ -38,6 +38,54 @@ interface ExpenseSheetProps {
   fundingSources?: FundingSource[]
   /** Recent split partner names for quick-select chips (task 5.3 polish) */
   recentSplitPartners?: string[]
+}
+
+// ── Date helper utilities (task 87.1) ────────────────────────────────────
+/** Returns YYYY-MM-DD of the most recent Friday (or today if today is Friday). */
+function getLastFriday(today: Date): string {
+  const day = today.getDay() // 0=Sun, 5=Fri
+  const diff = day >= 5 ? day - 5 : day + 2 // days back to last Friday
+  const lastFri = new Date(today)
+  lastFri.setDate(today.getDate() - diff)
+  return lastFri.toISOString().slice(0, 10)
+}
+
+/** Returns YYYY-MM-DD of the next Monday (task 90.1 — future date chip). */
+function getNextMonday(today: Date): string {
+  const day = today.getDay() // 0=Sun, 1=Mon
+  const diff = day === 0 ? 1 : 8 - day // days forward to next Monday
+  const nextMon = new Date(today)
+  nextMon.setDate(today.getDate() + diff)
+  return nextMon.toISOString().slice(0, 10)
+}
+
+/** Returns a human-readable relative label for a date string. */
+function getRelativeDateLabel(dateStr: string): string {
+  const today = new Date()
+  const todayStr = today.toISOString().slice(0, 10)
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const yesterdayStr = yesterday.toISOString().slice(0, 10)
+
+  if (dateStr === todayStr) return 'Today'
+  if (dateStr === yesterdayStr) return 'Yesterday'
+
+  // Future date — show "Scheduled: Jun 12" (task 90.1)
+  if (dateStr > todayStr) {
+    const d = new Date(dateStr + 'T00:00:00')
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return `Scheduled: ${label}`
+  }
+
+  // Format as short date: "Jun 12"
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+/** Returns true if a date string is in the future relative to today. */
+function isFutureDate(dateStr: string): boolean {
+  const todayStr = new Date().toISOString().slice(0, 10)
+  return dateStr > todayStr
 }
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
@@ -83,6 +131,11 @@ export function ExpenseSheet({
   const [manualCategorySelection, setManualCategorySelection] = useState(false)
   // Tracks whether the current category was auto-suggested
   const [isAutoSuggested, setIsAutoSuggested] = useState(false)
+
+  // ── Date selection state (task 87.1) ────────────────────────────────────
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showDateInput, setShowDateInput] = useState(false)
 
   // ── Funding source selection state (task 81.1) ─────────────────────────
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
@@ -150,6 +203,11 @@ export function ExpenseSheet({
       setNewCategoryLabel('')
       setNewCategoryEmoji('✨')
       setIsAddingCategory(false)
+      
+      // Reset date to today (task 87.1)
+      setSelectedDate(new Date().toISOString().slice(0, 10))
+      setShowDatePicker(false)
+      setShowDateInput(false)
       
       // Smart source prediction (task 81.2)
       // Predict funding source based on category and time of day
@@ -243,6 +301,7 @@ export function ExpenseSheet({
       amount: submittedAmount,
       category,
       note: note.trim() || undefined,
+      date: selectedDate,
       fundingSourceId: selectedSourceId || undefined,
       trackAsIOU: selectedSourceIsBorrowed && trackAsIOU ? true : undefined,
       splitWith: splitEnabled && splitWith.trim() ? splitWith.trim() : undefined,
@@ -258,7 +317,7 @@ export function ExpenseSheet({
       onUndo ? { label: 'Undo', onClick: onUndo } : undefined
     )
     onClose()
-  }, [amount, category, note, splitEnabled, splitCount, splitWith, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, displayCategories, onSubmit, onClose, onUndo, showToast])
+  }, [amount, category, note, splitEnabled, splitCount, splitWith, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -345,6 +404,7 @@ export function ExpenseSheet({
                           amount: chip.amount,
                           category: chip.category,
                           note: chip.note,
+                          date: selectedDate,
                         })
                         const amountStr = chip.amount % 1 === 0 ? `$${chip.amount}` : `$${chip.amount.toFixed(2)}`
                         const categoryLabel = displayCategories.find(c => c.categoryValue === chip.category)?.label ?? chip.category
@@ -436,6 +496,7 @@ export function ExpenseSheet({
                               amount: s.amount,
                               category,
                               note: s.label || undefined,
+                              date: selectedDate,
                             })
                             const categoryLabel = displayCategories.find(c => c.categoryValue === category)?.label ?? category
                             showToast(
@@ -1081,6 +1142,292 @@ export function ExpenseSheet({
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* ── Date Picker (optional, task 87.1) ─────────────────────────────── */}
+              <div style={{ marginBottom: 20, textAlign: 'center' }}>
+                {!showDatePicker ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDatePicker(true)
+                      triggerHaptic('light')
+                    }}
+                    aria-label={`Date: ${getRelativeDateLabel(selectedDate)}. Tap to change.`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '6px 14px',
+                      background: selectedDate === new Date().toISOString().slice(0, 10)
+                        ? 'rgba(255, 255, 255, 0.04)'
+                        : 'rgba(129, 140, 248, 0.12)',
+                      border: selectedDate === new Date().toISOString().slice(0, 10)
+                        ? '1px solid rgba(255, 255, 255, 0.1)'
+                        : '1px solid rgba(129, 140, 248, 0.4)',
+                      borderRadius: borderRadius.full,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontFamily: FONT_FAMILY,
+                      fontWeight: 500,
+                      color: 'var(--sub)',
+                    }}
+                  >
+                    <span style={{ fontSize: 13 }} aria-hidden="true">📅</span>
+                    <span>{getRelativeDateLabel(selectedDate)}</span>
+                  </button>
+                ) : (
+                  <AnimatePresence>
+                    <motion.div
+                      key="date-picker-expanded"
+                      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                      animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
+                      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                      transition={springs.snappy}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          flexWrap: 'wrap',
+                          justifyContent: 'center',
+                          paddingTop: 4,
+                        }}
+                        role="group"
+                        aria-label="Select expense date"
+                      >
+                        {/* Today chip */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDate(new Date().toISOString().slice(0, 10))
+                            setShowDatePicker(false)
+                            setShowDateInput(false)
+                            triggerHaptic('light')
+                          }}
+                          aria-pressed={selectedDate === new Date().toISOString().slice(0, 10)}
+                          style={{
+                            padding: '7px 14px',
+                            background: selectedDate === new Date().toISOString().slice(0, 10)
+                              ? 'rgba(129, 140, 248, 0.12)'
+                              : 'rgba(255, 255, 255, 0.04)',
+                            border: selectedDate === new Date().toISOString().slice(0, 10)
+                              ? '1px solid rgba(129, 140, 248, 0.4)'
+                              : '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: borderRadius.full,
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontFamily: FONT_FAMILY,
+                            fontWeight: 500,
+                            color: selectedDate === new Date().toISOString().slice(0, 10) ? 'var(--text)' : 'var(--sub)',
+                          }}
+                        >
+                          Today
+                        </button>
+
+                        {/* Yesterday chip */}
+                        {(() => {
+                          const yesterday = new Date()
+                          yesterday.setDate(yesterday.getDate() - 1)
+                          const yesterdayStr = yesterday.toISOString().slice(0, 10)
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDate(yesterdayStr)
+                                setShowDatePicker(false)
+                                setShowDateInput(false)
+                                triggerHaptic('light')
+                              }}
+                              aria-pressed={selectedDate === yesterdayStr}
+                              style={{
+                                padding: '7px 14px',
+                                background: selectedDate === yesterdayStr
+                                  ? 'rgba(129, 140, 248, 0.12)'
+                                  : 'rgba(255, 255, 255, 0.04)',
+                                border: selectedDate === yesterdayStr
+                                  ? '1px solid rgba(129, 140, 248, 0.4)'
+                                  : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: borderRadius.full,
+                                cursor: 'pointer',
+                                fontSize: 13,
+                                fontFamily: FONT_FAMILY,
+                                fontWeight: 500,
+                                color: selectedDate === yesterdayStr ? 'var(--text)' : 'var(--sub)',
+                              }}
+                            >
+                              Yesterday
+                            </button>
+                          )
+                        })()}
+
+                        {/* Last Fri chip */}
+                        {(() => {
+                          const lastFriStr = getLastFriday(new Date())
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDate(lastFriStr)
+                                setShowDatePicker(false)
+                                setShowDateInput(false)
+                                triggerHaptic('light')
+                              }}
+                              aria-pressed={selectedDate === lastFriStr}
+                              style={{
+                                padding: '7px 14px',
+                                background: selectedDate === lastFriStr
+                                  ? 'rgba(129, 140, 248, 0.12)'
+                                  : 'rgba(255, 255, 255, 0.04)',
+                                border: selectedDate === lastFriStr
+                                  ? '1px solid rgba(129, 140, 248, 0.4)'
+                                  : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: borderRadius.full,
+                                cursor: 'pointer',
+                                fontSize: 13,
+                                fontFamily: FONT_FAMILY,
+                                fontWeight: 500,
+                                color: selectedDate === lastFriStr ? 'var(--text)' : 'var(--sub)',
+                              }}
+                            >
+                              Last Fri
+                            </button>
+                          )
+                        })()}
+
+                        {/* Next Mon chip (task 90.1 — future date shortcut) */}
+                        {(() => {
+                          const nextMonStr = getNextMonday(new Date())
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDate(nextMonStr)
+                                setShowDatePicker(false)
+                                setShowDateInput(false)
+                                triggerHaptic('light')
+                              }}
+                              aria-pressed={selectedDate === nextMonStr}
+                              style={{
+                                padding: '7px 14px',
+                                background: selectedDate === nextMonStr
+                                  ? 'rgba(129, 140, 248, 0.12)'
+                                  : 'rgba(255, 255, 255, 0.04)',
+                                border: selectedDate === nextMonStr
+                                  ? '1px solid rgba(129, 140, 248, 0.4)'
+                                  : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: borderRadius.full,
+                                cursor: 'pointer',
+                                fontSize: 13,
+                                fontFamily: FONT_FAMILY,
+                                fontWeight: 500,
+                                color: selectedDate === nextMonStr ? 'var(--text)' : 'var(--sub)',
+                              }}
+                            >
+                              Next Mon
+                            </button>
+                          )
+                        })()}
+
+                        {/* Pick date chip */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDateInput(true)
+                            triggerHaptic('light')
+                          }}
+                          aria-pressed={showDateInput}
+                          style={{
+                            padding: '7px 14px',
+                            background: showDateInput
+                              ? 'rgba(129, 140, 248, 0.12)'
+                              : 'rgba(255, 255, 255, 0.04)',
+                            border: showDateInput
+                              ? '1px solid rgba(129, 140, 248, 0.4)'
+                              : '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: borderRadius.full,
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontFamily: FONT_FAMILY,
+                            fontWeight: 500,
+                            color: showDateInput ? 'var(--text)' : 'var(--sub)',
+                          }}
+                        >
+                          Pick date
+                        </button>
+                      </div>
+
+                      {/* HTML date input — revealed when "Pick date" is tapped */}
+                      <AnimatePresence>
+                        {showDateInput && (
+                          <motion.div
+                            key="date-input"
+                            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
+                            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                            transition={springs.snappy}
+                            style={{ overflow: 'hidden', marginTop: 10, textAlign: 'center' }}
+                          >
+                            <input
+                              type="date"
+                              value={selectedDate}
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  setSelectedDate(e.target.value)
+                                  setShowDatePicker(false)
+                                  setShowDateInput(false)
+                                }
+                              }}
+                              aria-label="Pick a date"
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: borderRadius.md,
+                                padding: '8px 14px',
+                                fontSize: 14,
+                                fontFamily: FONT_FAMILY,
+                                color: 'var(--text)',
+                                colorScheme: 'dark',
+                              }}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  </AnimatePresence>
+                )}
+              </div>
+
+              {/* ── Scheduled indicator (task 90.1) — shows when a future date is selected ── */}
+              {isFutureDate(selectedDate) && (
+                <div
+                  style={{
+                    marginBottom: 16,
+                    textAlign: 'center',
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '6px 14px',
+                      background: 'rgba(129, 140, 248, 0.08)',
+                      border: '1px solid rgba(129, 140, 248, 0.25)',
+                      borderRadius: borderRadius.full,
+                      fontSize: 12,
+                      fontFamily: FONT_FAMILY,
+                      fontWeight: 500,
+                      color: 'rgba(129, 140, 248, 0.9)',
+                    }}
+                    role="status"
+                    aria-label={`This expense is scheduled for ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                  >
+                    <span aria-hidden="true">📅</span>
+                    Scheduled for {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
                 </div>
               )}
 

@@ -25,6 +25,8 @@ interface DailyAllowanceHeroProps {
   deferredSpending?: number
   reservedForBills?: number
   upcomingBillCount?: number
+  reservedForScheduled?: number
+  scheduledCount?: number
   onTapForDetails: () => void
 }
 
@@ -282,6 +284,8 @@ export function DailyAllowanceHero({
   deferredSpending,
   reservedForBills,
   upcomingBillCount,
+  reservedForScheduled,
+  scheduledCount,
   onTapForDetails,
 }: DailyAllowanceHeroProps) {
   const [showBreakdown, setShowBreakdown] = useState(false)
@@ -347,6 +351,26 @@ export function DailyAllowanceHero({
           icon: "🛡️",
           label: "Set aside for bills",
           value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
+          valueColor: "var(--sub)",
+        }]
+      : []),
+    // Scheduled expenses row — only included when there are future-dated transactions (task 90.1)
+    ...(reservedForScheduled !== undefined && reservedForScheduled > 0 && scheduledCount !== undefined && scheduledCount > 0
+      ? [{
+          key: "reserved-scheduled",
+          icon: "📅",
+          label: "Scheduled",
+          value: `${formatCurrency(reservedForScheduled)} for ${scheduledCount} item${scheduledCount === 1 ? '' : 's'}`,
+          valueColor: "var(--sub)",
+        }]
+      : []),
+    // Combined total reserved row (Task 90.2) — shown when BOTH bills and scheduled items exist
+    ...(reservedForBills !== undefined && reservedForBills > 0 && reservedForScheduled !== undefined && reservedForScheduled > 0
+      ? [{
+          key: "reserved-total",
+          icon: "🔒",
+          label: "Total reserved",
+          value: formatCurrency(reservedForBills + reservedForScheduled),
           valueColor: "var(--sub)",
         }]
       : []),
@@ -454,6 +478,33 @@ export function DailyAllowanceHero({
           {message}
         </motion.p>
 
+        {/* Combined "total reserved" pill (Task 90.2) — shows a unified total when
+            BOTH recurring bills and scheduled items exist, giving users a single at-a-glance
+            number. The individual breakdowns still appear below for transparency. */}
+        {reservedForBills !== undefined && reservedForBills > 0 && reservedForScheduled !== undefined && reservedForScheduled > 0 && (
+          <motion.div
+            className="flex items-center gap-1.5"
+            style={{
+              padding: "6px 12px",
+              background: "rgba(255, 255, 255, 0.05)",
+              border: "1px solid rgba(255, 255, 255, 0.10)",
+              borderRadius: "var(--radius-full)",
+              marginTop: 4,
+            }}
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={timings.normal}
+            aria-label={`${formatCurrency(reservedForBills + reservedForScheduled)} total reserved for upcoming bills and scheduled items`}
+          >
+            <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.8 }}>
+              🔒
+            </span>
+            <span style={{ fontSize: 12, color: "var(--sub)", opacity: 0.9 }}>
+              {formatCurrency(reservedForBills + reservedForScheduled)} reserved total
+            </span>
+          </motion.div>
+        )}
+
         {/* Reserved for bills notice — warm, informational pill */}
         {reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0 && (
           <motion.div
@@ -500,6 +551,31 @@ export function DailyAllowanceHero({
             </span>
             <span style={{ fontSize: 12, color: "var(--sub)", opacity: 0.85 }}>
               On credit: {formatCurrency(deferredSpending)}
+            </span>
+          </motion.div>
+        )}
+
+        {/* Scheduled expenses indicator (Task 90.1) */}
+        {reservedForScheduled !== undefined && reservedForScheduled > 0 && scheduledCount !== undefined && scheduledCount > 0 && (
+          <motion.div
+            className="flex items-center gap-1.5"
+            style={{
+              padding: "6px 12px",
+              background: "rgba(255, 255, 255, 0.04)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "var(--radius-full)",
+              marginTop: 4,
+            }}
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={timings.normal}
+            aria-label={`${formatCurrency(reservedForScheduled)} scheduled for ${scheduledCount} upcoming item${scheduledCount === 1 ? '' : 's'}`}
+          >
+            <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.7 }}>
+              📅
+            </span>
+            <span style={{ fontSize: 12, color: "var(--sub)", opacity: 0.85 }}>
+              {formatCurrency(reservedForScheduled)} scheduled
             </span>
           </motion.div>
         )}
