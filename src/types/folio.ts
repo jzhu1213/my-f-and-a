@@ -1,4 +1,4 @@
-import { TransactionCategory } from './index'
+import { TransactionCategory, UserType, UserPriority } from './index'
 
 // ============================================================================
 // Daily Allowance Types (Requirements 1.1, 1.6-1.9)
@@ -33,6 +33,10 @@ export interface DailyAllowance {
   upcomingBillCount?: number
   /** Month-boundary carryover info (only present when carryoverEnabled is true and it's the 1st) */
   monthBoundaryCarryover?: MonthBoundaryCarryover
+  /** Amount spent on deferred-settlement sources today (only present when countCreditImmediately is false) */
+  deferredSpending?: number
+  /** Amount spent on borrowed/parents' sources today (doesn't count against allowance) */
+  borrowedSpending?: number
 }
 
 /**
@@ -129,6 +133,7 @@ export type TipTrigger =
   | { type: 'subscription_audit'; count: number; monthlyTotal: number }
   | { type: 'lump_income_spike'; spikeAmount: number; averageMonthlyIncome: number }
   | { type: 'over_budget_today' }
+  | { type: 'source_breakdown'; creditPercent: number; creditTotal: number; monthlyIncome: number }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)
@@ -293,6 +298,18 @@ export interface AllocationPreset {
   label: string
   emoji: string
   split: [number, number, number, number]
+}
+
+// ============================================================================
+// Onboarding Data Types
+// ============================================================================
+
+/**
+ * Data collected from the onboarding flow.
+ */
+export interface OnboardingData {
+  userType: UserType | null
+  priority: UserPriority | null
 }
 
 // ============================================================================
