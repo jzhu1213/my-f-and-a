@@ -47,6 +47,7 @@ import { InlineTransactionEditor } from "./InlineTransactionEditor"
 import { PullToRefresh } from "./PullToRefresh"
 import { AffordabilitySheet } from "./AffordabilitySheet"
 import { WelcomeBackBadge } from "./WelcomeBackBadge"
+import { IncomeAnchorBanner } from "./IncomeAnchorBanner"
 import dynamic from "next/dynamic"
 
 // Code-split: celebration animations are heavy (canvas-confetti + framer-motion
@@ -250,6 +251,14 @@ export interface HomeScreenProps {
   onOpenReimbursements?: () => void
   /** Set of transaction IDs that were split (for badge display) */
   splitTransactionIds?: Set<string>
+
+  // ── Income Anchor (task 95.1) ───────────────────────────────────────────────
+  /** Whether to show the income-anchor first-run banner */
+  showIncomeAnchorBanner?: boolean
+  /** Called when the user taps "Set it now" on the income anchor banner */
+  onIncomeAnchorSetItNow?: () => void
+  /** Called when the user taps "Skip" on the income anchor banner */
+  onIncomeAnchorSkip?: () => void
 }
 
 // ============================================================================
@@ -302,6 +311,9 @@ export function HomeScreen({
   outstandingSplits,
   onOpenReimbursements,
   splitTransactionIds,
+  showIncomeAnchorBanner,
+  onIncomeAnchorSetItNow,
+  onIncomeAnchorSkip,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -842,8 +854,20 @@ export function HomeScreen({
           )}
         </section>
 
-        {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}
-        <section aria-label="Quick actions">
+        {/* ── Income Anchor Banner (task 95.1) — first-run only ──── */}
+        {/* Shows once after the hero. Parent gates visibility via
+            folio-income-anchor-offered localStorage key. Tapping
+            "Set it now" opens BackfillSheet; "Skip" dismisses. */}
+        <AnimatePresence>
+          {showIncomeAnchorBanner && onIncomeAnchorSetItNow && onIncomeAnchorSkip && (
+            <IncomeAnchorBanner
+              onSetItNow={onIncomeAnchorSetItNow}
+              onSkip={onIncomeAnchorSkip}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}        <section aria-label="Quick actions">
           <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
             {/* Primary: Log expense — larger pill with warm gradient */}
             <motion.button

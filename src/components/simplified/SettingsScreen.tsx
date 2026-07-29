@@ -46,6 +46,8 @@ export interface SettingsScreenProps {
   onOpenGoals: () => void
   onOpenTools?: () => void
   onOpenProfile: () => void
+  onOpenFundingSources?: () => void
+  onOpenBackfill?: () => void
   onSignOut: () => void
   onResetOnboarding?: () => void
   onExportData?: () => void
@@ -113,6 +115,8 @@ export function SettingsScreen({
   onOpenGoals,
   onOpenTools,
   onOpenProfile,
+  onOpenFundingSources,
+  onOpenBackfill,
   onSignOut,
   onResetOnboarding,
   onExportData,
@@ -268,6 +272,18 @@ export function SettingsScreen({
           <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
             Debt tracking, recurring bills, IOUs, calculators, and more advanced features.
           </p>
+
+          {onOpenFundingSources && (
+            <motion.button
+              onClick={onOpenFundingSources}
+              whileTap={{ scale: 0.97 }}
+              transition={springs.snappy}
+              style={{ ...linkButton, marginBottom: 8 }}
+              aria-label="Manage payment methods"
+            >
+              💳 Payment Methods →
+            </motion.button>
+          )}
 
           <motion.button
             onClick={onOpenTools}
@@ -518,6 +534,23 @@ export function SettingsScreen({
             aria-label="Reset onboarding tutorial"
           >
             Reset tutorial →
+          </motion.button>
+        )}
+
+        {/* Catch up on past spending (backfill flow) */}
+        {onOpenBackfill && (
+          <motion.button
+            onClick={onOpenBackfill}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              ...linkButton,
+              marginTop: 10,
+              display: 'block',
+            }}
+            aria-label="Catch up on past spending"
+          >
+            📝 Catch up on past spending →
           </motion.button>
         )}
       </GlassCard>

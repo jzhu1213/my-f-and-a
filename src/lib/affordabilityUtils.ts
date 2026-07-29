@@ -2,6 +2,7 @@ import type { Budget, Transaction } from '@/types'
 import type { IncomeSmoothing } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
+import { formatDateLocal } from '@/lib/dateUtils'
 
 // ============================================================================
 // Affordability Simulator — "Can I afford this?" helper
@@ -89,7 +90,7 @@ export function simulatePurchase(options: AffordabilityOptions): AffordabilityRe
   )
 
   // Step 2: Create a synthetic transaction representing the hypothetical purchase
-  const todayStr = formatDateUTC(currentDate)
+  const todayStr = formatDateLocal(currentDate)
   const syntheticTx: Transaction = {
     id: '__affordability_sim__',
     userId: '',
@@ -166,14 +167,4 @@ function generateAffordabilityMessage(
     return `This would stretch today's budget, but payday is close.`
   }
   return `This would put you over today's budget, but tomorrow resets.`
-}
-
-/**
- * Formats a Date into YYYY-MM-DD (UTC).
- */
-function formatDateUTC(date: Date): string {
-  const y = date.getUTCFullYear()
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(date.getUTCDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
 }

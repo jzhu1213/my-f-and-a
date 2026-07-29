@@ -1,5 +1,6 @@
 import { BUDGET_CATEGORIES } from '@/types'
 import type { Budget, Transaction, TransactionCategory } from '@/types'
+import { formatDateLocal, getDaysInMonthLocal } from '@/lib/dateUtils'
 
 // ============================================================================
 // Category Budget Rollover — Pure Utility
@@ -118,7 +119,7 @@ export function daysLeftInWeek(): number {
 
 export function daysLeftInMonth(): number {
   const now = new Date()
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const lastDay = getDaysInMonthLocal(now)
   return lastDay - now.getDate() + 1
 }
 
@@ -198,7 +199,7 @@ export function computeWeeklyTotals(rows: CategoryBudgetRow[]) {
 }
 
 export function todayString(): string {
-  return new Date().toISOString().split('T')[0]
+  return formatDateLocal(new Date())
 }
 
 /** Daily budget context for the Today hero */

@@ -12,11 +12,13 @@ interface HistoryViewProps {
   isLoading?: boolean
   onEditTransaction: (tx: Transaction) => void
   onDeleteTransaction: (id: string) => void
+  /** Callback to trigger bulk repeat flow (Task 93.1) */
+  onRepeatTransaction?: (tx: Transaction) => void
 }
 
 export function HistoryView({
   transactions, isLoading = false,
-  onEditTransaction, onDeleteTransaction,
+  onEditTransaction, onDeleteTransaction, onRepeatTransaction,
 }: HistoryViewProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => toMonthString(new Date()))
   const currentMonth   = toMonthString(new Date())
@@ -141,6 +143,7 @@ export function HistoryView({
             transactions={monthTxs}
             onDelete={isCurrentMonth ? onDeleteTransaction : undefined}
             onEdit={isCurrentMonth ? onEditTransaction : undefined}
+            onRepeat={isCurrentMonth ? onRepeatTransaction : undefined}
           />
         )}
       </div>

@@ -2,6 +2,7 @@ import type { Transaction, Budget, Goal } from '@/types'
 import type { CelebrationEvent, CelebrationType, AnimationType } from '@/types/folio'
 import { getNoSpendStreak, isNoSpendWeekend } from '@/lib/noSpendChallenge'
 import { CELEBRATION_EMOJI, CELEBRATION_COPY } from '@/lib/vocabulary'
+import { formatDateLocal, subtractDaysLocal, getDaysInMonthLocal } from '@/lib/dateUtils'
 
 // ============================================================================
 // Celebration Engine (Requirements 6.1–6.6)
@@ -23,24 +24,8 @@ let sessionCelebrationFingerprint: string | null = null
 // Internal Helpers
 // ============================================================================
 
-/**
- * Formats a Date object into YYYY-MM-DD string (UTC).
- */
-function formatDate(date: Date): string {
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-/**
- * Subtracts a number of days from a date (UTC).
- */
-function subtractDays(date: Date, days: number): Date {
-  const result = new Date(date.getTime())
-  result.setUTCDate(result.getUTCDate() - days)
-  return result
-}
+// NOTE: Removed UTC-based formatDate and subtractDays functions.
+// Now using local-time utilities from dateUtils.ts (Task 94.1).
 
 /**
  * Gets the set of previously triggered celebration IDs from localStorage.
@@ -85,13 +70,11 @@ function hasBeenTriggered(id: string): boolean {
 }
 
 /**
- * Calculates the total daily budget from monthly budget limits.
+ * Calculates the total daily budget from monthly budget limits (using local time).
  */
 function getDailyBudget(budgets: Budget[], date: Date): number {
   const totalMonthly = budgets.reduce((sum, b) => sum + b.monthlyLimit, 0)
-  const daysInMonth = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)
-  ).getUTCDate()
+  const daysInMonth = getDaysInMonthLocal(date)
   return totalMonthly / daysInMonth
 }
 
@@ -149,7 +132,7 @@ export function checkUnderBudgetToday(
   const dailyBudget = getDailyBudget(budgets, now)
   if (dailyBudget <= 0) return null
 
-  const todayStr = formatDate(now)
+  const todayStr = formatDateLocal(now)
   const spentToday = getSpendingForDay(transactions, todayStr)
 
   if (spentToday >= dailyBudget * 0.8) return null
@@ -192,7 +175,7 @@ export function checkStreak3Days(
   if (streak < 3) return null
 
   // Use the date that completed the streak for a unique ID
-  const streakEndDate = formatDate(subtractDays(now, 1))
+  const streakEndDate = formatDateLocal(subtractDaysLocal(now, 1))
   const id = `streak_3_days_${streakEndDate}`
   if (hasBeenTriggered(id)) return null
 
@@ -229,7 +212,7 @@ export function checkStreak7Days(
   const streak = calculateStreak(budgets, transactions, now)
   if (streak < 7) return null
 
-  const streakEndDate = formatDate(subtractDays(now, 1))
+  const streakEndDate = formatDateLocal(subtractDaysLocal(now, 1))
   const id = `streak_7_days_${streakEndDate}`
   if (hasBeenTriggered(id)) return null
 
@@ -343,10 +326,8 @@ export function checkNoSpendStreak(
   const events: CelebrationEvent[] = []
 
   // ── No-spend streak (3+ days) ──────────────────────────────────────────
-  const yesterday = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1
-  ))
-  const yesterdayStr = formatDate(yesterday)
+  const yesterday = subtractDaysLocal(now, 1)
+  const yesterdayStr = formatDateLocal(yesterday)
 
   const streak = getNoSpendStreak(transactions, yesterdayStr)
   if (streak >= 3) {
@@ -370,21 +351,17 @@ export function checkNoSpendStreak(
 
   // ── No-spend weekend ───────────────────────────────────────────────────
   // Check if the most recent past weekend was a no-spend weekend
-  const dayOfWeek = now.getUTCDay() // 0=Sun, 6=Sat
+  const dayOfWeek = now.getDay() // 0=Sun, 6=Sat (local time)
   // Find last Sunday (or today if it's Monday, meaning weekend just ended)
   let lastSunday: Date
   if (dayOfWeek === 0) {
     // Today is Sunday — check last weekend (the one before)
-    lastSunday = new Date(Date.UTC(
-      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7
-    ))
+    lastSunday = subtractDaysLocal(now, 7)
   } else {
     // Most recent Sunday
-    lastSunday = new Date(Date.UTC(
-      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayOfWeek
-    ))
+    lastSunday = subtractDaysLocal(now, dayOfWeek)
   }
-  const lastSundayStr = formatDate(lastSunday)
+  const lastSundayStr = formatDateLocal(lastSunday)
 
   if (isNoSpendWeekend(transactions, lastSundayStr)) {
     const weekendId = `no_spend_weekend_${lastSundayStr}`
@@ -495,8 +472,8 @@ export function getUnderBudgetStreak(
 
   let streak = 0
   for (let i = 1; i <= 30; i++) {
-    const day = subtractDays(now, i)
-    const dayStr = formatDate(day)
+    const day = subtractDaysLocal(now, i)
+    const dayStr = formatDateLocal(day)
     const spent = getSpendingForDay(transactions, dayStr)
     if (spent < dailyBudget) {
       streak++

@@ -72,6 +72,18 @@ const CreditPayoffCalculator = dynamic(
   () => import('@/components/finance/CreditPayoffCalculator').then(m => ({ default: m.CreditPayoffCalculator })),
   { ssr: false }
 )
+const FundingSourcesScreen = dynamic(
+  () => import('@/components/simplified/FundingSourcesScreen').then(m => ({ default: m.FundingSourcesScreen })),
+  { ssr: false }
+)
+const BackfillSheet = dynamic(
+  () => import('@/components/simplified/BackfillSheet').then(m => ({ default: m.BackfillSheet })),
+  { ssr: false }
+)
+const BulkRepeatSheet = dynamic(
+  () => import('@/components/simplified/BulkRepeatSheet').then(m => ({ default: m.BulkRepeatSheet })),
+  { ssr: false }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -110,6 +122,7 @@ export default function FolioApp() {
   const [showCompoundGrowth, setShowCompoundGrowth] = useState(false)
   const [showCreditPayoff, setShowCreditPayoff] = useState(false)
   const [profileSheetOpen, setProfileSheetOpen] = useState(false)
+  const [showFundingSources, setShowFundingSources] = useState(false)
 
   // ── Tutorial Setup State ───────────────────────────────────────
   const [tutorialSetupState, setTutorialSetupState] = useState<TutorialSetupState>({
@@ -126,12 +139,23 @@ export default function FolioApp() {
   const [paycheckIsGigIncome, setPaycheckIsGigIncome] = useState(false)
   const [defaultExpenseCategory, setDefaultExpenseCategory] = useState<TransactionCategory | undefined>(undefined)
   const [splitPreEnabled, setSplitPreEnabled] = useState(false)
+  const [backfillSheetOpen, setBackfillSheetOpen] = useState(false)
+
+  // ── Income Anchor Banner (task 95.1) ───────────────────────────
+  // A first-run nudge shown once after onboarding to encourage the user to
+  // anchor their timeline by setting their last payday. Gated by
+  // folio-income-anchor-offered so it only ever shows once.
+  const [incomeAnchorBannerVisible, setIncomeAnchorBannerVisible] = useState(false)
 
   // ── Edit/Refund Sheet State ────────────────────────────────────
   const [editSheetOpen, setEditSheetOpen] = useState(false)
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null)
   const [refundSheetOpen, setRefundSheetOpen] = useState(false)
   const [refundTransaction, setRefundTransaction] = useState<Transaction | null>(null)
+  
+  // ── Bulk Repeat Sheet State (Task 93.1) ────────────────────────
+  const [bulkRepeatSheetOpen, setBulkRepeatSheetOpen] = useState(false)
+  const [bulkRepeatTransaction, setBulkRepeatTransaction] = useState<{ amount: number; category: TransactionCategory; note?: string } | null>(null)
 
   // ── Celebration State ──────────────────────────────────────────
   const [celebrationEvent, setCelebrationEvent] = useState<CelebrationEvent | null>(null)
@@ -171,6 +195,9 @@ export default function FolioApp() {
     incomeSmoothing,
     setIncomeSmoothing,
     fundingSources,
+    addFundingSource,
+    updateFundingSource,
+    deleteFundingSource,
   } = useHomeData(user?.id, user)
 
   // ── Custom Categories ──────────────────────────────────────────
@@ -334,6 +361,38 @@ export default function FolioApp() {
     }
   }, [])
 
+  // ── First-run backfill prompt (task 88.2) ──────────────────────
+  // When user has zero transactions and hasn't dismissed the backfill offer,
+  // auto-open the backfill sheet once as a gentle prompt.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (dataLoading) return
+    if (transactions.length > 0) return
+    if (localStorage.getItem('folio-backfill-offered') === 'true') return
+
+    // Mark as offered so it only shows once
+    localStorage.setItem('folio-backfill-offered', 'true')
+    // Small delay so the home screen renders first
+    const timer = setTimeout(() => setBackfillSheetOpen(true), 600)
+    return () => clearTimeout(timer)
+  }, [dataLoading, transactions.length])
+
+  // ── Income anchor banner (task 95.1) ──────────────────────────
+  // After the user has their daily number and the backfill sheet hasn't
+  // auto-opened, show the income anchor banner as a gentler prompt.
+  // Delayed ~1.2s so the hero renders and settles first.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (dataLoading) return
+    if (localStorage.getItem('folio-income-anchor-offered') === 'true') return
+    // Don't show the banner if the full BackfillSheet is already open
+    if (backfillSheetOpen) return
+
+    localStorage.setItem('folio-income-anchor-offered', 'true')
+    const timer = setTimeout(() => setIncomeAnchorBannerVisible(true), 1200)
+    return () => clearTimeout(timer)
+  }, [dataLoading, backfillSheetOpen])
+
   // ── Budget limit carry-forward on mount ────────────────────────
   useEffect(() => {
     if (user?.id && !authLoading) {
@@ -388,6 +447,7 @@ export default function FolioApp() {
     amount: number
     category: TransactionCategory
     note?: string
+    date?: string
     fundingSourceId?: string
     trackAsIOU?: boolean
     splitWith?: string
@@ -395,7 +455,7 @@ export default function FolioApp() {
   }) => {
     if (!user?.id) return
 
-    const today = new Date().toISOString().slice(0, 10)
+    const today = data.date ?? new Date().toISOString().slice(0, 10)
     const result = await addTransaction({
       amount: data.amount,
       category: data.category,
@@ -460,10 +520,11 @@ export default function FolioApp() {
     amount: number
     note?: string
     fundingSourceId?: string
+    date?: string
   }) => {
     if (!user?.id) return
 
-    const today = new Date().toISOString().slice(0, 10)
+    const today = data.date ?? new Date().toISOString().slice(0, 10)
     const result = await addTransaction({
       amount: data.amount,
       category: 'other',
@@ -551,17 +612,57 @@ export default function FolioApp() {
     setEditTransaction(tx)
     setEditSheetOpen(true)
   }, [])
+  
+  // ── Transaction Bulk Repeat (Task 93.1) ───────────────────────
+  const handleRepeatTransaction = useCallback((tx: Transaction) => {
+    setBulkRepeatTransaction({
+      amount: tx.amount,
+      category: tx.category,
+      note: tx.note,
+    })
+    setBulkRepeatSheetOpen(true)
+  }, [])
+  
+  const handleBulkRepeatSubmit = useCallback(async (
+    transactions: Array<{
+      amount: number
+      category: TransactionCategory
+      note?: string
+      date: string
+    }>
+  ) => {
+    if (!user?.id) return
+    
+    // Import the bulk transaction util
+    const { logBulkRepeatTransactions } = await import('@/lib/transactionUtils')
+    
+    const results = await logBulkRepeatTransactions(user.id, transactions)
+    
+    const successCount = results.filter(r => r.success).length
+    const failCount = results.length - successCount
+    
+    if (failCount === 0) {
+      showToast(`${successCount} ${successCount === 1 ? 'transaction' : 'transactions'} logged`, 'success')
+    } else if (successCount > 0) {
+      showToast(`${successCount} logged, ${failCount} failed`, 'error')
+    } else {
+      showToast('Failed to log transactions', 'error')
+    }
+    
+    // Refresh data to show new transactions
+    await refresh()
+  }, [user?.id, refresh, showToast])
 
   const handleSaveTransaction = useCallback(async (
     id: string,
-    data: { amount: number; category: TransactionCategory; note?: string }
+    data: { amount: number; category: TransactionCategory; note?: string; date?: string }
   ) => {
     if (!editTransaction) return null
     return updateTransaction(id, {
       amount: data.amount,
       category: data.category,
       type: editTransaction.type,
-      date: editTransaction.date,
+      date: data.date ?? editTransaction.date, // Use provided date or keep original
       note: data.note,
     })
   }, [editTransaction, updateTransaction])
@@ -827,6 +928,21 @@ export default function FolioApp() {
     )
   }
 
+  // ── Funding Sources (full-screen overlay) ────────────────────────
+  if (showFundingSources) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <FundingSourcesScreen
+          fundingSources={fundingSources}
+          onAdd={addFundingSource}
+          onEdit={updateFundingSource}
+          onRemove={deleteFundingSource}
+          onBack={() => setShowFundingSources(false)}
+        />
+      </div>
+    )
+  }
+
   // ── Debt Tracking (full-screen overlay) ────────────────────────
   if (flags.debtTracking && showDebt) {
     return (
@@ -956,6 +1072,12 @@ export default function FolioApp() {
                 outstandingSplits={outstandingSplits}
                 onOpenReimbursements={() => setShowReimbursements(true)}
                 splitTransactionIds={splitTransactionIds}
+                showIncomeAnchorBanner={incomeAnchorBannerVisible}
+                onIncomeAnchorSetItNow={() => {
+                  setIncomeAnchorBannerVisible(false)
+                  setBackfillSheetOpen(true)
+                }}
+                onIncomeAnchorSkip={() => setIncomeAnchorBannerVisible(false)}
               />
             )}
             {activeNav === 'history' && (
@@ -965,6 +1087,7 @@ export default function FolioApp() {
                 onEditTransaction={handleEditTransaction}
                 onDeleteTransaction={handleDeleteTransaction}
                 onLogExpense={() => handleOpenExpenseSheet()}
+                onRepeatTransaction={handleRepeatTransaction}
               />
             )}
             {activeNav === 'tools' && (
@@ -999,6 +1122,8 @@ export default function FolioApp() {
                 onOpenGoals={() => setShowGoals(true)}
                 onOpenTools={() => setActiveNav('tools')}
                 onOpenProfile={handleOpenProfile}
+                onOpenFundingSources={() => setShowFundingSources(true)}
+                onOpenBackfill={() => setBackfillSheetOpen(true)}
                 onSignOut={handleSignOut}
                 onResetOnboarding={handleResetOnboarding}
                 onExportData={handleExportData}
@@ -1062,6 +1187,40 @@ export default function FolioApp() {
         transaction={refundTransaction}
         onLogRefund={handleLogRefund}
       />
+
+      {/* ── Backfill Sheet (task 88) ──────────────────────────── */}
+      <BackfillSheet
+        isOpen={backfillSheetOpen}
+        onClose={() => setBackfillSheetOpen(false)}
+        onLogExpense={async (data) => {
+          await addTransaction({
+            amount: data.amount,
+            category: data.category,
+            type: 'expense',
+            date: data.date,
+            note: data.note,
+          })
+        }}
+        onLogIncome={async (data) => {
+          await addTransaction({
+            amount: data.amount,
+            category: 'income',
+            type: 'income',
+            date: data.date,
+            note: data.note,
+          })
+        }}
+      />
+
+      {/* ── Bulk Repeat Sheet (task 93.1) ─────────────────────── */}
+      {bulkRepeatTransaction && (
+        <BulkRepeatSheet
+          isOpen={bulkRepeatSheetOpen}
+          onClose={() => setBulkRepeatSheetOpen(false)}
+          transaction={bulkRepeatTransaction}
+          onSubmit={handleBulkRepeatSubmit}
+        />
+      )}
 
       {/* ── Profile Sheet ──────────────────────────────────────── */}
       <ProfileSheet

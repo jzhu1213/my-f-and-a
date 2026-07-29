@@ -12,10 +12,32 @@ import { springs, useReducedMotion } from '@/lib/animations'
 import { triggerHaptic } from '@/lib/haptics'
 import type { Transaction } from '@/types'
 
+// ── Date picker helpers ──────────────────────────────────────────────────────
+
+/** Returns YYYY-MM-DD of the most recent Friday (or today if today is Friday) */
+function getLastFriday(today: Date): string {
+  const d = new Date(today)
+  const day = d.getDay() // 0=Sun, 5=Fri
+  const diff = day >= 5 ? day - 5 : day + 2
+  d.setDate(d.getDate() - diff)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Returns a human-readable label for a date string */
+function getDateLabel(dateStr: string): string {
+  const today = new Date().toISOString().slice(0, 10)
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  if (dateStr === today) return 'Today'
+  if (dateStr === yesterday) return 'Yesterday'
+  // Format as "Mon D" for other dates
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 interface IncomeSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; note?: string; fundingSourceId?: string }) => void
+  onSubmit: (data: { amount: number; note?: string; fundingSourceId?: string; date?: string }) => void
   /** Called after successful submit to show PaycheckSheet. Receives the logged amount and gig flag. */
   onShowPaycheck?: (amount: number, isGigIncome?: boolean) => void
   /** Called when user taps Undo on the success toast */
@@ -38,6 +60,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
   const [showNoteField, setShowNoteField] = useState(false)
   const [isGigIncome, setIsGigIncome] = useState(false)
 
+  // ── Date picker state (task 87.2) ──────────────────────────────────────
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showCustomDateInput, setShowCustomDateInput] = useState(false)
+
   // ── Funding source selection state (task 81.1) ─────────────────────────
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
   const [showSourcePicker, setShowSourcePicker] = useState(false)
@@ -49,6 +76,9 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       setNote('')
       setShowNoteField(false)
       setIsGigIncome(false)
+      setSelectedDate(new Date().toISOString().slice(0, 10))
+      setShowDatePicker(false)
+      setShowCustomDateInput(false)
       
       // Smart source prediction for income (task 81.2)
       // Use 'income' category for prediction
@@ -91,7 +121,12 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
     const parsed = parseFloat(amount)
     if (!parsed || parsed <= 0 || parsed > MAX_AMOUNT) return
 
-    const data = { amount: parsed, note: note.trim() || undefined, fundingSourceId: selectedSourceId || undefined }
+    const data = {
+      amount: parsed,
+      note: note.trim() || undefined,
+      fundingSourceId: selectedSourceId || undefined,
+      date: selectedDate,
+    }
     onSubmit(data)
 
     // Show success toast with undo action
@@ -108,7 +143,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
     }
 
     onClose()
-  }, [amount, note, isGigIncome, selectedSourceId, onSubmit, onClose, onUndo, showToast, onShowPaycheck])
+  }, [amount, note, isGigIncome, selectedSourceId, selectedDate, onSubmit, onClose, onUndo, showToast, onShowPaycheck])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -422,6 +457,216 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                   <span style={{ fontSize: 14 }}>{isGigIncome ? '✓' : '💼'}</span>
                   {isGigIncome ? 'Gig / freelance income' : 'This is gig / freelance income'}
                 </button>
+              </div>
+
+              {/* ── Date Picker (optional, task 87.2) ────────────────────────── */}
+              <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDatePicker(!showDatePicker)
+                    triggerHaptic('light')
+                  }}
+                  aria-label={`Date: ${getDateLabel(selectedDate)}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 12px',
+                    background: selectedDate !== new Date().toISOString().slice(0, 10)
+                      ? 'rgba(129, 140, 248, 0.12)'
+                      : 'rgba(255, 255, 255, 0.04)',
+                    border: selectedDate !== new Date().toISOString().slice(0, 10)
+                      ? '1px solid rgba(129, 140, 248, 0.4)'
+                      : '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: borderRadius.full,
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: 500,
+                    color: selectedDate !== new Date().toISOString().slice(0, 10)
+                      ? 'var(--text)'
+                      : 'var(--sub)',
+                  }}
+                >
+                  <span style={{ fontSize: 14 }} aria-hidden="true">📅</span>
+                  <span>{getDateLabel(selectedDate)}</span>
+                </button>
+
+                <AnimatePresence>
+                  {showDatePicker && (
+                    <motion.div
+                      key="date-picker"
+                      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                      animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                      transition={springs.snappy}
+                      style={{
+                        marginTop: 10,
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {/* Today chip */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedDate(new Date().toISOString().slice(0, 10))
+                          setShowDatePicker(false)
+                          setShowCustomDateInput(false)
+                          triggerHaptic('light')
+                        }}
+                        style={{
+                          padding: '8px 14px',
+                          background: selectedDate === new Date().toISOString().slice(0, 10)
+                            ? 'rgba(129, 140, 248, 0.12)'
+                            : 'rgba(255, 255, 255, 0.04)',
+                          border: selectedDate === new Date().toISOString().slice(0, 10)
+                            ? '1px solid rgba(129, 140, 248, 0.4)'
+                            : '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: borderRadius.full,
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 500,
+                          fontFamily: FONT_FAMILY,
+                          color: selectedDate === new Date().toISOString().slice(0, 10)
+                            ? 'var(--text)'
+                            : 'var(--sub)',
+                        }}
+                      >
+                        Today
+                      </button>
+
+                      {/* Yesterday chip */}
+                      {(() => {
+                        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDate(yesterday)
+                              setShowDatePicker(false)
+                              setShowCustomDateInput(false)
+                              triggerHaptic('light')
+                            }}
+                            style={{
+                              padding: '8px 14px',
+                              background: selectedDate === yesterday
+                                ? 'rgba(129, 140, 248, 0.12)'
+                                : 'rgba(255, 255, 255, 0.04)',
+                              border: selectedDate === yesterday
+                                ? '1px solid rgba(129, 140, 248, 0.4)'
+                                : '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: borderRadius.full,
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 500,
+                              fontFamily: FONT_FAMILY,
+                              color: selectedDate === yesterday
+                                ? 'var(--text)'
+                                : 'var(--sub)',
+                            }}
+                          >
+                            Yesterday
+                          </button>
+                        )
+                      })()}
+
+                      {/* Last Friday chip */}
+                      {(() => {
+                        const lastFri = getLastFriday(new Date())
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDate(lastFri)
+                              setShowDatePicker(false)
+                              setShowCustomDateInput(false)
+                              triggerHaptic('light')
+                            }}
+                            style={{
+                              padding: '8px 14px',
+                              background: selectedDate === lastFri
+                                ? 'rgba(129, 140, 248, 0.12)'
+                                : 'rgba(255, 255, 255, 0.04)',
+                              border: selectedDate === lastFri
+                                ? '1px solid rgba(129, 140, 248, 0.4)'
+                                : '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: borderRadius.full,
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 500,
+                              fontFamily: FONT_FAMILY,
+                              color: selectedDate === lastFri
+                                ? 'var(--text)'
+                                : 'var(--sub)',
+                            }}
+                          >
+                            Last Fri
+                          </button>
+                        )
+                      })()}
+
+                      {/* Pick date chip */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomDateInput(!showCustomDateInput)
+                          triggerHaptic('light')
+                        }}
+                        style={{
+                          padding: '8px 14px',
+                          background: showCustomDateInput
+                            ? 'rgba(129, 140, 248, 0.12)'
+                            : 'rgba(255, 255, 255, 0.04)',
+                          border: showCustomDateInput
+                            ? '1px solid rgba(129, 140, 248, 0.4)'
+                            : '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: borderRadius.full,
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 500,
+                          fontFamily: FONT_FAMILY,
+                          color: showCustomDateInput
+                            ? 'var(--text)'
+                            : 'var(--sub)',
+                        }}
+                      >
+                        Pick date
+                      </button>
+
+                      {/* Custom date input */}
+                      {showCustomDateInput && (
+                        <div style={{ width: '100%', marginTop: 8, display: 'flex', justifyContent: 'center' }}>
+                          <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                setSelectedDate(e.target.value)
+                                setShowDatePicker(false)
+                                setShowCustomDateInput(false)
+                                triggerHaptic('light')
+                              }
+                            }}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: borderRadius.sm,
+                              padding: '8px 12px',
+                              fontSize: 14,
+                              fontFamily: FONT_FAMILY,
+                              color: 'var(--text)',
+                              colorScheme: 'dark',
+                            }}
+                          />
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* ── Done Button (thumb zone — pinned at bottom of sheet) ── */}

@@ -22,6 +22,8 @@ export interface HistoryScreenProps {
   onDeleteTransaction: (id: string) => void
   /** Called when the FAB is tapped to log a new expense */
   onLogExpense: () => void
+  /** Called when user wants to repeat a transaction across dates (Task 93.1) */
+  onRepeatTransaction?: (tx: Transaction) => void
 }
 
 // ============================================================================
@@ -42,6 +44,7 @@ export function HistoryScreen({
   onEditTransaction,
   onDeleteTransaction,
   onLogExpense,
+  onRepeatTransaction,
 }: HistoryScreenProps) {
   return (
     <div className="history-screen">
@@ -60,6 +63,7 @@ export function HistoryScreen({
         isLoading={isLoading}
         onEditTransaction={onEditTransaction}
         onDeleteTransaction={onDeleteTransaction}
+        onRepeatTransaction={onRepeatTransaction}
       />
 
       {/* Floating Action Button — log new expense */}

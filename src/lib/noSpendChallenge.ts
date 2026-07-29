@@ -1,4 +1,5 @@
 import type { Transaction } from '@/types'
+import { formatDateLocal, subtractDaysLocal, addDaysLocal } from '@/lib/dateUtils'
 
 // ============================================================================
 // No-Spend Challenge Helpers (Requirements 5.4, 6.2)
@@ -38,14 +39,13 @@ export function getNoSpendStreak(
 ): number {
   const now = new Date()
   const start = endDate
-    ? new Date(endDate + 'T00:00:00Z')
-    : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1))
+    ? parseDateLocal(endDate)
+    : subtractDaysLocal(now, 1)
 
   let streak = 0
   for (let i = 0; i < 30; i++) {
-    const day = new Date(start.getTime())
-    day.setUTCDate(day.getUTCDate() - i)
-    const dayStr = formatDateUTC(day)
+    const day = subtractDaysLocal(start, i)
+    const dayStr = formatDateLocal(day)
 
     if (isNoSpendDay(transactions, dayStr)) {
       streak++
@@ -55,6 +55,12 @@ export function getNoSpendStreak(
   }
 
   return streak
+}
+
+// Helper to parse YYYY-MM-DD into local Date
+function parseDateLocal(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
 }
 
 /**
@@ -69,8 +75,8 @@ export function isNoSpendWeekend(
   transactions: Transaction[],
   weekendDate: string
 ): boolean {
-  const d = new Date(weekendDate + 'T00:00:00Z')
-  const dayOfWeek = d.getUTCDay() // 0=Sun, 6=Sat
+  const d = parseDateLocal(weekendDate)
+  const dayOfWeek = d.getDay() // 0=Sun, 6=Sat (local time)
 
   let saturday: Date
   let sunday: Date
@@ -78,20 +84,18 @@ export function isNoSpendWeekend(
   if (dayOfWeek === 6) {
     // weekendDate is Saturday
     saturday = d
-    sunday = new Date(d.getTime())
-    sunday.setUTCDate(sunday.getUTCDate() + 1)
+    sunday = addDaysLocal(d, 1)
   } else if (dayOfWeek === 0) {
     // weekendDate is Sunday
     sunday = d
-    saturday = new Date(d.getTime())
-    saturday.setUTCDate(saturday.getUTCDate() - 1)
+    saturday = subtractDaysLocal(d, 1)
   } else {
     // Not a weekend day
     return false
   }
 
-  const satStr = formatDateUTC(saturday)
-  const sunStr = formatDateUTC(sunday)
+  const satStr = formatDateLocal(saturday)
+  const sunStr = formatDateLocal(sunday)
 
   return isNoSpendDay(transactions, satStr) && isNoSpendDay(transactions, sunStr)
 }
@@ -119,30 +123,28 @@ export function getNoSpendChallengeStatus(
   challengeStart: string,
   challengeDays: number
 ): NoSpendChallengeStatus {
-  const startDate = new Date(challengeStart + 'T00:00:00Z')
+  const startDate = parseDateLocal(challengeStart)
   const now = new Date()
-  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
   let completedDays = 0
   let isActive = true
 
   for (let i = 0; i < challengeDays; i++) {
-    const day = new Date(startDate.getTime())
-    day.setUTCDate(day.getUTCDate() + i)
+    const day = addDaysLocal(startDate, i)
 
     // Don't count today (still in progress) or future days
-    if (day >= todayUTC) break
+    if (day >= todayLocal) break
 
-    const dayStr = formatDateUTC(day)
+    const dayStr = formatDateLocal(day)
     if (isNoSpendDay(transactions, dayStr)) {
       completedDays++
     }
   }
 
   // Check if challenge period has ended
-  const endDate = new Date(startDate.getTime())
-  endDate.setUTCDate(endDate.getUTCDate() + challengeDays)
-  if (todayUTC >= endDate) {
+  const endDate = addDaysLocal(startDate, challengeDays)
+  if (todayLocal >= endDate) {
     isActive = false
   }
 
@@ -183,9 +185,7 @@ export function getActiveChallenge(): NoSpendChallengeData | null {
  */
 export function startChallenge(totalDays: number = 3): NoSpendChallengeData {
   const now = new Date()
-  const startDate = formatDateUTC(
-    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-  )
+  const startDate = formatDateLocal(now)
   const challenge: NoSpendChallengeData = {
     startDate,
     totalDays,
@@ -211,15 +211,4 @@ export function clearChallenge(): void {
   } catch {
     // Silently fail
   }
-}
-
-// ============================================================================
-// Internal Helpers
-// ============================================================================
-
-function formatDateUTC(date: Date): string {
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }

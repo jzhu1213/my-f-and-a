@@ -169,3 +169,42 @@ export function getMostRecentExpenseCategory(
 export function computeDailyTotal(transactions: Transaction[]): number {
   return transactions.reduce((sum, tx) => sum + (tx.type === 'expense' ? tx.amount : 0), 0)
 }
+
+/**
+ * Logs multiple transactions with the same amount/category across different dates.
+ * Used for bulk/repeat entry (e.g., "daily coffee last week").
+ * 
+ * Returns an array of results indicating success/failure for each transaction.
+ * 
+ * **Validates: Task 93.1 (Bulk/repeat entry for past periods)**
+ */
+export async function logBulkRepeatTransactions(
+  userId: string,
+  transactions: Array<{
+    amount: number
+    category: TransactionCategory
+    note?: string
+    date: string
+  }>
+): Promise<Array<{ success: boolean; transaction: Transaction | null; date: string }>> {
+  const results = await Promise.all(
+    transactions.map(async (tx) => {
+      const result = await insertTransaction(userId, {
+        date: tx.date,
+        amount: tx.amount,
+        type: 'expense',
+        category: tx.category,
+        note: tx.note,
+        accountType: 'personal',
+      })
+      
+      return {
+        success: !!result,
+        transaction: result,
+        date: tx.date,
+      }
+    })
+  )
+  
+  return results
+}

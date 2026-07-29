@@ -9,6 +9,7 @@ import { useToast } from '@/contexts/ToastContext'
 import type { Transaction, TransactionCategory } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 import { FONT_FAMILY } from '@/styles/typography'
+import { DatePickerChips, getRelativeDateLabel } from '@/components/ui/DatePickerChips'
 
 interface EditTransactionSheetProps {
   isOpen: boolean
@@ -18,7 +19,7 @@ interface EditTransactionSheetProps {
   /** Called with the updated fields — performs optimistic update */
   onSave: (
     id: string,
-    data: { amount: number; category: TransactionCategory; note?: string }
+    data: { amount: number; category: TransactionCategory; note?: string; date?: string }
   ) => Promise<Transaction | null>
   /** Called when user taps "Refund this" */
   onRefund?: (transaction: Transaction) => void
@@ -38,10 +39,10 @@ const MAX_AMOUNT = 99999
 /**
  * EditTransactionSheet — bottom sheet for editing an existing transaction.
  *
- * Allows editing amount, category, and note. Shows an undo toast after saving
- * for reversibility. Includes a "Refund this" link for quick refund flow.
+ * Allows editing amount, category, note, and date. Shows an undo toast after
+ * saving for reversibility. Includes a "Refund this" link for quick refund flow.
  *
- * **Validates: Requirements 10.1, 10.5**
+ * **Validates: Requirements 10.1, 10.5, Task 92.1**
  */
 export function EditTransactionSheet({
   isOpen,
@@ -57,6 +58,7 @@ export function EditTransactionSheet({
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<TransactionCategory>('other')
   const [note, setNote] = useState('')
+  const [date, setDate] = useState('')
   const [showNoteField, setShowNoteField] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -70,6 +72,7 @@ export function EditTransactionSheet({
       )
       setCategory(transaction.category)
       setNote(transaction.note ?? '')
+      setDate(transaction.date)
       setShowNoteField(!!transaction.note)
       setIsSaving(false)
     }
@@ -107,11 +110,13 @@ export function EditTransactionSheet({
     const oldAmount = transaction.amount
     const oldCategory = transaction.category
     const oldNote = transaction.note
+    const oldDate = transaction.date
 
     const result = await onSave(transaction.id, {
       amount: parsed,
       category,
       note: note.trim() || undefined,
+      date: date !== transaction.date ? date : undefined,
     })
 
     setIsSaving(false)
@@ -125,6 +130,7 @@ export function EditTransactionSheet({
             amount: oldAmount,
             category: oldCategory,
             note: oldNote,
+            date: oldDate,
           })
           showToast('Change reverted')
         },
@@ -133,7 +139,7 @@ export function EditTransactionSheet({
     } else {
       showToast('Failed to save — try again', 'error')
     }
-  }, [transaction, amount, category, note, isSaving, onSave, onClose, showToast])
+  }, [transaction, amount, category, note, date, isSaving, onSave, onClose, showToast])
 
   const handleRefund = useCallback(() => {
     if (!transaction || !onRefund) return
@@ -155,6 +161,7 @@ export function EditTransactionSheet({
     return (
       parsed !== transaction.amount ||
       category !== transaction.category ||
+      date !== transaction.date ||
       (note.trim() || undefined) !== (transaction.note || undefined)
     )
   })()
@@ -179,8 +186,17 @@ export function EditTransactionSheet({
                   color: 'var(--muted)',
                   marginTop: 4,
                 }}>
-                  {transaction.date}
+                  {getRelativeDateLabel(date)}
                 </p>
+              </div>
+
+              {/* ── Date Picker ───────────────────────────────── */}
+              <div style={{ marginBottom: 24, textAlign: 'center' }}>
+                <DatePickerChips
+                  selectedDate={date}
+                  onDateChange={setDate}
+                  allowFutureDates={false}
+                />
               </div>
 
               {/* ── Amount Input ──────────────────────────────── */}

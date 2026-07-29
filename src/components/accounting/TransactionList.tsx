@@ -95,9 +95,11 @@ interface TransactionListProps {
   transactions: Transaction[]
   onDelete?: (id: string) => void
   onEdit?:   (tx: Transaction) => void
+  /** Callback to trigger bulk repeat flow for a transaction (Task 93.1) */
+  onRepeat?: (tx: Transaction) => void
 }
 
-export function TransactionList({ transactions, onDelete, onEdit }: TransactionListProps) {
+export function TransactionList({ transactions, onDelete, onEdit, onRepeat }: TransactionListProps) {
   const [search,      setSearch]      = useState('')
   const [activeFilter, setActiveFilter] = useState<TransactionCategory | null>(null)
   const [typeFilter,   setTypeFilter]  = useState<'income' | 'expense' | null>(null)
@@ -164,6 +166,15 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
     if (s === now.toISOString().split('T')[0])  return 'Today'
     if (s === yest.toISOString().split('T')[0]) return 'Yesterday'
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+  }
+
+  // Check if a transaction was logged late (createdAt more than 1 day after date)
+  const isLoggedLate = (tx: Transaction): boolean => {
+    const txDate = new Date(tx.date + 'T00:00:00')
+    const createdDate = new Date(tx.createdAt)
+    const diffMs = createdDate.getTime() - txDate.getTime()
+    const diffDays = diffMs / (1000 * 60 * 60 * 24)
+    return diffDays > 1
   }
 
   return (
@@ -416,14 +427,30 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                       }} className="truncate">
                         {tx.note || getLabel(tx.category)}
                       </p>
-                      <p style={{
-                        fontSize: '12px',
-                        color: 'var(--sub)',
-                        marginTop: 2,
-                        fontFamily: 'Inter, sans-serif',
-                      }}>
-                        {getLabel(tx.category)}
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <p style={{
+                          fontSize: '12px',
+                          color: 'var(--sub)',
+                          fontFamily: 'Inter, sans-serif',
+                        }}>
+                          {getLabel(tx.category)}
+                        </p>
+                        {isLoggedLate(tx) && (
+                          <span style={{
+                            fontSize: '10px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontWeight: 500,
+                            color: 'var(--muted)',
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.03em',
+                          }}>
+                            Logged late
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <span style={{
@@ -445,7 +472,7 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                     </div>
                   </motion.div>
 
-                  {/* Expanded actions (Edit + Delete for desktop / non-swipe fallback) */}
+                  {/* Expanded actions (Edit + Repeat + Delete for desktop / non-swipe fallback) */}
                   {expanded && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
@@ -476,6 +503,25 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                           }}
                         >
                           Edit
+                        </motion.button>
+                      )}
+                      {onRepeat && tx.type === 'expense' && (
+                        <motion.button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); onRepeat(tx); setExpandedId(null) }}
+                          whileTap={{ scale: 0.96 }}
+                          transition={springs.snappy}
+                          style={{
+                            flex: 1, padding: '10px',
+                            fontFamily: 'Inter, sans-serif', fontSize: '13px',
+                            fontWeight: 500,
+                            color: 'var(--text)', border: '1px solid rgba(129, 140, 248, 0.2)',
+                            borderRadius: '8px', transition: 'all 0.15s',
+                            cursor: 'pointer',
+                            background: 'rgba(129, 140, 248, 0.08)',
+                          }}
+                        >
+                          Repeat
                         </motion.button>
                       )}
                       {onDelete && (

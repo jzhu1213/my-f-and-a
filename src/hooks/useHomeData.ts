@@ -80,24 +80,24 @@ import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { CategoryBudgetRow } from '@/lib/budgetUtils'
 
 /**
- * Returns a stable UTC Date representing "today" that only changes when the
+ * Returns a stable local Date representing "today" that only changes when the
  * calendar date actually changes. Prevents the daily allowance from re-computing
  * (or "jumping") on mid-day re-renders or if the user opens the app at 11:59 PM
  * vs 12:01 AM within the same render cycle.
  *
- * The returned Date is always midnight UTC of the current day.
+ * The returned Date is always midnight local time of the current day.
  */
 function useCurrentDay(): Date {
   const [today, setToday] = useState<Date>(() => {
     const now = new Date()
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate())
   })
 
   useEffect(() => {
     // Check if the calendar day has changed (e.g., app left open overnight)
     const interval = setInterval(() => {
       const now = new Date()
-      const currentDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+      const currentDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       setToday(prev => {
         if (prev.getTime() !== currentDay.getTime()) {
           return currentDay
@@ -613,6 +613,23 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   
   /**
    * Update an existing transaction
+   *
+   * RETROACTIVE RECOMPUTATION (Task 89.2):
+   * When a transaction's date is edited (e.g., backdated to last week), this
+   * mutation updates local state via `setTransactions(prev => prev.map(...))`.
+   * Because the `allowance` useMemo depends on `transactions`, React automatically
+   * recalculates `computeDailyAllowance` with the updated dataset.
+   *
+   * `computeDailyAllowance` is a PURE FUNCTION that recomputes rollover from
+   * scratch in O(n) time (single pass over all transactions in the date range),
+   * NOT an O(days) per-day loop. This means:
+   *   • Changing a transaction's date from today to 2 weeks ago → rollover for
+   *     all affected days is automatically correct in the next render
+   *   • No explicit "recompute affected days" step is needed
+   *   • Performance is bounded by transaction count, not date range size
+   *
+   * The batch-compute approach (sum expected vs actual over a date range) ensures
+   * that even large retroactive edits spanning many days remain performant.
    */
   const updateTransactionFn = useCallback(async (
     id: string,
@@ -1170,6 +1187,14 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
    * Requirement 13.2: Only recalculate when budgets or transactions change
    * Requirement 14.2: Use income-based estimation when no budgets are configured
    * Task 82: When countCreditImmediately is false, filter spending by settlement type
+   *
+   * RETROACTIVE CORRECTNESS (Task 89.2):
+   * This useMemo recomputes whenever `transactions` changes — including when a
+   * transaction's date is edited retroactively. Because `computeDailyAllowance`
+   * is a pure batch computation (expected vs actual spend over a date range),
+   * any backdated edit automatically produces the correct today-number without
+   * needing per-day recomputation. The dependency array below guarantees that
+   * ALL mutation paths (add, update date, delete) trigger recomputation.
    */
   const allowance = useMemo<DailyAllowance | null>(() => {
     if (budgets.length === 0 && transactions.length === 0 && !isLoading) {
@@ -1193,7 +1218,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     }
     
     // Calculate monthly income from this month's income transactions
-    const currentMonth = `${currentDay.getUTCFullYear()}-${String(currentDay.getUTCMonth() + 1).padStart(2, '0')}`
+    const currentMonth = `${currentDay.getFullYear()}-${String(currentDay.getMonth() + 1).padStart(2, '0')}`
     const monthlyIncome = transactions
       .filter(t => t.date.startsWith(currentMonth) && t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0)

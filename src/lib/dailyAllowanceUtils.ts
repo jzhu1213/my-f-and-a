@@ -5,6 +5,13 @@ import type { FundingSource } from '@/lib/fundingSources'
 import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList, isScheduledForKnownBill } from '@/lib/fixedExpenses'
 import { isBorrowedTransaction } from '@/lib/fundingSources'
 import { getStatusMessage } from '@/lib/vocabulary'
+import { 
+  formatDateLocal, 
+  getMonthStartLocal, 
+  subtractDaysLocal, 
+  getDaysInMonthLocal,
+  getDaysRemainingFromLocal 
+} from '@/lib/dateUtils'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN DECISION: Financial Date vs. Logged Date (Task 89.1)
@@ -72,60 +79,24 @@ import { getStatusMessage } from '@/lib/vocabulary'
 //     the `date === todayStr` filter, reducing that day's allowance as expected.
 //     The reservedForScheduled amount drops by the realized amount automatically.
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Formats a Date object into YYYY-MM-DD string format
- * Uses UTC to avoid timezone issues
- */
-function formatDateString(date: Date): string {
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-/**
- * Gets the first day of the month for a given date
- * Uses UTC to avoid timezone issues
- */
-function getMonthStart(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
-}
-
-/**
- * Subtracts days from a date
- * Uses UTC to avoid timezone issues
- */
-function subtractDays(date: Date, days: number): Date {
-  const result = new Date(date.getTime())
-  result.setUTCDate(result.getUTCDate() - days)
-  return result
-}
-
-/**
- * Gets the number of days in the month for a given date
- * Uses UTC to avoid timezone issues
- */
-function getDaysInMonth(date: Date): number {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate()
-}
-
-/**
- * Calculates the number of days remaining in the month from a given date (inclusive).
- * Reuses logic similar to `daysLeftInMonth` from budgetUtils.ts but accepts arbitrary dates
- * and uses UTC-based calculations consistent with this file.
- *
- * @param fromDate - The starting date (inclusive)
- * @param currentDate - The current date (used to determine which month we're in)
- * @returns Number of days from `fromDate` to end of the month (inclusive of fromDate)
- */
-export function getDaysRemainingFrom(fromDate: Date, currentDate: Date): number {
-  const lastDayOfMonth = new Date(
-    Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() + 1, 0)
-  ).getUTCDate()
-  const fromDay = fromDate.getUTCDate()
-  return lastDayOfMonth - fromDay + 1
-}
+// DESIGN DECISION: Date Calculations Use Local Time (Task 94.1)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// All date calculations in this module use LOCAL time, not UTC. This ensures
+// "today" means the user's local calendar day at midnight, not UTC's midnight.
+//
+// Problem: UTC-based calculations cause timezone bugs:
+//   - At 11:59 PM PST (UTC-8), the UTC date is already the next day
+//   - Transactions logged at night appear as the next day
+//   - Daily resets happen at the wrong time for users
+//
+// Solution: Use local time methods throughout (getFullYear, getMonth, getDate)
+// and the dateUtils.ts functions (formatDateLocal, getDaysInMonthLocal, etc.).
+//
+// The only UTC methods that remain are for:
+//   - Legacy month prefix calculations (currentMonthPrefix)
+//   - Will be migrated in a future task
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Determines allowance status based on remaining amount and daily budget.
@@ -210,7 +181,7 @@ export function computeSmoothedIncome(
   currentDate: Date,
   smoothing: IncomeSmoothing
 ): number {
-  const currentMonthPrefix = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, '0')}`
+  const currentMonthPrefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
 
   if (smoothing.strategy === 'current_month') {
     return transactions
@@ -226,8 +197,8 @@ export function computeSmoothedIncome(
   // Build month prefixes for each month in the window (current month + previous months)
   const monthPrefixes: string[] = []
   for (let i = 0; i < windowMonths; i++) {
-    const d = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() - i, 1))
-    const prefix = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
+    const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     monthPrefixes.push(prefix)
   }
 
@@ -386,7 +357,7 @@ export function computeDailyAllowance(
   const totalMonthlyBudget = budgets.reduce((sum, budget) => sum + budget.monthlyLimit, 0)
   
   // Step 1a: Sum actual income transactions logged in the current month
-  const currentMonthPrefix = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, '0')}`
+  const currentMonthPrefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
   const actualMonthlyIncome = transactions
     .filter(t => t.type === 'income' && t.date.startsWith(currentMonthPrefix))
     .reduce((sum, t) => sum + t.amount, 0)
@@ -428,17 +399,17 @@ export function computeDailyAllowance(
   const totalFixed = getTotalFixedMonthly(fixedExpenses ?? [])
   
   // Step 2: Calculate daily budget from discretionary pool
-  const daysInMonth = getDaysInMonth(currentDate)
+  const daysInMonth = getDaysInMonthLocal(currentDate)
   
   // Determine if setupDate qualifies for mid-month calculation:
   // Must be provided and within the same month/year as currentDate
   const isSetupMidMonth = setupDate !== undefined &&
-    setupDate.getUTCFullYear() === currentDate.getUTCFullYear() &&
-    setupDate.getUTCMonth() === currentDate.getUTCMonth()
+    setupDate.getFullYear() === currentDate.getFullYear() &&
+    setupDate.getMonth() === currentDate.getMonth()
   
   // When mid-month setup, divide by remaining days from setupDate; otherwise full month
   const effectiveDays = isSetupMidMonth
-    ? getDaysRemainingFrom(setupDate!, currentDate)
+    ? getDaysRemainingFromLocal(setupDate!, currentDate)
     : daysInMonth
   
   let dailyBudget: number
@@ -475,7 +446,7 @@ export function computeDailyAllowance(
   // NOTE (Task 89.1): We filter by `t.date` (the financial/effective date), NOT
   // `t.createdAt` (when the user logged it). A backdated expense contributes to
   // the correct historical day's spend, ensuring rollover is always accurate.
-  const todayStr = formatDateString(currentDate)
+  const todayStr = formatDateLocal(currentDate)
   const shouldCountCreditImmediately = countCreditImmediately ?? true
   
   // Helper to check if a transaction is immediate-settlement
@@ -523,18 +494,18 @@ export function computeDailyAllowance(
   // the first day — the month boundary resets naturally without special-case logic.
   // On day 2, rollover only reflects day 1's delta, which is inherently within the
   // ±2-day cap since it's a single day's variance.
-  const dayOfMonth = currentDate.getUTCDate()
+  const dayOfMonth = currentDate.getDate()
   
   // When mid-month setup, rollover only covers days from setupDate to yesterday
-  const setupDay = isSetupMidMonth ? setupDate!.getUTCDate() : 1
+  const setupDay = isSetupMidMonth ? setupDate!.getDate() : 1
   const daysElapsedSinceSetup = dayOfMonth - setupDay
   
   let rollover = 0
   if (daysElapsedSinceSetup > 0) {
     const rolloverStart = isSetupMidMonth
-      ? new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), setupDay))
-      : getMonthStart(currentDate)
-    const yesterday = subtractDays(currentDate, 1)
+      ? new Date(currentDate.getFullYear(), currentDate.getMonth(), setupDay)
+      : getMonthStartLocal(currentDate)
+    const yesterday = subtractDaysLocal(currentDate, 1)
     
     // Expected spend from setupDate (or month start) to yesterday
     const expectedSpendToYesterday = dailyBudget * daysElapsedSinceSetup
@@ -544,8 +515,8 @@ export function computeDailyAllowance(
     const rolloverExpenses = transactions
       .filter(t => {
         const txDate = t.date
-        const startDate = formatDateString(rolloverStart)
-        const endDate = formatDateString(yesterday)
+        const startDate = formatDateLocal(rolloverStart)
+        const endDate = formatDateLocal(yesterday)
         return txDate >= startDate && txDate <= endDate && t.type === 'expense' && !isFixedTransaction(t) && !isBorrowedTransaction(t, fundingSources ?? [])
       })
     
@@ -581,7 +552,7 @@ export function computeDailyAllowance(
   // Step 8: Compute month-boundary carryover when enabled and it's the 1st of the month
   let monthBoundaryCarryover: MonthBoundaryCarryover | undefined
   if (carryoverEnabled && dayOfMonth === 1) {
-    const previousMonthDate = subtractDays(currentDate, 1) // last day of previous month
+    const previousMonthDate = subtractDaysLocal(currentDate, 1) // last day of previous month
     monthBoundaryCarryover = computeMonthBoundaryCarryover(
       budgets,
       transactions,
@@ -671,14 +642,14 @@ export function computeMonthBoundaryCarryover(
   // Calculate daily budget for the previous month
   const totalMonthlyBudget = budgets.reduce((sum, budget) => sum + budget.monthlyLimit, 0)
   const totalFixed = getTotalFixedMonthly(fixedExpenses ?? [])
-  const daysInPrevMonth = getDaysInMonth(previousMonthDate)
+  const daysInPrevMonth = getDaysInMonthLocal(previousMonthDate)
   const dailyBudget = Math.max(0, totalMonthlyBudget - totalFixed) / daysInPrevMonth
 
   // Calculate total expected discretionary spend for the entire previous month
   const expectedSpendForMonth = dailyBudget * daysInPrevMonth
 
   // Calculate actual discretionary spending for the entire previous month
-  const prevMonthPrefix = `${previousMonthDate.getUTCFullYear()}-${String(previousMonthDate.getUTCMonth() + 1).padStart(2, '0')}`
+  const prevMonthPrefix = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`
   const actualSpendForMonth = transactions
     .filter(t =>
       t.date.startsWith(prevMonthPrefix) &&
