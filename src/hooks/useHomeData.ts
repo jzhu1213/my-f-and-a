@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import type { Transaction, Budget, Goal, TransactionCategory, TransactionType, UserLessonProgress } from '@/types'
+import type { Transaction, Budget, Goal, TransactionCategory, TransactionType, UserLessonProgress, UserProfile } from '@/types'
 import type { DailyAllowance, Debt, SavingsAccount, SavingsAccountType, IncomeSmoothing } from '@/types/folio'
 import { 
   getTransactions, 
@@ -28,18 +28,26 @@ import {
   createSinkingFund as createSinkingFundApi,
   updateSinkingFund as updateSinkingFundApi,
   deleteSinkingFund as deleteSinkingFundApi,
+  getFundingSources,
+  createFundingSource as createFundingSourceApi,
+  updateFundingSource as updateFundingSourceApi,
+  updateFundingSourceBalance as updateFundingSourceBalanceApi,
+  deleteFundingSource as deleteFundingSourceApi,
 } from '@/lib/supabaseData'
 import { getHomeCache, setHomeCache, isCacheStale } from '@/lib/homeCache'
 import { addToOfflineQueue } from '@/lib/offlineQueue'
 import type { AppAllocation } from '@/lib/supabaseData'
 import type { PaySchedule } from '@/lib/paySchedule'
 import type { SinkingFund } from '@/lib/sinkingFunds'
+import type { FundingSource } from '@/lib/fundingSources'
 import { getTotalMonthlyReserve } from '@/lib/sinkingFunds'
 import { computeSavingsRate } from '@/lib/allocationUtils'
 import { computeSetAside } from '@/lib/setAside'
 import type { SetAsideBreakdown } from '@/lib/setAside'
 import type { IncomeAllocation } from '@/types/folio'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
+import { computeWeekendAllowance } from '@/lib/weekendAllowance'
+import type { WeekendAllowanceResult } from '@/lib/weekendAllowance'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
 // Stored in localStorage as a fallback (no dedicated Supabase table yet).
@@ -209,6 +217,8 @@ export interface UseHomeDataReturn {
   paySchedule: PaySchedule | null
   /** User sinking funds for periodic large costs */
   sinkingFunds: SinkingFund[]
+  /** User funding sources (payment methods) */
+  fundingSources: FundingSource[]
   /**
    * The user's income smoothing preference, or `null` when none is set.
    * `null` means `current_month` behaviour (no change to existing logic).
@@ -236,6 +246,8 @@ export interface UseHomeDataReturn {
   totalSavingsBalance: number
   /** Savings rate as a percentage (0-100) — percent of income saved */
   savingsRate: number
+  /** Weekend allowance quick-view data (safe to spend this weekend) */
+  weekendAllowance: WeekendAllowanceResult | null
   
   // ── Loading State ──────────────────────────────────────────────
   /** Whether initial data is still loading */
@@ -257,6 +269,7 @@ export interface UseHomeDataReturn {
     type: TransactionType
     date: string
     note?: string
+    fundingSourceId?: string
   }) => Promise<Transaction | null>
   
   /** Update an existing transaction */
@@ -268,6 +281,7 @@ export interface UseHomeDataReturn {
       type: TransactionType
       date: string
       note?: string
+      fundingSourceId?: string
     }
   ) => Promise<Transaction | null>
   
@@ -346,6 +360,27 @@ export interface UseHomeDataReturn {
   /** Delete a sinking fund */
   deleteSinkingFund: (id: string) => Promise<boolean>
   
+  // Funding source mutations
+  /** Add a new funding source */
+  addFundingSource: (data: {
+    label: string
+    emoji: string
+    kind: FundingSource['kind']
+    reducesBalanceNow: boolean
+  }) => Promise<FundingSource | null>
+  /** Update an existing funding source */
+  updateFundingSource: (id: string, updates: {
+    label?: string
+    emoji?: string
+    kind?: FundingSource['kind']
+    reducesBalanceNow?: boolean
+    snapshotBalance?: number
+  }) => Promise<FundingSource | null>
+  /** Update just the snapshot balance for a funding source */
+  updateFundingSourceBalance: (id: string, snapshotBalance: number) => Promise<FundingSource | null>
+  /** Delete a funding source */
+  deleteFundingSource: (id: string) => Promise<boolean>
+  
   // Direct state setters (for advanced optimistic updates)
   /** Set transactions directly (for optimistic updates) */
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>
@@ -376,9 +411,10 @@ export interface UseHomeDataReturn {
  * **Validates: Requirements 13.1, 13.2, 13.7**
  * 
  * @param userId - Current authenticated user ID (null if not authenticated)
+ * @param userProfile - Full user profile with preferences (optional)
  * @returns Object containing all home screen data and mutation functions
  */
-export function useHomeData(userId: string | null | undefined): UseHomeDataReturn {
+export function useHomeData(userId: string | null | undefined, userProfile?: UserProfile | null): UseHomeDataReturn {
   // ── Stable "today" date (only changes on calendar day boundary) ──
   const currentDay = useCurrentDay()
 
@@ -392,6 +428,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
   const [debts, setDebts] = useState<Debt[]>([])
   const [paySchedule, setPaySchedule] = useState<PaySchedule | null>(null)
   const [sinkingFunds, setSinkingFunds] = useState<SinkingFund[]>([])
+  const [fundingSources, setFundingSources] = useState<FundingSource[]>([])
   const [disbursementBonus, setDisbursementBonus] = useState(0)
   const [incomeSmoothing, setIncomeSmoothingState] = useState<IncomeSmoothing | null>(
     () => loadIncomeSmoothingPreference()
@@ -440,7 +477,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       const currentMonth = new Date().toISOString().slice(0, 7)
       
       // Parallel data fetch for optimal performance (Requirement 13.1)
-      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, debtData, payScheduleData, sinkingFundsData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, debtData, payScheduleData, sinkingFundsData, fundingSourcesData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
@@ -450,6 +487,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
         getDebts(userId).catch(() => [] as Debt[]),
         getPaySchedule(userId).catch(() => null),
         getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
+        getFundingSources(userId).catch(() => [] as FundingSource[]),
       ])
       
       setTransactions(txData)
@@ -461,6 +499,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setDebts(debtData)
       setPaySchedule(payScheduleData)
       setSinkingFunds(sinkingFundsData)
+      setFundingSources(fundingSourcesData)
       
       setIsStale(false)
     } catch (err) {
@@ -496,7 +535,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       const currentMonth = new Date().toISOString().slice(0, 7)
       
       // Parallel refresh for optimal performance
-      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, payScheduleData, sinkingFundsData] = await Promise.all([
+      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, payScheduleData, sinkingFundsData, fundingSourcesData] = await Promise.all([
         getTransactions(userId),
         getBudgets(userId),
         getGoals(userId),
@@ -505,6 +544,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
         getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
         getPaySchedule(userId).catch(() => null),
         getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
+        getFundingSources(userId).catch(() => [] as FundingSource[]),
       ])
       
       setTransactions(txData)
@@ -515,6 +555,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       setSavingsAccounts(savingsData)
       setPaySchedule(payScheduleData)
       setSinkingFunds(sinkingFundsData)
+      setFundingSources(fundingSourcesData)
       
       setIsStale(false)
     } catch (err) {
@@ -1004,6 +1045,104 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     }
   }, [userId])
   
+  // ── Funding Source Mutations ───────────────────────────────────
+  /**
+   * Add a new funding source
+   */
+  const addFundingSource = useCallback(async (data: {
+    label: string
+    emoji: string
+    kind: FundingSource['kind']
+    reducesBalanceNow: boolean
+  }): Promise<FundingSource | null> => {
+    if (!userId) return null
+    
+    try {
+      const result = await createFundingSourceApi(userId, data)
+      
+      if (result) {
+        setFundingSources(prev => [...prev, result])
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error creating funding source:', err)
+      return null
+    }
+  }, [userId])
+  
+  /**
+   * Update an existing funding source
+   */
+  const updateFundingSourceFn = useCallback(async (
+    id: string,
+    updates: {
+      label?: string
+      emoji?: string
+      kind?: FundingSource['kind']
+      reducesBalanceNow?: boolean
+      snapshotBalance?: number
+    }
+  ): Promise<FundingSource | null> => {
+    if (!userId) return null
+    
+    try {
+      const result = await updateFundingSourceApi(userId, id, updates)
+      
+      if (result) {
+        setFundingSources(prev => prev.map(s => s.id === id ? result : s))
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error updating funding source:', err)
+      return null
+    }
+  }, [userId])
+  
+  /**
+   * Delete a funding source
+   */
+  const deleteFundingSourceFn = useCallback(async (id: string): Promise<boolean> => {
+    if (!userId) return false
+    
+    try {
+      const success = await deleteFundingSourceApi(userId, id)
+      
+      if (success) {
+        setFundingSources(prev => prev.filter(s => s.id !== id))
+      }
+      
+      return success
+    } catch (err) {
+      console.error('Error deleting funding source:', err)
+      return false
+    }
+  }, [userId])
+  
+  /**
+   * Update just the snapshot balance for a funding source (inline editing).
+   */
+  const updateFundingSourceBalanceFn = useCallback(async (
+    id: string,
+    snapshotBalance: number
+  ): Promise<FundingSource | null> => {
+    if (!userId) return null
+
+    try {
+      const result = await updateFundingSourceBalanceApi(userId, id, snapshotBalance)
+
+      if (result) {
+        setFundingSources(prev => prev.map(s => s.id === id ? result : s))
+      }
+
+      return result
+    } catch (err) {
+      console.error('Error updating funding source balance:', err)
+      return null
+    }
+  }, [userId])
+
   // ── Income Smoothing Mutation ──────────────────────────────────
   /**
    * Persist a new income-smoothing preference and update state.
@@ -1030,6 +1169,7 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
    * Daily allowance calculation (memoized)
    * Requirement 13.2: Only recalculate when budgets or transactions change
    * Requirement 14.2: Use income-based estimation when no budgets are configured
+   * Task 82: When countCreditImmediately is false, filter spending by settlement type
    */
   const allowance = useMemo<DailyAllowance | null>(() => {
     if (budgets.length === 0 && transactions.length === 0 && !isLoading) {
@@ -1078,8 +1218,22 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
       ? [...debtFixedExpenses, sinkingFundFixedExpense]
       : debtFixedExpenses
     
-    return computeDailyAllowance(budgets, transactions, currentDay, (monthlyIncome ?? 0) + disbursementBonus, allFixedExpenses, undefined, incomeSmoothing ?? undefined)
-  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, incomeSmoothing, isLoading, currentDay])
+    // Task 82: Get user's credit spending preference (defaults to true)
+    const countCreditImmediately = userProfile?.countCreditImmediately ?? true
+    
+    return computeDailyAllowance(
+      budgets,
+      transactions,
+      currentDay,
+      (monthlyIncome ?? 0) + disbursementBonus,
+      allFixedExpenses,
+      undefined,
+      incomeSmoothing ?? undefined,
+      undefined, // carryoverEnabled
+      countCreditImmediately,
+      fundingSources
+    )
+  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, fundingSources])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
@@ -1173,6 +1327,15 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     return computeSavingsRate(totalSetAside, monthlyContributions, totalMonthlyIncome)
   }, [transactions, savingsAccounts, totalSetAside])
   
+  /**
+   * Weekend allowance quick-view (memoized)
+   * Computes "safe to spend this weekend" only when allowance changes.
+   */
+  const weekendAllowance = useMemo<WeekendAllowanceResult | null>(() => {
+    if (!allowance) return null
+    return computeWeekendAllowance(allowance.dailyBudget, transactions, new Date())
+  }, [allowance, transactions])
+  
   // ── Return Hook Interface ──────────────────────────────────────
   return {
     // Core data
@@ -1183,9 +1346,11 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     savingsAccounts,
     paySchedule,
     incomeSmoothing,
+    fundingSources,
     
     // Computed values (memoized)
     allowance,
+    weekendAllowance,
     categoryRows,
     totalSetAside,
     setAside,
@@ -1229,6 +1394,12 @@ export function useHomeData(userId: string | null | undefined): UseHomeDataRetur
     addSinkingFund,
     updateSinkingFund: updateSinkingFundFn,
     deleteSinkingFund: deleteSinkingFundFn,
+    
+    // Funding source mutations
+    addFundingSource,
+    updateFundingSource: updateFundingSourceFn,
+    updateFundingSourceBalance: updateFundingSourceBalanceFn,
+    deleteFundingSource: deleteFundingSourceFn,
     
     // Direct state setters (for advanced optimistic updates)
     setTransactions,

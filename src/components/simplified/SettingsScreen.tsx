@@ -8,6 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal } from "@/types"
 import type { IncomeSmoothing } from "@/types/folio"
+import { computeBudgetSummary } from "@/lib/budgetSummary"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -26,6 +27,8 @@ import {
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 import { DailyReminderSetting } from "./DailyReminderSetting"
 import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
+import { useFeatureFlags } from "@/hooks/useFeatureFlags"
+import type { FeatureFlags } from "@/lib/featureFlags"
 
 // ============================================================================
 // Types
@@ -36,7 +39,9 @@ export interface SettingsScreenProps {
   goals: Goal[]
   userEmail?: string
   incomeSmoothing?: IncomeSmoothing | null
+  countCreditImmediately?: boolean
   onSetIncomeSmoothing?: (s: IncomeSmoothing) => void
+  onUpdateCountCreditImmediately?: (value: boolean) => void
   onOpenBudgetSettings: () => void
   onOpenGoals: () => void
   onOpenTools?: () => void
@@ -86,15 +91,6 @@ const INCOME_OPTIONS: IncomeOption[] = [
 ]
 
 // ============================================================================
-// Helpers
-// ============================================================================
-
-function getDaysInMonth(): number {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-}
-
-// ============================================================================
 // SettingsScreen Component
 // ============================================================================
 
@@ -110,7 +106,9 @@ export function SettingsScreen({
   goals,
   userEmail,
   incomeSmoothing,
+  countCreditImmediately: countCreditImmediatelyProp,
   onSetIncomeSmoothing,
+  onUpdateCountCreditImmediately,
   onOpenBudgetSettings,
   onOpenGoals,
   onOpenTools,
@@ -122,13 +120,13 @@ export function SettingsScreen({
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const { flags, setFlag, resetFlags } = useFeatureFlags()
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [insightsEnabled, setInsightsEnabledState] = useState(() => getInsightsEnabled())
+  const [countCreditImmediately, setCountCreditImmediatelyState] = useState(countCreditImmediatelyProp ?? true)
 
   // ── Budget summary computations ────────────────────────────────────────────
-  const totalMonthly = budgets.reduce((sum, b) => sum + b.monthlyLimit, 0)
-  const daysInMonth = getDaysInMonth()
-  const dailyBudget = daysInMonth > 0 ? totalMonthly / daysInMonth : 0
+  const { totalMonthly, dailyBudget } = computeBudgetSummary(budgets)
 
   // Active budgets with a limit set
   const activeLimits = BUDGET_CATEGORIES
@@ -445,6 +443,68 @@ export function SettingsScreen({
           </motion.button>
         </div>
 
+        {/* Count credit-card spending against today toggle */}
+        {onUpdateCountCreditImmediately && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "12px 0",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <div style={{ flex: 1, marginRight: 12 }}>
+              <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
+                Count credit-card spending against today?
+              </span>
+              <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
+                When off, credit purchases won&apos;t reduce your daily allowance until you pay the bill
+              </span>
+            </div>
+            <motion.button
+              type="button"
+              role="switch"
+              aria-checked={countCreditImmediately}
+              aria-label="Count credit-card spending against today"
+              onClick={() => {
+                const next = !countCreditImmediately
+                setCountCreditImmediatelyState(next)
+                onUpdateCountCreditImmediately(next)
+              }}
+              whileTap={{ scale: 0.92 }}
+              transition={springs.snappy}
+              style={{
+                flexShrink: 0,
+                width: 44,
+                height: 26,
+                borderRadius: 13,
+                border: "none",
+                cursor: "pointer",
+                background: countCreditImmediately
+                  ? "rgba(167, 139, 250, 0.6)"
+                  : "rgba(255, 255, 255, 0.1)",
+                position: "relative",
+                transition: "background 0.2s ease",
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: 3,
+                  left: countCreditImmediately ? 21 : 3,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: countCreditImmediately ? "#fff" : "rgba(255,255,255,0.4)",
+                  transition: "left 0.2s ease, background 0.2s ease",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                }}
+              />
+            </motion.button>
+          </div>
+        )}
+
         {/* Reset Tutorial/Onboarding */}
         {onResetOnboarding && (
           <motion.button
@@ -469,6 +529,96 @@ export function SettingsScreen({
       <div style={{ marginBottom: 20 }}>
         <MinBalanceBufferSetting />
       </div>
+
+      {/* ── Feature Visibility ──────────────────────────────────────── */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+          Feature Visibility
+        </p>
+        <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
+          Hide tools you don&apos;t use to keep your Tools tab clean.
+        </p>
+
+        {(
+          [
+            { key: "debtTracking" as keyof FeatureFlags, emoji: "💳", label: "Debt Tracking" },
+            { key: "recurringBills" as keyof FeatureFlags, emoji: "📅", label: "Recurring Bills" },
+            { key: "reimbursements" as keyof FeatureFlags, emoji: "🤝", label: "IOUs & Reimbursements" },
+            { key: "sinkingFunds" as keyof FeatureFlags, emoji: "🎯", label: "Sinking Funds" },
+            { key: "subscriptionAudit" as keyof FeatureFlags, emoji: "🔄", label: "Subscription Audit" },
+            { key: "savingsProjections" as keyof FeatureFlags, emoji: "🏦", label: "Savings Projections" },
+            { key: "compoundGrowthCalculator" as keyof FeatureFlags, emoji: "📈", label: "Compound Growth" },
+            { key: "creditPayoffCalculator" as keyof FeatureFlags, emoji: "💰", label: "Credit Payoff" },
+            { key: "lessons" as keyof FeatureFlags, emoji: "📚", label: "Learn" },
+            { key: "goals" as keyof FeatureFlags, emoji: "🎯", label: "Goals" },
+          ] as const
+        ).map((item, idx, arr) => (
+          <div
+            key={item.key}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "10px 0",
+              borderBottom: idx < arr.length - 1 ? "1px solid var(--border)" : "none",
+            }}
+          >
+            <span style={{ fontSize: 14, color: "var(--text)" }}>
+              <span aria-hidden="true">{item.emoji}</span>{" "}
+              {item.label}
+            </span>
+            <motion.button
+              type="button"
+              role="switch"
+              aria-checked={flags[item.key]}
+              aria-label={`Toggle ${item.label}`}
+              onClick={() => setFlag(item.key, !flags[item.key])}
+              whileTap={{ scale: 0.92 }}
+              transition={springs.snappy}
+              style={{
+                flexShrink: 0,
+                width: 44,
+                height: 26,
+                borderRadius: 13,
+                border: "none",
+                cursor: "pointer",
+                background: flags[item.key]
+                  ? "rgba(167, 139, 250, 0.6)"
+                  : "rgba(255, 255, 255, 0.1)",
+                position: "relative",
+                transition: "background 0.2s ease",
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: 3,
+                  left: flags[item.key] ? 21 : 3,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: flags[item.key] ? "#fff" : "rgba(255,255,255,0.4)",
+                  transition: "left 0.2s ease, background 0.2s ease",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                }}
+              />
+            </motion.button>
+          </div>
+        ))}
+
+        <motion.button
+          onClick={resetFlags}
+          whileTap={{ scale: 0.97 }}
+          transition={springs.snappy}
+          style={{
+            ...linkButton,
+            marginTop: 14,
+          }}
+          aria-label="Reset feature visibility to defaults"
+        >
+          Reset to defaults →
+        </motion.button>
+      </GlassCard>
 
       {/* ── Data & Account Management ──────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>

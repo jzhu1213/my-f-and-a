@@ -1,5 +1,6 @@
 import type { Transaction, TransactionCategory } from '@/types'
 import type { ContextualTip, DailyAllowance } from '@/types/folio'
+import type { FundingSource } from '@/lib/fundingSources'
 import { TIP_EMOJI, TIP_TITLES } from '@/lib/vocabulary'
 
 // ============================================================================
@@ -192,6 +193,12 @@ export interface UserContext {
   lumpIncomeSpikeAmount?: number
   /** The trailing-average monthly income used as baseline for spike detection. */
   lumpIncomeBaselineAverage?: number
+  /**
+   * Source-spending breakdown for the current month. When set, the
+   * source_breakdown tip is eligible to fire. Computed upstream from this
+   * month's expense transactions matched against credit-kind funding sources.
+   */
+  sourceBreakdown?: { creditPercent: number; creditTotal: number; monthlyIncome: number }
 }
 
 /** Inputs required to derive a {@link UserContext} for tip selection. */
@@ -209,6 +216,8 @@ export interface BuildUserContextParams {
    * it once per render pass and keep this function pure/deterministic.
    */
   today: string
+  /** User's funding sources (used to compute source-spending breakdown). */
+  fundingSources?: FundingSource[]
 }
 
 /**
@@ -224,7 +233,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -244,6 +253,40 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
   const spentToday = allowance?.spentToday ?? 0
   const todaySpentPercent = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0
 
+  // Compute source-spending breakdown for the current month if funding sources are available.
+  let sourceBreakdown: UserContext['sourceBreakdown']
+  if (fundingSources && fundingSources.length > 0) {
+    const currentMonthPrefix = today.slice(0, 7) // "YYYY-MM"
+    const creditSourceIds = new Set(
+      fundingSources.filter(s => s.kind === 'credit').map(s => s.id)
+    )
+
+    if (creditSourceIds.size > 0) {
+      let totalMonthSpending = 0
+      let creditSpending = 0
+      let monthlyIncome = 0
+
+      for (const tx of transactions) {
+        if (!tx.date.startsWith(currentMonthPrefix)) continue
+        if (tx.type === 'expense') {
+          totalMonthSpending += tx.amount
+          if (tx.fundingSourceId && creditSourceIds.has(tx.fundingSourceId)) {
+            creditSpending += tx.amount
+          }
+        } else if (tx.type === 'income') {
+          monthlyIncome += tx.amount
+        }
+      }
+
+      if (totalMonthSpending > 0) {
+        const creditPercent = Math.round((creditSpending / totalMonthSpending) * 100)
+        if (creditPercent >= 40) {
+          sourceBreakdown = { creditPercent, creditTotal: creditSpending, monthlyIncome }
+        }
+      }
+    }
+  }
+
   return {
     underBudgetStreak,
     todaySpentPercent,
@@ -254,6 +297,7 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
       dailyBudget,
     },
     upcomingBills,
+    sourceBreakdown,
   }
 }
 
@@ -458,6 +502,30 @@ export function selectContextualTip(
       actionLabel: 'Review subscriptions',
       actionType: 'view_insight',
       triggerCondition: { type: 'subscription_audit', count, monthlyTotal },
+    })
+  }
+
+  // Step 2h: Source-spending breakdown — credit spending >= 40% of month (low priority, once/month)
+  // Uses a month-prefix tip ID so the dismissed-tips mechanism ensures at most once per month.
+  if (context.sourceBreakdown) {
+    const { creditPercent, creditTotal, monthlyIncome } = context.sourceBreakdown
+    const currentMonthPrefix = new Date().toISOString().slice(0, 7)
+    const creditExceedsIncome = monthlyIncome > 0 && creditTotal > monthlyIncome
+
+    const message = creditExceedsIncome
+      ? `Credit spending ($${Math.round(creditTotal)}) is outpacing your income this month ($${Math.round(monthlyIncome)}). Worth a look to stay ahead of it.`
+      : `${creditPercent}% of this month's spending went on credit ($${Math.round(creditTotal)}). Not a problem if you clear it monthly!`
+
+    candidates.push({
+      id: `source-breakdown-${currentMonthPrefix}`,
+      type: 'did_you_know',
+      title: 'Source check-in',
+      message,
+      emoji: TIP_EMOJI.source_breakdown,
+      priority: 'low',
+      actionLabel: 'See breakdown',
+      actionType: 'view_insight',
+      triggerCondition: { type: 'source_breakdown', creditPercent, creditTotal, monthlyIncome },
     })
   }
 

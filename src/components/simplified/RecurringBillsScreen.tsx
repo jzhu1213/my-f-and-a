@@ -7,6 +7,7 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { TransactionCategory } from "@/types"
 import type { FixedExpense } from "@/lib/fixedExpenses"
+import { getTotalFixedMonthly } from "@/lib/fixedExpenses"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -107,9 +108,7 @@ export function RecurringBillsScreen({
   const [saving, setSaving] = useState(false)
 
   // ── Computed ───────────────────────────────────────────────────────────────
-  const totalMonthly = bills
-    .filter(b => b.isActive)
-    .reduce((sum, b) => sum + b.amount, 0)
+  const totalMonthly = getTotalFixedMonthly(bills)
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   function openAddForm() {

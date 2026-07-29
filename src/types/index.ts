@@ -12,6 +12,7 @@ export interface UserProfile {
   createdAt: string
   displayName?: string
   avatarUrl?: string
+  countCreditImmediately?: boolean
 }
 
 // Transaction Types
@@ -39,6 +40,7 @@ export interface Transaction {
   recurringId?: string
   accountType: AccountType
   createdAt: string
+  fundingSourceId?: string
 }
 
 // Account Types (3 buckets)
@@ -169,11 +171,7 @@ export interface SmartInsight {
   category?: TransactionCategory
 }
 
-// Onboarding Types
-export interface OnboardingData {
-  userType: UserType | null
-  priority: UserPriority | null
-}
+
 
 // Calculator Types
 export interface CreditPayoffResult {

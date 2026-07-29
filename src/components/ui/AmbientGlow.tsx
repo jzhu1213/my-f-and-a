@@ -9,7 +9,7 @@
  * are absolutely (or fixed) positioned and layered behind content via a
  * negative `z-index`. The glow color is **status-reactive**: it turns soft
  * green when the user is healthy, amber when cautious, orange as they approach
- * the limit, and a gentle red when over budget — plus warm gold for
+ * the limit, and a gentle red when over the weekly limit — plus warm gold for
  * celebrations and a neutral indigo default.
  *
  * The color change animates smoothly (300ms ease) when `status` changes, so

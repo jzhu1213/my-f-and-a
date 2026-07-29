@@ -5,10 +5,11 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
-import { computeSplitAmount } from '@/lib/splitUtils'
+import { computeSplitAmount, computeOwedAmount } from '@/lib/splitUtils'
 import { autoCategorize } from '@/lib/autoCategorize'
 import { triggerHaptic } from '@/lib/haptics'
 import { predictHabit, getTopHabitChips } from '@/lib/habitEngine'
+import { getMostRecentExpenseCategory } from '@/lib/transactionUtils'
 import { useToast } from '@/contexts/ToastContext'
 import type { TransactionCategory, Transaction } from '@/types'
 import type { SmartSuggestion, CustomCategory } from '@/types/folio'
@@ -18,11 +19,13 @@ import { mergeCategories } from '@/lib/customCategories'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius, roundButton } from '@/styles/shared'
+import type { FundingSource } from '@/lib/fundingSources'
+import { predictFundingSource } from '@/lib/fundingSources'
 
 interface ExpenseSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string }) => void
+  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string; fundingSourceId?: string; trackAsIOU?: boolean; splitWith?: string; splitOwedAmount?: number }) => void
   onUndo?: () => void
   defaultCategory?: TransactionCategory
   transactions?: Transaction[]
@@ -31,6 +34,10 @@ interface ExpenseSheetProps {
   onAddCustomCategory?: (label: string, emoji: string) => Promise<CustomCategory | null>
   /** When true, the split toggle starts enabled (task 65 — one-tap split flow) */
   splitPreEnabled?: boolean
+  /** Available funding sources (payment methods) for the user */
+  fundingSources?: FundingSource[]
+  /** Recent split partner names for quick-select chips (task 5.3 polish) */
+  recentSplitPartners?: string[]
 }
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
@@ -47,21 +54,6 @@ const MAX_AMOUNT = 99999
 /** Spring config matching animations.ts snappy preset (task 3.5, task 9.4). */
 const ICON_BOUNCE_SPRING = springs.snappy
 
-/** Expense categories (excludes income-only categories). */
-const EXPENSE_CATEGORIES = new Set<TransactionCategory>(['food', 'transport', 'fun', 'school', 'rent', 'other'])
-
-/**
- * Finds the most recently used expense category from the transaction list.
- * Returns null if no qualifying transaction is found.
- */
-function getMostRecentExpenseCategory(transactions: Transaction[] | undefined): TransactionCategory | null {
-  if (!transactions || transactions.length === 0) return null
-  const sorted = [...transactions]
-    .filter((t) => t.type === 'expense' && EXPENSE_CATEGORIES.has(t.category))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  return sorted.length > 0 ? sorted[0].category : null
-}
-
 export function ExpenseSheet({
   isOpen,
   onClose,
@@ -72,10 +64,13 @@ export function ExpenseSheet({
   customCategories = [],
   onAddCustomCategory,
   splitPreEnabled = false,
+  fundingSources = [],
+  recentSplitPartners = [],
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
   const amountRef = useRef<HTMLInputElement>(null)
+  const splitWithRef = useRef<HTMLInputElement>(null)
 
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<TransactionCategory | null>(null)
@@ -83,10 +78,18 @@ export function ExpenseSheet({
   const [showNoteField, setShowNoteField] = useState(false)
   const [splitEnabled, setSplitEnabled] = useState(false)
   const [splitCount, setSplitCount] = useState(2)
+  const [splitWith, setSplitWith] = useState('')
   // Tracks whether category was manually selected (true) or auto-suggested (false)
   const [manualCategorySelection, setManualCategorySelection] = useState(false)
   // Tracks whether the current category was auto-suggested
   const [isAutoSuggested, setIsAutoSuggested] = useState(false)
+
+  // ── Funding source selection state (task 81.1) ─────────────────────────
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
+  const [showSourcePicker, setShowSourcePicker] = useState(false)
+
+  // ── IOU toggle state (task 84.1) ──────────────────────────────────────
+  const [trackAsIOU, setTrackAsIOU] = useState(false)
 
   // ── Inline "Add custom category" form state (task 69) ───────────────────
   const [showAddCategoryForm, setShowAddCategoryForm] = useState(false)
@@ -140,16 +143,58 @@ export function ExpenseSheet({
       setShowNoteField(false)
       setSplitEnabled(splitPreEnabled)
       setSplitCount(2)
+      setSplitWith('')
       setManualCategorySelection(!!effectiveDefault)
       setIsAutoSuggested(!!(!defaultCategory && !effectiveDefault && habitPrediction))
       setShowAddCategoryForm(false)
       setNewCategoryLabel('')
       setNewCategoryEmoji('✨')
       setIsAddingCategory(false)
+      
+      // Smart source prediction (task 81.2)
+      // Predict funding source based on category and time of day
+      const predictedSourceId = prefillCategory
+        ? predictFundingSource(transactions ?? [], prefillCategory, fundingSources, new Date())
+        : null
+      // Fall back to first source if no prediction
+      setSelectedSourceId(predictedSourceId ?? (fundingSources.length > 0 ? fundingSources[0].id : null))
+      setShowSourcePicker(false)
+      setTrackAsIOU(false)
+      
       // Auto-focus amount input (Task 73: removed setTimeout for instant focus)
       amountRef.current?.focus()
     }
-  }, [isOpen, effectiveDefault, defaultCategory, habitPrediction, splitPreEnabled])
+  }, [isOpen, effectiveDefault, defaultCategory, habitPrediction, splitPreEnabled, fundingSources, transactions])
+
+  // Auto-focus friend name input when split is pre-enabled and amount is filled (task 5.3 polish)
+  // This fires when the user enters an amount (or taps a habit chip) in split-pre-enabled mode,
+  // naturally guiding them to the "who are you splitting with?" field next.
+  useEffect(() => {
+    if (splitPreEnabled && splitEnabled && amount && parseFloat(amount) > 0 && !splitWith.trim()) {
+      // Small delay to let the split section animate open
+      const timer = setTimeout(() => {
+        splitWithRef.current?.focus()
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+  }, [splitPreEnabled, splitEnabled, amount, splitWith])
+
+  // Re-predict funding source when category changes (task 81.2)
+  useEffect(() => {
+    if (category && transactions && fundingSources.length > 0) {
+      const predictedSourceId = predictFundingSource(transactions, category, fundingSources, new Date())
+      if (predictedSourceId) {
+        setSelectedSourceId(predictedSourceId)
+      }
+    }
+  }, [category, transactions, fundingSources])
+
+  // Determine if selected funding source is borrowed (task 84.1)
+  const selectedSourceIsBorrowed = useMemo(() => {
+    if (!selectedSourceId || fundingSources.length === 0) return false
+    const source = fundingSources.find(s => s.id === selectedSourceId)
+    return source?.kind === 'borrowed'
+  }, [selectedSourceId, fundingSources])
 
   // ── Inline add-category submit handler (task 69) ────────────────────────
   const handleAddCategorySubmit = useCallback(async () => {
@@ -198,6 +243,10 @@ export function ExpenseSheet({
       amount: submittedAmount,
       category,
       note: note.trim() || undefined,
+      fundingSourceId: selectedSourceId || undefined,
+      trackAsIOU: selectedSourceIsBorrowed && trackAsIOU ? true : undefined,
+      splitWith: splitEnabled && splitWith.trim() ? splitWith.trim() : undefined,
+      splitOwedAmount: splitEnabled && splitWith.trim() ? computeOwedAmount(parsed, splitCount) : undefined,
     })
     // Show success toast with optional undo action
     const categoryLabel = displayCategories.find(c => c.categoryValue === category)?.label ?? category
@@ -209,7 +258,7 @@ export function ExpenseSheet({
       onUndo ? { label: 'Undo', onClick: onUndo } : undefined
     )
     onClose()
-  }, [amount, category, note, splitEnabled, splitCount, onSubmit, onClose, onUndo, showToast])
+  }, [amount, category, note, splitEnabled, splitCount, splitWith, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, displayCategories, onSubmit, onClose, onUndo, showToast])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -503,6 +552,112 @@ export function ExpenseSheet({
                 >
                   How much did you spend?
                 </p>
+
+                {/* ── Source Chip (optional, task 81.1) ────────────────── */}
+                {fundingSources.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSourcePicker(!showSourcePicker)
+                        triggerHaptic('light')
+                      }}
+                      aria-label={
+                        selectedSourceId
+                          ? `Payment method: ${fundingSources.find(s => s.id === selectedSourceId)?.label ?? 'Unknown'}`
+                          : 'Select payment method'
+                      }
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '6px 12px',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: borderRadius.full,
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontFamily: FONT_FAMILY,
+                        fontWeight: 500,
+                        color: 'var(--sub)',
+                      }}
+                    >
+                      <span style={{ fontSize: 14 }} aria-hidden="true">
+                        {selectedSourceId
+                          ? fundingSources.find(s => s.id === selectedSourceId)?.emoji ?? '💳'
+                          : '💳'}
+                      </span>
+                      <span>
+                        {selectedSourceId
+                          ? fundingSources.find(s => s.id === selectedSourceId)?.label ?? 'Payment method'
+                          : 'Payment method'}
+                      </span>
+                    </button>
+
+                    {/* Source picker overlay */}
+                    <AnimatePresence>
+                      {showSourcePicker && (
+                        <motion.div
+                          key="source-picker"
+                          initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                          animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                          exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                          transition={springs.snappy}
+                          style={{
+                            marginTop: 10,
+                            padding: 12,
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: 'var(--radius-md)',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                            gap: 8,
+                          }}
+                        >
+                          {fundingSources.map((source) => (
+                            <button
+                              key={source.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedSourceId(source.id)
+                                setShowSourcePicker(false)
+                                triggerHaptic('light')
+                              }}
+                              aria-label={`Use ${source.label}`}
+                              aria-pressed={selectedSourceId === source.id}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '10px 8px',
+                                background: selectedSourceId === source.id
+                                  ? 'rgba(129, 140, 248, 0.12)'
+                                  : 'transparent',
+                                border: selectedSourceId === source.id
+                                  ? '1px solid rgba(129, 140, 248, 0.4)'
+                                  : '1px solid transparent',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                fontSize: 11,
+                                fontFamily: FONT_FAMILY,
+                                fontWeight: 500,
+                                color: selectedSourceId === source.id ? 'var(--text)' : 'var(--sub)',
+                              }}
+                            >
+                              <span style={{ fontSize: 20 }} aria-hidden="true">
+                                {source.emoji}
+                              </span>
+                              <span style={{ textAlign: 'center', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {source.label}
+                              </span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
 
               {/* ── Category Grid (3×2) with glass-pill glow ────────── */}
@@ -1008,6 +1163,70 @@ export function ExpenseSheet({
                       transition={springs.snappy}
                       style={{ overflow: 'hidden' }}
                     >
+                      {/* Split with — friend name input (task 5.3 polish) */}
+                      <div style={{ padding: '14px 4px 0' }}>
+                        <input
+                          ref={splitWithRef}
+                          type="text"
+                          placeholder="Who are you splitting with?"
+                          value={splitWith}
+                          onChange={(e) => setSplitWith(e.target.value.slice(0, 40))}
+                          maxLength={40}
+                          aria-label="Friend's name to split with"
+                          style={{
+                            width: '100%',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: borderRadius.md,
+                            outline: 'none',
+                            fontSize: 14,
+                            fontFamily: FONT_FAMILY,
+                            color: 'var(--text)',
+                            padding: '10px 14px',
+                            caretColor: 'var(--text)',
+                          }}
+                        />
+
+                        {/* Recent split partner chips */}
+                        {recentSplitPartners.length > 0 && !splitWith.trim() && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: 8,
+                              flexWrap: 'wrap',
+                              marginTop: 10,
+                            }}
+                            aria-label="Recent split partners"
+                          >
+                            {recentSplitPartners.slice(0, 5).map((name) => (
+                              <button
+                                key={name}
+                                type="button"
+                                onClick={() => {
+                                  setSplitWith(name)
+                                  triggerHaptic('light')
+                                }}
+                                aria-label={`Split with ${name}`}
+                                style={{
+                                  background: 'rgba(129, 140, 248, 0.06)',
+                                  border: '1px solid rgba(129, 140, 248, 0.2)',
+                                  borderRadius: borderRadius.full,
+                                  padding: '6px 12px',
+                                  fontSize: 12,
+                                  fontFamily: FONT_FAMILY,
+                                  fontWeight: 500,
+                                  color: 'var(--sub)',
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                       <div
                         style={{
                           display: 'flex',
@@ -1072,17 +1291,24 @@ export function ExpenseSheet({
                         </div>
                       </div>
 
-                      {/* Computed share display */}
+                      {/* Computed share + "They owe you" display */}
                       {(() => {
                         const parsed = parseFloat(amount)
                         if (!parsed || parsed <= 0) return null
                         const share = computeSplitAmount(parsed, splitCount)
                         const shareStr = share % 1 === 0 ? `$${share}` : `$${share.toFixed(2)}`
+                        const owed = computeOwedAmount(parsed, splitCount)
+                        const owedStr = owed % 1 === 0 ? `$${owed}` : `$${owed.toFixed(2)}`
+                        const friendName = splitWith.trim()
                         return (
                           <div
                             style={{
                               textAlign: 'center',
                               padding: '10px 0 4px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: 8,
                             }}
                           >
                             <span
@@ -1101,6 +1327,21 @@ export function ExpenseSheet({
                             >
                               Your share: {shareStr}
                             </span>
+                            {/* Friendly "they owe you" label — shown when friend name is entered */}
+                            {friendName && owed > 0 && (
+                              <span
+                                style={{
+                                  fontFamily: FONT_FAMILY,
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  color: 'var(--success, #4ade80)',
+                                  opacity: 0.9,
+                                }}
+                                aria-live="polite"
+                              >
+                                {friendName} owes you {owedStr} 💸
+                              </span>
+                            )}
                           </div>
                         )
                       })()}
@@ -1108,6 +1349,98 @@ export function ExpenseSheet({
                   )}
                 </AnimatePresence>
               </div>
+
+              {/* ── IOU Toggle (shown when borrowed source selected, task 84.1) ── */}
+              <AnimatePresence>
+                {selectedSourceIsBorrowed && (
+                  <motion.div
+                    key="iou-toggle"
+                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                    transition={springs.snappy}
+                    style={{ overflow: 'hidden', marginBottom: 20 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTrackAsIOU((prev) => !prev)
+                        triggerHaptic('light')
+                      }}
+                      aria-pressed={trackAsIOU}
+                      aria-label="Track as IOU — I owe this back"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '12px 14px',
+                        background: trackAsIOU
+                          ? 'rgba(251, 191, 36, 0.06)'
+                          : 'transparent',
+                        border: trackAsIOU
+                          ? '1px solid rgba(251, 191, 36, 0.3)'
+                          : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {/* Toggle indicator */}
+                      <span
+                        style={{
+                          width: 36,
+                          height: 20,
+                          borderRadius: 10,
+                          background: trackAsIOU
+                            ? 'rgba(251, 191, 36, 0.8)'
+                            : 'rgba(255, 255, 255, 0.12)',
+                          position: 'relative',
+                          flexShrink: 0,
+                          transition: 'background 0.15s ease',
+                        }}
+                        aria-hidden="true"
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: 2,
+                            left: trackAsIOU ? 18 : 2,
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            background: '#fff',
+                            transition: 'left 0.15s ease',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                          }}
+                        />
+                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                        <span
+                          style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: 14,
+                            fontWeight: 500,
+                            color: trackAsIOU ? 'var(--text)' : 'var(--sub)',
+                          }}
+                        >
+                          Track as IOU
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: 11,
+                            fontWeight: 400,
+                            color: 'var(--muted)',
+                          }}
+                        >
+                          I owe this back
+                        </span>
+                      </div>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* ── Log Button (thumb zone — pinned at bottom of sheet) ── */}
               <motion.button

@@ -1,7 +1,9 @@
 import type { Budget, Transaction } from '@/types'
 import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
+import type { FundingSource } from '@/lib/fundingSources'
 import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList } from '@/lib/fixedExpenses'
+import { isBorrowedTransaction } from '@/lib/fundingSources'
 import { getStatusMessage } from '@/lib/vocabulary'
 
 /**
@@ -211,10 +213,15 @@ export function computeSmoothedIncome(
  *   3. Compute spentToday:
  *        Sum of today's expense transactions, EXCLUDING fixed/recurring
  *        (those are already sunk in Step 1)
+ *        WHEN countCreditImmediately is false:
+ *          - Only include immediate-settlement transactions (where fundingSource.reducesBalanceNow is true)
+ *          - Transactions with no fundingSourceId are treated as immediate-settlement
  *
  *   4. Compute rollover (savings/deficit from prior days this month):
  *        rawRollover = expectedSpend(setupDay→yesterday) − actualSpend(setupDay→yesterday)
  *        rollover = clamp(rawRollover, −2×dailyBudget, +2×dailyBudget)
+ *        WHEN countCreditImmediately is false:
+ *          - actualSpend uses the same settlement filtering as spentToday
  *
  *      The ±2-day cap prevents extreme accumulation or debt spiraling.
  *      On the first day of a new month, daysElapsed = 0, so rollover is always 0
@@ -234,6 +241,11 @@ export function computeSmoothedIncome(
  *   8. Month-boundary carryover (optional):
  *        On the 1st of the month with carryoverEnabled, computes excess savings
  *        from the previous month beyond the ±2-day cap as advisory savings info.
+ *
+ *   9. Deferred spending tracking (optional):
+ *        WHEN countCreditImmediately is false:
+ *          - Track the amount spent on deferred-settlement sources separately
+ *          - Return as deferredSpending for UI display
  *
  * ─────────────────────────────────────────────────────────────────────────────────
  * Edge Cases & Invariants
@@ -261,9 +273,13 @@ export function computeSmoothedIncome(
  *   The UI tip helps users understand why their allowance is what it is, not that
  *   an additional reduction is happening.
  *
+ * • Settlement filtering (Task 82): When countCreditImmediately is false, only
+ *   immediate-settlement spending reduces today's allowance. Deferred spending
+ *   (credit cards) is tracked separately and shown as an indicator.
+ *
  * ─────────────────────────────────────────────────────────────────────────────────
  *
- * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 14.2**
+ * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 14.2, Task 82**
  *
  * @param budgets - Array of budget limits by category
  * @param transactions - Array of all transactions
@@ -277,6 +293,9 @@ export function computeSmoothedIncome(
  *   When provided and incomeSource is 'transactions', uses smoothed income instead of current month only.
  * @param carryoverEnabled - Optional flag to enable month-boundary savings carryover.
  *   When true and it's the first day of the month, computes leftover savings from the previous month.
+ * @param countCreditImmediately - Optional flag to control whether deferred-settlement expenses reduce today's allowance.
+ *   When false, only immediate-settlement expenses count against today. Defaults to true (all spending counts).
+ * @param fundingSources - Optional array of funding sources needed to check settlement types when countCreditImmediately is false.
  * @returns DailyAllowance object with amount, status, and message
  *
  * @pure This function is a pure function: given the same inputs it always
@@ -292,7 +311,9 @@ export function computeDailyAllowance(
   fixedExpenses?: FixedExpense[],
   setupDate?: Date,
   incomeSmoothing?: IncomeSmoothing,
-  carryoverEnabled?: boolean
+  carryoverEnabled?: boolean,
+  countCreditImmediately?: boolean,
+  fundingSources?: FundingSource[]
 ): DailyAllowance {
   // Step 1: Calculate total monthly budget from all category limits
   const totalMonthlyBudget = budgets.reduce((sum, budget) => sum + budget.monthlyLimit, 0)
@@ -382,13 +403,49 @@ export function computeDailyAllowance(
   }
   
   // Step 3: Calculate spentToday (exclude fixed/recurring — already sunk in Step 1b)
+  // When countCreditImmediately is false, only count immediate-settlement transactions
   const todayStr = formatDateString(currentDate)
-  const spentToday = transactions
-    .filter(t => t.date === todayStr && t.type === 'expense' && !isFixedTransaction(t))
-    .reduce((sum, t) => sum + t.amount, 0)
+  const shouldCountCreditImmediately = countCreditImmediately ?? true
+  
+  // Helper to check if a transaction is immediate-settlement
+  const isImmediateSettlement = (tx: Transaction): boolean => {
+    // No funding source = treat as immediate
+    if (!tx.fundingSourceId || !fundingSources) return true
+    
+    const source = fundingSources.find(s => s.id === tx.fundingSourceId)
+    // Source not found = treat as immediate (graceful degradation)
+    if (!source) return true
+    
+    return source.reducesBalanceNow
+  }
+  
+  const todayExpenses = transactions
+    .filter(t => t.date === todayStr && t.type === 'expense' && !isFixedTransaction(t) && !isBorrowedTransaction(t, fundingSources ?? []))
+  
+  // Track borrowed spending separately (informational)
+  const borrowedTodayExpenses = transactions
+    .filter(t => t.date === todayStr && t.type === 'expense' && !isFixedTransaction(t) && isBorrowedTransaction(t, fundingSources ?? []))
+  const borrowedSpending = borrowedTodayExpenses.reduce((sum, t) => sum + t.amount, 0)
+
+  // When countCreditImmediately is false, split spending by settlement type
+  let spentToday: number
+  let deferredSpending: number | undefined
+  
+  if (shouldCountCreditImmediately) {
+    // Default behavior: all spending counts
+    spentToday = todayExpenses.reduce((sum, t) => sum + t.amount, 0)
+  } else {
+    // Filter to immediate-settlement only
+    const immediateExpenses = todayExpenses.filter(isImmediateSettlement)
+    const deferredExpenses = todayExpenses.filter(tx => !isImmediateSettlement(tx))
+    
+    spentToday = immediateExpenses.reduce((sum, t) => sum + t.amount, 0)
+    deferredSpending = deferredExpenses.reduce((sum, t) => sum + t.amount, 0)
+  }
   
   // Step 4: Calculate rollover from previous days
   // Rollover = what was saved/overspent from setupDate (or day 1) to yesterday.
+  // When countCreditImmediately is false, use the same settlement filtering.
   //
   // Month boundary behavior: On day 1 of a new month, daysElapsedSinceSetup = 0
   // because dayOfMonth (1) - setupDay (1) = 0. This means rollover is always 0 on
@@ -411,15 +468,19 @@ export function computeDailyAllowance(
     // Expected spend from setupDate (or month start) to yesterday
     const expectedSpendToYesterday = dailyBudget * daysElapsedSinceSetup
     
-    // Actual spend from setupDate (or month start) to yesterday (exclude fixed/recurring)
-    const actualSpendToYesterday = transactions
+    // Actual spend from setupDate (or month start) to yesterday
+    // Apply the same settlement filtering as spentToday
+    const rolloverExpenses = transactions
       .filter(t => {
         const txDate = t.date
         const startDate = formatDateString(rolloverStart)
         const endDate = formatDateString(yesterday)
-        return txDate >= startDate && txDate <= endDate && t.type === 'expense' && !isFixedTransaction(t)
+        return txDate >= startDate && txDate <= endDate && t.type === 'expense' && !isFixedTransaction(t) && !isBorrowedTransaction(t, fundingSources ?? [])
       })
-      .reduce((sum, t) => sum + t.amount, 0)
+    
+    const actualSpendToYesterday = shouldCountCreditImmediately
+      ? rolloverExpenses.reduce((sum, t) => sum + t.amount, 0)
+      : rolloverExpenses.filter(isImmediateSettlement).reduce((sum, t) => sum + t.amount, 0)
     
     // Rollover: positive = saved, negative = overspent
     // Cap rollover to ±2 days budget to prevent extreme accumulation
@@ -473,6 +534,8 @@ export function computeDailyAllowance(
     reservedForBills: reservedForBills > 0 ? reservedForBills : undefined,
     upcomingBillCount: upcomingBillCount > 0 ? upcomingBillCount : undefined,
     monthBoundaryCarryover,
+    deferredSpending: deferredSpending !== undefined && deferredSpending > 0 ? deferredSpending : undefined,
+    borrowedSpending: borrowedSpending > 0 ? borrowedSpending : undefined,
   }
 }
 

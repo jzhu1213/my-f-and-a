@@ -135,3 +135,37 @@ export function revertOptimisticUpdate(
     message,
   }
 }
+
+// ============================================================================
+// Extracted Business Logic — Pure Functions
+// ============================================================================
+
+/** Categories that are commonly expense categories (excludes income-only). */
+const EXPENSE_CATEGORIES: ReadonlySet<TransactionCategory> = new Set([
+  'food', 'transport', 'fun', 'school', 'rent', 'other'
+])
+
+/**
+ * Finds the most recently used expense category from a transaction list.
+ * Returns null if no qualifying transaction is found.
+ *
+ * Used to default the expense sheet's category selection to the user's
+ * most recent choice for a smoother logging flow.
+ */
+export function getMostRecentExpenseCategory(
+  transactions: Transaction[] | undefined
+): TransactionCategory | null {
+  if (!transactions || transactions.length === 0) return null
+  const sorted = [...transactions]
+    .filter((t) => t.type === 'expense' && EXPENSE_CATEGORIES.has(t.category))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  return sorted.length > 0 ? sorted[0].category : null
+}
+
+/**
+ * Computes the total expense amount for a given set of transactions.
+ * Only sums transactions with type === 'expense'.
+ */
+export function computeDailyTotal(transactions: Transaction[]): number {
+  return transactions.reduce((sum, tx) => sum + (tx.type === 'expense' ? tx.amount : 0), 0)
+}

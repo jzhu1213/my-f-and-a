@@ -22,6 +22,9 @@ interface DailyAllowanceHeroProps {
   rollover: number
   isOverBudget: boolean
   isLoading: boolean
+  deferredSpending?: number
+  reservedForBills?: number
+  upcomingBillCount?: number
   onTapForDetails: () => void
 }
 
@@ -276,6 +279,9 @@ export function DailyAllowanceHero({
   rollover,
   isOverBudget,
   isLoading,
+  deferredSpending,
+  reservedForBills,
+  upcomingBillCount,
   onTapForDetails,
 }: DailyAllowanceHeroProps) {
   const [showBreakdown, setShowBreakdown] = useState(false)
@@ -334,6 +340,16 @@ export function DailyAllowanceHero({
       value: `${formatCurrency(spentToday)} spent today`,
       valueColor: "var(--text)",
     },
+    // Reserved for bills row — only included when there are upcoming bills
+    ...(reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0
+      ? [{
+          key: "reserved-bills",
+          icon: "🛡️",
+          label: "Set aside for bills",
+          value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
+          valueColor: "var(--sub)",
+        }]
+      : []),
   ]
 
   function handleTap() {
@@ -359,7 +375,7 @@ export function DailyAllowanceHero({
         className="flex flex-col items-center gap-2 w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-lg"
         style={{ background: "transparent", border: "none", cursor: "pointer" }}
         onClick={handleTap}
-        aria-label={`Daily allowance: ${formatCurrency(allowanceLeft)}. ${instantStatus.phrase}. ${message}. Tap for details.`}
+        aria-label={`Daily allowance: ${formatCurrency(allowanceLeft)}. ${instantStatus.phrase}. ${message}.${reservedForBills && reservedForBills > 0 && upcomingBillCount ? ` ${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}.` : ''} Tap for details.`}
         aria-expanded={showBreakdown}
         aria-live="polite"
         aria-atomic="true"
@@ -437,6 +453,56 @@ export function DailyAllowanceHero({
         >
           {message}
         </motion.p>
+
+        {/* Reserved for bills notice — warm, informational pill */}
+        {reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0 && (
+          <motion.div
+            className="flex items-center gap-1.5"
+            style={{
+              padding: "6px 12px",
+              background: "rgba(255, 255, 255, 0.04)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "var(--radius-full)",
+              marginTop: 4,
+            }}
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={timings.normal}
+            aria-label={`${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}`}
+          >
+            <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.7 }}>
+              🛡️
+            </span>
+            <span style={{ fontSize: 12, color: "var(--sub)", opacity: 0.85 }}>
+              {formatCurrency(reservedForBills)} set aside for {upcomingBillCount} upcoming bill{upcomingBillCount === 1 ? '' : 's'}
+            </span>
+          </motion.div>
+        )}
+
+        {/* Deferred spending indicator (Task 82) */}
+        {deferredSpending !== undefined && deferredSpending > 0 && (
+          <motion.div
+            className="flex items-center gap-1.5"
+            style={{
+              padding: "6px 12px",
+              background: "rgba(255, 255, 255, 0.04)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "var(--radius-full)",
+              marginTop: 4,
+            }}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={timings.normal}
+            aria-label={`On credit: ${formatCurrency(deferredSpending)}`}
+          >
+            <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.7 }}>
+              💳
+            </span>
+            <span style={{ fontSize: 12, color: "var(--sub)", opacity: 0.85 }}>
+              On credit: {formatCurrency(deferredSpending)}
+            </span>
+          </motion.div>
+        )}
 
         {/* Breakdown panel */}
         <AnimatePresence>

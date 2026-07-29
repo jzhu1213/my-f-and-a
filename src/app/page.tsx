@@ -1,5 +1,6 @@
 "use client"
 import { useState, useCallback, useEffect, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { timings } from '@/lib/animations'
 import {
@@ -11,38 +12,82 @@ import { HomeScreen } from '@/components/simplified/HomeScreen'
 import { HistoryScreen } from '@/components/simplified/HistoryScreen'
 import { SettingsScreen } from '@/components/simplified/SettingsScreen'
 import { ToolsScreen } from '@/components/simplified/ToolsScreen'
-import { BudgetSettings } from '@/components/simplified/BudgetSettings'
-import { GoalsScreen } from '@/components/simplified/GoalsScreen'
-import { SinkingFundsScreen } from '@/components/simplified/SinkingFundsScreen'
-import { SubscriptionAuditScreen } from '@/components/simplified/SubscriptionAuditScreen'
 import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
 import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
 import { EditTransactionSheet } from '@/components/simplified/EditTransactionSheet'
-import { RecurringBillsScreen } from '@/components/simplified/RecurringBillsScreen'
-import { ReimbursementLedger } from '@/components/simplified/ReimbursementLedger'
-import { DebtScreen } from '@/components/simplified/DebtScreen'
 import { RefundSheet } from '@/components/simplified/RefundSheet'
-import { OnboardingTutorial } from '@/components/simplified/OnboardingTutorial'
-import { ProfileSheet } from '@/components/ui/ProfileSheet'
-import { TutorialSetupStepRenderer, TUTORIAL_FEATURE_STEPS, TUTORIAL_SETUP_STEPS, TutorialSetupState, buildOnboardingResult, computeDailyAllowance } from '@/components/simplified/TutorialSteps'
-import { LessonsScreen } from '@/components/finance/LessonsScreen'
-import { CompoundGrowthCalculator, CreditPayoffCalculator } from '@/components/finance'
+import { TutorialSetupStepRenderer, TUTORIAL_FEATURE_STEPS, TUTORIAL_SETUP_STEPS, TutorialSetupState, buildOnboardingResult } from '@/components/simplified/TutorialSteps'
 import { detectSubscriptions } from '@/lib/subscriptionDetector'
+
+// ── Code-split: heavy/advanced features loaded on demand ─────────────────────
+// These screens are behind progressive disclosure (Tools tab, settings overlays)
+// and should not bloat the initial bundle. (Improvement 4.4)
+
+const BudgetSettings = dynamic(
+  () => import('@/components/simplified/BudgetSettings').then(m => ({ default: m.BudgetSettings })),
+  { ssr: false }
+)
+const GoalsScreen = dynamic(
+  () => import('@/components/simplified/GoalsScreen').then(m => ({ default: m.GoalsScreen })),
+  { ssr: false }
+)
+const SinkingFundsScreen = dynamic(
+  () => import('@/components/simplified/SinkingFundsScreen').then(m => ({ default: m.SinkingFundsScreen })),
+  { ssr: false }
+)
+const SubscriptionAuditScreen = dynamic(
+  () => import('@/components/simplified/SubscriptionAuditScreen').then(m => ({ default: m.SubscriptionAuditScreen })),
+  { ssr: false }
+)
+const RecurringBillsScreen = dynamic(
+  () => import('@/components/simplified/RecurringBillsScreen').then(m => ({ default: m.RecurringBillsScreen })),
+  { ssr: false }
+)
+const ReimbursementLedger = dynamic(
+  () => import('@/components/simplified/ReimbursementLedger').then(m => ({ default: m.ReimbursementLedger })),
+  { ssr: false }
+)
+const DebtScreen = dynamic(
+  () => import('@/components/simplified/DebtScreen').then(m => ({ default: m.DebtScreen })),
+  { ssr: false }
+)
+const OnboardingTutorial = dynamic(
+  () => import('@/components/simplified/OnboardingTutorial').then(m => ({ default: m.OnboardingTutorial })),
+  { ssr: false }
+)
+const ProfileSheet = dynamic(
+  () => import('@/components/ui/ProfileSheet').then(m => ({ default: m.ProfileSheet })),
+  { ssr: false }
+)
+const LessonsScreen = dynamic(
+  () => import('@/components/finance/LessonsScreen').then(m => ({ default: m.LessonsScreen })),
+  { ssr: false }
+)
+const CompoundGrowthCalculator = dynamic(
+  () => import('@/components/finance/CompoundGrowthCalculator').then(m => ({ default: m.CompoundGrowthCalculator })),
+  { ssr: false }
+)
+const CreditPayoffCalculator = dynamic(
+  () => import('@/components/finance/CreditPayoffCalculator').then(m => ({ default: m.CreditPayoffCalculator })),
+  { ssr: false }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
-import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts } from '@/lib/supabaseData'
+import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement } from '@/lib/supabaseData'
 import { exportUserData, deleteUserAccount } from '@/lib/accountUtils'
 import type { TransactionCategory, Transaction } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
+import type { Reimbursement } from '@/lib/reimbursements'
 import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { createRefundTransaction } from '@/lib/refundUtils'
 import { useRecurringBills } from '@/hooks/useRecurringBills'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
+import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 import { SyncIndicator } from '@/components/simplified/SyncIndicator'
 
 type OnboardingStep = 'loading' | 'tutorial' | 'done'
@@ -101,6 +146,7 @@ export default function FolioApp() {
     goals,
     lessonProgress,
     allowance,
+    weekendAllowance,
     totalSetAside,
     savingsRate,
     paySchedule,
@@ -124,7 +170,8 @@ export default function FolioApp() {
     setDisbursementBonus,
     incomeSmoothing,
     setIncomeSmoothing,
-  } = useHomeData(user?.id)
+    fundingSources,
+  } = useHomeData(user?.id, user)
 
   // ── Custom Categories ──────────────────────────────────────────
   const { customCategories, addCustomCategory } = useCustomCategories(user?.id)
@@ -140,9 +187,16 @@ export default function FolioApp() {
   // ── Recurring Bills (task 65 — set-and-forget bills) ───────────
   const { bills: recurringBills, addBill, updateBill, deleteBill } = useRecurringBills(user?.id)
 
+  // ── Feature Flags (improvement 4.6 — toggle advanced features) ──
+  const { flags } = useFeatureFlags()
+
   // ── Debts (loaded on demand when DebtScreen opens) ─────────────
   const [debts, setDebts] = useState<Debt[]>([])
   const [debtsLoaded, setDebtsLoaded] = useState(false)
+
+  // ── Reimbursements (loaded on demand for obligations summary) ──
+  const [reimbursements, setReimbursements] = useState<Reimbursement[]>([])
+  const [reimbursementsLoaded, setReimbursementsLoaded] = useState(false)
 
   const handleOpenDebt = useCallback(async () => {
     if (!debtsLoaded && user?.id) {
@@ -152,6 +206,26 @@ export default function FolioApp() {
     }
     setShowDebt(true)
   }, [debtsLoaded, user?.id])
+
+  // Load debts and reimbursements when tools tab is active (for obligations summary)
+  // Also load reimbursements on home tab for split partner suggestions (task 5.3)
+  useEffect(() => {
+    if (!user?.id) return
+    if (activeNav === 'tools') {
+      if (!debtsLoaded) {
+        getDebts(user.id).then(data => {
+          setDebts(data)
+          setDebtsLoaded(true)
+        }).catch(() => {})
+      }
+    }
+    if (!reimbursementsLoaded && (activeNav === 'tools' || activeNav === 'home')) {
+      getReimbursements(user.id).then(data => {
+        setReimbursements(data)
+        setReimbursementsLoaded(true)
+      }).catch(() => {})
+    }
+  }, [activeNav, user?.id, debtsLoaded, reimbursementsLoaded])
 
   const handleAddDebt = useCallback(async (debt: Omit<Debt, "id" | "userId" | "createdAt">) => {
     if (!user?.id) return
@@ -190,6 +264,57 @@ export default function FolioApp() {
       .filter(t => t.date.startsWith(currentMonth) && t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0)
   }, [transactions])
+
+  // ── Recent split partners (derived from reimbursements, task 5.3 polish) ──
+  const recentSplitPartners = useMemo(() => {
+    if (reimbursements.length === 0) return []
+    const seen = new Set<string>()
+    const names: string[] = []
+    // Walk most recent first (assuming sorted by createdAt desc from DB)
+    const sorted = [...reimbursements].sort((a, b) =>
+      (b.createdAt || '').localeCompare(a.createdAt || '')
+    )
+    for (const r of sorted) {
+      const name = r.personName.trim()
+      if (!name || seen.has(name.toLowerCase())) continue
+      seen.add(name.toLowerCase())
+      names.push(name)
+      if (names.length >= 5) break
+    }
+    return names
+  }, [reimbursements])
+
+  // ── Outstanding splits: who owes the user (task 5.3 — who-owes-whom surface) ──
+  const outstandingSplits = useMemo(() => {
+    if (reimbursements.length === 0) return []
+    // Compute net positive balances (people who owe you)
+    const balances = new Map<string, number>()
+    for (const r of reimbursements) {
+      if (r.settled) continue
+      const name = r.personName.trim()
+      if (!name) continue
+      const current = balances.get(name) ?? 0
+      const delta = r.direction === 'owed_to_me' ? r.amount : -r.amount
+      balances.set(name, current + delta)
+    }
+    // Only show people who net owe you (positive balance), sorted by amount desc
+    return [...balances.entries()]
+      .filter(([, amt]) => amt > 0.01)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, amount]) => ({ name, amount }))
+  }, [reimbursements])
+
+  // ── Split transaction IDs (task 5.3 — badge on recent transactions) ──
+  const splitTransactionIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const r of reimbursements) {
+      if (r.linkedTransactionId) {
+        ids.add(r.linkedTransactionId)
+      }
+    }
+    return ids
+  }, [reimbursements])
 
   const handleDismissSubscription = useCallback((id: string) => {
     setDismissedSubscriptions(prev => new Set([...prev, id]))
@@ -263,6 +388,10 @@ export default function FolioApp() {
     amount: number
     category: TransactionCategory
     note?: string
+    fundingSourceId?: string
+    trackAsIOU?: boolean
+    splitWith?: string
+    splitOwedAmount?: number
   }) => {
     if (!user?.id) return
 
@@ -273,17 +402,51 @@ export default function FolioApp() {
       type: 'expense',
       date: today,
       note: data.note,
+      fundingSourceId: data.fundingSourceId,
     })
 
     if (result) {
       setLastLoggedId(result.id)
+
+      // Auto-create IOU reimbursement when tracking as borrowed (task 84.1)
+      if (data.trackAsIOU && data.fundingSourceId) {
+        const source = fundingSources.find(s => s.id === data.fundingSourceId)
+        if (source && source.kind === 'borrowed') {
+          // Derive person name from the funding source label (e.g., "Parents' Card" → "Parents")
+          const personName = source.label.replace(/'s?\s*(Card|Wallet|Account)$/i, '').trim() || source.label
+          const iouResult = await createReimbursement(user.id, {
+            personName,
+            direction: 'owed_by_me',
+            amount: data.amount,
+            note: data.note || `${data.category} expense`,
+            linkedTransactionId: result.id,
+          })
+          if (iouResult) {
+            showToast(`IOU tracked — you owe ${personName} $${data.amount.toFixed(2)}`, 'success')
+          }
+        }
+      }
+
+      // Auto-create IOU when splitting with a named friend (task 5.3 polish)
+      if (data.splitWith && data.splitOwedAmount && data.splitOwedAmount > 0) {
+        const iouResult = await createReimbursement(user.id, {
+          personName: data.splitWith,
+          direction: 'owed_to_me',
+          amount: data.splitOwedAmount,
+          note: data.note || `Split ${data.category} expense`,
+          linkedTransactionId: result.id,
+        })
+        if (iouResult) {
+          showToast(`${data.splitWith} owes you $${data.splitOwedAmount.toFixed(2)}`, 'success')
+        }
+      }
     } else {
       // addTransaction queued the expense locally on failure; reflect it in the
       // sync indicator so the user can see it is pending background retry.
       refreshOfflineSync()
       showToast('Saved offline — will sync when connected', 'success')
     }
-  }, [user?.id, addTransaction, showToast, refreshOfflineSync])
+  }, [user?.id, addTransaction, showToast, refreshOfflineSync, fundingSources])
 
   const handleExpenseUndo = useCallback(async () => {
     if (!lastLoggedId) return
@@ -296,6 +459,7 @@ export default function FolioApp() {
   const handleIncomeSubmit = useCallback(async (data: {
     amount: number
     note?: string
+    fundingSourceId?: string
   }) => {
     if (!user?.id) return
 
@@ -306,6 +470,7 @@ export default function FolioApp() {
       type: 'income',
       date: today,
       note: data.note,
+      fundingSourceId: data.fundingSourceId,
     })
 
     if (result) {
@@ -479,9 +644,28 @@ export default function FolioApp() {
 
   // ── Reset Onboarding ───────────────────────────────────────────
   const handleResetOnboarding = () => {
-    localStorage.removeItem('folio-onboarding')
+    localStorage.removeItem('folio-onboarded')
     setOnboardingStep('tutorial')
     showToast('Tutorial reset - starting fresh')
+  }
+
+  // ── Update Count Credit Immediately ────────────────────────────
+  const handleUpdateCountCreditImmediately = async (value: boolean) => {
+    if (!user?.id) return
+    
+    try {
+      const result = await updateProfilePreferences(user.id, { countCreditImmediately: value })
+      if (result) {
+        showToast(value ? 'All spending now counts against today' : 'Credit spending won\'t reduce your daily allowance')
+        // Refresh user profile to update the local state
+        await refreshUser()
+      } else {
+        showToast('Failed to update preference', 'error')
+      }
+    } catch (error) {
+      console.error('Error updating countCreditImmediately:', error)
+      showToast('Failed to update preference', 'error')
+    }
   }
 
   // ── Export Data ────────────────────────────────────────────────
@@ -583,7 +767,7 @@ export default function FolioApp() {
   }
 
   // ── Goals (full-screen overlay) ───────────────────────────────
-  if (showGoals) {
+  if (flags.goals && showGoals) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <GoalsScreen
@@ -600,7 +784,7 @@ export default function FolioApp() {
   }
 
   // ── Sinking Funds (full-screen overlay) ────────────────────────
-  if (showSinkingFunds) {
+  if (flags.sinkingFunds && showSinkingFunds) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <SinkingFundsScreen
@@ -616,7 +800,7 @@ export default function FolioApp() {
   }
 
   // ── Subscription Audit (full-screen overlay) ───────────────────
-  if (showSubscriptionAudit) {
+  if (flags.subscriptionAudit && showSubscriptionAudit) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <SubscriptionAuditScreen
@@ -629,7 +813,7 @@ export default function FolioApp() {
   }
 
   // ── Recurring Bills (full-screen overlay, task 65) ─────────────
-  if (showRecurringBills) {
+  if (flags.recurringBills && showRecurringBills) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <RecurringBillsScreen
@@ -644,7 +828,7 @@ export default function FolioApp() {
   }
 
   // ── Debt Tracking (full-screen overlay) ────────────────────────
-  if (showDebt) {
+  if (flags.debtTracking && showDebt) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <DebtScreen
@@ -659,7 +843,7 @@ export default function FolioApp() {
   }
 
   // ── IOUs & Reimbursements (full-screen overlay) ────────────────
-  if (showReimbursements && user?.id) {
+  if (flags.reimbursements && showReimbursements && user?.id) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <ReimbursementLedger
@@ -671,7 +855,7 @@ export default function FolioApp() {
   }
 
   // ── Learn / Lessons (full-screen overlay) ──────────────────────
-  if (showLearn) {
+  if (flags.lessons && showLearn) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <div style={{ padding: '0 16px' }}>
@@ -700,7 +884,7 @@ export default function FolioApp() {
   }
 
   // ── Compound Growth Calculator (full-screen overlay, Tools tab) ─
-  if (showCompoundGrowth) {
+  if (flags.compoundGrowthCalculator && showCompoundGrowth) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <CompoundGrowthCalculator onBack={() => setShowCompoundGrowth(false)} />
@@ -709,7 +893,7 @@ export default function FolioApp() {
   }
 
   // ── Credit Payoff Calculator (full-screen overlay, Tools tab) ──
-  if (showCreditPayoff) {
+  if (flags.creditPayoffCalculator && showCreditPayoff) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <CreditPayoffCalculator onBack={() => setShowCreditPayoff(false)} />
@@ -755,6 +939,7 @@ export default function FolioApp() {
                 userName={user?.email?.split('@')[0]}
                 isLoading={dataLoading}
                 isStale={isStale}
+                weekendAllowance={weekendAllowance}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => setIncomeSheetOpen(true)}
@@ -767,6 +952,10 @@ export default function FolioApp() {
                 celebrationEvent={celebrationEvent}
                 onCelebrationDismiss={() => setCelebrationEvent(null)}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
+                onOpenSplitExpense={handleOpenSplitExpense}
+                outstandingSplits={outstandingSplits}
+                onOpenReimbursements={() => setShowReimbursements(true)}
+                splitTransactionIds={splitTransactionIds}
               />
             )}
             {activeNav === 'history' && (
@@ -791,6 +980,10 @@ export default function FolioApp() {
                 onOpenReimbursements={() => setShowReimbursements(true)}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
+                fundingSources={fundingSources}
+                transactions={transactions}
+                debts={debts}
+                reimbursements={reimbursements}
               />
             )}
             {activeNav === 'settings' && (
@@ -799,7 +992,9 @@ export default function FolioApp() {
                 goals={goals}
                 userEmail={user?.email}
                 incomeSmoothing={incomeSmoothing}
+                countCreditImmediately={user?.countCreditImmediately}
                 onSetIncomeSmoothing={setIncomeSmoothing}
+                onUpdateCountCreditImmediately={handleUpdateCountCreditImmediately}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
                 onOpenGoals={() => setShowGoals(true)}
                 onOpenTools={() => setActiveNav('tools')}
@@ -825,6 +1020,8 @@ export default function FolioApp() {
         customCategories={customCategories}
         onAddCustomCategory={addCustomCategory}
         splitPreEnabled={splitPreEnabled}
+        fundingSources={fundingSources}
+        recentSplitPartners={recentSplitPartners}
       />
 
       {/* ── Income Sheet ───────────────────────────────────────── */}
@@ -834,6 +1031,8 @@ export default function FolioApp() {
         onSubmit={handleIncomeSubmit}
         onShowPaycheck={handleShowPaycheck}
         onUndo={lastLoggedId ? handleIncomeUndo : undefined}
+        fundingSources={fundingSources}
+        transactions={transactions}
       />
 
       {/* ── Paycheck Sheet ─────────────────────────────────────── */}

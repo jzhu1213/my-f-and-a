@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { isCategoryRolloverEnabled, setCategoryRolloverEnabled } from "@/lib/budgetUtils"
+import { computeBudgetSummary, computeDailyEquivalent } from "@/lib/budgetSummary"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, TransactionCategory } from "@/types"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -42,15 +43,6 @@ const DEFAULT_LIMITS: Record<string, number> = {
 }
 
 // ============================================================================
-// Helpers
-// ============================================================================
-
-function getDaysInMonth(): number {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-}
-
-// ============================================================================
 // BudgetSettings Component
 // ============================================================================
 
@@ -75,18 +67,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
 
   // ── Compute total budget and daily allowance ──────────────────────────────
   const { totalMonthly, dailyBudget } = useMemo(() => {
-    const daysInMonth = getDaysInMonth()
-    let total = 0
-    for (const cat of BUDGET_CATEGORIES) {
-      const override = localLimits[cat.category]
-      if (override !== undefined) {
-        total += override
-      } else {
-        const budget = budgets.find(b => b.category === cat.category)
-        total += budget?.monthlyLimit ?? 0
-      }
-    }
-    return { totalMonthly: total, dailyBudget: daysInMonth > 0 ? total / daysInMonth : 0 }
+    return computeBudgetSummary(budgets, localLimits)
   }, [budgets, localLimits])
 
   // ── Get the effective limit for a category ────────────────────────────────
@@ -286,7 +267,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
           const limit = getLimit(cat.category)
           const isExpanded = expandedCategory === cat.category
           const weeklyEquiv = limit / 4.33
-          const dailyEquiv = getDaysInMonth() > 0 ? limit / getDaysInMonth() : 0
+          const dailyEquiv = computeDailyEquivalent(limit)
 
           return (
             <div key={cat.category}>

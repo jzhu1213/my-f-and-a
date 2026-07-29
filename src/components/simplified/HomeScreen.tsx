@@ -9,6 +9,7 @@ import type { TransactionRepeat } from "@/lib/transactionUtils"
 import { getRecentRepeats } from "@/lib/transactionUtils"
 import { computeCategoryBudgets } from "@/lib/budgetUtils"
 import type { CategoryBudgetRow } from "@/lib/budgetUtils"
+import { getRelativeDate } from "@/lib/dateUtils"
 import { buildUserContext, selectContextualTip } from "@/lib/tipUtils"
 import {
   shouldShowContextualContent,
@@ -94,16 +95,6 @@ const CelebrationOverlay = dynamic(
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-/** Returns "Today", "Yesterday", or a short formatted date like "Jun 15" */
-function getRelativeDate(dateStr: string): string {
-  const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-  if (dateStr === today) return "Today"
-  if (dateStr === yesterday) return "Yesterday"
-  const d = new Date(dateStr + "T00:00:00")
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
-
 // ============================================================================
 // OverBudgetStrip sub-component (task 70.3)
 // ============================================================================
@@ -137,7 +128,7 @@ function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
   return (
     <motion.div
       role="status"
-      aria-label="Over budget suggestion"
+      aria-label="Spending suggestion"
       {...motionProps}
       style={{
         display: 'flex',
@@ -242,9 +233,23 @@ export interface HomeScreenProps {
   /** Bills due within the next 3 days — used for contextual bill-due tips */
   upcomingBills?: { label: string; amount: number; dueDay: number }[]
 
+  // ── Weekend allowance ──────────────────────────────────────────────────────
+  /** Pre-computed weekend allowance data from useHomeData */
+  weekendAllowance?: { weekendAmount: number; label: string; daysUntilWeekend: number } | null
+
   // ── Navigation helpers for empty states ────────────────────────────────────
   /** Called when user taps the CTA in the "no budgets" empty state */
   onOpenBudgetSettings?: () => void
+  /** Called when user taps the "Split" quick action (task 5.3 — one-tap split) */
+  onOpenSplitExpense?: () => void
+
+  // ── Outstanding Splits (task 5.3 — who-owes-whom summary) ──────────────────
+  /** Outstanding split balances: positive = they owe you */
+  outstandingSplits?: { name: string; amount: number }[]
+  /** Called when user taps the outstanding splits summary to see full ledger */
+  onOpenReimbursements?: () => void
+  /** Set of transaction IDs that were split (for badge display) */
+  splitTransactionIds?: Set<string>
 }
 
 // ============================================================================
@@ -291,7 +296,12 @@ export function HomeScreen({
   celebrationEvent: externalCelebration,
   onCelebrationDismiss,
   upcomingBills,
+  weekendAllowance,
   onOpenBudgetSettings,
+  onOpenSplitExpense,
+  outstandingSplits,
+  onOpenReimbursements,
+  splitTransactionIds,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -726,6 +736,9 @@ export function HomeScreen({
             rollover={allowance?.rollover ?? 0}
             isOverBudget={allowance?.status === "over"}
             isLoading={isLoading}
+            deferredSpending={allowance?.deferredSpending}
+            reservedForBills={allowance?.reservedForBills}
+            upcomingBillCount={allowance?.upcomingBillCount}
             onTapForDetails={onHeroTapDetails}
           />
 
@@ -787,6 +800,44 @@ export function HomeScreen({
               </div>
             )}
           </AnimatePresence>
+
+          {/* ── Weekend allowance pill (task 5.1) — only Fri/Sat/Sun ───── */}
+          {weekendAllowance && weekendAllowance.daysUntilWeekend === 0 && (
+            <motion.div
+              role="status"
+              aria-label={`${weekendAllowance.label}: $${weekendAllowance.weekendAmount} safe to spend`}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={timings.normal}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                marginTop: 10,
+                padding: '6px 14px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: 'var(--radius-full)',
+                alignSelf: 'center',
+                width: 'fit-content',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+              }}
+            >
+              <span style={{ fontSize: 13 }} aria-hidden="true">🎉</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: 'var(--sub)',
+                  fontFamily: FONT_FAMILY,
+                  opacity: 0.85,
+                }}
+              >
+                ${weekendAllowance.weekendAmount} {weekendAllowance.label.toLowerCase()}
+              </span>
+            </motion.div>
+          )}
         </section>
 
         {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}
@@ -841,26 +892,94 @@ export function HomeScreen({
           </div>
 
           {/* Tertiary: Can I afford this? — subtle text link below primary buttons */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 8 }}>
+            {onOpenSplitExpense && (
+              <button
+                type="button"
+                onClick={onOpenSplitExpense}
+                aria-label="Split an expense with a friend"
+                style={{
+                  fontSize: 13,
+                  color: 'var(--sub)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: FONT_FAMILY,
+                  opacity: 0.7,
+                }}
+              >
+                ✂️ Split
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowAffordabilitySheet(true)}
+              aria-label="Check if you can afford something"
+              style={{
+                fontSize: 13,
+                color: 'var(--sub)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: FONT_FAMILY,
+                opacity: 0.7,
+              }}
+            >
+              🤔 Can I afford this?
+            </button>
+          </div>
+        </section>
+
+        {/* ── Outstanding Splits Summary (task 5.3 — who-owes-whom) ── */}
+        {outstandingSplits && outstandingSplits.length > 0 && (
           <button
             type="button"
-            onClick={() => setShowAffordabilitySheet(true)}
-            aria-label="Check if you can afford something"
+            onClick={onOpenReimbursements}
+            aria-label="View outstanding splits"
             style={{
-              fontSize: 13,
-              color: 'var(--sub)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: FONT_FAMILY,
-              opacity: 0.7,
-              marginTop: 8,
-              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
               width: '100%',
+              padding: '10px 16px',
+              marginTop: 4,
+              background: 'rgba(129, 140, 248, 0.05)',
+              border: '1px solid rgba(129, 140, 248, 0.15)',
+              borderRadius: borderRadius.md,
+              cursor: 'pointer',
+              transition: 'background 0.15s ease',
             }}
           >
-            🤔 Can I afford this?
+            <span style={{ fontSize: 14 }} aria-hidden="true">💸</span>
+            <span
+              style={{
+                flex: 1,
+                fontFamily: FONT_FAMILY,
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--sub)',
+                textAlign: 'left',
+              }}
+            >
+              {outstandingSplits.length === 1
+                ? `${outstandingSplits[0].name} owes you $${outstandingSplits[0].amount.toFixed(2)}`
+                : `Friends owe you $${outstandingSplits.reduce((s, p) => s + p.amount, 0).toFixed(2)}`}
+            </span>
+            {outstandingSplits.length > 1 && (
+              <span
+                style={{
+                  fontFamily: FONT_FAMILY,
+                  fontSize: 11,
+                  color: 'var(--sub)',
+                  opacity: 0.6,
+                }}
+              >
+                {outstandingSplits.length} people
+              </span>
+            )}
+            <span style={{ fontSize: 12, color: 'var(--sub)', opacity: 0.5 }}>→</span>
           </button>
-        </section>
+        )}
 
         {/* ══════════════════════════════════════════════════════════
             ── BELOW THE FOLD ──────────────────────────────────────────
@@ -1265,9 +1384,25 @@ export function HomeScreen({
                                   fontSize: 14,
                                   color: "var(--text)",
                                   fontFamily: FONT_FAMILY,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
                                 }}
                               >
                                 {emoji} {label}
+                                {splitTransactionIds?.has(tx.id) && (
+                                  <span
+                                    style={{
+                                      fontSize: 11,
+                                      opacity: 0.6,
+                                      marginLeft: 2,
+                                    }}
+                                    aria-label="Split expense"
+                                    title="Split"
+                                  >
+                                    ✂️
+                                  </span>
+                                )}
                               </span>
                               <span
                                 style={{
