@@ -350,7 +350,7 @@ export function selectContextualTip(
         type: 'gentle_nudge',
         title: 'Pacing check',
         message:
-          "At your recent pace, things might get tight before month-end. No stress — just a heads up so you can plan ahead.",
+          "At your recent pace, things might get tight before month-end. Spacing out big purchases will keep you comfortable.",
         emoji: TIP_EMOJI.pacing_check,
         priority: 'medium',
         actionLabel: 'See breakdown',
@@ -376,7 +376,7 @@ export function selectContextualTip(
       type: 'gentle_nudge',
       title: TIP_TITLES.gentle_nudge,
       message:
-        "Money's a little tight until payday. No stress — spacing things out a bit will keep you comfortable.",
+        "Money's a little tight until payday. Spacing things out will keep you comfortable — and you can always log income to add to today's pool.",
       emoji: TIP_EMOJI.low_balance,
       priority: 'medium',
       actionLabel: 'See breakdown',

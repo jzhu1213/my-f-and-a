@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, timings } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   getLastActiveInfo,
@@ -87,7 +87,7 @@ export function WelcomeBackBadge() {
           initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-          transition={prefersReducedMotion ? { duration: 0.15 } : springs.gentle}
+          transition={prefersReducedMotion ? timings.fast : springs.gentle}
           style={{
             width: "100%",
             display: "flex",

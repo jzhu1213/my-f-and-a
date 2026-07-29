@@ -21,7 +21,7 @@ import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/voc
 import { recordLastActive } from "@/lib/reminderPreferences"
 import { getInsightsEnabled } from "@/lib/insightPreferences"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, timings, STAGGER_STEP } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -118,20 +118,20 @@ function getRelativeDate(dateStr: string): string {
  * - Entrance animation: fade-in only (respects prefers-reduced-motion)
  */
 function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
-  const prefersReducedMotion = useReducedMotion()
+  const prefersReducedMotion = useReducedMotion() ?? false
 
   const motionProps = prefersReducedMotion
     ? {
         initial: { opacity: 0 },
         animate: { opacity: 1 },
         exit: { opacity: 0 },
-        transition: { duration: 0.2 },
+        transition: timings.fast,
       }
     : {
         initial: { opacity: 0 },
         animate: { opacity: 1 },
         exit: { opacity: 0 },
-        transition: { duration: 0.35, ease: 'easeOut' as const },
+        transition: timings.slow,
       }
 
   return (
@@ -241,6 +241,10 @@ export interface HomeScreenProps {
   // ── Bill reminders ─────────────────────────────────────────────────────────
   /** Bills due within the next 3 days — used for contextual bill-due tips */
   upcomingBills?: { label: string; amount: number; dueDay: number }[]
+
+  // ── Navigation helpers for empty states ────────────────────────────────────
+  /** Called when user taps the CTA in the "no budgets" empty state */
+  onOpenBudgetSettings?: () => void
 }
 
 // ============================================================================
@@ -287,6 +291,7 @@ export function HomeScreen({
   celebrationEvent: externalCelebration,
   onCelebrationDismiss,
   upcomingBills,
+  onOpenBudgetSettings,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -300,7 +305,7 @@ export function HomeScreen({
   // ── "New day" micro-celebration (task 74) ────────────────────────────────
   // Shows a brief warm indicator when the user opens the app on a new calendar day.
   const [showNewDayRefresh, setShowNewDayRefresh] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
+  const prefersReducedMotion = useReducedMotion() ?? false
   useEffect(() => {
     if (typeof window === "undefined") return
     try {
@@ -734,7 +739,7 @@ export function HomeScreen({
                 initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
+                transition={timings.slow}
                 style={{
                   textAlign: "center",
                   marginTop: 10,
@@ -754,7 +759,7 @@ export function HomeScreen({
               onClick={onLogIncome}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={timings.slow}
               style={{
                 fontSize: 12,
                 color: "var(--sub)",
@@ -906,7 +911,7 @@ export function HomeScreen({
                     aria-label={`Log again: ${repeat.label}`}
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.04, duration: 0.3, ease: "easeOut" }}
+                    transition={{ delay: index * STAGGER_STEP, ...timings.normal }}
                     whileTap={{ scale: 0.95 }}
                     style={chipButton}
                   >
@@ -950,7 +955,7 @@ export function HomeScreen({
             {categoryRows.length > 4 && (
               <button
                 type="button"
-                onClick={() => {/* TODO: navigate to Settings > Budget Limits */}}
+                onClick={() => onOpenBudgetSettings?.()}
                 style={{
                   ...linkButton,
                   fontSize: 12,
@@ -966,17 +971,39 @@ export function HomeScreen({
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={timings.slow}
             >
               <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: borderRadius.lg }}>
                 <div style={emptyStateContainer}>
                   <span style={{ fontSize: 32 }} aria-hidden="true">🎯</span>
                   <p style={emptyStateTitle}>
-                    Set limits for an accurate daily budget
+                    You&rsquo;re all set to start — limits are optional
                   </p>
                   <p style={emptyStateSubtitle}>
-                    Category limits help Folio calculate what you can spend each day
+                    Add category limits anytime for a more accurate daily number
                   </p>
+                  {onOpenBudgetSettings && (
+                    <motion.button
+                      type="button"
+                      onClick={onOpenBudgetSettings}
+                      whileTap={{ scale: 0.96 }}
+                      style={{
+                        marginTop: 8,
+                        background: "rgba(167, 139, 250, 0.12)",
+                        border: "1px solid rgba(167, 139, 250, 0.25)",
+                        borderRadius: borderRadius.full,
+                        padding: "10px 20px",
+                        color: "var(--accent, #a78bfa)",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        fontFamily: FONT_FAMILY,
+                        cursor: "pointer",
+                      }}
+                      aria-label="Set up category limits"
+                    >
+                      Set up limits →
+                    </motion.button>
+                  )}
                 </div>
               </GlassCard>
             </motion.div>
@@ -1047,7 +1074,7 @@ export function HomeScreen({
                           >
                             <motion.div
                               animate={{ width: `${Math.min(row.weekPct, 100)}%` }}
-                              transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                              transition={springs.gentle}
                               style={{
                                 height: "100%",
                                 borderRadius: 2,
@@ -1135,17 +1162,37 @@ export function HomeScreen({
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={timings.slow}
             >
               <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: borderRadius.lg }}>
                 <div style={emptyStateContainer}>
                   <span style={{ fontSize: 32 }} aria-hidden="true">✨</span>
                   <p style={emptyStateTitle}>
-                    Start by logging your first expense!
+                    Ready when you are
                   </p>
                   <p style={emptyStateSubtitle}>
-                    Tap "Log expense" above — it only takes a second
+                    Log your first expense and Folio starts learning your habits
                   </p>
+                  <motion.button
+                    type="button"
+                    onClick={() => onLogExpense()}
+                    whileTap={{ scale: 0.96 }}
+                    style={{
+                      marginTop: 8,
+                      background: "rgba(74, 222, 128, 0.12)",
+                      border: "1px solid rgba(74, 222, 128, 0.3)",
+                      borderRadius: borderRadius.full,
+                      padding: "10px 20px",
+                      color: "var(--success, #4ade80)",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      fontFamily: FONT_FAMILY,
+                      cursor: "pointer",
+                    }}
+                    aria-label="Log your first expense"
+                  >
+                    Log expense →
+                  </motion.button>
                 </div>
               </GlassCard>
             </motion.div>

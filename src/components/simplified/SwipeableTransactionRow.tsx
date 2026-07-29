@@ -97,7 +97,7 @@ export function SwipeableTransactionRow({
             height: 0,
             marginTop: 0,
             marginBottom: 0,
-            transition: { opacity: timings.fast, height: { duration: 0.25, ease: "easeInOut" } },
+            transition: { opacity: timings.fast, height: timings.normal },
           }}
           style={{
             position: "relative",

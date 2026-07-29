@@ -204,7 +204,7 @@ export function SettingsScreen({
 
         {activeLimits.length === 0 && (
           <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-            No limits set yet.
+            No limits yet — Folio works fine without them, or add some anytime.
           </p>
         )}
 
@@ -318,7 +318,7 @@ export function SettingsScreen({
           </div>
         ) : (
           <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-            No active goals yet.
+            No goals yet — set one when you&apos;re ready to save toward something.
           </p>
         )}
 

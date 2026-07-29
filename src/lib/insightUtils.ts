@@ -134,7 +134,7 @@ export function getProjectionMessage(projection: EndOfMonthProjection): {
   }
 
   return {
-    message: "Heads up — spending's a bit high this month",
-    tone: 'negative',
+    message: "Spending's running a bit high — spacing things out will keep you on track",
+    tone: 'tight',
   }
 }

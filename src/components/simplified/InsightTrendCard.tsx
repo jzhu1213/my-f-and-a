@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { timings } from "@/lib/animations"
 import type { Transaction } from "@/types"
 import { toMonthString } from "@/lib/budgetUtils"
 import {
@@ -76,7 +77,7 @@ export function InsightTrendCard({ transactions }: InsightTrendCardProps) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, height: 0, marginTop: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={timings.normal}
         >
           <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>

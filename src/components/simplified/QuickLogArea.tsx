@@ -23,8 +23,8 @@ const MAX_NOTE_LENGTH = 60
 /** Minimum swipe distance (px) to reveal custom amount input (Requirement 3.5) */
 const SWIPE_THRESHOLD = 60
 
-/** Spring for the category icon bounce micro-interaction (task 9.4). */
-const ICON_BOUNCE_SPRING = { type: "spring", stiffness: 400, damping: 17 } as const
+/** Spring for category icon bounce micro-interaction (task 3.5, task 9.4). */
+const ICON_BOUNCE_SPRING = springs.snappy
 
 /** How long (ms) a chip must be held before the pulse-ring haptic fires. */
 const LONG_PRESS_MS = 350

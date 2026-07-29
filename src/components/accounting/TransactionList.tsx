@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { TRANSACTION_CATEGORIES } from '@/types'
 import type { Transaction, TransactionCategory } from '@/types'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { springs } from '@/lib/animations'
+import { springs, timings } from '@/lib/animations'
 
 // ── Swipeable row wrapper ────────────────────────────────────────
 const SWIPE_THRESHOLD  = 56   // px to trigger reveal
@@ -450,7 +450,7 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      transition={timings.normal}
                       className="flex gap-3 px-4 py-3"
                       style={{
                         background: 'rgba(255, 255, 255, 0.02)',
@@ -528,7 +528,7 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
               fontFamily: 'Inter, sans-serif',
               fontWeight: 500,
             }}>
-              {search || activeFilter || typeFilter ? 'No results found' : 'No transactions yet'}
+              {search || activeFilter || typeFilter ? 'No results found' : 'Ready when you are'}
             </p>
             {!search && !activeFilter && !typeFilter && (
               <p style={{
@@ -537,7 +537,7 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                 textAlign: 'center',
                 fontFamily: 'Inter, sans-serif',
               }}>
-                Tap + to add your first transaction
+                Log your first expense to get started
               </p>
             )}
             {(activeFilter || typeFilter) && (
