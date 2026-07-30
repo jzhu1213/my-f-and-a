@@ -5,6 +5,7 @@ import type { Transaction, Budget, Goal, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { CelebrationEvent } from "@/types/folio"
 import type { DailyAllowance } from "@/types/folio"
+import type { HeroMeaning, HeroDisplay } from "@/types/folio"
 import type { TransactionRepeat } from "@/lib/transactionUtils"
 import { getRecentRepeats } from "@/lib/transactionUtils"
 import { computeCategoryBudgets } from "@/lib/budgetUtils"
@@ -24,6 +25,7 @@ import { getInsightsEnabled } from "@/lib/insightPreferences"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { springs, timings, STAGGER_STEP } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
+import type { SpendingMode } from "@/lib/spendingModes"
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -259,6 +261,12 @@ export interface HomeScreenProps {
   onIncomeAnchorSetItNow?: () => void
   /** Called when the user taps "Skip" on the income anchor banner */
   onIncomeAnchorSkip?: () => void
+  /** Current spending mode — controls hero framing and tip copy */
+  spendingMode?: SpendingMode
+  /** The user's chosen hero meaning (what the big number shows) */
+  heroMeaning?: HeroMeaning
+  /** Pre-computed display values for the chosen hero meaning */
+  heroDisplay?: HeroDisplay
 }
 
 // ============================================================================
@@ -314,6 +322,9 @@ export function HomeScreen({
   showIncomeAnchorBanner,
   onIncomeAnchorSetItNow,
   onIncomeAnchorSkip,
+  spendingMode = 'guided',
+  heroMeaning,
+  heroDisplay,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -384,12 +395,12 @@ export function HomeScreen({
   const categoryRows = useMemo(() => {
     const rows = computeCategoryBudgets(budgets, transactions, currentMonth, true)
     return rows.sort((a, b) => {
-      // Over-budget first
+      // Over-budget first (only applies to categories with limits set)
       if (a.overWeekly && !b.overWeekly) return -1
       if (!a.overWeekly && b.overWeekly) return 1
       // Then by least remaining (for those with limits)
       if (a.hasLimit && b.hasLimit) return a.weeklyLeft - b.weeklyLeft
-      // Limit holders before no-limit
+      // Limit holders before no-limit (no-limit categories are purely informational)
       if (a.hasLimit && !b.hasLimit) return -1
       if (!a.hasLimit && b.hasLimit) return 1
       // Then by most spent
@@ -420,8 +431,9 @@ export function HomeScreen({
         underBudgetStreak,
         upcomingBills,
         today: todayStr,
+        spendingMode,
       }),
-    [transactions, allowance, underBudgetStreak, upcomingBills, todayStr]
+    [transactions, allowance, underBudgetStreak, upcomingBills, todayStr, spendingMode]
   )
 
   const activeTip = useMemo(
@@ -754,6 +766,9 @@ export function HomeScreen({
             reservedForScheduled={allowance?.reservedForScheduled}
             scheduledCount={allowance?.scheduledCount}
             onTapForDetails={onHeroTapDetails}
+            spendingMode={spendingMode}
+            heroMeaning={heroMeaning}
+            heroDisplay={heroDisplay}
           />
 
           {/* "New day" micro-celebration (task 74) — warm, brief indicator */}
@@ -807,8 +822,9 @@ export function HomeScreen({
             </motion.button>
           )}
           {/* ── Over-budget strip (task 70.3) — inside hero section ───── */}
+          {/* In tracker mode, there is no "over budget" concept — suppress this entirely */}
           <AnimatePresence>
-            {!isLoading && allowance?.status === 'over' && (
+            {!isLoading && spendingMode !== 'tracker' && allowance?.status === 'over' && (
               <div style={{ marginTop: 10 }}>
                 <OverBudgetStrip onLogIncome={onLogIncome} />
               </div>

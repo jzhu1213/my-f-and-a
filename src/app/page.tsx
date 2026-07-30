@@ -93,6 +93,7 @@ import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, del
 import { exportUserData, deleteUserAccount } from '@/lib/accountUtils'
 import type { TransactionCategory, Transaction } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
+import { heroMeaningStatus } from '@/lib/dailyAllowanceUtils'
 import type { Reimbursement } from '@/lib/reimbursements'
 import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { createRefundTransaction } from '@/lib/refundUtils'
@@ -194,6 +195,10 @@ export default function FolioApp() {
     setDisbursementBonus,
     incomeSmoothing,
     setIncomeSmoothing,
+    spendingMode,
+    setSpendingMode,
+    heroMeaning,
+    setHeroMeaning,
     fundingSources,
     addFundingSource,
     updateFundingSource,
@@ -213,6 +218,14 @@ export default function FolioApp() {
 
   // ── Recurring Bills (task 65 — set-and-forget bills) ───────────
   const { bills: recurringBills, addBill, updateBill, deleteBill } = useRecurringBills(user?.id)
+
+  // ── Hero Display (task 100) — computed from heroMeaning + allowance ────────
+  // Pure derivation so the hero component stays agnostic about which metric
+  // is active. Falls back gracefully when allowance hasn't loaded yet.
+  const heroDisplay = useMemo(() => {
+    if (!allowance) return undefined
+    return heroMeaningStatus(heroMeaning, allowance, transactions, new Date())
+  }, [heroMeaning, allowance, transactions])
 
   // ── Feature Flags (improvement 4.6 — toggle advanced features) ──
   const { flags } = useFeatureFlags()
@@ -1056,6 +1069,9 @@ export default function FolioApp() {
                 isLoading={dataLoading}
                 isStale={isStale}
                 weekendAllowance={weekendAllowance}
+                spendingMode={spendingMode}
+                heroMeaning={heroMeaning}
+                heroDisplay={heroDisplay}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => setIncomeSheetOpen(true)}
@@ -1115,6 +1131,10 @@ export default function FolioApp() {
                 goals={goals}
                 userEmail={user?.email}
                 incomeSmoothing={incomeSmoothing}
+                spendingMode={spendingMode}
+                onSetSpendingMode={setSpendingMode}
+                heroMeaning={heroMeaning}
+                onSetHeroMeaning={setHeroMeaning}
                 countCreditImmediately={user?.countCreditImmediately}
                 onSetIncomeSmoothing={setIncomeSmoothing}
                 onUpdateCountCreditImmediately={handleUpdateCountCreditImmediately}

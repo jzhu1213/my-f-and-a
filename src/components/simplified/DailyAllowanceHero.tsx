@@ -7,13 +7,14 @@ import {
   useMotionValue,
   useSpring,
 } from "framer-motion"
-import type { AllowanceStatus } from "@/types/folio"
+import type { AllowanceStatus, HeroMeaning, HeroDisplay } from "@/types/folio"
 import { getStatus, generateEncouragingMessage } from "@/lib/dailyAllowanceUtils"
 import { GlassCard, AmbientGlow } from "@/components/ui"
 import { useReducedMotion, springs, timings } from "@/lib/animations"
 import { typography } from "@/styles/typography"
 import { AllowanceRing } from "./AllowanceRing"
 import { STATUS_EMOJI, STATUS_LABELS } from "@/lib/vocabulary"
+import type { SpendingMode } from "@/lib/spendingModes"
 
 interface DailyAllowanceHeroProps {
   allowanceLeft: number
@@ -28,6 +29,16 @@ interface DailyAllowanceHeroProps {
   reservedForScheduled?: number
   scheduledCount?: number
   onTapForDetails: () => void
+  /** Controls whether the hero shows "Safe to spend" (guided/structured) or "Spent today" (tracker) framing */
+  spendingMode?: SpendingMode
+  /**
+   * When provided, overrides the default allowance framing with the user's chosen
+   * hero meaning (spent_today, spent_week, balance, or allowance).
+   * The hero renders heroDisplay.displayAmount / label / status / message instead.
+   */
+  heroMeaning?: HeroMeaning
+  /** Pre-computed display values matching heroMeaning — pass alongside heroMeaning */
+  heroDisplay?: HeroDisplay
 }
 
 /**
@@ -63,6 +74,56 @@ function getStatusGlow(status: AllowanceStatus): AllowanceStatus {
  */
 function getInstantStatus(status: AllowanceStatus): { emoji: string; phrase: string } {
   return { emoji: STATUS_EMOJI[status], phrase: STATUS_LABELS[status] }
+}
+
+/**
+ * In tracker mode there is no "budget" to be over or under — only a spend
+ * level relative to the user's own history. Maps spend level to a neutral,
+ * informational emoji + phrase rather than a budget-health signal.
+ */
+function getTrackerInstantStatus(spentToday: number, dailyBudget: number): { emoji: string; phrase: string; color: string } {
+  // When there is no historical daily average to compare against, show neutral
+  if (dailyBudget <= 0) {
+    return { emoji: '📊', phrase: 'Tracking', color: 'var(--sub)' }
+  }
+  const ratio = spentToday / dailyBudget
+  if (ratio < 0.5) {
+    return { emoji: '✨', phrase: 'Light day', color: 'var(--success)' }
+  }
+  if (ratio < 0.9) {
+    return { emoji: '📊', phrase: 'Typical', color: 'var(--accent, #a78bfa)' }
+  }
+  if (ratio < 1.3) {
+    return { emoji: '💡', phrase: 'Busy day', color: 'var(--warning)' }
+  }
+  return { emoji: '📈', phrase: 'High day', color: 'var(--warning)' }
+}
+
+/**
+ * Generates a tracker-mode context message — informational, never shaming.
+ * Uses "typical" / "a bit more than usual" language relative to history,
+ * not budget-based language.
+ */
+function getTrackerMessage(spentToday: number, dailyBudget: number): string {
+  if (dailyBudget <= 0) {
+    return spentToday > 0
+      ? `You've logged $${Math.round(spentToday)} so far today`
+      : "Nothing logged yet today — tap to record spending"
+  }
+  const ratio = spentToday / dailyBudget
+  if (spentToday === 0) {
+    return "Nothing logged yet today — tap to record spending"
+  }
+  if (ratio < 0.5) {
+    return "Light spending today — well below your usual"
+  }
+  if (ratio < 0.9) {
+    return "About what you'd typically spend on a day like this"
+  }
+  if (ratio < 1.3) {
+    return "A bit more than your usual — totally fine"
+  }
+  return "Higher than most days — just so you know"
 }
 
 /**
@@ -287,25 +348,78 @@ export function DailyAllowanceHero({
   reservedForScheduled,
   scheduledCount,
   onTapForDetails,
+  spendingMode = 'guided',
+  heroMeaning,
+  heroDisplay,
 }: DailyAllowanceHeroProps) {
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showExplainer, setShowExplainer] = useState(false)
   const { prefersReducedMotion, listContainer, listItem } = useReducedMotion()
 
-  // Determine status and message
-  const status: AllowanceStatus = isOverBudget
-    ? "over"
-    : getStatus(allowanceLeft, dailyBudget)
-  const message = generateEncouragingMessage(status, allowanceLeft, spentToday)
-  const color = getStatusColor(status)
-  const instantStatus = getInstantStatus(status)
+  // When heroDisplay is provided (heroMeaning !== 'allowance' or explicit heroDisplay),
+  // use it to override the default allowance framing entirely.
+  const hasCustomDisplay = heroDisplay !== undefined && heroMeaning !== undefined && heroMeaning !== 'allowance'
+
+  const isTrackerMode = spendingMode === 'tracker'
+
+  // ── Tracker mode: derive neutral status/messaging from spend level ──────
+  const trackerStatus = isTrackerMode
+    ? getTrackerInstantStatus(spentToday, dailyBudget)
+    : null
+
+  // Determine status and message — heroDisplay takes priority, then tracker, then default
+  const status: AllowanceStatus = hasCustomDisplay
+    ? heroDisplay!.status
+    : isOverBudget
+      ? "over"
+      : getStatus(allowanceLeft, dailyBudget)
+
+  const message = hasCustomDisplay
+    ? heroDisplay!.message
+    : isTrackerMode
+      ? getTrackerMessage(spentToday, dailyBudget)
+      : generateEncouragingMessage(status, allowanceLeft, spentToday)
+
+  // In tracker mode: use tracker color (neutral/accent), not budget-health color
+  // For custom hero meaning: use status color (same logic as budget mode)
+  const color = !hasCustomDisplay && isTrackerMode
+    ? (trackerStatus?.color ?? 'var(--sub)')
+    : getStatusColor(status)
+
+  // Ring progress: for custom meanings, show neutral ring progress or suppress
+  const ringProgress = hasCustomDisplay
+    ? (heroMeaning === 'spent_today' && dailyBudget > 0
+        ? Math.min(1, heroDisplay!.displayAmount / dailyBudget)
+        : heroMeaning === 'spent_week' && dailyBudget > 0
+          ? Math.min(1, heroDisplay!.displayAmount / (dailyBudget * 7))
+          : 0.5) // neutral half-ring for balance
+    : isTrackerMode
+      ? (dailyBudget > 0 ? Math.min(1, spentToday / dailyBudget) : 0)
+      : (dailyBudget > 0 ? spentToday / dailyBudget : 0)
+
+  // The hero number
+  const heroValue = hasCustomDisplay
+    ? heroDisplay!.displayAmount
+    : isTrackerMode ? spentToday : allowanceLeft
+
+  // The hero label (shown above or below the ring when relevant)
+  const heroLabel = hasCustomDisplay
+    ? heroDisplay!.label
+    : isTrackerMode ? 'Spent today' : null
+
+  // The instant status badge
+  const instantStatus = hasCustomDisplay
+    ? { emoji: STATUS_EMOJI[status], phrase: heroDisplay!.label }
+    : isTrackerMode
+      ? { emoji: trackerStatus?.emoji ?? '📊', phrase: trackerStatus?.phrase ?? 'Tracking' }
+      : getInstantStatus(status)
 
   if (isLoading) {
     return <HeroSkeleton />
   }
 
   const ringSize = 180
-  const progress = dailyBudget > 0 ? spentToday / dailyBudget : 0
+  const progress = ringProgress
   const clampedProgress = Math.max(0, Math.min(1, progress))
 
   // Soft depth shadow beneath the ring shifts horizontally with progress.
@@ -313,68 +427,103 @@ export function DailyAllowanceHero({
   const shadowOpacity = 0.18 + clampedProgress * 0.22
   const shadowTransition = prefersReducedMotion ? { duration: 0 } : springs.gentle
 
-  const showShimmer = status === "healthy" && !prefersReducedMotion
+  // Shimmer: show when status is healthy (works for all meanings)
+  const showShimmer = !hasCustomDisplay && isTrackerMode
+    ? (spentToday === 0 || (dailyBudget > 0 && spentToday / dailyBudget < 0.5)) && !prefersReducedMotion
+    : status === "healthy" && !prefersReducedMotion
+
+  // Glow: always follows the resolved status
+  const glowStatus = getStatusGlow(status)
 
   // Breakdown rows — icon accent, label, formatted value and value color.
+  // In tracker mode: "spent today" is the headline, no "safe to spend" concept.
   const breakdownRows: {
     key: string
     icon: string
     label: string
     value: string
     valueColor: string
-  }[] = [
-    {
-      key: "daily-budget",
-      icon: "📅",
-      label: "Daily budget",
-      value: `${formatCurrency(dailyBudget)}/day`,
-      valueColor: "var(--text)",
-    },
-    {
-      key: "rollover",
-      icon: "🔄",
-      label: "Rollover",
-      value: formatRollover(rollover),
-      valueColor: rollover >= 0 ? "var(--success)" : "var(--sub)",
-    },
-    {
-      key: "spent-today",
-      icon: "💸",
-      label: "Spent today",
-      value: `${formatCurrency(spentToday)} spent today`,
-      valueColor: "var(--text)",
-    },
-    // Reserved for bills row — only included when there are upcoming bills
-    ...(reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0
-      ? [{
-          key: "reserved-bills",
-          icon: "🛡️",
-          label: "Set aside for bills",
-          value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
-          valueColor: "var(--sub)",
-        }]
-      : []),
-    // Scheduled expenses row — only included when there are future-dated transactions (task 90.1)
-    ...(reservedForScheduled !== undefined && reservedForScheduled > 0 && scheduledCount !== undefined && scheduledCount > 0
-      ? [{
-          key: "reserved-scheduled",
+  }[] = isTrackerMode
+    ? [
+        {
+          key: "spent-today",
+          icon: "💸",
+          label: "Spent today",
+          value: formatCurrency(spentToday),
+          valueColor: "var(--text)",
+        },
+        ...(dailyBudget > 0
+          ? [{
+              key: "daily-avg",
+              icon: "📅",
+              label: "Your typical day",
+              value: `${formatCurrency(dailyBudget)}/day`,
+              valueColor: "var(--sub)",
+            }]
+          : []),
+        ...(reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0
+          ? [{
+              key: "reserved-bills",
+              icon: "🛡️",
+              label: "Set aside for bills",
+              value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
+              valueColor: "var(--sub)",
+            }]
+          : []),
+      ]
+    : [
+        {
+          key: "daily-budget",
           icon: "📅",
-          label: "Scheduled",
-          value: `${formatCurrency(reservedForScheduled)} for ${scheduledCount} item${scheduledCount === 1 ? '' : 's'}`,
-          valueColor: "var(--sub)",
-        }]
-      : []),
-    // Combined total reserved row (Task 90.2) — shown when BOTH bills and scheduled items exist
-    ...(reservedForBills !== undefined && reservedForBills > 0 && reservedForScheduled !== undefined && reservedForScheduled > 0
-      ? [{
-          key: "reserved-total",
-          icon: "🔒",
-          label: "Total reserved",
-          value: formatCurrency(reservedForBills + reservedForScheduled),
-          valueColor: "var(--sub)",
-        }]
-      : []),
-  ]
+          label: "Daily budget",
+          value: `${formatCurrency(dailyBudget)}/day`,
+          valueColor: "var(--text)",
+        },
+        {
+          key: "rollover",
+          icon: "🔄",
+          label: "Rollover",
+          value: formatRollover(rollover),
+          valueColor: rollover >= 0 ? "var(--success)" : "var(--sub)",
+        },
+        {
+          key: "spent-today",
+          icon: "💸",
+          label: "Spent today",
+          value: `${formatCurrency(spentToday)} spent today`,
+          valueColor: "var(--text)",
+        },
+        // Reserved for bills row — only included when there are upcoming bills
+        ...(reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0
+          ? [{
+              key: "reserved-bills",
+              icon: "🛡️",
+              label: "Set aside for bills",
+              value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
+              valueColor: "var(--sub)",
+            }]
+          : []),
+        // Scheduled expenses row — only included when there are future-dated transactions (task 90.1)
+        ...(reservedForScheduled !== undefined && reservedForScheduled > 0 && scheduledCount !== undefined && scheduledCount > 0
+          ? [{
+              key: "reserved-scheduled",
+              icon: "📅",
+              label: "Scheduled",
+              value: `${formatCurrency(reservedForScheduled)} for ${scheduledCount} item${scheduledCount === 1 ? '' : 's'}`,
+              valueColor: "var(--sub)",
+            }]
+          : []),
+        // Combined total reserved row (Task 90.2) — shown when BOTH bills and scheduled items exist
+        ...(reservedForBills !== undefined && reservedForBills > 0 && reservedForScheduled !== undefined && reservedForScheduled > 0
+          ? [{
+              key: "reserved-total",
+              icon: "🔒",
+              label: "Total reserved",
+              value: formatCurrency(reservedForBills + reservedForScheduled),
+              valueColor: "var(--sub)",
+            }]
+          : []),
+      ]
 
   function handleTap() {
     setShowBreakdown((prev) => !prev)
@@ -385,7 +534,7 @@ export function DailyAllowanceHero({
   return (
     <GlassCard
       elevation="high"
-      glow={getStatusGlow(status)}
+      glow={glowStatus}
       className="w-full relative"
       style={{ padding: "28px 20px", overflow: "visible" }}
     >
@@ -399,7 +548,11 @@ export function DailyAllowanceHero({
         className="flex flex-col items-center gap-2 w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-lg"
         style={{ background: "transparent", border: "none", cursor: "pointer" }}
         onClick={handleTap}
-        aria-label={`Daily allowance: ${formatCurrency(allowanceLeft)}. ${instantStatus.phrase}. ${message}.${reservedForBills && reservedForBills > 0 && upcomingBillCount ? ` ${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}.` : ''} Tap for details.`}
+        aria-label={hasCustomDisplay
+          ? `${heroDisplay!.label}: ${formatCurrency(heroDisplay!.displayAmount)}. ${message}. Tap for details.`
+          : isTrackerMode
+            ? `Spent today: ${formatCurrency(spentToday)}. ${instantStatus.phrase}. ${message}. Tap for details.`
+            : `Daily allowance: ${formatCurrency(allowanceLeft)}. ${instantStatus.phrase}. ${message}.${reservedForBills && reservedForBills > 0 && upcomingBillCount ? ` ${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}.` : ''} Tap for details.`}
         aria-expanded={showBreakdown}
         aria-live="polite"
         aria-atomic="true"
@@ -418,13 +571,29 @@ export function DailyAllowanceHero({
             margin: 0,
             letterSpacing: "-0.01em",
           }}
-          aria-label={`Status: ${instantStatus.phrase}`}
+          aria-label={isTrackerMode ? `Tracker: ${instantStatus.phrase}` : `Status: ${instantStatus.phrase}`}
         >
           <span aria-hidden="true" style={{ marginRight: 6 }}>
             {instantStatus.emoji}
           </span>
-          {instantStatus.phrase}
+          {isTrackerMode ? instantStatus.phrase : instantStatus.phrase}
         </p>
+
+        {/* Hero label — in tracker mode or custom hero meaning, show a label below the badge */}
+        {(heroLabel) && (
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--sub)",
+              opacity: 0.7,
+              margin: 0,
+              fontVariantNumeric: "tabular-nums",
+            }}
+            aria-hidden="true"
+          >
+            {heroLabel}
+          </p>
+        )}
 
         {/* Ring with depth shadow + shimmer particles */}
         <div className="relative" style={{ width: ringSize, height: ringSize }}>
@@ -457,7 +626,7 @@ export function DailyAllowanceHero({
             strokeWidth={6}
           >
             <AnimatedAmount
-              value={allowanceLeft}
+              value={heroValue}
               status={status}
               prefersReducedMotion={prefersReducedMotion}
             />
@@ -673,23 +842,40 @@ export function DailyAllowanceHero({
                     role="region"
                     aria-label="Daily allowance formula explanation"
                   >
-                    <ol
-                      className="flex flex-col gap-2 text-xs"
-                      style={{ color: "var(--sub)", margin: 0, paddingLeft: 16 }}
-                    >
-                      <li>
-                        <strong style={{ color: "var(--text)" }}>Daily budget</strong> = (monthly income − fixed bills) ÷ days in month
-                      </li>
-                      <li>
-                        <strong style={{ color: "var(--text)" }}>Rollover</strong> = what you saved or overspent from previous days (capped at ±2 days)
-                      </li>
-                      <li>
-                        <strong style={{ color: "var(--text)" }}>Today&apos;s allowance</strong> = daily budget + rollover − spent today
-                      </li>
-                      <li>
-                        The number is always $0 or more — if you overspend, tomorrow resets.
-                      </li>
-                    </ol>
+                    {isTrackerMode ? (
+                      <ol
+                        className="flex flex-col gap-2 text-xs"
+                        style={{ color: "var(--sub)", margin: 0, paddingLeft: 16 }}
+                      >
+                        <li>
+                          <strong style={{ color: "var(--text)" }}>Spent today</strong> = sum of all expenses you logged for today
+                        </li>
+                        <li>
+                          <strong style={{ color: "var(--text)" }}>Typical day</strong> = your average daily spending based on your history (used as a reference, not a limit)
+                        </li>
+                        <li>
+                          You&apos;re in tracking mode — there&apos;s no limit, just a clear picture of what you&apos;re spending.
+                        </li>
+                      </ol>
+                    ) : (
+                      <ol
+                        className="flex flex-col gap-2 text-xs"
+                        style={{ color: "var(--sub)", margin: 0, paddingLeft: 16 }}
+                      >
+                        <li>
+                          <strong style={{ color: "var(--text)" }}>Daily budget</strong> = (monthly income − fixed bills) ÷ days in month
+                        </li>
+                        <li>
+                          <strong style={{ color: "var(--text)" }}>Rollover</strong> = what you saved or overspent from previous days (capped at ±2 days)
+                        </li>
+                        <li>
+                          <strong style={{ color: "var(--text)" }}>Today&apos;s allowance</strong> = daily budget + rollover − spent today
+                        </li>
+                        <li>
+                          The number is always $0 or more — if you overspend, tomorrow resets.
+                        </li>
+                      </ol>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

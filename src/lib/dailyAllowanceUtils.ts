@@ -1,5 +1,5 @@
 import type { Budget, Transaction } from '@/types'
-import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover } from '@/types/folio'
+import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover, HeroMeaning, HeroDisplay } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { FundingSource } from '@/lib/fundingSources'
 import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList, isScheduledForKnownBill } from '@/lib/fixedExpenses'
@@ -353,8 +353,17 @@ export function computeDailyAllowance(
   countCreditImmediately?: boolean,
   fundingSources?: FundingSource[]
 ): DailyAllowance {
-  // Step 1: Calculate total monthly budget from all category limits
-  const totalMonthlyBudget = budgets.reduce((sum, budget) => sum + budget.monthlyLimit, 0)
+  // Step 1: Calculate total monthly budget from all category limits.
+  //
+  // PARTIAL-LIMITS HANDLING (Task 101.1):
+  // Only categories with a monthlyLimit > 0 contribute to the pool.
+  // Categories without a limit (monthlyLimit === 0) are excluded entirely —
+  // they are NOT treated as "unlimited" or as "over budget". This means:
+  //   • If 2 of 6 categories have limits set, the pool = sum of those 2 limits.
+  //   • The remaining 4 categories are purely informational (tracking only).
+  //   • The daily budget reflects only what the user has explicitly budgeted.
+  const budgetsWithLimits = budgets.filter(b => b.monthlyLimit > 0)
+  const totalMonthlyBudget = budgetsWithLimits.reduce((sum, budget) => sum + budget.monthlyLimit, 0)
   
   // Step 1a: Sum actual income transactions logged in the current month
   const currentMonthPrefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
@@ -639,8 +648,12 @@ export function computeMonthBoundaryCarryover(
   fixedExpenses?: FixedExpense[],
   enabled?: boolean
 ): MonthBoundaryCarryover {
-  // Calculate daily budget for the previous month
-  const totalMonthlyBudget = budgets.reduce((sum, budget) => sum + budget.monthlyLimit, 0)
+  // Calculate daily budget for the previous month.
+  // Only include categories with an actual limit set (monthlyLimit > 0),
+  // consistent with the partial-limits handling in computeDailyAllowance.
+  const totalMonthlyBudget = budgets
+    .filter(b => b.monthlyLimit > 0)
+    .reduce((sum, budget) => sum + budget.monthlyLimit, 0)
   const totalFixed = getTotalFixedMonthly(fixedExpenses ?? [])
   const daysInPrevMonth = getDaysInMonthLocal(previousMonthDate)
   const dailyBudget = Math.max(0, totalMonthlyBudget - totalFixed) / daysInPrevMonth
@@ -683,5 +696,180 @@ export function computeMonthBoundaryCarryover(
     rawRollover,
     cappedRollover,
     enabled: true,
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero Meaning Status Helper (Task 100.2)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// A pure helper that converts the currently-selected HeroMeaning (allowance,
+// spent_today, spent_week, balance) plus raw data into a fully-resolved
+// HeroDisplay. The hero component itself stays agnostic — it only consumes
+// displayAmount, label, status, and message.
+//
+// Each meaning has its own status thresholds:
+//   'allowance':   existing healthy/caution/warning/over logic (% of daily budget)
+//   'spent_today': high (>1.5× dailyBudget) | warning (>1.0× dailyBudget) |
+//                  normal (otherwise). When no budget exists, always 'healthy'.
+//   'spent_week':  high/warning/normal vs. 7× dailyBudget.
+//   'balance':     positive-balance = healthy, near-zero = caution, negative = over.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Computes the display-ready hero values for the currently-selected HeroMeaning.
+ *
+ * This is a pure function — no side effects, no Date.now() calls.
+ * Pass `currentDate` explicitly for testability.
+ *
+ * @param heroMeaning - Which metric the user wants to see
+ * @param allowance   - The computed daily allowance (from computeDailyAllowance)
+ * @param transactions - All transactions (needed for spent_week and balance)
+ * @param currentDate - Current date (for weekly window + balance calculation)
+ * @returns HeroDisplay with displayAmount, label, status, and message
+ */
+export function heroMeaningStatus(
+  heroMeaning: HeroMeaning,
+  allowance: DailyAllowance,
+  transactions: Transaction[],
+  currentDate: Date = new Date()
+): HeroDisplay {
+  const { amount, dailyBudget, spentToday, status: allowanceStatus } = allowance
+
+  switch (heroMeaning) {
+    // ── 'allowance': existing "safe to spend today" logic ────────────────────
+    case 'allowance': {
+      return {
+        displayAmount: amount,
+        label: 'Safe to spend today',
+        status: allowanceStatus,
+        message: generateEncouragingMessage(allowanceStatus, amount, spentToday),
+      }
+    }
+
+    // ── 'spent_today': neutral spend level (no budget shame) ─────────────────
+    case 'spent_today': {
+      let status: AllowanceStatus = 'healthy'
+      let message: string
+
+      if (dailyBudget > 0) {
+        const ratio = spentToday / dailyBudget
+        if (ratio > 1.5) {
+          status = 'over'
+          message = "Big day of spending — just so you know"
+        } else if (ratio > 1.0) {
+          status = 'warning'
+          message = "A bit more than your usual — you got this"
+        } else if (ratio > 0.75) {
+          status = 'caution'
+          message = "On track with your typical day"
+        } else {
+          status = 'healthy'
+          message = spentToday === 0
+            ? "Nothing logged yet today — tap to record spending"
+            : "Light day so far — nice"
+        }
+      } else {
+        // No budget configured — purely informational
+        status = 'healthy'
+        message = spentToday === 0
+          ? "Nothing logged yet today"
+          : `You've logged $${Math.round(spentToday)} so far today`
+      }
+
+      return {
+        displayAmount: spentToday,
+        label: 'Spent today',
+        status,
+        message,
+      }
+    }
+
+    // ── 'spent_week': rolling 7-day spend total ───────────────────────────────
+    case 'spent_week': {
+      const todayStr = formatDateLocal(currentDate)
+      // Build the 7-day window: today and the 6 days before
+      const weekStart = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate() - 6
+      )
+      const weekStartStr = formatDateLocal(weekStart)
+
+      const spentThisWeek = transactions
+        .filter(t => t.type === 'expense' && t.date >= weekStartStr && t.date <= todayStr && !isFixedTransaction(t))
+        .reduce((sum, t) => sum + t.amount, 0)
+
+      const weeklyBudget = dailyBudget * 7
+
+      let status: AllowanceStatus = 'healthy'
+      let message: string
+
+      if (weeklyBudget > 0) {
+        const ratio = spentThisWeek / weeklyBudget
+        if (ratio > 1.5) {
+          status = 'over'
+          message = "High spend week — worth a quick look at where it went"
+        } else if (ratio > 1.0) {
+          status = 'warning'
+          message = "A bit more than your weekly usual"
+        } else if (ratio > 0.75) {
+          status = 'caution'
+          message = "Keeping pace with a typical week"
+        } else {
+          status = 'healthy'
+          message = spentThisWeek === 0
+            ? "No spending logged this week yet"
+            : "Under your typical week — solid"
+        }
+      } else {
+        status = 'healthy'
+        message = spentThisWeek === 0
+          ? "No spending logged this week yet"
+          : "Here's your 7-day spending"
+      }
+
+      return {
+        displayAmount: spentThisWeek,
+        label: 'Spent this week',
+        status,
+        message,
+      }
+    }
+
+    // ── 'balance': net money on hand (income minus expenses) ─────────────────
+    case 'balance': {
+      const totalIncome = transactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0)
+      const totalExpenses = transactions
+        .filter(t => t.type === 'expense' && !isFixedTransaction(t))
+        .reduce((sum, t) => sum + t.amount, 0)
+      const balance = totalIncome - totalExpenses
+
+      let status: AllowanceStatus
+      let message: string
+
+      if (balance > dailyBudget * 7) {
+        status = 'healthy'
+        message = "Good cushion — you're in a solid spot"
+      } else if (balance > dailyBudget) {
+        status = 'caution'
+        message = "Some cushion available — keep it going"
+      } else if (balance >= 0) {
+        status = 'warning'
+        message = "Running a bit lean — worth keeping an eye on"
+      } else {
+        status = 'over'
+        message = "In the negative — log any income you haven't recorded yet"
+      }
+
+      return {
+        displayAmount: balance,
+        label: 'Money on hand',
+        status,
+        message,
+      }
+    }
   }
 }

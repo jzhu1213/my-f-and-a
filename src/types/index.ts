@@ -84,6 +84,15 @@ export interface Budget {
   spent: number
   month: string // YYYY-MM
   isFixed?: boolean // marks this budget category as a fixed/recurring obligation
+  /**
+   * Controls the messaging intensity for this category's limit.
+   * - `'soft'` (default): informational target — gentle nudges, standard colors
+   * - `'hard'`: user wants a firmer signal — earlier "approaching" messaging
+   *   (at 70% instead of 80%) and a more prominent progress bar color.
+   *
+   * Never actually blocks logging — this is a UX preference only.
+   */
+  limitType?: 'soft' | 'hard'
 }
 
 export const BUDGET_CATEGORIES: { category: TransactionCategory; emoji: string; label: string }[] = [

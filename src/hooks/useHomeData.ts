@@ -48,6 +48,8 @@ import type { IncomeAllocation } from '@/types/folio'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
 import { computeWeekendAllowance } from '@/lib/weekendAllowance'
 import type { WeekendAllowanceResult } from '@/lib/weekendAllowance'
+import type { SpendingMode } from '@/lib/spendingModes'
+import type { HeroMeaning } from '@/types/folio'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
 // Stored in localStorage as a fallback (no dedicated Supabase table yet).
@@ -73,6 +75,59 @@ function saveIncomeSmoothingPreference(preference: IncomeSmoothing): void {
     // localStorage full or unavailable — fail silently
   }
 }
+
+// ── Spending Mode Preference Persistence ──────────────────────────────────
+// Stored in localStorage (no dedicated Supabase table).
+// The mode never blocks logging — it is a display preference only.
+const SPENDING_MODE_KEY = 'folio-spending-mode'
+
+function loadSpendingModePreference(): SpendingMode {
+  if (typeof window === 'undefined') return 'guided'
+  try {
+    const raw = localStorage.getItem(SPENDING_MODE_KEY)
+    if (raw === 'tracker' || raw === 'guided' || raw === 'structured') return raw
+    return 'guided'
+  } catch {
+    return 'guided'
+  }
+}
+
+function saveSpendingModePreference(mode: SpendingMode): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(SPENDING_MODE_KEY, mode)
+  } catch {
+    // localStorage full or unavailable — fail silently
+  }
+}
+
+// ── Hero Meaning Preference Persistence ───────────────────────────────────
+// Stored in localStorage. Pattern mirrors spending mode and income smoothing.
+// The choice is purely a display preference — no data is affected.
+const HERO_MEANING_KEY = 'folio-hero-meaning'
+
+function loadHeroMeaningPreference(): HeroMeaning | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(HERO_MEANING_KEY)
+    if (raw === 'allowance' || raw === 'spent_today' || raw === 'spent_week' || raw === 'balance') {
+      return raw
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+function saveHeroMeaningPreference(meaning: HeroMeaning): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(HERO_MEANING_KEY, meaning)
+  } catch {
+    // localStorage full or unavailable — fail silently
+  }
+}
+
 import { computeCategoryBudgets } from '@/lib/budgetUtils'
 import { computeTotalSavingsBalance, computeMonthlyContributions } from '@/lib/savingsAccountUtils'
 import { debtsToFixedExpenses } from '@/lib/debtUtils'
@@ -224,6 +279,18 @@ export interface UseHomeDataReturn {
    * `null` means `current_month` behaviour (no change to existing logic).
    */
   incomeSmoothing: IncomeSmoothing | null
+  /**
+   * The user's spending mode preference.
+   * Controls how budget signals are communicated — never blocks logging.
+   * Defaults to `'guided'`.
+   */
+  spendingMode: SpendingMode
+  /**
+   * The user's hero-meaning preference — which metric is shown as the big number.
+   * Defaults to `'allowance'` for guided/structured modes, or `'spent_today'` for tracker.
+   * Persisted to localStorage.
+   */
+  heroMeaning: HeroMeaning
   
   // ── Computed Values (Memoized) ─────────────────────────────────
   /** Daily allowance calculation (Requirement 13.2) */
@@ -395,6 +462,16 @@ export interface UseHomeDataReturn {
    * Pass `null` to clear the preference and revert to `current_month` behaviour.
    */
   setIncomeSmoothing: (preference: IncomeSmoothing | null) => void
+  /**
+   * Persist a new spending mode preference and update state.
+   * The mode never blocks logging — it is a display preference only.
+   */
+  setSpendingMode: (mode: SpendingMode) => void
+  /**
+   * Persist a new hero-meaning preference and update state.
+   * Controls which metric is shown as the large hero number.
+   */
+  setHeroMeaning: (meaning: HeroMeaning) => void
 }
 
 /**
@@ -433,6 +510,16 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   const [incomeSmoothing, setIncomeSmoothingState] = useState<IncomeSmoothing | null>(
     () => loadIncomeSmoothingPreference()
   )
+  const [spendingMode, setSpendingModeState] = useState<SpendingMode>(
+    () => loadSpendingModePreference()
+  )
+  const [heroMeaning, setHeroMeaningState] = useState<HeroMeaning>(() => {
+    const stored = loadHeroMeaningPreference()
+    if (stored) return stored
+    // Default: tracker mode → spent_today; guided/structured → allowance
+    const mode = loadSpendingModePreference()
+    return mode === 'tracker' ? 'spent_today' : 'allowance'
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isStale, setIsStale] = useState(false)
@@ -1181,6 +1268,28 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     setIncomeSmoothingState(preference)
   }, [])
 
+  // ── Spending Mode Mutation ─────────────────────────────────────
+  /**
+   * Persist a new spending-mode preference and update state.
+   * Uses localStorage as the persistence layer (no dedicated Supabase table).
+   * The mode never blocks logging — it is a display preference only.
+   */
+  const setSpendingModeFn = useCallback((mode: SpendingMode) => {
+    saveSpendingModePreference(mode)
+    setSpendingModeState(mode)
+  }, [])
+
+  // ── Hero Meaning Mutation ──────────────────────────────────────
+  /**
+   * Persist a new hero-meaning preference and update state.
+   * Uses localStorage as the persistence layer.
+   * Controls which metric is shown as the large hero number.
+   */
+  const setHeroMeaningFn = useCallback((meaning: HeroMeaning) => {
+    saveHeroMeaningPreference(meaning)
+    setHeroMeaningState(meaning)
+  }, [])
+
   // ── Memoized Computations ──────────────────────────────────────
   /**
    * Daily allowance calculation (memoized)
@@ -1371,6 +1480,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     savingsAccounts,
     paySchedule,
     incomeSmoothing,
+    spendingMode,
+    heroMeaning,
     fundingSources,
     
     // Computed values (memoized)
@@ -1432,5 +1543,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     setGoals,
     setDisbursementBonus,
     setIncomeSmoothing,
+    setSpendingMode: setSpendingModeFn,
+    setHeroMeaning: setHeroMeaningFn,
   }
 }

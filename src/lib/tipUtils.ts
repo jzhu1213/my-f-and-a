@@ -2,6 +2,7 @@ import type { Transaction, TransactionCategory } from '@/types'
 import type { ContextualTip, DailyAllowance } from '@/types/folio'
 import type { FundingSource } from '@/lib/fundingSources'
 import { TIP_EMOJI, TIP_TITLES } from '@/lib/vocabulary'
+import type { SpendingMode } from '@/lib/spendingModes'
 
 // ============================================================================
 // Tip Cooldown & Throttle (Task 75)
@@ -199,6 +200,8 @@ export interface UserContext {
    * month's expense transactions matched against credit-kind funding sources.
    */
   sourceBreakdown?: { creditPercent: number; creditTotal: number; monthlyIncome: number }
+  /** The user's current spending mode — influences which tips are eligible. */
+  spendingMode?: SpendingMode
 }
 
 /** Inputs required to derive a {@link UserContext} for tip selection. */
@@ -218,6 +221,8 @@ export interface BuildUserContextParams {
   today: string
   /** User's funding sources (used to compute source-spending breakdown). */
   fundingSources?: FundingSource[]
+  /** The user's current spending mode — influences which tips are eligible. */
+  spendingMode?: SpendingMode
 }
 
 /**
@@ -233,7 +238,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -298,6 +303,7 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     },
     upcomingBills,
     sourceBreakdown,
+    spendingMode,
   }
 }
 
@@ -321,12 +327,14 @@ export function selectContextualTip(
   dismissedTips: Set<string>
 ): ContextualTip | null {
   const candidates: ContextualTip[] = []
+  const isTrackerMode = context.spendingMode === 'tracker'
 
   // Step 1: Celebration trigger — streak at milestone days under budget (high priority).
   // Only fires at meaningful milestones (3, 7, 14, 30) — not every day after day 3.
   // Note: when the user is over budget today their `underBudgetStreak` resets to 0,
   // so celebration tips naturally won't fire on over-budget days — no extra guard needed.
-  if (context.underBudgetStreak >= 3 && STREAK_MILESTONES.has(context.underBudgetStreak)) {
+  // In tracker mode: streak is based on logging, not budget, so suppress this
+  if (!isTrackerMode && context.underBudgetStreak >= 3 && STREAK_MILESTONES.has(context.underBudgetStreak)) {
     candidates.push({
       id: `streak-${context.underBudgetStreak}`,
       type: 'celebration',
@@ -338,11 +346,8 @@ export function selectContextualTip(
     })
   }
 
-  // Step 2a: Over-budget tip — spent >= 100% of daily budget (medium priority).
-  // The near-budget message ("save the rest for later") is inaccurate when there is
-  // nothing left, so we use a distinct tip ID and shame-free copy that points to a
-  // practical next step (logging income extends today's pool).
-  if (context.todaySpentPercent >= 100) {
+  // Step 2a: Over-budget tip — suppressed in tracker mode (no "over budget" concept)
+  if (!isTrackerMode && context.todaySpentPercent >= 100) {
     candidates.push({
       id: 'over-budget-today',
       type: 'gentle_nudge',
@@ -357,10 +362,9 @@ export function selectContextualTip(
     })
   }
 
-  // Step 2b: Near-budget nudge — spent 80–99% of daily budget (medium priority).
-  // Only fires when the user is close but has something left to preserve.
-  // Guard: only show once per day to avoid nagging on every open.
+  // Step 2b: Near-budget nudge — suppressed in tracker mode
   if (
+    !isTrackerMode &&
     context.todaySpentPercent > 80 &&
     context.todaySpentPercent < 100 &&
     context.allowance.amount > 0 &&
@@ -379,8 +383,30 @@ export function selectContextualTip(
     })
   }
 
-  // Step 2c: Burn-rate velocity warning — spending pace would exhaust pool early (medium priority)
+  // Step 2b-tracker: Tracker-mode high-spend observation — neutral, informational
+  // Fires when today's spend is 1.3× or more above the typical day (not a warning, just a note)
   if (
+    isTrackerMode &&
+    context.allowance.dailyBudget > 0 &&
+    context.todaySpentPercent >= 130 &&
+    !wasSpendingHighShownToday()
+  ) {
+    candidates.push({
+      id: 'tracker-high-day',
+      type: 'gentle_nudge',
+      title: 'Busy spending day',
+      message: "Today's running higher than most — just so you know. Every day is different.",
+      emoji: '📈',
+      priority: 'medium',
+      actionLabel: 'See breakdown',
+      actionType: 'view_insight',
+      triggerCondition: { type: 'category_spike', category: context.topCategory, percentIncrease: 130 },
+    })
+  }
+
+  // Step 2c: Burn-rate velocity warning — suppressed in tracker mode (no budget concept)
+  if (
+    !isTrackerMode &&
     context.recentBurnRate != null &&
     context.discretionaryPoolRemaining != null &&
     context.daysRemainingInMonth != null &&
@@ -407,10 +433,34 @@ export function selectContextualTip(
     }
   }
 
-  // Step 2d-lb: Low-balance / overdraft heads-up — projected dip below the
-  // configured buffer before payday (medium priority). Warm and non-shaming:
-  // it's a gentle nudge to plan ahead, not a scolding about being "low".
+  // Step 2c-tracker: Monthly spending summary tip — fires once per week in tracker mode
+  // Gives users a contextual snapshot without any budget framing
   if (
+    isTrackerMode &&
+    context.recentBurnRate != null &&
+    context.recentBurnRate > 0 &&
+    context.daysRemainingInMonth != null &&
+    context.daysRemainingInMonth > 0
+  ) {
+    const projectedMonthly = Math.round(context.recentBurnRate * 30)
+    candidates.push({
+      id: 'tracker-monthly-pace',
+      type: 'did_you_know',
+      title: 'Monthly pace',
+      message: `At your recent pace, you're spending about $${projectedMonthly}/month. That's your picture — no judgment.`,
+      emoji: '📊',
+      priority: 'low',
+      actionLabel: 'See history',
+      actionType: 'view_insight',
+      triggerCondition: { type: 'weekly_summary' },
+    })
+  }
+
+  // Step 2d-lb: Low-balance / overdraft heads-up — projected dip below the
+  // configured buffer before payday (medium priority). Warm and non-shaming.
+  // In tracker mode, suppress the low-balance warning (no budget framing)
+  if (
+    !isTrackerMode &&
     context.willDipBelowBuffer === true &&
     context.projectedLowBalance != null &&
     context.minBalanceBuffer != null

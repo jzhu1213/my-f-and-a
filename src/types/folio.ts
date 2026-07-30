@@ -70,6 +70,33 @@ export interface MonthBoundaryCarryover {
  */
 export type AllowanceStatus = 'healthy' | 'caution' | 'warning' | 'over'
 
+/**
+ * What the hero number represents — user-selectable via Settings.
+ *
+ * - 'allowance':   "Safe to spend today" — the default for guided/structured mode.
+ *                  Shows the daily allowance remaining (budget-aware).
+ * - 'spent_today': "Spent today" — default for tracker mode.
+ *                  Shows total spending so far today, no budget comparison.
+ * - 'spent_week':  "Spent this week" — rolling 7-day spend total.
+ * - 'balance':     "Money on hand" — current net balance (income minus expenses).
+ */
+export type HeroMeaning = 'allowance' | 'spent_today' | 'spent_week' | 'balance'
+
+/**
+ * The display-ready output of heroMeaningStatus — everything the hero needs to
+ * render itself agnostically, without knowing which meaning is active.
+ */
+export interface HeroDisplay {
+  /** The number to show as the large hero amount */
+  displayAmount: number
+  /** Short label shown below/above the amount, e.g. "Safe to spend" */
+  label: string
+  /** Status for color/ring theming */
+  status: AllowanceStatus
+  /** Encouraging context message */
+  message: string
+}
+
 // ============================================================================
 // Smart Suggestion Types (Requirements 4.1-4.5)
 // ============================================================================

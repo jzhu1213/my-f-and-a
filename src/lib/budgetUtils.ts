@@ -150,6 +150,11 @@ export function computeCategoryBudgets(
   return BUDGET_CATEGORIES.map(cat => {
     const budget       = budgets.find(b => b.category === cat.category)
     const monthlyLimit = budget?.monthlyLimit ?? 0
+    // Only categories with an explicit limit > 0 are "limited".
+    // Categories with no limit are purely informational trackers — they are never
+    // marked "over" or "near limit" and their weeklyLeft / weekPct are always 0.
+    // This ensures partial-limits state (1–2 categories with limits) never implies
+    // untracked categories are over budget.
     const weeklyLimit  = monthlyLimit > 0 ? monthlyLimit / 4.33 : 0
 
     const monthlySpent = isCurrentMonth

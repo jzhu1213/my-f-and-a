@@ -9,7 +9,35 @@ import { computeBudgetSummary, computeDailyEquivalent } from "@/lib/budgetSummar
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, TransactionCategory } from "@/types"
 import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { borderRadius, segmentedControl, segmentedButtonBase } from "@/styles/shared"
+
+// ============================================================================
+// Limit-type persistence helpers (localStorage, keyed per category)
+// ============================================================================
+
+const LIMIT_TYPE_STORAGE_KEY = "folio-limit-types"
+
+function loadLimitTypes(): Record<string, "soft" | "hard"> {
+  if (typeof window === "undefined") return {}
+  try {
+    const raw = localStorage.getItem(LIMIT_TYPE_STORAGE_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw) as Record<string, "soft" | "hard">
+  } catch {
+    return {}
+  }
+}
+
+function saveLimitType(category: TransactionCategory, type: "soft" | "hard"): void {
+  if (typeof window === "undefined") return
+  try {
+    const existing = loadLimitTypes()
+    existing[category] = type
+    localStorage.setItem(LIMIT_TYPE_STORAGE_KEY, JSON.stringify(existing))
+  } catch {
+    // localStorage full or unavailable — fail silently
+  }
+}
 
 // ============================================================================
 // Types
@@ -20,6 +48,12 @@ export interface BudgetSettingsProps {
   budgets: Budget[]
   /** Called when user changes a limit */
   onUpdateBudget: (category: TransactionCategory, limit: number) => void
+  /**
+   * Called when user changes the limit type for a category.
+   * Optional — if not provided, limit-type changes are still persisted to
+   * localStorage but the parent is not notified.
+   */
+  onUpdateLimitType?: (category: TransactionCategory, limitType: "soft" | "hard") => void
   /** Optional back navigation */
   onBack?: () => void
 }
@@ -53,9 +87,10 @@ const DEFAULT_LIMITS: Record<string, number> = {
  *
  * Validates: Requirements 12.1, 12.2, 1.1
  */
-export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettingsProps) {
+export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onBack }: BudgetSettingsProps) {
   const [expandedCategory, setExpandedCategory] = useState<TransactionCategory | null>(null)
   const [localLimits, setLocalLimits] = useState<Record<string, number>>({})
+  const [limitTypes, setLimitTypes] = useState<Record<string, "soft" | "hard">>({})
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [rolloverEnabled, setRolloverEnabled] = useState(false)
   const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
@@ -63,6 +98,11 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
   // Hydrate rollover toggle from localStorage
   useEffect(() => {
     setRolloverEnabled(isCategoryRolloverEnabled())
+  }, [])
+
+  // Hydrate limit types from localStorage
+  useEffect(() => {
+    setLimitTypes(loadLimitTypes())
   }, [])
 
   // ── Compute total budget and daily allowance ──────────────────────────────
@@ -78,6 +118,25 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
       return budget?.monthlyLimit ?? 0
     },
     [budgets, localLimits]
+  )
+
+  // ── Get the limit type for a category ────────────────────────────────────
+  const getLimitType = useCallback(
+    (category: TransactionCategory): "soft" | "hard" => {
+      // Prefer stored local state, then the budget object, then default 'soft'
+      return limitTypes[category] ?? budgets.find(b => b.category === category)?.limitType ?? "soft"
+    },
+    [budgets, limitTypes]
+  )
+
+  // ── Handle limit-type toggle ──────────────────────────────────────────────
+  const handleLimitTypeChange = useCallback(
+    (category: TransactionCategory, type: "soft" | "hard") => {
+      setLimitTypes(prev => ({ ...prev, [category]: type }))
+      saveLimitType(category, type)
+      onUpdateLimitType?.(category, type)
+    },
+    [onUpdateLimitType]
   )
 
   // ── Handle slider change (local state update) ─────────────────────────────
@@ -265,6 +324,8 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
 
         {BUDGET_CATEGORIES.map(cat => {
           const limit = getLimit(cat.category)
+          const currentLimitType = getLimitType(cat.category)
+          const isFirm = currentLimitType === "hard"
           const isExpanded = expandedCategory === cat.category
           const weeklyEquiv = limit / 4.33
           const dailyEquiv = computeDailyEquivalent(limit)
@@ -290,7 +351,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                   textAlign: "left",
                 }}
                 aria-expanded={isExpanded}
-                aria-label={`${cat.label} budget limit: $${limit} per month`}
+                aria-label={limit > 0 ? `${cat.label} budget limit: $${limit} per month` : `${cat.label}: no limit set — tap to add one`}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ fontSize: 22, lineHeight: 1 }}>{cat.emoji}</span>
@@ -299,6 +360,24 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {isFirm && limit > 0 && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: "#f97316",
+                        background: "rgba(249, 115, 22, 0.12)",
+                        border: "1px solid rgba(249, 115, 22, 0.25)",
+                        borderRadius: 99,
+                        padding: "2px 7px",
+                        letterSpacing: "0.04em",
+                        fontFamily: FONT_FAMILY,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Firm
+                    </span>
+                  )}
                   <span
                     style={{
                       fontSize: 15,
@@ -433,7 +512,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                           height: 6,
                           borderRadius: 3,
                           appearance: "none",
-                          background: `linear-gradient(to right, var(--success) 0%, var(--success) ${(limit / SLIDER_MAX) * 100}%, var(--border) ${(limit / SLIDER_MAX) * 100}%, var(--border) 100%)`,
+                          background: `linear-gradient(to right, ${isFirm ? "#f97316" : "var(--success)"} 0%, ${isFirm ? "#f97316" : "var(--success)"} ${(limit / SLIDER_MAX) * 100}%, var(--border) ${(limit / SLIDER_MAX) * 100}%, var(--border) 100%)`,
                           cursor: "pointer",
                           outline: "none",
                         }}
@@ -490,6 +569,72 @@ export function BudgetSettings({ budgets, onUpdateBudget, onBack }: BudgetSettin
                       >
                         Remove limit
                       </motion.button>
+
+                      {/* ── Soft / Firm toggle (Task 98.2) ─────────────────── */}
+                      {limit > 0 && (
+                        <div style={{ marginTop: 18 }}>
+                          <p
+                            style={{
+                              fontSize: 12,
+                              color: "var(--muted)",
+                              fontFamily: FONT_FAMILY,
+                              marginBottom: 8,
+                              letterSpacing: "0.03em",
+                            }}
+                          >
+                            Limit type
+                          </p>
+                          <div
+                            role="group"
+                            aria-label={`Limit type for ${cat.label}`}
+                            style={{ ...segmentedControl, maxWidth: 220 }}
+                          >
+                            <motion.button
+                              onClick={() => handleLimitTypeChange(cat.category, "soft")}
+                              whileTap={{ scale: 0.96 }}
+                              transition={springs.bouncy}
+                              role="radio"
+                              aria-checked={!isFirm}
+                              style={{
+                                ...segmentedButtonBase,
+                                background: !isFirm ? "rgba(255,255,255,0.08)" : "transparent",
+                                color: !isFirm ? "var(--text)" : "var(--muted)",
+                                boxShadow: !isFirm ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                              }}
+                            >
+                              Soft
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handleLimitTypeChange(cat.category, "hard")}
+                              whileTap={{ scale: 0.96 }}
+                              transition={springs.bouncy}
+                              role="radio"
+                              aria-checked={isFirm}
+                              style={{
+                                ...segmentedButtonBase,
+                                background: isFirm ? "rgba(249, 115, 22, 0.15)" : "transparent",
+                                color: isFirm ? "#f97316" : "var(--muted)",
+                                boxShadow: isFirm ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                              }}
+                            >
+                              Firm
+                            </motion.button>
+                          </div>
+                          <p
+                            style={{
+                              fontSize: 11,
+                              color: "var(--muted)",
+                              fontFamily: FONT_FAMILY,
+                              marginTop: 6,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {isFirm
+                              ? "Heads-up at 70% — you'll know before you're close."
+                              : "Gentle nudge when you're near the limit."}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
