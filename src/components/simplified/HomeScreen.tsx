@@ -12,6 +12,7 @@ import { computeCategoryBudgets } from "@/lib/budgetUtils"
 import type { CategoryBudgetRow } from "@/lib/budgetUtils"
 import { getRelativeDate } from "@/lib/dateUtils"
 import { buildUserContext, selectContextualTip } from "@/lib/tipUtils"
+import type { DetectedSubscription } from "@/lib/subscriptionDetector"
 import {
   shouldShowContextualContent,
   markSessionTipShown,
@@ -236,6 +237,13 @@ export interface HomeScreenProps {
   /** Bills due within the next 3 days — used for contextual bill-due tips */
   upcomingBills?: { label: string; amount: number; dueDay: number }[]
 
+  // ── Subscription alerts ─────────────────────────────────────────────────────
+  /**
+   * Detected subscriptions (already filtered for dismissals) — used to surface
+   * gentle "renewing soon" / "trial ending" heads-up tips.
+   */
+  detectedSubscriptions?: DetectedSubscription[]
+
   // ── Weekend allowance ──────────────────────────────────────────────────────
   /** Pre-computed weekend allowance data from useHomeData */
   weekendAllowance?: { weekendAmount: number; label: string; daysUntilWeekend: number } | null
@@ -321,6 +329,7 @@ export function HomeScreen({
   celebrationEvent: externalCelebration,
   onCelebrationDismiss,
   upcomingBills,
+  detectedSubscriptions,
   weekendAllowance,
   onOpenBudgetSettings,
   onOpenSplitExpense,
@@ -439,10 +448,11 @@ export function HomeScreen({
         allowance,
         underBudgetStreak,
         upcomingBills,
+        detectedSubscriptions,
         today: todayStr,
         spendingMode,
       }),
-    [transactions, allowance, underBudgetStreak, upcomingBills, todayStr, spendingMode]
+    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode]
   )
 
   const activeTip = useMemo(

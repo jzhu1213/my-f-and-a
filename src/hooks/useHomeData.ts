@@ -52,6 +52,7 @@ import type { SpendingMode } from '@/lib/spendingModes'
 import type { OverLimitResponse } from '@/lib/spendingModes'
 import { getOverLimitResponse, setOverLimitResponsePref } from '@/lib/spendingModes'
 import type { HeroMeaning } from '@/types/folio'
+import { syncWidgetData } from '@/lib/widgetSync'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
 // Stored in localStorage as a fallback (no dedicated Supabase table yet).
@@ -1418,6 +1419,15 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     if (!userId || isLoading || !allowance) return
     setHomeCache(userId, { allowance, transactions, budgets })
   }, [userId, allowance, transactions, budgets, isLoading])
+  
+  // ── Widget Sync Effect ─────────────────────────────────────────
+  // Push updated allowance data to the service worker for the PWA widget.
+  // Mirrors the cache write — fires whenever allowance recalculates.
+  // Task 114.1: Glanceable widgets and notifications
+  useEffect(() => {
+    if (!allowance || isLoading) return
+    syncWidgetData(allowance)
+  }, [allowance, isLoading])
   
   /**
    * Category budget rows (memoized)

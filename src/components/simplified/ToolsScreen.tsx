@@ -9,14 +9,17 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
+  sectionHeadingStrong,
 } from "@/styles/shared"
 import { SourceBalancesView } from "./SourceBalancesView"
 import { ObligationsSummary } from "./ObligationsSummary"
+import { RoundUpSetting } from "./RoundUpSetting"
+import { AutoSaveSetting } from "./AutoSaveSetting"
 import { computeNetObligations } from "@/lib/obligationsUtils"
 import { useFeatureFlags } from "@/hooks/useFeatureFlags"
 import type { FeatureFlags } from "@/lib/featureFlags"
 import type { FundingSource } from "@/lib/fundingSources"
-import type { Transaction } from "@/types"
+import type { Transaction, Goal, Budget } from "@/types"
 import type { Debt } from "@/types/folio"
 import type { Reimbursement } from "@/lib/reimbursements"
 
@@ -48,6 +51,10 @@ export interface ToolsScreenProps {
   debts?: Debt[]
   /** Reimbursements (IOUs) for net obligations summary */
   reimbursements?: Reimbursement[]
+  /** User's goals — for savings automation settings */
+  goals?: Goal[]
+  /** User's budgets — for auto-earmark computation */
+  budgets?: Budget[]
 }
 
 // ============================================================================
@@ -91,6 +98,8 @@ export function ToolsScreen({
   transactions,
   debts,
   reimbursements,
+  goals,
+  budgets,
 }: ToolsScreenProps) {
   const { flags } = useFeatureFlags()
 
@@ -347,6 +356,21 @@ export function ToolsScreen({
             </GlassCard>
           </motion.div>
         ))}
+      </div>
+
+      {/* ── Savings Automation ─────────────────────────────────────────── */}
+      <div style={{ marginTop: 28 }}>
+        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+          Savings Automation
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <RoundUpSetting transactions={transactions} goals={goals} />
+          <AutoSaveSetting
+            transactions={transactions}
+            budgets={budgets}
+            goals={goals}
+          />
+        </div>
       </div>
     </div>
   )

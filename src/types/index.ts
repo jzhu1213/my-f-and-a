@@ -61,6 +61,12 @@ export interface Transaction {
    * handles this naturally — no explicit transition needed).
    */
   scheduled?: boolean
+  /**
+   * Optional lightweight user tags for personal organization/filtering.
+   * Max 5 tags, each max 20 chars. Stored in localStorage keyed by txId
+   * until a DB column is available.
+   */
+  tags?: string[]
 }
 
 // Account Types (3 buckets)

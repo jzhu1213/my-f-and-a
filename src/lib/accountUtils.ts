@@ -2,6 +2,51 @@ import { supabase } from './supabaseClient'
 import type { Transaction, Budget, Goal } from '@/types'
 
 /**
+ * Escape a value for safe inclusion in a CSV cell.
+ * Wraps in quotes if the value contains commas, quotes, or newlines.
+ */
+function escapeCSV(value: string): string {
+  if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+    return `"${value.replace(/"/g, '""')}"`
+  }
+  return value
+}
+
+/**
+ * Export transactions as a CSV file for easy spreadsheet import.
+ * Free — no paywall required.
+ *
+ * Validates: Requirements 12.5
+ */
+export function exportTransactionsCSV(transactions: Transaction[]): void {
+  const headers = ['Date', 'Type', 'Amount', 'Category', 'Note', 'Account Type', 'Created At']
+
+  const rows = transactions.map(t => [
+    escapeCSV(t.date),
+    escapeCSV(t.type),
+    String(t.amount),
+    escapeCSV(t.category),
+    escapeCSV(t.note ?? ''),
+    escapeCSV(t.accountType),
+    escapeCSV(t.createdAt),
+  ].join(','))
+
+  const csvContent = [headers.join(','), ...rows].join('\n')
+
+  const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(dataBlob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `folio-transactions-${new Date().toISOString().split('T')[0]}.csv`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+
+  URL.revokeObjectURL(url)
+}
+
+/**
  * Export all user data as a JSON file
  * Includes transactions, budgets, goals, and preferences
  * 

@@ -69,6 +69,30 @@ export const OVER_LIMIT_RESPONSE_LABELS: Record<
 }
 
 /**
+ * A one-line, shame-free explanation of what a mode switch does to the user's
+ * budget limits. Used in Settings so switching modes is understandable and
+ * clearly non-destructive (Task 106.1).
+ *
+ * The core promise: mode is a *view* preference. Limits are never deleted when
+ * you switch — `tracker` simply tucks them away; `guided`/`structured` bring
+ * them back into view.
+ *
+ * @param mode          The currently-active spending mode.
+ * @param hasSavedLimits Whether the user has any category limits saved.
+ */
+export function limitVisibilityNote(mode: SpendingMode, hasSavedLimits: boolean): string {
+  if (mode === 'tracker') {
+    return hasSavedLimits
+      ? 'Your limits are paused and saved — switch to Guided or Structured anytime to bring them right back.'
+      : 'No limits here — Folio just reflects what you spend. Switch modes anytime to add some.'
+  }
+  // guided / structured — limits are in view
+  return hasSavedLimits
+    ? 'Your limits are in view here. Switching to Just tracking tucks them away without deleting anything.'
+    : 'Add limits below whenever you like. Switching modes never loses your setup.'
+}
+
+/**
  * Returns the default OverLimitResponse for a given SpendingMode.
  * - tracker → quiet (no limits, so no over-limit messaging)
  * - guided  → gentle (soft nudge)

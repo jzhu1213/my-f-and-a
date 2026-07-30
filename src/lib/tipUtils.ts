@@ -3,6 +3,8 @@ import type { ContextualTip, DailyAllowance } from '@/types/folio'
 import type { FundingSource } from '@/lib/fundingSources'
 import { TIP_EMOJI, TIP_TITLES } from '@/lib/vocabulary'
 import type { SpendingMode } from '@/lib/spendingModes'
+import type { DetectedSubscription, SubscriptionAlert } from '@/lib/subscriptionDetector'
+import { getSubscriptionAlerts } from '@/lib/subscriptionDetector'
 
 // ============================================================================
 // Tip Cooldown & Throttle (Task 75)
@@ -187,6 +189,12 @@ export interface UserContext {
   /** Detected subscriptions summary for subscription audit nudge */
   detectedSubscriptions?: { count: number; monthlyTotal: number }
   /**
+   * Imminent subscription renewals / trial conversions (within the next few
+   * days), soonest-first. Drives the gentle "renewing soon" / "trial ending"
+   * heads-up tip. Informational only — never blocks anything.
+   */
+  subscriptionAlerts?: SubscriptionAlert[]
+  /**
    * Signals a lump-sum income spike: a single income transaction in the current
    * month that is more than 2× the trailing-average monthly income. When set,
    * the lump_income_spike tip is eligible to fire.
@@ -223,6 +231,12 @@ export interface BuildUserContextParams {
   fundingSources?: FundingSource[]
   /** The user's current spending mode — influences which tips are eligible. */
   spendingMode?: SpendingMode
+  /**
+   * Detected subscriptions (already filtered for dismissals upstream). When
+   * provided, imminent renewal/trial-conversion alerts are derived from them
+   * so the contextual tip system can surface a gentle heads-up.
+   */
+  detectedSubscriptions?: DetectedSubscription[]
 }
 
 /**
@@ -238,7 +252,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -292,6 +306,12 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     }
   }
 
+  // Derive imminent subscription renewal / trial-ending alerts (pure).
+  const subscriptionAlerts =
+    detectedSubscriptions && detectedSubscriptions.length > 0
+      ? getSubscriptionAlerts(detectedSubscriptions, today)
+      : undefined
+
   return {
     underBudgetStreak,
     todaySpentPercent,
@@ -304,6 +324,7 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     upcomingBills,
     sourceBreakdown,
     spendingMode,
+    subscriptionAlerts,
   }
 }
 
@@ -552,6 +573,38 @@ export function selectContextualTip(
       actionLabel: 'Review subscriptions',
       actionType: 'view_insight',
       triggerCondition: { type: 'subscription_audit', count, monthlyTotal },
+    })
+  }
+
+  // Step 2g-r: Renewal / trial-ending heads-up — a subscription charges within
+  // the next few days (medium priority). Warm, shame-free, informational only.
+  // The tip ID includes the renewal date so it can gently re-fire each cycle
+  // (and stays dismissed for the current cycle once acknowledged).
+  if (context.subscriptionAlerts && context.subscriptionAlerts.length > 0) {
+    const soonest = context.subscriptionAlerts[0]
+    const { subscription, kind, daysUntil, nextRenewalDate } = soonest
+    const whenLabel =
+      daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`
+    const amountStr = `$${subscription.amount.toFixed(2)}`
+
+    const message =
+      kind === 'trial_ending'
+        ? `Your ${subscription.label} trial converts ${whenLabel} (${amountStr}). Keep it if you love it — or cancel before it charges.`
+        : `Heads up — ${subscription.label} renews ${whenLabel} (${amountStr}). All good if you're keeping it!`
+
+    candidates.push({
+      id: `subscription-renewal-${subscription.id}-${nextRenewalDate}`,
+      type: 'gentle_nudge',
+      title: kind === 'trial_ending' ? 'Trial ending soon' : 'Renewing soon',
+      message,
+      emoji: kind === 'trial_ending' ? TIP_EMOJI.trial_ending : TIP_EMOJI.renewal_soon,
+      priority: 'medium',
+      actionLabel: 'Review subscriptions',
+      actionType: 'view_insight',
+      triggerCondition:
+        kind === 'trial_ending'
+          ? { type: 'trial_ending', label: subscription.label, amount: subscription.amount, daysUntil }
+          : { type: 'subscription_renewal_soon', label: subscription.label, amount: subscription.amount, daysUntil },
     })
   }
 

@@ -1,4 +1,6 @@
 import type { TransactionCategory } from '@/types'
+import type { CategorizationRule } from './categorizationRules'
+import { applyUserRules } from './categorizationRules'
 
 /**
  * Keyword-to-category mapping.
@@ -157,4 +159,26 @@ export function autoCategorize(note: string): AutoCategorizeResult | null {
   const confidence = confidenceMap[bestMatch.specificity] ?? 0.5
 
   return { category: bestMatch.category, confidence }
+}
+
+
+/**
+ * Enhanced auto-categorize that checks user-defined rules first,
+ * then falls back to the built-in keyword map.
+ *
+ * User rules always have priority (confidence 1.0).
+ * The original `autoCategorize` function is preserved for backward compatibility.
+ *
+ * Task 113.3
+ */
+export function autoCategorizeWithRules(
+  note: string,
+  rules: CategorizationRule[]
+): AutoCategorizeResult | null {
+  // User rules take priority
+  const userResult = applyUserRules(note, rules)
+  if (userResult) return userResult
+
+  // Fall back to built-in keyword map
+  return autoCategorize(note)
 }

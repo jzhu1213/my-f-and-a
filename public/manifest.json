@@ -17,6 +17,31 @@
       "sizes": "512x512",
       "type": "image/png"
     }
+  ],
+  "widgets": [
+    {
+      "name": "Daily Allowance",
+      "description": "See how much you can spend today",
+      "tag": "daily-allowance",
+      "template": "daily-allowance-template",
+      "ms_ac_template": "/widgets/daily-allowance-card.json",
+      "data": "/api/widget/daily-allowance",
+      "type": "application/vnd.microsoft.card.adaptive",
+      "auth": false,
+      "update": 3600,
+      "icons": [
+        {
+          "src": "/icon-512.png",
+          "sizes": "512x512"
+        }
+      ],
+      "screenshots": [],
+      "sizes": [
+        { "width": 312, "height": 188, "label": "Small" },
+        { "width": 472, "height": 188, "label": "Medium" },
+        { "width": 472, "height": 380, "label": "Large" }
+      ]
+    }
   ]
 }
 

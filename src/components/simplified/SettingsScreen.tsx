@@ -6,7 +6,7 @@ import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
-import type { Budget, Goal } from "@/types"
+import type { Budget, Goal, TransactionCategory } from "@/types"
 import type { IncomeSmoothing } from "@/types/folio"
 import type { SpendingMode } from "@/lib/spendingModes"
 import { SPENDING_MODE_LABELS, OVER_LIMIT_RESPONSE_LABELS, limitVisibilityNote } from "@/lib/spendingModes"
@@ -30,9 +30,12 @@ import {
 } from "@/styles/shared"
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 import { DailyReminderSetting } from "./DailyReminderSetting"
+import { SmartNotificationSettings } from "./SmartNotificationSettings"
 import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
 import { useFeatureFlags } from "@/hooks/useFeatureFlags"
 import type { FeatureFlags } from "@/lib/featureFlags"
+import type { CategorizationRule } from "@/lib/categorizationRules"
+import { getCategoryEmoji } from "@/lib/vocabulary"
 
 // ============================================================================
 // Types
@@ -62,7 +65,18 @@ export interface SettingsScreenProps {
   onSignOut: () => void
   onResetOnboarding?: () => void
   onExportData?: () => void
+  onExportCSV?: () => void
   onDeleteAccount?: () => void
+  /** User-defined categorization rules (task 113.3) */
+  categorizationRules?: CategorizationRule[]
+  /** Callback to add a new categorization rule (task 113.3) */
+  onAddCategorizationRule?: (keyword: string, category: TransactionCategory) => void
+  /** Callback to delete a categorization rule (task 113.3) */
+  onDeleteCategorizationRule?: (id: string) => void
+  /** Callback to open the Sharing overlay (task 115.1) */
+  onOpenSharing?: () => void
+  /** Number of active share links (task 115.1) */
+  activeShareCount?: number
 }
 
 // ============================================================================
@@ -211,7 +225,13 @@ export function SettingsScreen({
   onSignOut,
   onResetOnboarding,
   onExportData,
+  onExportCSV,
   onDeleteAccount,
+  categorizationRules = [],
+  onAddCategorizationRule,
+  onDeleteCategorizationRule,
+  onOpenSharing,
+  activeShareCount = 0,
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -219,6 +239,11 @@ export function SettingsScreen({
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [insightsEnabled, setInsightsEnabledState] = useState(() => getInsightsEnabled())
   const [countCreditImmediately, setCountCreditImmediatelyState] = useState(countCreditImmediatelyProp ?? true)
+
+  // ── Smart categorization rule form state (task 113.3) ─────────────────
+  const [showAddRuleForm, setShowAddRuleForm] = useState(false)
+  const [newRuleKeyword, setNewRuleKeyword] = useState("")
+  const [newRuleCategory, setNewRuleCategory] = useState<TransactionCategory>("food")
 
   // Resolve active spending mode — default to 'guided' when not provided
   const spendingMode: SpendingMode = spendingModeProp ?? 'guided'
@@ -928,10 +953,206 @@ export function SettingsScreen({
       {/* ── Daily Reminder ─────────────────────────────────────────────── */}
       <DailyReminderSetting />
 
+      {/* ── Smart Alerts (task 114.2) ──────────────────────────────────── */}
+      <SmartNotificationSettings />
+
       {/* ── Low-Balance Buffer ─────────────────────────────────────────── */}
       <div style={{ marginBottom: 20 }}>
         <MinBalanceBufferSetting />
       </div>
+
+      {/* ── Smart Categorization (task 113.3) ───────────────────── */}
+      {onAddCategorizationRule && onDeleteCategorizationRule && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+            Smart Categorization
+          </p>
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
+            Custom rules that always categorize certain notes for you.
+          </p>
+
+          {/* Existing rules list */}
+          {categorizationRules.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              {categorizationRules.map((rule) => (
+                <div
+                  key={rule.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "8px 0",
+                    borderBottom: "1px solid var(--border)",
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: "var(--text)", flex: 1 }}>
+                    &ldquo;{rule.keyword}&rdquo; → {getCategoryEmoji(rule.category)} {rule.category}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteCategorizationRule(rule.id)}
+                    aria-label={`Delete rule for "${rule.keyword}"`}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px 8px",
+                      fontSize: 14,
+                      color: "var(--muted)",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {categorizationRules.length === 0 && !showAddRuleForm && (
+            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
+              No rules yet — add one, or Folio will suggest creating them when you override a category.
+            </p>
+          )}
+
+          {/* Add rule form */}
+          {showAddRuleForm ? (
+            <div
+              style={{
+                padding: "12px 14px",
+                background: "rgba(255, 255, 255, 0.03)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: borderRadius.md,
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ marginBottom: 10 }}>
+                <label
+                  htmlFor="rule-keyword-input"
+                  style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}
+                >
+                  When note contains
+                </label>
+                <input
+                  id="rule-keyword-input"
+                  type="text"
+                  placeholder="e.g. starbucks"
+                  value={newRuleKeyword}
+                  onChange={(e) => setNewRuleKeyword(e.target.value.slice(0, 40))}
+                  maxLength={40}
+                  style={{
+                    width: "100%",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
+                    outline: "none",
+                    fontSize: 14,
+                    fontFamily: FONT_FAMILY,
+                    color: "var(--text)",
+                    padding: "6px 0",
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label
+                  style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 6 }}
+                >
+                  Categorize as
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {BUDGET_CATEGORIES.map((cat) => {
+                    const isSelected = newRuleCategory === cat.category
+                    return (
+                      <button
+                        key={cat.category}
+                        type="button"
+                        onClick={() => setNewRuleCategory(cat.category)}
+                        aria-label={`Categorize as ${cat.label}`}
+                        aria-pressed={isSelected}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: borderRadius.full,
+                          border: isSelected
+                            ? "1.5px solid rgba(129, 140, 248, 0.6)"
+                            : "1px solid rgba(255, 255, 255, 0.1)",
+                          background: isSelected
+                            ? "rgba(129, 140, 248, 0.1)"
+                            : "transparent",
+                          color: isSelected ? "var(--text)" : "var(--sub)",
+                          fontSize: 12,
+                          fontFamily: FONT_FAMILY,
+                          fontWeight: 500,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {cat.emoji} {cat.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    if (newRuleKeyword.trim()) {
+                      onAddCategorizationRule(newRuleKeyword.trim(), newRuleCategory)
+                      setNewRuleKeyword("")
+                      setShowAddRuleForm(false)
+                    }
+                  }}
+                  disabled={!newRuleKeyword.trim()}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: borderRadius.full,
+                    background: newRuleKeyword.trim()
+                      ? "rgba(129, 140, 248, 0.8)"
+                      : "rgba(255, 255, 255, 0.08)",
+                    border: "none",
+                    color: newRuleKeyword.trim() ? "#fff" : "var(--muted)",
+                    fontSize: 13,
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: 600,
+                    cursor: newRuleKeyword.trim() ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Save rule
+                </motion.button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddRuleForm(false); setNewRuleKeyword("") }}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: borderRadius.full,
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--muted)",
+                    fontSize: 13,
+                    fontFamily: FONT_FAMILY,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <motion.button
+              onClick={() => setShowAddRuleForm(true)}
+              whileTap={{ scale: 0.97 }}
+              transition={springs.snappy}
+              style={linkButton}
+              aria-label="Add a categorization rule"
+            >
+              + Add rule →
+            </motion.button>
+          )}
+        </GlassCard>
+      )}
 
       {/* ── Feature Visibility ──────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
@@ -1024,6 +1245,29 @@ export function SettingsScreen({
         </motion.button>
       </GlassCard>
 
+      {/* ── Sharing (task 115.1) ──────────────────────────────────────── */}
+      {onOpenSharing && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong }}>
+            Sharing
+          </p>
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
+            {activeShareCount > 0
+              ? `Sharing a snapshot with ${activeShareCount} ${activeShareCount === 1 ? "person" : "people"}`
+              : "Not sharing with anyone"}
+          </p>
+          <motion.button
+            onClick={onOpenSharing}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={linkButton}
+            aria-label="Manage sharing"
+          >
+            Manage sharing →
+          </motion.button>
+        </GlassCard>
+      )}
+
       {/* ── Data & Account Management ──────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
         <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
@@ -1043,6 +1287,22 @@ export function SettingsScreen({
             aria-label="Export your financial data"
           >
             Export my data →
+          </motion.button>
+        )}
+
+        {/* Export Transactions CSV */}
+        {onExportCSV && (
+          <motion.button
+            onClick={onExportCSV}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              ...linkButton,
+              marginBottom: 12,
+            }}
+            aria-label="Export transactions as CSV"
+          >
+            Export transactions (CSV) →
           </motion.button>
         )}
 

@@ -19,6 +19,9 @@ import { EditTransactionSheet } from '@/components/simplified/EditTransactionShe
 import { RefundSheet } from '@/components/simplified/RefundSheet'
 import { TutorialSetupStepRenderer, TUTORIAL_FEATURE_STEPS, TUTORIAL_SETUP_STEPS, TutorialSetupState, buildOnboardingResult } from '@/components/simplified/TutorialSteps'
 import { detectSubscriptions } from '@/lib/subscriptionDetector'
+import { getCategorizationRules, saveCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
+import { getActiveShareLinks } from '@/lib/sharingUtils'
+import type { CategorizationRule } from '@/lib/categorizationRules'
 
 // ── Code-split: heavy/advanced features loaded on demand ─────────────────────
 // These screens are behind progressive disclosure (Tools tab, settings overlays)
@@ -96,20 +99,27 @@ const TrajectoryScreen = dynamic(
   () => import('@/components/simplified/TrajectoryScreen').then(m => ({ default: m.TrajectoryScreen })),
   { ssr: false }
 )
+const SharingScreen = dynamic(
+  () => import('@/components/simplified/SharingScreen').then(m => ({ default: m.SharingScreen })),
+  { ssr: false }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
 import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement } from '@/lib/supabaseData'
-import { exportUserData, deleteUserAccount } from '@/lib/accountUtils'
+import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
 import type { TransactionCategory, Transaction } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
 import { heroMeaningStatus } from '@/lib/dailyAllowanceUtils'
 import type { Reimbursement } from '@/lib/reimbursements'
 import type { TransactionRepeat } from '@/lib/transactionUtils'
+import { applyRoundUp, getRoundUpTargetGoal } from '@/lib/roundUpSavings'
 import { createRefundTransaction } from '@/lib/refundUtils'
+import { saveTagsForTransaction } from '@/lib/tagUtils'
 import { useRecurringBills } from '@/hooks/useRecurringBills'
+import { useSmartNotifications } from '@/hooks/useSmartNotifications'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
@@ -140,6 +150,7 @@ export default function FolioApp() {
   const [showFundingSources, setShowFundingSources] = useState(false)
   const [showLinkedAccounts, setShowLinkedAccounts] = useState(false)
   const [showTrajectory, setShowTrajectory] = useState(false)
+  const [showSharing, setShowSharing] = useState(false)
 
   // ── Tutorial Setup State ───────────────────────────────────────
   const [tutorialSetupState, setTutorialSetupState] = useState<TutorialSetupState>({
@@ -160,6 +171,12 @@ export default function FolioApp() {
 
   // ── Per-transaction alert state (task 102.2) ───────────────────
   const [perTxAlertMessage, setPerTxAlertMessage] = useState<string | null>(null)
+
+  // ── Categorization rules state (task 113.3) ────────────────────
+  const [categorizationRules, setCategorizationRules] = useState<CategorizationRule[]>([])
+  useEffect(() => {
+    setCategorizationRules(getCategorizationRules())
+  }, [])
 
   // ── Income Anchor Banner (task 95.1) ───────────────────────────
   // A first-run nudge shown once after onboarding to encourage the user to
@@ -310,6 +327,9 @@ export default function FolioApp() {
 
   // ── Service Worker registration (task 77 — PWA notifications) ──
   useServiceWorker()
+
+  // ── Smart Notifications (task 114.2 — low balance & bill-due alerts) ──
+  useSmartNotifications(allowance, recurringBills)
 
   // ── Subscription Detection ─────────────────────────────────────
   const [dismissedSubscriptions, setDismissedSubscriptions] = useState<Set<string>>(new Set())
@@ -463,6 +483,17 @@ export default function FolioApp() {
     setOnboardingStep('done')
   }
 
+  // ── Categorization Rules Handlers (task 113.3) ──────────────────
+  const handleAddCategorizationRule = useCallback((keyword: string, category: TransactionCategory) => {
+    const rule = saveCategorizationRule(keyword, category)
+    setCategorizationRules(prev => [...prev, rule])
+  }, [])
+
+  const handleDeleteCategorizationRule = useCallback((id: string) => {
+    deleteCategorizationRule(id)
+    setCategorizationRules(prev => prev.filter(r => r.id !== id))
+  }, [])
+
   // ── Expense Logging ────────────────────────────────────────────
   const handleOpenExpenseSheet = useCallback((category?: TransactionCategory) => {
     setDefaultExpenseCategory(category)
@@ -486,6 +517,7 @@ export default function FolioApp() {
     trackAsIOU?: boolean
     splitWith?: string
     splitOwedAmount?: number
+    tags?: string[]
   }) => {
     if (!user?.id) return
 
@@ -501,6 +533,11 @@ export default function FolioApp() {
 
     if (result) {
       setLastLoggedId(result.id)
+
+      // Persist tags to localStorage (task 113.2)
+      if (data.tags && data.tags.length > 0) {
+        saveTagsForTransaction(result.id, data.tags)
+      }
 
       // Auto-create IOU reimbursement when tracking as borrowed (task 84.1)
       if (data.trackAsIOU && data.fundingSourceId) {
@@ -534,13 +571,26 @@ export default function FolioApp() {
           showToast(`${data.splitWith} owes you $${data.splitOwedAmount.toFixed(2)}`, 'success')
         }
       }
+
+      // Round-up savings contribution (task 112.2)
+      const { savingsAmount } = applyRoundUp(data.amount)
+      if (savingsAmount > 0) {
+        const targetGoalId = getRoundUpTargetGoal()
+        if (targetGoalId) {
+          const goalResult = await contributeToGoal(targetGoalId, savingsAmount)
+          if (goalResult) {
+            const goalName = goals.find(g => g.id === targetGoalId)?.name ?? 'goal'
+            showToast(`$${savingsAmount.toFixed(2)} rounded up → ${goalName}`, 'success')
+          }
+        }
+      }
     } else {
       // addTransaction queued the expense locally on failure; reflect it in the
       // sync indicator so the user can see it is pending background retry.
       refreshOfflineSync()
       showToast('Saved offline — will sync when connected', 'success')
     }
-  }, [user?.id, addTransaction, showToast, refreshOfflineSync, fundingSources])
+  }, [user?.id, addTransaction, showToast, refreshOfflineSync, fundingSources, contributeToGoal, goals])
 
   const handleExpenseUndo = useCallback(async () => {
     if (!lastLoggedId) return
@@ -816,6 +866,17 @@ export default function FolioApp() {
     }
   }
 
+  // ── Export Transactions CSV ────────────────────────────────────
+  const handleExportCSV = () => {
+    try {
+      exportTransactionsCSV(transactions)
+      showToast('Transactions exported as CSV', 'success')
+    } catch (error) {
+      console.error('Error exporting CSV:', error)
+      showToast('Failed to export CSV', 'error')
+    }
+  }
+
   // ── Delete Account ─────────────────────────────────────────────
   const handleDeleteAccount = async () => {
     if (!user?.id) return
@@ -1023,6 +1084,21 @@ export default function FolioApp() {
     )
   }
 
+  // ── Sharing (full-screen overlay, task 115.1) ──────────────────
+  if (showSharing && user?.id) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <SharingScreen
+          userId={user.id}
+          transactions={transactions}
+          budgets={budgets}
+          allowance={allowance}
+          onBack={() => setShowSharing(false)}
+        />
+      </div>
+    )
+  }
+
   // ── Debt Tracking (full-screen overlay) ────────────────────────
   if (flags.debtTracking && showDebt) {
     return (
@@ -1197,6 +1273,8 @@ export default function FolioApp() {
                 transactions={transactions}
                 debts={debts}
                 reimbursements={reimbursements}
+                goals={goals}
+                budgets={budgets}
               />
             )}
             {activeNav === 'settings' && (
@@ -1224,7 +1302,13 @@ export default function FolioApp() {
                 onSignOut={handleSignOut}
                 onResetOnboarding={handleResetOnboarding}
                 onExportData={handleExportData}
+                onExportCSV={handleExportCSV}
                 onDeleteAccount={handleDeleteAccount}
+                categorizationRules={categorizationRules}
+                onAddCategorizationRule={handleAddCategorizationRule}
+                onDeleteCategorizationRule={handleDeleteCategorizationRule}
+                onOpenSharing={() => setShowSharing(true)}
+                activeShareCount={getActiveShareLinks().length}
               />
             )}
           </motion.div>
@@ -1247,6 +1331,8 @@ export default function FolioApp() {
         budgets={budgets}
         onAlertMessage={(msg) => setPerTxAlertMessage(msg)}
         spendingMode={spendingMode}
+        categorizationRules={categorizationRules}
+        onAddCategorizationRule={handleAddCategorizationRule}
       />
 
       {/* ── Per-transaction alert notice (task 102.2) ──────────── */}

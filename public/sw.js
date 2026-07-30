@@ -79,3 +79,50 @@ sw.addEventListener("install", () => {
 sw.addEventListener("activate", (event) => {
   event.waitUntil(sw.clients.claim())
 })
+
+// ─── Widget Data Cache ───────────────────────────────────────────────────────
+// Stores the latest daily allowance data sent from the main app thread.
+// The PWA widget (Windows 11 Edge) reads this via the /api/widget/daily-allowance
+// endpoint, which the SW intercepts and responds to from cache.
+
+let cachedWidgetData = null
+
+// Listen for messages from the main app thread to update widget data
+sw.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "widgetDataUpdate") {
+    cachedWidgetData = event.data.payload
+  }
+})
+
+// Intercept widget data requests and respond from cache
+sw.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url)
+  if (url.pathname === "/api/widget/daily-allowance" && cachedWidgetData) {
+    event.respondWith(
+      new Response(JSON.stringify(cachedWidgetData), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Access-Control-Allow-Origin": "*",
+        },
+      })
+    )
+  }
+})
+
+// ─── Periodic Sync (Background Widget Refresh) ───────────────────────────────
+// When the browser supports periodic background sync, refresh widget data.
+// This keeps the widget current even when the app isn't open.
+sw.addEventListener("periodicsync", (event) => {
+  if (event.tag === "widget-daily-allowance-refresh") {
+    event.waitUntil(
+      // Notify all open clients to recalculate and send fresh widget data
+      sw.clients.matchAll({ type: "window" }).then((clients) => {
+        for (const client of clients) {
+          client.postMessage({ type: "requestWidgetDataRefresh" })
+        }
+      })
+    )
+  }
+})

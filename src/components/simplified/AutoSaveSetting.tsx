@@ -5,68 +5,76 @@ import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import {
-  isRoundUpEnabled,
-  setRoundUpEnabled,
-  computeMonthlyRoundUpTotal,
-  getRoundUpTargetGoal,
-  setRoundUpTargetGoal,
-} from "@/lib/roundUpSavings"
+  getAutoEarmarkConfig,
+  setAutoEarmarkConfig,
+  computeMonthlyEarmarkTotal,
+} from "@/lib/autoEarmarkSavings"
 import { FONT_FAMILY } from "@/styles/typography"
 import { sectionHeadingStrong } from "@/styles/shared"
-import type { Transaction, Goal } from "@/types"
+import type { Transaction, Goal, Budget } from "@/types"
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export interface RoundUpSettingProps {
-  /** Current month's transactions — used to show round-up savings total */
+export interface AutoSaveSettingProps {
+  /** Current month's transactions — used to compute earmark total */
   transactions?: Transaction[]
+  /** User's budget limits — needed for daily budget calculation */
+  budgets?: Budget[]
   /** User's goals — for the goal picker dropdown */
   goals?: Goal[]
 }
 
 // ============================================================================
-// RoundUpSetting Component
+// AutoSaveSetting Component
 // ============================================================================
 
 /**
- * RoundUpSetting — a toggle card that lets users opt into round-up savings.
+ * AutoSaveSetting — a toggle card that lets users opt into auto-earmarking
+ * unspent daily allowance toward a savings goal.
  *
- * When enabled, each logged expense is rounded up to the nearest dollar and
- * the difference goes toward savings. Purely additive and reversible —
- * disabling stops future round-ups without touching existing transactions.
+ * Purely informational/motivational — shows how much the user *would have*
+ * saved if they maintained their spending habits. Does not create transactions.
  */
-export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSettingProps) {
+export function AutoSaveSetting({
+  transactions = [],
+  budgets = [],
+  goals = [],
+}: AutoSaveSettingProps) {
   const [enabled, setEnabled] = useState(false)
-  const [targetGoalId, setTargetGoalId] = useState<string | null>(null)
+  const [goalId, setGoalId] = useState<string | null>(null)
 
   // Hydrate from localStorage on mount
   useEffect(() => {
-    setEnabled(isRoundUpEnabled())
-    setTargetGoalId(getRoundUpTargetGoal())
+    const config = getAutoEarmarkConfig()
+    setEnabled(config.enabled)
+    setGoalId(config.goalId)
   }, [])
 
   function handleToggle() {
     const next = !enabled
     setEnabled(next)
-    setRoundUpEnabled(next)
+    setAutoEarmarkConfig({ enabled: next, goalId })
   }
 
   function handleGoalChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const newGoalId = e.target.value || null
-    setTargetGoalId(newGoalId)
-    setRoundUpTargetGoal(newGoalId)
+    setGoalId(newGoalId)
+    setAutoEarmarkConfig({ enabled, goalId: newGoalId })
   }
 
-  // Compute current month's round-up total
+  // Compute current month's earmark total
   const now = new Date()
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-  const monthlyTotal = computeMonthlyRoundUpTotal(transactions, currentMonth)
+  const monthlyTotal = computeMonthlyEarmarkTotal(transactions, budgets, currentMonth)
+
+  // Find the selected goal name for display
+  const selectedGoal = goals.find(g => g.id === goalId)
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-      <p style={{ ...sectionHeadingStrong }}>Round-Up Savings</p>
+      <p style={{ ...sectionHeadingStrong }}>Auto-Save Earmark</p>
 
       {/* Description */}
       <p
@@ -77,7 +85,7 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
           marginBottom: 16,
         }}
       >
-        Round expenses to the nearest dollar. The difference goes to your savings.
+        Track unspent daily allowance as virtual savings. See how much you could save just by keeping your current habits.
       </p>
 
       {/* Toggle row */}
@@ -107,7 +115,7 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
           transition={springs.snappy}
           role="switch"
           aria-checked={enabled}
-          aria-label="Toggle round-up savings"
+          aria-label="Toggle auto-save earmark"
           style={{
             position: "relative",
             width: 48,
@@ -141,10 +149,10 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
       </div>
 
       {/* Goal picker — shown when enabled */}
-      {enabled && goals.length > 0 && (
+      {enabled && (
         <div style={{ marginBottom: monthlyTotal > 0 ? 14 : 0 }}>
           <label
-            htmlFor="round-up-target-goal"
+            htmlFor="auto-earmark-goal"
             style={{
               fontSize: 12,
               color: "var(--sub)",
@@ -153,11 +161,11 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
               fontFamily: FONT_FAMILY,
             }}
           >
-            Contribute to
+            Earmark towards
           </label>
           <select
-            id="round-up-target-goal"
-            value={targetGoalId ?? ""}
+            id="auto-earmark-goal"
+            value={goalId ?? ""}
             onChange={handleGoalChange}
             style={{
               width: "100%",
@@ -175,7 +183,7 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
             }}
           >
             <option value="" style={{ background: "var(--surface)" }}>
-              No goal (savings only)
+              General savings
             </option>
             {goals.map(goal => (
               <option
@@ -190,7 +198,7 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
         </div>
       )}
 
-      {/* Monthly savings total — only when enabled and there's data */}
+      {/* Monthly earmark total — motivational metric */}
       {enabled && monthlyTotal > 0 && (
         <div
           style={{
@@ -199,22 +207,23 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
             gap: 8,
             padding: "10px 14px",
             borderRadius: 10,
-            background: "rgba(6, 214, 160, 0.08)",
-            border: "1px solid rgba(6, 214, 160, 0.2)",
+            background: "rgba(139, 92, 246, 0.08)",
+            border: "1px solid rgba(139, 92, 246, 0.2)",
           }}
         >
           <span style={{ fontSize: 16 }} aria-hidden="true">
-            🪙
+            ✨
           </span>
           <span
             style={{
               fontSize: 13,
-              color: "var(--success)",
+              color: "rgb(167, 139, 250)",
               fontWeight: 500,
               fontFamily: FONT_FAMILY,
             }}
           >
-            This month: ~${monthlyTotal.toFixed(2)} saved
+            This month: ~${monthlyTotal.toFixed(2)} earmarked
+            {selectedGoal ? ` → ${selectedGoal.emoji} ${selectedGoal.name}` : ""}
           </span>
         </div>
       )}

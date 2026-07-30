@@ -162,6 +162,8 @@ export type TipTrigger =
   | { type: 'bill_due_soon'; label: string; dueDay: number; daysUntil: number }
   | { type: 'low_balance_warning'; projectedLowBalance: number; buffer: number; daysUntilDip?: number }
   | { type: 'subscription_audit'; count: number; monthlyTotal: number }
+  | { type: 'subscription_renewal_soon'; label: string; amount: number; daysUntil: number }
+  | { type: 'trial_ending'; label: string; amount: number; daysUntil: number }
   | { type: 'lump_income_spike'; spikeAmount: number; averageMonthlyIncome: number }
   | { type: 'over_budget_today' }
   | { type: 'source_breakdown'; creditPercent: number; creditTotal: number; monthlyIncome: number }
@@ -471,6 +473,46 @@ export interface CustomCategory {
   label: string
   emoji: string
   userId: string
+  createdAt: string
+}
+
+// ============================================================================
+// Linked Account Types (Group 14 — Optional bank/card linking, task 107.1)
+// ============================================================================
+
+/** Kind of linked financial account */
+export type LinkedAccountKind = 'bank' | 'card'
+
+/** Connection status of a linked account */
+export type LinkedAccountStatus = 'connected' | 'disconnected' | 'error'
+
+/**
+ * A financial account the user has OPTIONALLY linked (e.g. via Plaid).
+ *
+ * IMPORTANT — security & positioning:
+ * - Linking is strictly opt-in. Folio is fully usable with zero linked accounts.
+ * - The raw Plaid access_token is NEVER stored client-side. Only a server-side
+ *   reference (`accessTokenRef`) is kept here — the actual token lives behind a
+ *   server boundary and is exchanged server-side (public_token → access_token).
+ * - No secrets or tokens ever appear in this client type.
+ */
+export interface LinkedAccount {
+  id: string
+  userId: string
+  /** Human-friendly institution name, e.g. "Chase" */
+  institutionName: string
+  /** Last 4 digits / mask of the account, e.g. "1234" — never the full number */
+  mask: string
+  kind: LinkedAccountKind
+  /**
+   * Opaque server-side reference to the securely-stored access token.
+   * This is NOT the token itself — it's a lookup key the server uses to
+   * retrieve the real access_token. Never place a raw token here.
+   */
+  accessTokenRef: string
+  status: LinkedAccountStatus
+  /** ISO timestamp of the last successful sync, if any */
+  lastSyncedAt?: string
   createdAt: string
 }
 

@@ -103,6 +103,8 @@ export const TIP_EMOJI = {
   bill_reminder: '📬',
   pacing_check: '📊',
   subscription_audit: '🔄',
+  renewal_soon: '📆',
+  trial_ending: '⏳',
   low_balance: '🫶',
   lump_income: '🎉',
   source_breakdown: '💳',

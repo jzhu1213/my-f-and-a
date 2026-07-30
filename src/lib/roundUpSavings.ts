@@ -5,6 +5,7 @@ import type { Transaction } from '@/types'
 // ============================================================================
 
 const STORAGE_KEY = 'folio-round-up-enabled'
+const STORAGE_KEY_TARGET_GOAL = 'folio-round-up-target-goal'
 
 /**
  * Computes the round-up for a given expense amount.
@@ -79,4 +80,26 @@ export function applyRoundUp(expenseAmount: number): {
 
   const { roundedAmount, roundUpDifference } = computeRoundUp(expenseAmount)
   return { expenseAmount: roundedAmount, savingsAmount: roundUpDifference }
+}
+
+/**
+ * Gets the goal ID that receives round-up savings contributions.
+ * Returns null if no target goal is configured.
+ */
+export function getRoundUpTargetGoal(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(STORAGE_KEY_TARGET_GOAL) || null
+}
+
+/**
+ * Sets the goal ID that should receive round-up savings contributions.
+ * Pass null to clear the target goal.
+ */
+export function setRoundUpTargetGoal(goalId: string | null): void {
+  if (typeof window === 'undefined') return
+  if (goalId) {
+    localStorage.setItem(STORAGE_KEY_TARGET_GOAL, goalId)
+  } else {
+    localStorage.removeItem(STORAGE_KEY_TARGET_GOAL)
+  }
 }

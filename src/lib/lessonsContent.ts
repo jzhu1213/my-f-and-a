@@ -88,6 +88,78 @@ Used gently, a card builds the credit history you'll want later for apartments a
     order: 4,
   },
   {
+    id: 'credit-score-basics',
+    title: 'Credit Score Basics',
+    description: 'What your score means and how it is built',
+    topic: 'credit',
+    content: `Your credit score is a three-digit number (usually 300–850) that tells lenders how reliable you are with borrowed money. Think of it like a trust rating — a higher score means better loan terms, lower interest rates, and easier apartment approvals down the road.
+
+Five factors shape your FICO score: payment history (35%), how much of your available credit you use (30%), the length of your credit history (15%), your mix of account types (10%), and recent credit inquiries (10%). Payment history is the biggest slice, so paying on time matters more than anything else.
+
+Even if you don't plan to borrow soon, your score quietly affects things like security deposits and insurance rates. Building it early and gently gives future-you a real advantage — no rush, just steady habits.`,
+    example: 'Jaylen checked his score through his bank app and saw 680. He realized one late phone-bill payment from freshman year was dragging it down. After six months of on-time payments, it climbed to 720 — enough for a better rate on his first car loan.',
+    quizQuestions: [
+      { id: 'credit-score-basics-q1', question: 'What is the biggest factor in your FICO score?', options: ['Length of credit history', 'Payment history', 'Types of accounts', 'Number of credit cards'], correctIndex: 1 },
+      { id: 'credit-score-basics-q2', question: 'What range do most credit scores fall within?', options: ['0 to 100', '100 to 500', '300 to 850', '500 to 1000'], correctIndex: 2 },
+      { id: 'credit-score-basics-q3', question: 'Besides loans, what else can your credit score affect?', options: ['Your GPA', 'Apartment approvals and insurance rates', 'Your social media reach', 'Your class schedule'], correctIndex: 1 },
+    ],
+    order: 5,
+  },
+  {
+    id: 'building-credit-student',
+    title: 'Building Credit as a Student',
+    description: 'Simple first steps toward a strong history',
+    topic: 'credit',
+    content: `You don't need a high income or a fancy card to start building credit. A student credit card with a small limit is one of the easiest entry points — use it for one recurring purchase like a streaming subscription, pay it off each month, and you're building history.
+
+If you can't get approved on your own yet, two other paths work well. You can become an authorized user on a parent or guardian's card (their good history helps yours), or look into a secured card where you put down a small deposit that becomes your limit.
+
+The key is starting small and staying consistent. One card used responsibly for six to twelve months is all it takes to establish a foundation. You're not trying to impress anyone — you're just proving to the system that you pay your bills.`,
+    example: `Mia couldn't get approved for a regular card, so she opened a secured card with a $200 deposit. She used it only for her $15 Spotify and gym membership each month. After eight months of perfect payments, her bank upgraded her to an unsecured card automatically.`,
+    quizQuestions: [
+      { id: 'building-credit-student-q1', question: 'What is a secured credit card?', options: ['A card with extra fraud protection', 'A card backed by a deposit you provide', 'A card only available to people with high scores', 'A debit card with a credit label'], correctIndex: 1 },
+      { id: 'building-credit-student-q2', question: 'How can being an authorized user help you?', options: ['It gives you the other person\'s money', 'Their good payment history can help your score', 'It counts as a job reference', 'It lets you skip payments'], correctIndex: 1 },
+      { id: 'building-credit-student-q3', question: 'How long does it typically take to establish a credit foundation?', options: ['One week', 'Six to twelve months of consistent use', 'Five years minimum', 'It happens instantly when you open a card'], correctIndex: 1 },
+    ],
+    order: 6,
+  },
+  {
+    id: 'credit-score-monitoring',
+    title: 'Credit Score Monitoring',
+    description: 'How to check your score and what to watch for',
+    topic: 'credit',
+    content: `Checking your own credit score is free and doesn't hurt it — that's a common myth worth busting right away. Many bank apps show your score for free, and services like Credit Karma give you updates weekly at no cost.
+
+You're also entitled to a free full credit report from each bureau once a year at annualcreditreport.com. It's worth glancing at once or twice a year to make sure everything listed is actually yours — errors happen more often than you'd think, and catching them early is much easier than fixing them later.
+
+Watch for sudden drops (which might signal a missed payment or fraud) and celebrate steady climbs. You don't need to obsess over every five-point swing — monthly check-ins are plenty to stay informed without adding stress.`,
+    example: 'Tomas set a calendar reminder to check his score on the first of each month through his bank app. One month he noticed a 40-point drop and found an account he never opened — someone had used his info. He reported it early and got it removed within weeks.',
+    quizQuestions: [
+      { id: 'credit-score-monitoring-q1', question: 'Does checking your own credit score hurt it?', options: ['Yes, every check lowers it', 'No, checking your own score is a soft inquiry', 'Only if you check more than once a year', 'Only if you use a free service'], correctIndex: 1 },
+      { id: 'credit-score-monitoring-q2', question: 'Where can you get a free full credit report annually?', options: ['Your employer', 'annualcreditreport.com', 'The IRS website', 'Social media'], correctIndex: 1 },
+      { id: 'credit-score-monitoring-q3', question: 'What should you do if you see a sudden score drop?', options: ['Ignore it — scores always bounce back', 'Investigate for missed payments or potential fraud', 'Close all your accounts immediately', 'Apply for more credit to offset it'], correctIndex: 1 },
+    ],
+    order: 7,
+  },
+  {
+    id: 'common-credit-mistakes',
+    title: 'Common Credit Mistakes',
+    description: 'Pitfalls to know about so you can sidestep them',
+    topic: 'credit',
+    content: `Everyone makes financial missteps — the goal isn't perfection, it's awareness. The most impactful mistake for students is missing payments. Even one payment 30+ days late can stay on your report for years, so setting up autopay (even just for the minimum) is a simple safety net.
+
+Maxing out your cards is another common trap. High utilization tells lenders you might be stretched thin, even if you pay it all off eventually. Keeping balances under 30% of your limit — ideally under 10% — sends a much healthier signal.
+
+Two more to watch: applying for several cards in a short window (each application creates a hard inquiry that temporarily dings your score) and closing your oldest card (which shortens your credit history). If you have an old card with no annual fee, keep it open and use it for a small purchase now and then.`,
+    example: 'Andre applied for three store cards during holiday sales because each offered a 15% discount. His score dropped 25 points from the hard inquiries alone. He learned to be selective — one thoughtful application is worth more than a handful of impulse ones.',
+    quizQuestions: [
+      { id: 'common-credit-mistakes-q1', question: 'Why is missing a payment so damaging?', options: ['It closes your account immediately', 'A late payment can stay on your report for years', 'Banks charge a $1,000 penalty', 'It only matters if you miss more than five'], correctIndex: 1 },
+      { id: 'common-credit-mistakes-q2', question: 'Why should you avoid closing your oldest credit card?', options: ['You lose all your rewards points', 'It shortens your credit history length', 'The bank will charge a closing fee', 'It triggers an automatic audit'], correctIndex: 1 },
+      { id: 'common-credit-mistakes-q3', question: 'What happens when you apply for many cards in a short time?', options: ['Your limit increases automatically', 'Each application creates a hard inquiry that can lower your score', 'Nothing — applications have no effect', 'You get bonus points for each application'], correctIndex: 1 },
+    ],
+    order: 8,
+  },
+  {
     id: 'investing-basics',
     title: 'Investing Basics',
     description: 'Letting your money grow over time',
@@ -104,7 +176,7 @@ The two habits that matter most are starting early and staying consistent. Inves
       { id: 'investing-basics-q3', question: 'What habit tends to help investors most?', options: ['Timing the market perfectly', 'Starting early and staying consistent', 'Checking prices hourly', 'Only investing large sums'], correctIndex: 1 },
     ],
     actionLink: undefined,
-    order: 5,
+    order: 9,
   },
   {
     id: 'stocks',
@@ -123,7 +195,7 @@ Because any one company can struggle, spreading your money across many, often th
       { id: 'stocks-q3', question: 'How can you lower the risk of one bad pick?', options: ['Buy only one company', 'Spread money across many, often via a fund', 'Sell everything each week', 'Avoid stocks entirely forever'], correctIndex: 1 },
     ],
     actionLink: undefined,
-    order: 6,
+    order: 10,
   },
   {
     id: 'loans-and-bonds',
@@ -142,6 +214,6 @@ A bond flips the roles: you lend money to a government or company, and they pay 
       { id: 'loans-and-bonds-q3', question: 'How are bonds generally seen compared to stocks?', options: ['Much riskier', 'Generally steadier', 'Identical in every way', 'Impossible to buy'], correctIndex: 1 },
     ],
     actionLink: '/accounting?tab=budgets',
-    order: 7,
+    order: 11,
   },
 ]

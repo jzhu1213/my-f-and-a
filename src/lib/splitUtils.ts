@@ -44,3 +44,60 @@ export function computeOwedAmount(totalAmount: number, splitCount: number): numb
   const userShare = computeSplitAmount(totalAmount, splitCount)
   return Math.round((totalAmount - userShare) * 100) / 100
 }
+
+/**
+ * Computes each friend's owed amount when the user specifies a custom (uneven) share.
+ *
+ * @param totalAmount - The full expense amount
+ * @param userShare   - The amount the user is paying (custom input)
+ * @param friendCount - Number of friends splitting the remainder (not including the user)
+ * @returns The amount each friend owes, rounded to 2 decimal places.
+ *          Returns 0 if the user's share exceeds the total or friendCount < 1.
+ */
+export function computeCustomSplitOwed(
+  totalAmount: number,
+  userShare: number,
+  friendCount: number
+): number {
+  if (!Number.isFinite(friendCount) || friendCount < 1) return 0
+  if (!Number.isFinite(userShare) || userShare < 0) return 0
+  const remainder = totalAmount - userShare
+  if (remainder <= 0) return 0
+  return Math.round((remainder / friendCount) * 100) / 100
+}
+
+/**
+ * Computes per-friend breakdown for an even split.
+ *
+ * @param totalAmount - The full expense amount
+ * @param friends     - Array of friend names
+ * @returns Array of { name, owes } objects. Empty if no friends or invalid amount.
+ */
+export function computePerFriendOwed(
+  totalAmount: number,
+  friends: string[],
+  splitCount: number
+): { name: string; owes: number }[] {
+  if (!friends.length || !Number.isFinite(totalAmount) || totalAmount <= 0) return []
+  const perPerson = computeSplitAmount(totalAmount, splitCount)
+  return friends.map((name) => ({ name, owes: perPerson }))
+}
+
+/**
+ * Computes per-friend breakdown for a custom (uneven) split.
+ *
+ * @param totalAmount - The full expense amount
+ * @param userShare   - The user's custom share
+ * @param friends     - Array of friend names
+ * @returns Array of { name, owes } objects. Empty if invalid.
+ */
+export function computePerFriendOwedCustom(
+  totalAmount: number,
+  userShare: number,
+  friends: string[]
+): { name: string; owes: number }[] {
+  if (!friends.length || !Number.isFinite(totalAmount) || totalAmount <= 0) return []
+  const perFriend = computeCustomSplitOwed(totalAmount, userShare, friends.length)
+  if (perFriend <= 0) return []
+  return friends.map((name) => ({ name, owes: perFriend }))
+}

@@ -5,8 +5,10 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
-import { computeSplitAmount, computeOwedAmount } from '@/lib/splitUtils'
-import { autoCategorize } from '@/lib/autoCategorize'
+import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePerFriendOwedCustom } from '@/lib/splitUtils'
+import { autoCategorizeWithRules } from '@/lib/autoCategorize'
+import type { CategorizationRule } from '@/lib/categorizationRules'
+import { hasExistingRule } from '@/lib/categorizationRules'
 import { triggerHaptic } from '@/lib/haptics'
 import { predictHabit, getTopHabitChips } from '@/lib/habitEngine'
 import { getMostRecentExpenseCategory } from '@/lib/transactionUtils'
@@ -20,6 +22,8 @@ import { mergeCategories } from '@/lib/customCategories'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius, roundButton } from '@/styles/shared'
+import { TagInput } from './TagInput'
+import { getRecentTags } from '@/lib/tagUtils'
 import type { FundingSource } from '@/lib/fundingSources'
 import { predictFundingSource } from '@/lib/fundingSources'
 import type { SpendingMode } from '@/lib/spendingModes'
@@ -27,7 +31,7 @@ import type { SpendingMode } from '@/lib/spendingModes'
 interface ExpenseSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string; date?: string; fundingSourceId?: string; trackAsIOU?: boolean; splitWith?: string; splitOwedAmount?: number }) => void
+  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string; date?: string; fundingSourceId?: string; trackAsIOU?: boolean; splitWith?: string; splitOwedAmount?: number; tags?: string[] }) => void
   onUndo?: () => void
   defaultCategory?: TransactionCategory
   transactions?: Transaction[]
@@ -54,6 +58,16 @@ interface ExpenseSheetProps {
    * without picking a category and the transaction falls back to 'other'.
    */
   spendingMode?: SpendingMode
+  /**
+   * User-defined categorization rules (task 113.3).
+   * Passed in so the ExpenseSheet can apply user rules during auto-categorization
+   * and show the "Always categorize as?" prompt when appropriate.
+   */
+  categorizationRules?: CategorizationRule[]
+  /**
+   * Callback when user taps "Always categorize [note] as [category]" (task 113.3).
+   */
+  onAddCategorizationRule?: (keyword: string, category: TransactionCategory) => void
 }
 
 // ── Date helper utilities (task 87.1) ────────────────────────────────────
@@ -133,6 +147,8 @@ export function ExpenseSheet({
   budgets = [],
   onAlertMessage,
   spendingMode = 'guided',
+  categorizationRules = [],
+  onAddCategorizationRule,
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
@@ -143,9 +159,16 @@ export function ExpenseSheet({
   const [category, setCategory] = useState<TransactionCategory | null>(null)
   const [note, setNote] = useState('')
   const [showNoteField, setShowNoteField] = useState(false)
+  const [tags, setTags] = useState<string[]>([])
   const [splitEnabled, setSplitEnabled] = useState(false)
   const [splitCount, setSplitCount] = useState(2)
   const [splitWith, setSplitWith] = useState('')
+  // Split mode: 'even' (auto-divide) or 'custom' (user enters their share)
+  const [splitMode, setSplitMode] = useState<'even' | 'custom'>('even')
+  // Custom split: user's manual share amount
+  const [customShareInput, setCustomShareInput] = useState('')
+  // Multiple friends as chips
+  const [splitFriends, setSplitFriends] = useState<string[]>([])
   // Tracks whether category was manually selected (true) or auto-suggested (false)
   const [manualCategorySelection, setManualCategorySelection] = useState(false)
   // Tracks whether the current category was auto-suggested
@@ -213,9 +236,13 @@ export function ExpenseSheet({
       setCategory(prefillCategory)
       setNote('')
       setShowNoteField(false)
+      setTags([])
       setSplitEnabled(splitPreEnabled)
       setSplitCount(2)
       setSplitWith('')
+      setSplitMode('even')
+      setCustomShareInput('')
+      setSplitFriends([])
       setManualCategorySelection(!!effectiveDefault)
       setIsAutoSuggested(!!(!defaultCategory && !effectiveDefault && habitPrediction))
       setShowAddCategoryForm(false)
@@ -314,11 +341,36 @@ export function ExpenseSheet({
     const effectiveCategory: TransactionCategory = category ?? (spendingMode === 'tracker' ? 'other' : null!)
     if (!effectiveCategory) return
 
-    // When split is enabled, submit the user's share instead of the full amount
-    const submittedAmount = splitEnabled ? computeSplitAmount(parsed, splitCount) : parsed
+    // Determine the user's share based on split mode
+    let submittedAmount: number
+    if (splitEnabled) {
+      if (splitMode === 'custom') {
+        const customShare = parseFloat(customShareInput)
+        submittedAmount = (customShare > 0 && customShare <= parsed) ? customShare : parsed
+      } else {
+        submittedAmount = computeSplitAmount(parsed, splitCount)
+      }
+    } else {
+      submittedAmount = parsed
+    }
 
     // Validate the computed share is within bounds
     if (submittedAmount <= 0 || submittedAmount > MAX_AMOUNT) return
+
+    // Build comma-separated friend names
+    const allFriends = splitFriends.length > 0
+      ? splitFriends.join(', ')
+      : splitWith.trim() || undefined
+
+    // Compute total owed by others
+    let totalOwed = 0
+    if (splitEnabled && allFriends) {
+      if (splitMode === 'custom') {
+        totalOwed = Math.round((parsed - submittedAmount) * 100) / 100
+      } else {
+        totalOwed = computeOwedAmount(parsed, splitCount)
+      }
+    }
 
     onSubmit({
       amount: submittedAmount,
@@ -327,8 +379,9 @@ export function ExpenseSheet({
       date: selectedDate,
       fundingSourceId: selectedSourceId || undefined,
       trackAsIOU: selectedSourceIsBorrowed && trackAsIOU ? true : undefined,
-      splitWith: splitEnabled && splitWith.trim() ? splitWith.trim() : undefined,
-      splitOwedAmount: splitEnabled && splitWith.trim() ? computeOwedAmount(parsed, splitCount) : undefined,
+      splitWith: splitEnabled && allFriends ? allFriends : undefined,
+      splitOwedAmount: splitEnabled && allFriends && totalOwed > 0 ? totalOwed : undefined,
+      tags: tags.length > 0 ? tags : undefined,
     })
     // Show success toast with optional undo action
     const categoryLabel = displayCategories.find(c => c.categoryValue === effectiveCategory)?.label ?? effectiveCategory
@@ -351,7 +404,7 @@ export function ExpenseSheet({
     }
 
     onClose()
-  }, [amount, category, spendingMode, note, splitEnabled, splitCount, splitWith, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage])
+  }, [amount, category, spendingMode, note, tags, splitEnabled, splitCount, splitWith, splitFriends, splitMode, customShareInput, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -381,6 +434,12 @@ export function ExpenseSheet({
     return notes
   }, [category, transactions])
 
+  // Compute recent tag suggestions for the suggestion chips
+  const recentTagSuggestions: string[] = useMemo(() => {
+    if (!transactions || transactions.length === 0) return []
+    return getRecentTags(transactions, 6)
+  }, [transactions])
+
   const handleNoteChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     // Strip HTML tags and HTML entities, then limit to 60 chars
     const sanitized = e.target.value
@@ -395,7 +454,7 @@ export function ExpenseSheet({
 
     // Auto-categorize: only apply if user hasn't manually picked a category
     if (!manualCategorySelection) {
-      const result = autoCategorize(sanitized)
+      const result = autoCategorizeWithRules(sanitized, categorizationRules)
       if (result) {
         setCategory(result.category)
         setIsAutoSuggested(true)
@@ -405,7 +464,7 @@ export function ExpenseSheet({
         setIsAutoSuggested(false)
       }
     }
-  }, [showNoteField, manualCategorySelection, effectiveDefault])
+  }, [showNoteField, manualCategorySelection, effectiveDefault, categorizationRules])
 
   // ── Category button animation variants ──────────────────────────────────
   const cardTapVariants: Variants = prefersReducedMotion
@@ -1151,6 +1210,42 @@ export function ExpenseSheet({
                 </div>
               )}
 
+              {/* ── "Always categorize as?" prompt (task 113.3) ──────── */}
+              {/* Shows when user manually overrides an auto-suggestion and has a note */}
+              {manualCategorySelection && note.trim().length > 0 && category && onAddCategorizationRule && !hasExistingRule(note, categorizationRules) && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    marginTop: -8,
+                    marginBottom: 16,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAddCategorizationRule(note.trim(), category)
+                      triggerHaptic('light')
+                    }}
+                    aria-label={`Always categorize notes with "${note}" as ${category}`}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      fontSize: 12,
+                      fontFamily: FONT_FAMILY,
+                      fontWeight: 500,
+                      color: 'rgba(167, 139, 250, 0.8)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <span aria-hidden="true">⚡</span> Always categorize &ldquo;{note.trim().slice(0, 20)}{note.trim().length > 20 ? '…' : ''}&rdquo; as {getCategoryEmoji(category)} {category}?
+                  </button>
+                </div>
+              )}
+
               {/* ── Note Input (optional, hidden unless toggled) ───────────────────────────── */}
               {!showNoteField && !note ? (
                 <div style={{ marginBottom: 28, textAlign: 'center' }}>
@@ -1258,6 +1353,16 @@ export function ExpenseSheet({
                   )}
                 </div>
               )}
+
+              {/* ── Tags (optional, progressive disclosure) ─────────────────────── */}
+              <div style={{ marginBottom: 20 }}>
+                <TagInput
+                  tags={tags}
+                  onChange={setTags}
+                  suggestions={recentTagSuggestions}
+                  collapsible
+                />
+              </div>
 
               {/* ── Date Picker (optional, task 87.1) ─────────────────────────────── */}
               <div style={{ marginBottom: 20, textAlign: 'center' }}>
@@ -1624,14 +1729,80 @@ export function ExpenseSheet({
                       transition={springs.snappy}
                       style={{ overflow: 'hidden' }}
                     >
-                      {/* Split with — friend name input (task 5.3 polish) */}
+                      {/* Split with — multiple friend name chips (task 113.1) */}
                       <div style={{ padding: '14px 4px 0' }}>
+                        {/* Friend chips display */}
+                        {splitFriends.length > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: 6,
+                              flexWrap: 'wrap',
+                              marginBottom: 10,
+                            }}
+                            aria-label="Added split partners"
+                          >
+                            {splitFriends.map((name) => (
+                              <span
+                                key={name}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  background: 'rgba(129, 140, 248, 0.1)',
+                                  border: '1px solid rgba(129, 140, 248, 0.25)',
+                                  borderRadius: borderRadius.full,
+                                  padding: '5px 10px',
+                                  fontSize: 12,
+                                  fontFamily: FONT_FAMILY,
+                                  fontWeight: 500,
+                                  color: 'var(--text)',
+                                }}
+                              >
+                                {name}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSplitFriends((prev) => prev.filter((f) => f !== name))
+                                    setSplitCount((c) => Math.max(2, c - 1))
+                                    triggerHaptic('light')
+                                  }}
+                                  aria-label={`Remove ${name}`}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: '0 2px',
+                                    cursor: 'pointer',
+                                    color: 'var(--muted)',
+                                    fontSize: 14,
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                         <input
                           ref={splitWithRef}
                           type="text"
-                          placeholder="Who are you splitting with?"
+                          placeholder={splitFriends.length > 0 ? 'Add another friend...' : 'Who are you splitting with?'}
                           value={splitWith}
                           onChange={(e) => setSplitWith(e.target.value.slice(0, 40))}
+                          onKeyDown={(e) => {
+                            if ((e.key === 'Enter' || e.key === ',') && splitWith.trim()) {
+                              e.preventDefault()
+                              const name = splitWith.trim().replace(/,+$/, '')
+                              if (name && !splitFriends.includes(name)) {
+                                setSplitFriends((prev) => [...prev, name])
+                                setSplitCount((c) => Math.min(20, c + 1))
+                              }
+                              setSplitWith('')
+                              triggerHaptic('light')
+                            }
+                          }}
                           maxLength={40}
                           aria-label="Friend's name to split with"
                           style={{
@@ -1647,9 +1818,20 @@ export function ExpenseSheet({
                             caretColor: 'var(--text)',
                           }}
                         />
+                        <span
+                          style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: 11,
+                            color: 'var(--muted)',
+                            marginTop: 4,
+                            display: 'block',
+                          }}
+                        >
+                          Press Enter or comma to add
+                        </span>
 
                         {/* Recent split partner chips */}
-                        {recentSplitPartners.length > 0 && !splitWith.trim() && (
+                        {recentSplitPartners.length > 0 && !splitWith.trim() && splitFriends.length === 0 && (
                           <div
                             style={{
                               display: 'flex',
@@ -1659,12 +1841,13 @@ export function ExpenseSheet({
                             }}
                             aria-label="Recent split partners"
                           >
-                            {recentSplitPartners.slice(0, 5).map((name) => (
+                            {recentSplitPartners.filter((n) => !splitFriends.includes(n)).slice(0, 5).map((name) => (
                               <button
                                 key={name}
                                 type="button"
                                 onClick={() => {
-                                  setSplitWith(name)
+                                  setSplitFriends((prev) => [...prev, name])
+                                  setSplitCount((c) => Math.min(20, c + 1))
                                   triggerHaptic('light')
                                 }}
                                 aria-label={`Split with ${name}`}
@@ -1688,120 +1871,280 @@ export function ExpenseSheet({
                         )}
                       </div>
 
+                      {/* Even / Custom split toggle (task 113.1) */}
                       <div
                         style={{
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '14px 4px 4px',
-                          gap: 12,
+                          gap: 6,
+                          padding: '14px 4px 0',
                         }}
                       >
-                        <span
+                        <button
+                          type="button"
+                          onClick={() => { setSplitMode('even'); triggerHaptic('light') }}
+                          aria-pressed={splitMode === 'even'}
                           style={{
-                            fontFamily: FONT_FAMILY,
+                            flex: 1,
+                            padding: '8px 0',
+                            borderRadius: 9,
+                            border: 'none',
                             fontSize: 13,
-                            color: 'var(--sub)',
+                            fontWeight: 500,
+                            fontFamily: FONT_FAMILY,
+                            cursor: 'pointer',
+                            transition: 'background 0.15s, color 0.15s',
+                            textAlign: 'center',
+                            color: splitMode === 'even' ? 'var(--text)' : 'var(--muted)',
+                            background: splitMode === 'even' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
                           }}
                         >
-                          Split between
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <button
-                            type="button"
-                            onClick={() => setSplitCount((c) => Math.max(2, c - 1))}
-                            disabled={splitCount <= 2}
-                            aria-label="Decrease split count"
-                            style={{
-                              ...roundButton,
-                              color: splitCount <= 2 ? 'var(--muted)' : 'var(--text)',
-                              cursor: splitCount <= 2 ? 'not-allowed' : 'pointer',
-                              opacity: splitCount <= 2 ? 0.4 : 1,
-                            }}
-                          >
-                            −
-                          </button>
+                          Even split
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setSplitMode('custom'); triggerHaptic('light') }}
+                          aria-pressed={splitMode === 'custom'}
+                          style={{
+                            flex: 1,
+                            padding: '8px 0',
+                            borderRadius: 9,
+                            border: 'none',
+                            fontSize: 13,
+                            fontWeight: 500,
+                            fontFamily: FONT_FAMILY,
+                            cursor: 'pointer',
+                            transition: 'background 0.15s, color 0.15s',
+                            textAlign: 'center',
+                            color: splitMode === 'custom' ? 'var(--text)' : 'var(--muted)',
+                            background: splitMode === 'custom' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                          }}
+                        >
+                          Custom split
+                        </button>
+                      </div>
+
+                      {/* Split count stepper — only in even mode */}
+                      {splitMode === 'even' && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '14px 4px 4px',
+                            gap: 12,
+                          }}
+                        >
                           <span
                             style={{
                               fontFamily: FONT_FAMILY,
-                              fontSize: 18,
-                              fontWeight: 600,
-                              color: 'var(--text)',
-                              minWidth: 50,
-                              textAlign: 'center',
+                              fontSize: 13,
+                              color: 'var(--sub)',
                             }}
-                            aria-live="polite"
-                            aria-label={`${splitCount} people`}
                           >
-                            {splitCount} 👥
+                            Split between
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => setSplitCount((c) => Math.min(20, c + 1))}
-                            disabled={splitCount >= 20}
-                            aria-label="Increase split count"
-                            style={{
-                              ...roundButton,
-                              color: splitCount >= 20 ? 'var(--muted)' : 'var(--text)',
-                              cursor: splitCount >= 20 ? 'not-allowed' : 'pointer',
-                              opacity: splitCount >= 20 ? 0.4 : 1,
-                            }}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Computed share + "They owe you" display */}
-                      {(() => {
-                        const parsed = parseFloat(amount)
-                        if (!parsed || parsed <= 0) return null
-                        const share = computeSplitAmount(parsed, splitCount)
-                        const shareStr = share % 1 === 0 ? `$${share}` : `$${share.toFixed(2)}`
-                        const owed = computeOwedAmount(parsed, splitCount)
-                        const owedStr = owed % 1 === 0 ? `$${owed}` : `$${owed.toFixed(2)}`
-                        const friendName = splitWith.trim()
-                        return (
-                          <div
-                            style={{
-                              textAlign: 'center',
-                              padding: '10px 0 4px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              gap: 8,
-                            }}
-                          >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => setSplitCount((c) => Math.max(2, c - 1))}
+                              disabled={splitCount <= 2}
+                              aria-label="Decrease split count"
+                              style={{
+                                ...roundButton,
+                                color: splitCount <= 2 ? 'var(--muted)' : 'var(--text)',
+                                cursor: splitCount <= 2 ? 'not-allowed' : 'pointer',
+                                opacity: splitCount <= 2 ? 0.4 : 1,
+                              }}
+                            >
+                              −
+                            </button>
                             <span
                               style={{
                                 fontFamily: FONT_FAMILY,
-                                fontSize: 14,
-                                fontWeight: 500,
+                                fontSize: 18,
+                                fontWeight: 600,
                                 color: 'var(--text)',
-                                background: 'rgba(129, 140, 248, 0.08)',
-                                border: '1px solid rgba(129, 140, 248, 0.2)',
-                                borderRadius: borderRadius.full,
-                                padding: '6px 14px',
-                                display: 'inline-block',
+                                minWidth: 50,
+                                textAlign: 'center',
                               }}
                               aria-live="polite"
+                              aria-label={`${splitCount} people`}
                             >
-                              Your share: {shareStr}
+                              {splitCount} 👥
                             </span>
-                            {/* Friendly "they owe you" label — shown when friend name is entered */}
-                            {friendName && owed > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setSplitCount((c) => Math.min(20, c + 1))}
+                              disabled={splitCount >= 20}
+                              aria-label="Increase split count"
+                              style={{
+                                ...roundButton,
+                                color: splitCount >= 20 ? 'var(--muted)' : 'var(--text)',
+                                cursor: splitCount >= 20 ? 'not-allowed' : 'pointer',
+                                opacity: splitCount >= 20 ? 0.4 : 1,
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Custom share input — only in custom mode */}
+                      {splitMode === 'custom' && (
+                        <div style={{ padding: '14px 4px 4px' }}>
+                          <label
+                            style={{
+                              fontFamily: FONT_FAMILY,
+                              fontSize: 13,
+                              color: 'var(--sub)',
+                              display: 'block',
+                              marginBottom: 6,
+                            }}
+                          >
+                            Your share
+                          </label>
+                          <div style={{ position: 'relative' }}>
+                            <span
+                              style={{
+                                position: 'absolute',
+                                left: 12,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                fontFamily: FONT_FAMILY,
+                                fontSize: 14,
+                                color: 'var(--muted)',
+                                pointerEvents: 'none',
+                              }}
+                            >
+                              $
+                            </span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="0.00"
+                              value={customShareInput}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/[^0-9.]/g, '')
+                                const parts = raw.split('.')
+                                if (parts.length > 2) return
+                                if (parts[1] && parts[1].length > 2) return
+                                setCustomShareInput(raw)
+                              }}
+                              aria-label="Your custom share amount"
+                              style={{
+                                width: '100%',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: borderRadius.md,
+                                outline: 'none',
+                                fontSize: 14,
+                                fontFamily: FONT_FAMILY,
+                                color: 'var(--text)',
+                                padding: '10px 14px 10px 24px',
+                                caretColor: 'var(--text)',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Owed breakdown (task 113.1) */}
+                      {(() => {
+                        const parsed = parseFloat(amount)
+                        if (!parsed || parsed <= 0) return null
+
+                        const friends = splitFriends.length > 0 ? splitFriends : (splitWith.trim() ? [splitWith.trim()] : [])
+
+                        let userShare: number
+                        let perFriendBreakdown: { name: string; owes: number }[]
+
+                        if (splitMode === 'custom') {
+                          const customVal = parseFloat(customShareInput)
+                          userShare = (customVal > 0 && customVal <= parsed) ? customVal : parsed
+                          perFriendBreakdown = friends.length > 0
+                            ? computePerFriendOwedCustom(parsed, userShare, friends)
+                            : []
+                        } else {
+                          userShare = computeSplitAmount(parsed, splitCount)
+                          perFriendBreakdown = friends.length > 0
+                            ? computePerFriendOwed(parsed, friends, splitCount)
+                            : []
+                        }
+
+                        const shareStr = userShare % 1 === 0 ? `$${userShare}` : `$${userShare.toFixed(2)}`
+                        const totalStr = parsed % 1 === 0 ? `$${parsed}` : `$${parsed.toFixed(2)}`
+
+                        return (
+                          <div
+                            style={{
+                              padding: '14px 4px 4px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 8,
+                            }}
+                          >
+                            {/* Total */}
+                            <div
+                              style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: 13,
+                                color: 'var(--sub)',
+                                textAlign: 'center',
+                              }}
+                            >
+                              Total: {totalStr}
+                            </div>
+
+                            {/* Your share pill */}
+                            <div style={{ textAlign: 'center' }}>
                               <span
                                 style={{
                                   fontFamily: FONT_FAMILY,
-                                  fontSize: 13,
+                                  fontSize: 14,
                                   fontWeight: 500,
-                                  color: 'var(--success, #4ade80)',
-                                  opacity: 0.9,
+                                  color: 'var(--text)',
+                                  background: 'rgba(129, 140, 248, 0.08)',
+                                  border: '1px solid rgba(129, 140, 248, 0.2)',
+                                  borderRadius: borderRadius.full,
+                                  padding: '6px 14px',
+                                  display: 'inline-block',
                                 }}
                                 aria-live="polite"
                               >
-                                {friendName} owes you {owedStr} 💸
+                                Your share: {shareStr}
                               </span>
+                            </div>
+
+                            {/* Per-friend breakdown */}
+                            {perFriendBreakdown.length > 0 && (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 4,
+                                  alignItems: 'center',
+                                }}
+                              >
+                                {perFriendBreakdown.map(({ name, owes }) => {
+                                  const owesStr = owes % 1 === 0 ? `$${owes}` : `$${owes.toFixed(2)}`
+                                  return (
+                                    <span
+                                      key={name}
+                                      style={{
+                                        fontFamily: FONT_FAMILY,
+                                        fontSize: 13,
+                                        fontWeight: 500,
+                                        color: 'var(--success, #4ade80)',
+                                        opacity: 0.9,
+                                      }}
+                                      aria-live="polite"
+                                    >
+                                      {name} owes you {owesStr} 💸
+                                    </span>
+                                  )
+                                })}
+                              </div>
                             )}
                           </div>
                         )

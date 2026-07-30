@@ -6,6 +6,7 @@ import type { Transaction, TransactionCategory } from '@/types'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { springs, timings } from '@/lib/animations'
 import { computeDailyTotal } from '@/lib/transactionUtils'
+import { getTagsForTransaction } from '@/lib/tagUtils'
 
 // ── Swipeable row wrapper ────────────────────────────────────────
 const SWIPE_THRESHOLD  = 56   // px to trigger reveal
@@ -117,7 +118,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat }: Tr
   // Normalize search: strip leading $ so "$45" finds a $45 transaction
   const searchNorm = search.replace(/^\$/, '').trim().toLowerCase()
 
-  // Filter chain: type first, then category, then search (note, category, or amount)
+  // Filter chain: type first, then category, then search (note, category, tags, or amount)
   const filtered = transactions
     .filter(t => !typeFilter || t.type === typeFilter)
     .filter(t => !activeFilter || t.category === activeFilter)
@@ -125,6 +126,9 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat }: Tr
       if (!searchNorm) return true
       if (t.note?.toLowerCase().includes(searchNorm)) return true
       if (t.category.toLowerCase().includes(searchNorm)) return true
+      // Tag matching
+      const txTags = t.tags ?? getTagsForTransaction(t.id)
+      if (txTags?.some(tag => tag.includes(searchNorm))) return true
       // Amount matching: "45", "45.00", "45.5" should all find a $45.50 charge
       if (t.amount.toFixed(2).includes(searchNorm)) return true
       if (String(Math.round(t.amount)).includes(searchNorm)) return true
@@ -450,6 +454,25 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat }: Tr
                             Logged late
                           </span>
                         )}
+                        {/* Tag pills */}
+                        {(tx.tags ?? getTagsForTransaction(tx.id))?.map((tag) => (
+                          <span
+                            key={tag}
+                            style={{
+                              fontSize: '10px',
+                              fontFamily: 'Inter, sans-serif',
+                              fontWeight: 500,
+                              color: 'rgba(129, 140, 248, 0.85)',
+                              background: 'rgba(129, 140, 248, 0.08)',
+                              border: '1px solid rgba(129, 140, 248, 0.2)',
+                              padding: '1px 6px',
+                              borderRadius: 99,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            #{tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
