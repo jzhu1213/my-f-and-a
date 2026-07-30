@@ -44,6 +44,10 @@ const RecurringBillsScreen = dynamic(
   () => import('@/components/simplified/RecurringBillsScreen').then(m => ({ default: m.RecurringBillsScreen })),
   { ssr: false }
 )
+const CancelNegotiateHelper = dynamic(
+  () => import('@/components/simplified/CancelNegotiateHelper').then(m => ({ default: m.CancelNegotiateHelper })),
+  { ssr: false }
+)
 const ReimbursementLedger = dynamic(
   () => import('@/components/simplified/ReimbursementLedger').then(m => ({ default: m.ReimbursementLedger })),
   { ssr: false }
@@ -76,12 +80,20 @@ const FundingSourcesScreen = dynamic(
   () => import('@/components/simplified/FundingSourcesScreen').then(m => ({ default: m.FundingSourcesScreen })),
   { ssr: false }
 )
+const LinkedAccountsScreen = dynamic(
+  () => import('@/components/simplified/LinkedAccountsScreen').then(m => ({ default: m.LinkedAccountsScreen })),
+  { ssr: false }
+)
 const BackfillSheet = dynamic(
   () => import('@/components/simplified/BackfillSheet').then(m => ({ default: m.BackfillSheet })),
   { ssr: false }
 )
 const BulkRepeatSheet = dynamic(
   () => import('@/components/simplified/BulkRepeatSheet').then(m => ({ default: m.BulkRepeatSheet })),
+  { ssr: false }
+)
+const TrajectoryScreen = dynamic(
+  () => import('@/components/simplified/TrajectoryScreen').then(m => ({ default: m.TrajectoryScreen })),
   { ssr: false }
 )
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
@@ -116,6 +128,8 @@ export default function FolioApp() {
   const [showGoals, setShowGoals] = useState(false)
   const [showSinkingFunds, setShowSinkingFunds] = useState(false)
   const [showSubscriptionAudit, setShowSubscriptionAudit] = useState(false)
+  const [showCancelNegotiate, setShowCancelNegotiate] = useState(false)
+  const [cancelNegotiateTarget, setCancelNegotiateTarget] = useState<DetectedSubscription | null>(null)
   const [showRecurringBills, setShowRecurringBills] = useState(false)
   const [showDebt, setShowDebt] = useState(false)
   const [showReimbursements, setShowReimbursements] = useState(false)
@@ -124,6 +138,8 @@ export default function FolioApp() {
   const [showCreditPayoff, setShowCreditPayoff] = useState(false)
   const [profileSheetOpen, setProfileSheetOpen] = useState(false)
   const [showFundingSources, setShowFundingSources] = useState(false)
+  const [showLinkedAccounts, setShowLinkedAccounts] = useState(false)
+  const [showTrajectory, setShowTrajectory] = useState(false)
 
   // ── Tutorial Setup State ───────────────────────────────────────
   const [tutorialSetupState, setTutorialSetupState] = useState<TutorialSetupState>({
@@ -927,6 +943,25 @@ export default function FolioApp() {
           subscriptions={detectedSubscriptions}
           onDismiss={handleDismissSubscription}
           onClose={() => setShowSubscriptionAudit(false)}
+          onOpenCancelNegotiate={(sub) => {
+            setCancelNegotiateTarget(sub)
+            setShowCancelNegotiate(true)
+          }}
+        />
+      </div>
+    )
+  }
+
+  // ── Cancel / Negotiate Helper (full-screen overlay, DIY) ───────
+  if (showCancelNegotiate) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <CancelNegotiateHelper
+          subscription={cancelNegotiateTarget}
+          onClose={() => {
+            setShowCancelNegotiate(false)
+            setCancelNegotiateTarget(null)
+          }}
         />
       </div>
     )
@@ -957,6 +992,32 @@ export default function FolioApp() {
           onEdit={updateFundingSource}
           onRemove={deleteFundingSource}
           onBack={() => setShowFundingSources(false)}
+        />
+      </div>
+    )
+  }
+
+  // ── Linked Accounts (optional bank/card linking — full-screen overlay) ──
+  if (showLinkedAccounts) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <LinkedAccountsScreen
+          onBack={() => setShowLinkedAccounts(false)}
+        />
+      </div>
+    )
+  }
+
+  // ── Financial Trajectory (full-screen overlay, task 111.1) ─────
+  if (flags.financialTrajectory && showTrajectory) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <TrajectoryScreen
+          transactions={transactions}
+          goals={goals}
+          debts={debts}
+          savingsRate={savingsRate}
+          onBack={() => setShowTrajectory(false)}
         />
       </div>
     )
@@ -1090,6 +1151,7 @@ export default function FolioApp() {
                 onRefresh={refresh}
                 celebrationEvent={celebrationEvent}
                 onCelebrationDismiss={() => setCelebrationEvent(null)}
+                detectedSubscriptions={detectedSubscriptions}
                 onOpenBudgetSettings={() => setShowBudgetSettings(true)}
                 onOpenSplitExpense={handleOpenSplitExpense}
                 outstandingSplits={outstandingSplits}
@@ -1118,12 +1180,17 @@ export default function FolioApp() {
                 onOpenCompoundGrowth={() => setShowCompoundGrowth(true)}
                 onOpenCreditPayoff={() => setShowCreditPayoff(true)}
                 onOpenSubscriptions={() => setShowSubscriptionAudit(true)}
+                onOpenCancelNegotiate={() => {
+                  setCancelNegotiateTarget(null)
+                  setShowCancelNegotiate(true)
+                }}
                 onOpenSinkingFunds={() => setShowSinkingFunds(true)}
                 onOpenLearn={() => setShowLearn(true)}
                 onOpenSavingsProjections={undefined}
                 onOpenDebt={handleOpenDebt}
                 onOpenRecurringBills={() => setShowRecurringBills(true)}
                 onOpenReimbursements={() => setShowReimbursements(true)}
+                onOpenTrajectory={() => setShowTrajectory(true)}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}
@@ -1152,6 +1219,7 @@ export default function FolioApp() {
                 onOpenTools={() => setActiveNav('tools')}
                 onOpenProfile={handleOpenProfile}
                 onOpenFundingSources={() => setShowFundingSources(true)}
+                onOpenLinkedAccounts={() => setShowLinkedAccounts(true)}
                 onOpenBackfill={() => setBackfillSheetOpen(true)}
                 onSignOut={handleSignOut}
                 onResetOnboarding={handleResetOnboarding}

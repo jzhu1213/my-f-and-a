@@ -24,6 +24,18 @@ export interface FeatureFlags {
   creditPayoffCalculator: boolean
   lessons: boolean
   goals: boolean
+  /**
+   * Financial Trajectory view — reframes "net worth" as directional progress.
+   * Shows spending trends, savings rate direction, and goal velocity without
+   * ever displaying a raw dollar net-worth figure.
+   */
+  financialTrajectory: boolean
+  /**
+   * Optional bank/card account linking (e.g. Plaid). Disabled by default —
+   * Folio's positioning is "free core + no-linking-required", so this is a
+   * strictly opt-in power feature living behind Settings → Tools.
+   */
+  accountLinking: boolean
 }
 
 // ============================================================================
@@ -41,6 +53,9 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   creditPayoffCalculator: true,
   lessons: true,
   goals: true,
+  financialTrajectory: true,
+  // Account linking is OFF by default — opt-in only (task 107.1).
+  accountLinking: false,
 }
 
 // ============================================================================

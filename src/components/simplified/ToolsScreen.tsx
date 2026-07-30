@@ -28,12 +28,14 @@ export interface ToolsScreenProps {
   onOpenCompoundGrowth?: () => void
   onOpenCreditPayoff?: () => void
   onOpenSubscriptions?: () => void
+  onOpenCancelNegotiate?: () => void
   onOpenSinkingFunds?: () => void
   onOpenLearn?: () => void
   onOpenSavingsProjections?: () => void
   onOpenDebt?: () => void
   onOpenRecurringBills?: () => void
   onOpenReimbursements?: () => void
+  onOpenTrajectory?: () => void
   /** Display-only: total set-aside amount this month */
   totalSetAside?: number
   /** Display-only: savings rate percentage */
@@ -75,12 +77,14 @@ export function ToolsScreen({
   onOpenCompoundGrowth,
   onOpenCreditPayoff,
   onOpenSubscriptions,
+  onOpenCancelNegotiate,
   onOpenSinkingFunds,
   onOpenLearn,
   onOpenSavingsProjections,
   onOpenDebt,
   onOpenRecurringBills,
   onOpenReimbursements,
+  onOpenTrajectory,
   totalSetAside,
   savingsRate,
   fundingSources,
@@ -92,11 +96,13 @@ export function ToolsScreen({
 
   // Map tool IDs to feature flag keys
   const toolFlagMap: Record<string, keyof FeatureFlags> = {
+    "trajectory": "financialTrajectory",
     "debt": "debtTracking",
     "recurring-bills": "recurringBills",
     "reimbursements": "reimbursements",
     "sinking-funds": "sinkingFunds",
     "subscriptions": "subscriptionAudit",
+    "cancel-negotiate": "subscriptionAudit",
     "savings-projections": "savingsProjections",
     "compound-growth": "compoundGrowthCalculator",
     "credit-payoff": "creditPayoffCalculator",
@@ -115,6 +121,13 @@ export function ToolsScreen({
   )
 
   const allTools: ToolItem[] = [
+    {
+      id: "trajectory",
+      emoji: "📊",
+      title: "Financial Trajectory",
+      description: "See how your money habits are trending — no intimidating numbers.",
+      onOpen: onOpenTrajectory,
+    },
     {
       id: "debt",
       emoji: "💳",
@@ -149,6 +162,13 @@ export function ToolsScreen({
       title: "Subscription Audit",
       description: "Review detected recurring charges and decide what's worth keeping.",
       onOpen: onOpenSubscriptions,
+    },
+    {
+      id: "cancel-negotiate",
+      emoji: "💬",
+      title: "Cancel or Negotiate Helper",
+      description: "DIY steps and a friendly script to lower a bill or cancel a subscription yourself.",
+      onOpen: onOpenCancelNegotiate,
     },
     {
       id: "savings-projections",

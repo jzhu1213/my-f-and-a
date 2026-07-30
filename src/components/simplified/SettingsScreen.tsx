@@ -9,7 +9,7 @@ import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal } from "@/types"
 import type { IncomeSmoothing } from "@/types/folio"
 import type { SpendingMode } from "@/lib/spendingModes"
-import { SPENDING_MODE_LABELS, OVER_LIMIT_RESPONSE_LABELS } from "@/lib/spendingModes"
+import { SPENDING_MODE_LABELS, OVER_LIMIT_RESPONSE_LABELS, limitVisibilityNote } from "@/lib/spendingModes"
 import type { OverLimitResponse } from "@/lib/spendingModes"
 import type { HeroMeaning } from "@/types/folio"
 import { computeBudgetSummary } from "@/lib/budgetSummary"
@@ -57,6 +57,7 @@ export interface SettingsScreenProps {
   onOpenTools?: () => void
   onOpenProfile: () => void
   onOpenFundingSources?: () => void
+  onOpenLinkedAccounts?: () => void
   onOpenBackfill?: () => void
   onSignOut: () => void
   onResetOnboarding?: () => void
@@ -205,6 +206,7 @@ export function SettingsScreen({
   onOpenTools,
   onOpenProfile,
   onOpenFundingSources,
+  onOpenLinkedAccounts,
   onOpenBackfill,
   onSignOut,
   onResetOnboarding,
@@ -220,6 +222,8 @@ export function SettingsScreen({
 
   // Resolve active spending mode — default to 'guided' when not provided
   const spendingMode: SpendingMode = spendingModeProp ?? 'guided'
+  // Tracker mode pauses (but never deletes) limit visibility (Task 106.1)
+  const isTrackerMode = spendingMode === 'tracker'
 
   // Resolve active hero meaning — default to 'allowance' when not provided
   const heroMeaning: HeroMeaning = heroMeaningProp ?? 'allowance'
@@ -294,6 +298,18 @@ export function SettingsScreen({
               )
             })}
           </div>
+
+          {/* One-line explanation of what switching does to limits (Task 106.1) */}
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--muted)",
+              lineHeight: 1.5,
+              marginTop: 12,
+            }}
+          >
+            {limitVisibilityNote(spendingMode, activeLimits.length > 0)}
+          </p>
         </GlassCard>
       )}
 
@@ -490,49 +506,66 @@ export function SettingsScreen({
       )}
 
       {/* ── Budget Limits ──────────────────────────────────────────────────── */}
+      {/*
+        Task 106.1 — In tracker mode, limits are a paused view: we hide the
+        active limit values (summary + per-category list) but never delete them.
+        Switching back to Guided/Structured re-surfaces them automatically
+        because the data lives in `budgets`, not in the mode preference.
+      */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
         <p style={{ ...sectionHeadingStrong }}>
           Budget Limits
         </p>
 
-        {/* Summary line */}
-        <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
-          <div>
-            <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>
-              ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-              <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>/mo</span>
-            </p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <p style={{ fontSize: 14, color: "var(--sub)" }}>
-              ≈ ${dailyBudget.toFixed(0)}/day
-            </p>
-          </div>
-        </div>
-
-        {/* Category list */}
-        {activeLimits.length > 0 && (
-          <div style={{ marginBottom: 14 }}>
-            {activeLimits.map(cat => (
-              <div
-                key={cat.category}
-                style={listRow}
-              >
-                <span>
-                  {cat.emoji} {cat.label}
-                </span>
-                <span style={{ color: "var(--sub)", fontVariantNumeric: "tabular-nums" }}>
-                  ${cat.limit}/mo
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeLimits.length === 0 && (
-          <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-            No limits yet — Folio works fine without them, or add some anytime.
+        {isTrackerMode ? (
+          /* Tracker mode: hide values, reassure that they're preserved */
+          <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14, marginTop: 6, lineHeight: 1.5 }}>
+            {activeLimits.length > 0
+              ? `You're in tracking mode, so limits are paused. Your ${activeLimits.length} saved ${activeLimits.length === 1 ? "limit is" : "limits are"} safe — switch to Guided or Structured to bring them back.`
+              : "You're in tracking mode — Folio just reflects what you spend. Add limits anytime by switching to Guided or Structured."}
           </p>
+        ) : (
+          <>
+            {/* Summary line */}
+            <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
+              <div>
+                <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>
+                  ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                  <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>/mo</span>
+                </p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <p style={{ fontSize: 14, color: "var(--sub)" }}>
+                  ≈ ${dailyBudget.toFixed(0)}/day
+                </p>
+              </div>
+            </div>
+
+            {/* Category list */}
+            {activeLimits.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                {activeLimits.map(cat => (
+                  <div
+                    key={cat.category}
+                    style={listRow}
+                  >
+                    <span>
+                      {cat.emoji} {cat.label}
+                    </span>
+                    <span style={{ color: "var(--sub)", fontVariantNumeric: "tabular-nums" }}>
+                      ${cat.limit}/mo
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeLimits.length === 0 && (
+              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
+                No limits yet — Folio works fine without them, or add some anytime.
+              </p>
+            )}
+          </>
         )}
 
         <motion.button
@@ -540,9 +573,9 @@ export function SettingsScreen({
           whileTap={{ scale: 0.97 }}
           transition={springs.snappy}
           style={linkButton}
-          aria-label="Manage budget limits"
+          aria-label={isTrackerMode ? "View saved budget limits" : "Manage budget limits"}
         >
-          Manage limits →
+          {isTrackerMode ? "View saved limits →" : "Manage limits →"}
         </motion.button>
       </GlassCard>
 
@@ -607,6 +640,18 @@ export function SettingsScreen({
               aria-label="Manage payment methods"
             >
               💳 Payment Methods →
+            </motion.button>
+          )}
+
+          {onOpenLinkedAccounts && (
+            <motion.button
+              onClick={onOpenLinkedAccounts}
+              whileTap={{ scale: 0.97 }}
+              transition={springs.snappy}
+              style={{ ...linkButton, marginBottom: 8 }}
+              aria-label="Manage linked accounts (optional)"
+            >
+              🔗 Linked Accounts (optional) →
             </motion.button>
           )}
 
@@ -909,6 +954,7 @@ export function SettingsScreen({
             { key: "creditPayoffCalculator" as keyof FeatureFlags, emoji: "💰", label: "Credit Payoff" },
             { key: "lessons" as keyof FeatureFlags, emoji: "📚", label: "Learn" },
             { key: "goals" as keyof FeatureFlags, emoji: "🎯", label: "Goals" },
+            { key: "financialTrajectory" as keyof FeatureFlags, emoji: "📊", label: "Financial Trajectory" },
           ] as const
         ).map((item, idx, arr) => (
           <div
