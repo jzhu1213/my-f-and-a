@@ -164,6 +164,9 @@ function dbProfileToApp(db: DbProfile): UserProfile {
 }
 
 function dbBudgetToApp(db: DbBudget): Budget {
+  // Gracefully read optional columns that may not exist in the DB schema yet.
+  // Cast through unknown to avoid TS errors for fields not in DbBudget interface.
+  const row = db as unknown as Record<string, unknown>
   return {
     id: db.id,
     userId: db.user_id,
@@ -171,6 +174,10 @@ function dbBudgetToApp(db: DbBudget): Budget {
     monthlyLimit: db.monthly_limit,
     spent: db.spent,
     month: db.month,
+    ...(row.period != null ? { period: row.period as 'monthly' | 'weekly' | 'payday_aligned' } : {}),
+    ...(row.per_transaction_alert != null && typeof row.per_transaction_alert === 'number'
+      ? { perTransactionAlert: row.per_transaction_alert }
+      : {}),
   }
 }
 
@@ -534,7 +541,11 @@ export async function upsertBudget(
   userId: string,
   category: TransactionCategory,
   monthlyLimit: number,
-  spent?: number
+  spent?: number,
+  options?: {
+    period?: 'monthly' | 'weekly' | 'payday_aligned'
+    perTransactionAlert?: number
+  }
 ): Promise<Budget | null> {
   const currentMonth = new Date().toISOString().slice(0, 7)
   
@@ -553,16 +564,26 @@ export async function upsertBudget(
       currentSpent = existing.spent
     }
   }
+
+  // Build the upsert payload — only include optional columns when provided
+  // so we don't overwrite existing DB values with undefined/null unexpectedly.
+  const payload: Record<string, unknown> = {
+    user_id: userId,
+    category,
+    monthly_limit: monthlyLimit,
+    spent: currentSpent,
+    month: currentMonth,
+  }
+  if (options?.period !== undefined) {
+    payload.period = options.period
+  }
+  if (options?.perTransactionAlert !== undefined) {
+    payload.per_transaction_alert = options.perTransactionAlert > 0 ? options.perTransactionAlert : null
+  }
   
   const { data, error } = await supabase
     .from('budgets')
-    .upsert({
-      user_id: userId,
-      category,
-      monthly_limit: monthlyLimit,
-      spent: currentSpent,
-      month: currentMonth,
-    }, {
+    .upsert(payload, {
       onConflict: 'user_id,category,month'
     })
     .select()

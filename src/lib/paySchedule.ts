@@ -332,8 +332,97 @@ export function computeSafeToSpendUntilPayday(
 }
 
 // ============================================================================
-// Low-balance / overdraft projection (Theme F, task 51.3)
+// Payday-aligned budget period helper (Task 103.1)
 // ============================================================================
+
+/**
+ * Average number of days in a calendar month (365.25 / 12).
+ * Used to convert between monthly and pay-cycle pools without calendar look-ups.
+ */
+export const AVG_DAYS_PER_MONTH = 30.44
+
+/**
+ * Computes the daily budget for a payday-aligned budget period.
+ *
+ * The budget period runs from one payday to the next (one pay cycle). The monthly
+ * pool is converted to a pay-period pool by scaling with the ratio of pay-cycle
+ * length to an average calendar month, then divided by the total days in that cycle.
+ *
+ *   periodPool  = monthlyPool × (daysInPayCycle / AVG_DAYS_PER_MONTH)
+ *   dailyBudget = periodPool / daysInPayCycle
+ *               = monthlyPool / AVG_DAYS_PER_MONTH   (simplified)
+ *
+ * The simplification shows that for a PURE payday-aligned budget, the daily
+ * budget equals monthlyPool / 30.44 regardless of cycle length. The cycle
+ * length still matters when combined with rollover (how many days have elapsed
+ * since the last payday determines rollover scope), but the per-day rate is
+ * consistent across months.
+ *
+ * Pure: no side effects, deterministic given the same inputs.
+ *
+ * **Validates: Requirements new (Task 103.1)**
+ *
+ * @param monthlyPool      The monthly discretionary pool (income minus fixed expenses).
+ * @param paySchedule      The user's pay schedule.
+ * @param now              The reference date (defaults to today).
+ * @param incomeHistory    Recent income transactions (for irregular cadence estimation).
+ * @returns The daily budget for the current pay period (>= 0).
+ */
+export function computePaydayPeriodDailyBudget(
+  monthlyPool: number,
+  paySchedule: PaySchedule,
+  now: Date = new Date(),
+  incomeHistory: Transaction[] = []
+): number {
+  if (!Number.isFinite(monthlyPool) || monthlyPool <= 0) {
+    return 0
+  }
+
+  const nextPayday = getNextPayday(paySchedule, now, incomeHistory)
+
+  // Walk back one pay cycle to find the last payday
+  const interval = fixedIntervalDays(paySchedule.cadence, incomeHistory)
+  let lastPayday: Date
+
+  if (interval !== null) {
+    // Fixed-interval cadences: step back exactly one interval
+    lastPayday = new Date(nextPayday.getTime() - interval * DAY_MS)
+  } else {
+    // Calendar cadences (monthly / semimonthly): use the previous calendar payday
+    lastPayday = getNextPayday(paySchedule, new Date(nextPayday.getTime() - DAY_MS), incomeHistory)
+  }
+
+  const daysInPayCycle = Math.max(1, dayDiff(lastPayday, nextPayday))
+
+  // periodPool / daysInPayCycle = monthlyPool * (daysInPayCycle / AVG_DAYS_PER_MONTH) / daysInPayCycle
+  //                             = monthlyPool / AVG_DAYS_PER_MONTH
+  // We keep the full formula for clarity, even though it simplifies.
+  const periodPool = monthlyPool * (daysInPayCycle / AVG_DAYS_PER_MONTH)
+  return Math.max(0, periodPool / daysInPayCycle)
+}
+
+/**
+ * Returns the last payday on or before `now` for the given pay schedule.
+ * This is the start of the current pay period.
+ *
+ * Pure: no side effects.
+ *
+ * **Validates: Requirements new (Task 103.1)**
+ */
+export function getLastPayday(
+  schedule: PaySchedule,
+  now: Date = new Date(),
+  incomeHistory: Transaction[] = []
+): Date {
+  const nextPayday = getNextPayday(schedule, now, incomeHistory)
+  const interval = fixedIntervalDays(schedule.cadence, incomeHistory)
+
+  if (interval !== null) {
+    return new Date(nextPayday.getTime() - interval * DAY_MS)
+  }
+  // For calendar cadences, step back one day to get a date in the previous cycle
+  return getNextPayday(schedule, new Date(nextPayday.getTime() - DAY_MS), incomeHistory)
+}
 
 /**
  * Sensible default minimum-balance buffer (in dollars). A warm little cushion

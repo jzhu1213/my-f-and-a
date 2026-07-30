@@ -40,6 +40,66 @@ function saveLimitType(category: TransactionCategory, type: "soft" | "hard"): vo
 }
 
 // ============================================================================
+// Period persistence helpers (localStorage, keyed per category)
+// ============================================================================
+
+const BUDGET_PERIODS_STORAGE_KEY = "folio-budget-periods"
+
+function loadBudgetPeriods(): Record<string, "monthly" | "weekly" | "payday_aligned"> {
+  if (typeof window === "undefined") return {}
+  try {
+    const raw = localStorage.getItem(BUDGET_PERIODS_STORAGE_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw) as Record<string, "monthly" | "weekly" | "payday_aligned">
+  } catch {
+    return {}
+  }
+}
+
+function saveBudgetPeriod(category: TransactionCategory, period: "monthly" | "weekly" | "payday_aligned"): void {
+  if (typeof window === "undefined") return
+  try {
+    const existing = loadBudgetPeriods()
+    existing[category] = period
+    localStorage.setItem(BUDGET_PERIODS_STORAGE_KEY, JSON.stringify(existing))
+  } catch {
+    // localStorage full or unavailable — fail silently
+  }
+}
+
+// ============================================================================
+// Per-transaction alert persistence helpers (localStorage, keyed per category)
+// ============================================================================
+
+const PER_TX_ALERTS_STORAGE_KEY = "folio-per-tx-alerts"
+
+function loadPerTxAlerts(): Record<string, number> {
+  if (typeof window === "undefined") return {}
+  try {
+    const raw = localStorage.getItem(PER_TX_ALERTS_STORAGE_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw) as Record<string, number>
+  } catch {
+    return {}
+  }
+}
+
+function savePerTxAlert(category: TransactionCategory, threshold: number): void {
+  if (typeof window === "undefined") return
+  try {
+    const existing = loadPerTxAlerts()
+    if (threshold > 0) {
+      existing[category] = threshold
+    } else {
+      delete existing[category]
+    }
+    localStorage.setItem(PER_TX_ALERTS_STORAGE_KEY, JSON.stringify(existing))
+  } catch {
+    // localStorage full or unavailable — fail silently
+  }
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -54,8 +114,26 @@ export interface BudgetSettingsProps {
    * localStorage but the parent is not notified.
    */
   onUpdateLimitType?: (category: TransactionCategory, limitType: "soft" | "hard") => void
+  /**
+   * Called when user changes the period for a category.
+   * Optional — if not provided, period changes are still persisted to
+   * localStorage but the parent is not notified.
+   */
+  onUpdatePeriod?: (category: TransactionCategory, period: "monthly" | "weekly" | "payday_aligned") => void
+  /**
+   * Called when user changes the per-transaction alert threshold for a category.
+   * Optional — if not provided, alert changes are still persisted to
+   * localStorage but the parent is not notified.
+   */
+  onUpdatePerTransactionAlert?: (category: TransactionCategory, threshold: number) => void
   /** Optional back navigation */
   onBack?: () => void
+  /**
+   * Optional pay schedule. When provided, a third period option ("Payday cycle")
+   * is shown alongside Monthly and Weekly so the user can align a budget to their
+   * pay cycle instead of calendar-month boundaries.
+   */
+  paySchedule?: { cadence: string } | null
 }
 
 // ============================================================================
@@ -87,10 +165,12 @@ const DEFAULT_LIMITS: Record<string, number> = {
  *
  * Validates: Requirements 12.1, 12.2, 1.1
  */
-export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onBack }: BudgetSettingsProps) {
+export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onUpdatePeriod, onUpdatePerTransactionAlert, onBack, paySchedule }: BudgetSettingsProps) {
   const [expandedCategory, setExpandedCategory] = useState<TransactionCategory | null>(null)
   const [localLimits, setLocalLimits] = useState<Record<string, number>>({})
   const [limitTypes, setLimitTypes] = useState<Record<string, "soft" | "hard">>({})
+  const [budgetPeriods, setBudgetPeriods] = useState<Record<string, "monthly" | "weekly" | "payday_aligned">>({})
+  const [perTxAlerts, setPerTxAlerts] = useState<Record<string, number>>({})
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [rolloverEnabled, setRolloverEnabled] = useState(false)
   const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
@@ -103,6 +183,16 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onB
   // Hydrate limit types from localStorage
   useEffect(() => {
     setLimitTypes(loadLimitTypes())
+  }, [])
+
+  // Hydrate budget periods from localStorage
+  useEffect(() => {
+    setBudgetPeriods(loadBudgetPeriods())
+  }, [])
+
+  // Hydrate per-tx alerts from localStorage
+  useEffect(() => {
+    setPerTxAlerts(loadPerTxAlerts())
   }, [])
 
   // ── Compute total budget and daily allowance ──────────────────────────────
@@ -137,6 +227,44 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onB
       onUpdateLimitType?.(category, type)
     },
     [onUpdateLimitType]
+  )
+
+  // ── Get the period for a category ─────────────────────────────────────────
+  const getBudgetPeriod = useCallback(
+    (category: TransactionCategory): "monthly" | "weekly" | "payday_aligned" => {
+      return budgetPeriods[category] ?? budgets.find(b => b.category === category)?.period ?? "monthly"
+    },
+    [budgets, budgetPeriods]
+  )
+
+  // ── Handle period toggle ──────────────────────────────────────────────────
+  const handlePeriodChange = useCallback(
+    (category: TransactionCategory, period: "monthly" | "weekly" | "payday_aligned") => {
+      setBudgetPeriods(prev => ({ ...prev, [category]: period }))
+      saveBudgetPeriod(category, period)
+      onUpdatePeriod?.(category, period)
+    },
+    [onUpdatePeriod]
+  )
+
+  // ── Get the per-tx alert for a category ───────────────────────────────────
+  const getPerTxAlert = useCallback(
+    (category: TransactionCategory): number => {
+      if (perTxAlerts[category] !== undefined) return perTxAlerts[category]
+      return budgets.find(b => b.category === category)?.perTransactionAlert ?? 0
+    },
+    [budgets, perTxAlerts]
+  )
+
+  // ── Handle per-tx alert change ────────────────────────────────────────────
+  const handlePerTxAlertChange = useCallback(
+    (category: TransactionCategory, threshold: number) => {
+      const clamped = Math.max(0, threshold)
+      setPerTxAlerts(prev => ({ ...prev, [category]: clamped }))
+      savePerTxAlert(category, clamped)
+      onUpdatePerTransactionAlert?.(category, clamped)
+    },
+    [onUpdatePerTransactionAlert]
   )
 
   // ── Handle slider change (local state update) ─────────────────────────────
@@ -327,8 +455,16 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onB
           const currentLimitType = getLimitType(cat.category)
           const isFirm = currentLimitType === "hard"
           const isExpanded = expandedCategory === cat.category
-          const weeklyEquiv = limit / 4.33
-          const dailyEquiv = computeDailyEquivalent(limit)
+          const currentPeriod = getBudgetPeriod(cat.category)
+          const isWeekly = currentPeriod === "weekly"
+          const isPaydayAligned = currentPeriod === "payday_aligned"
+          // When weekly: the limit IS the weekly amount; monthly equiv = limit × 4.33
+          // When monthly or payday_aligned: weekly equiv = limit / 4.33
+          const weeklyEquiv = isWeekly ? limit : limit / 4.33
+          const dailyEquiv = isWeekly
+            ? computeDailyEquivalent(limit * 4.33)
+            : computeDailyEquivalent(limit)
+          const currentPerTxAlert = getPerTxAlert(cat.category)
 
           return (
             <div key={cat.category}>
@@ -465,7 +601,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onB
                           >
                             ${limit}
                             <span style={{ fontSize: 14, fontWeight: 400, color: "var(--sub)", marginLeft: 4 }}>
-                              /mo
+                              {isWeekly ? "/week" : "/mo"}
                             </span>
                           </div>
                         </div>
@@ -530,7 +666,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onB
                         }}
                       >
                         <span>$0</span>
-                        <span>$2,000</span>
+                        <span>$2,000{isWeekly ? "/week" : "/month"}</span>
                       </div>
 
                       {/* Weekly and daily equivalents */}
@@ -544,8 +680,22 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onB
                           fontFamily: FONT_FAMILY,
                         }}
                       >
-                        <span>≈ ${weeklyEquiv.toFixed(0)}/week</span>
-                        <span>≈ ${dailyEquiv.toFixed(0)}/day</span>
+                        {isWeekly ? (
+                          <>
+                            <span>= ${limit}/week</span>
+                            <span>≈ ${dailyEquiv.toFixed(0)}/day</span>
+                          </>
+                        ) : isPaydayAligned ? (
+                          <>
+                            <span>≈ ${weeklyEquiv.toFixed(0)}/week equiv</span>
+                            <span>≈ ${dailyEquiv.toFixed(0)}/day</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>≈ ${weeklyEquiv.toFixed(0)}/week</span>
+                            <span>≈ ${dailyEquiv.toFixed(0)}/day</span>
+                          </>
+                        )}
                       </div>
 
                       {/* Remove limit button */}
@@ -632,6 +782,191 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onB
                             {isFirm
                               ? "Heads-up at 70% — you'll know before you're close."
                               : "Gentle nudge when you're near the limit."}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* ── Period toggle: Monthly / Weekly (Task 102.1) ────── */}
+                      {limit > 0 && (
+                        <div style={{ marginTop: 18 }}>
+                          <p
+                            style={{
+                              fontSize: 12,
+                              color: "var(--muted)",
+                              fontFamily: FONT_FAMILY,
+                              marginBottom: 8,
+                              letterSpacing: "0.03em",
+                            }}
+                          >
+                            Period
+                          </p>
+                          <div
+                            role="group"
+                            aria-label={`Budget period for ${cat.label}`}
+                            style={{ ...segmentedControl, maxWidth: paySchedule ? 330 : 220 }}
+                          >
+                            <motion.button
+                              onClick={() => handlePeriodChange(cat.category, "monthly")}
+                              whileTap={{ scale: 0.96 }}
+                              transition={springs.bouncy}
+                              role="radio"
+                              aria-checked={!isWeekly && !isPaydayAligned}
+                              style={{
+                                ...segmentedButtonBase,
+                                background: !isWeekly && !isPaydayAligned ? "rgba(255,255,255,0.08)" : "transparent",
+                                color: !isWeekly && !isPaydayAligned ? "var(--text)" : "var(--muted)",
+                                boxShadow: !isWeekly && !isPaydayAligned ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                              }}
+                            >
+                              Monthly
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handlePeriodChange(cat.category, "weekly")}
+                              whileTap={{ scale: 0.96 }}
+                              transition={springs.bouncy}
+                              role="radio"
+                              aria-checked={isWeekly}
+                              style={{
+                                ...segmentedButtonBase,
+                                background: isWeekly ? "rgba(129, 140, 248, 0.15)" : "transparent",
+                                color: isWeekly ? "var(--accent)" : "var(--muted)",
+                                boxShadow: isWeekly ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                              }}
+                            >
+                              Weekly
+                            </motion.button>
+                            {!!paySchedule && (
+                              <motion.button
+                                onClick={() => handlePeriodChange(cat.category, "payday_aligned")}
+                                whileTap={{ scale: 0.96 }}
+                                transition={springs.bouncy}
+                                role="radio"
+                                aria-checked={isPaydayAligned}
+                                style={{
+                                  ...segmentedButtonBase,
+                                  background: isPaydayAligned ? "rgba(52, 211, 153, 0.15)" : "transparent",
+                                  color: isPaydayAligned ? "var(--success)" : "var(--muted)",
+                                  boxShadow: isPaydayAligned ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                                }}
+                              >
+                                Payday cycle
+                              </motion.button>
+                            )}
+                          </div>
+                          <p
+                            style={{
+                              fontSize: 11,
+                              color: "var(--muted)",
+                              fontFamily: FONT_FAMILY,
+                              marginTop: 6,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {isWeekly
+                              ? `$${limit}/week — tracked on a 7-day rolling basis.`
+                              : isPaydayAligned
+                                ? `Resets with each paycheck — your daily budget adjusts to your pay cycle.`
+                                : `$${limit}/month — divided into weekly chunks automatically.`}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* ── Large purchase alert (Task 102.2) ───────────────── */}
+                      {limit > 0 && (
+                        <div style={{ marginTop: 18 }}>
+                          <p
+                            style={{
+                              fontSize: 12,
+                              color: "var(--muted)",
+                              fontFamily: FONT_FAMILY,
+                              marginBottom: 8,
+                              letterSpacing: "0.03em",
+                            }}
+                          >
+                            Alert me when a single expense exceeds
+                          </p>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                            }}
+                          >
+                            <motion.button
+                              onClick={() => handlePerTxAlertChange(cat.category, Math.max(0, currentPerTxAlert - 10))}
+                              whileTap={{ scale: 0.96 }}
+                              transition={springs.bouncy}
+                              disabled={currentPerTxAlert <= 0}
+                              aria-label="Decrease alert threshold by $10"
+                              style={{
+                                width: 32,
+                                height: 32,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: currentPerTxAlert > 0 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                                border: "1px solid var(--border)",
+                                borderRadius: borderRadius.sm,
+                                cursor: currentPerTxAlert > 0 ? "pointer" : "not-allowed",
+                                color: currentPerTxAlert > 0 ? "var(--text)" : "var(--muted)",
+                                fontSize: 16,
+                                fontWeight: 600,
+                                fontFamily: FONT_FAMILY,
+                              }}
+                            >
+                              −
+                            </motion.button>
+
+                            <div
+                              style={{
+                                flex: 1,
+                                textAlign: "center",
+                                fontSize: 15,
+                                fontWeight: 600,
+                                color: currentPerTxAlert > 0 ? "var(--text)" : "var(--muted)",
+                                fontFamily: FONT_FAMILY,
+                                fontVariantNumeric: "tabular-nums",
+                              }}
+                            >
+                              {currentPerTxAlert > 0 ? `$${currentPerTxAlert}` : "Off"}
+                            </div>
+
+                            <motion.button
+                              onClick={() => handlePerTxAlertChange(cat.category, currentPerTxAlert + 10)}
+                              whileTap={{ scale: 0.96 }}
+                              transition={springs.bouncy}
+                              aria-label="Increase alert threshold by $10"
+                              style={{
+                                width: 32,
+                                height: 32,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "rgba(255,255,255,0.06)",
+                                border: "1px solid var(--border)",
+                                borderRadius: borderRadius.sm,
+                                cursor: "pointer",
+                                color: "var(--text)",
+                                fontSize: 16,
+                                fontWeight: 600,
+                                fontFamily: FONT_FAMILY,
+                              }}
+                            >
+                              +
+                            </motion.button>
+                          </div>
+                          <p
+                            style={{
+                              fontSize: 11,
+                              color: "var(--muted)",
+                              fontFamily: FONT_FAMILY,
+                              marginTop: 6,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {currentPerTxAlert > 0
+                              ? `You'll get a gentle nudge for ${cat.label} expenses over $${currentPerTxAlert}.`
+                              : "Set a threshold and we'll give you a gentle heads-up for big purchases."}
                           </p>
                         </div>
                       )}

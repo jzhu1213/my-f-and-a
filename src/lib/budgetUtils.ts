@@ -137,6 +137,54 @@ export interface CategoryBudgetRow {
   overWeekly: boolean
   nearLimit: boolean
   hasLimit: boolean
+  /** The effective weekly limit (accounts for period: 'weekly' budgets) */
+  effectiveWeeklyLimit: number
+  /** The effective monthly equivalent (accounts for period: 'weekly' budgets) */
+  effectiveMonthlyEquivalent: number
+  /** Whether this budget uses a weekly period */
+  isWeeklyPeriod: boolean
+}
+
+/**
+ * Returns the effective weekly limit for a budget, regardless of period setting.
+ * - `period === 'weekly'`: monthlyLimit IS the weekly limit
+ * - `period === 'monthly'` (default): weekly limit = monthlyLimit / 4.33
+ *
+ * Pure function — no side effects.
+ */
+export function getEffectiveWeeklyLimit(budget: Budget): number {
+  if (budget.monthlyLimit <= 0) return 0
+  return budget.period === 'weekly' ? budget.monthlyLimit : budget.monthlyLimit / 4.33
+}
+
+/**
+ * Returns the effective monthly equivalent for a budget, regardless of period setting.
+ * - `period === 'weekly'`: monthly equivalent = monthlyLimit × 4.33
+ * - `period === 'monthly'` (default): monthly equivalent = monthlyLimit
+ *
+ * Pure function — no side effects.
+ */
+export function getEffectiveMonthlyEquivalent(budget: Budget): number {
+  if (budget.monthlyLimit <= 0) return 0
+  return budget.period === 'weekly' ? budget.monthlyLimit * 4.33 : budget.monthlyLimit
+}
+
+/**
+ * Checks whether a single transaction amount exceeds the per-transaction alert
+ * threshold for the given budget. Returns a gentle nudge message when it does,
+ * or `null` when no alert is needed.
+ *
+ * Pure function — no side effects, never harsh copy.
+ */
+export function checkPerTransactionAlert(
+  amount: number,
+  budget: Budget | undefined
+): string | null {
+  if (!budget?.perTransactionAlert || budget.perTransactionAlert <= 0) return null
+  if (amount > budget.perTransactionAlert) {
+    return "That's more than your usual — just a heads up 💡"
+  }
+  return null
 }
 
 export function computeCategoryBudgets(
@@ -150,12 +198,24 @@ export function computeCategoryBudgets(
   return BUDGET_CATEGORIES.map(cat => {
     const budget       = budgets.find(b => b.category === cat.category)
     const monthlyLimit = budget?.monthlyLimit ?? 0
+    const isWeeklyPeriod = budget?.period === 'weekly'
+
+    // Effective weekly and monthly equivalents, accounting for period
+    // For weekly-period budgets: monthlyLimit IS the weekly limit, monthly equiv = limit × 4.33
+    // For monthly-period budgets (default): weekly limit = monthlyLimit / 4.33
+    const effectiveWeeklyLimit  = monthlyLimit > 0
+      ? (isWeeklyPeriod ? monthlyLimit : monthlyLimit / 4.33)
+      : 0
+    const effectiveMonthlyEquivalent = monthlyLimit > 0
+      ? (isWeeklyPeriod ? monthlyLimit * 4.33 : monthlyLimit)
+      : 0
+
     // Only categories with an explicit limit > 0 are "limited".
     // Categories with no limit are purely informational trackers — they are never
     // marked "over" or "near limit" and their weeklyLeft / weekPct are always 0.
     // This ensures partial-limits state (1–2 categories with limits) never implies
     // untracked categories are over budget.
-    const weeklyLimit  = monthlyLimit > 0 ? monthlyLimit / 4.33 : 0
+    const weeklyLimit  = effectiveWeeklyLimit
 
     const monthlySpent = isCurrentMonth
       ? (budget?.spent ?? 0)
@@ -189,6 +249,9 @@ export function computeCategoryBudgets(
       overWeekly,
       nearLimit,
       hasLimit: monthlyLimit > 0,
+      effectiveWeeklyLimit,
+      effectiveMonthlyEquivalent,
+      isWeeklyPeriod,
     }
   })
 }

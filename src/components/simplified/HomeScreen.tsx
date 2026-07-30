@@ -267,6 +267,14 @@ export interface HomeScreenProps {
   heroMeaning?: HeroMeaning
   /** Pre-computed display values for the chosen hero meaning */
   heroDisplay?: HeroDisplay
+  /**
+   * Over-limit response — controls what the UI shows when the user exceeds
+   * their daily allowance. Defaults to 'gentle' when not provided.
+   * - quiet: color change only (no additional text)
+   * - gentle: one calm line below the hero
+   * - headsup: one calm line + a small actionable chip
+   */
+  overLimitResponse?: import('@/lib/spendingModes').OverLimitResponse
 }
 
 // ============================================================================
@@ -325,6 +333,7 @@ export function HomeScreen({
   spendingMode = 'guided',
   heroMeaning,
   heroDisplay,
+  overLimitResponse = 'gentle',
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -826,7 +835,32 @@ export function HomeScreen({
           <AnimatePresence>
             {!isLoading && spendingMode !== 'tracker' && allowance?.status === 'over' && (
               <div style={{ marginTop: 10 }}>
-                <OverBudgetStrip onLogIncome={onLogIncome} />
+                {/* quiet: color change only — no strip */}
+                {overLimitResponse === 'gentle' && (
+                  <motion.p
+                    role="status"
+                    aria-live="polite"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={timings.slow}
+                    style={{
+                      margin: 0,
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      color: 'var(--sub)',
+                      fontFamily: FONT_FAMILY,
+                      textAlign: 'center',
+                      padding: '8px 4px',
+                    }}
+                    aria-label="Over-limit gentle note"
+                  >
+                    Spent a bit more today — tomorrow resets ✨
+                  </motion.p>
+                )}
+                {overLimitResponse === 'headsup' && (
+                  <OverBudgetStrip onLogIncome={onLogIncome} />
+                )}
               </div>
             )}
           </AnimatePresence>

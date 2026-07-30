@@ -2,9 +2,11 @@ import type { Budget, Transaction } from '@/types'
 import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover, HeroMeaning, HeroDisplay } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { FundingSource } from '@/lib/fundingSources'
+import type { PaySchedule } from '@/lib/paySchedule'
 import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList, isScheduledForKnownBill } from '@/lib/fixedExpenses'
 import { isBorrowedTransaction } from '@/lib/fundingSources'
 import { getStatusMessage } from '@/lib/vocabulary'
+import { getNextPayday, getLastPayday, AVG_DAYS_PER_MONTH } from '@/lib/paySchedule'
 import { 
   formatDateLocal, 
   getMonthStartLocal, 
@@ -334,6 +336,9 @@ export function computeSmoothedIncome(
  * @param countCreditImmediately - Optional flag to control whether deferred-settlement expenses reduce today's allowance.
  *   When false, only immediate-settlement expenses count against today. Defaults to true (all spending counts).
  * @param fundingSources - Optional array of funding sources needed to check settlement types when countCreditImmediately is false.
+ * @param paySchedule - Optional pay schedule. When provided and at least one budget has `period === 'payday_aligned'`,
+ *   pay-cycle boundaries are used instead of calendar-month boundaries for effectiveDays and rollover scope.
+ * @param incomeHistory - Optional income transaction history used when paySchedule.cadence is 'irregular' to estimate the pay rhythm.
  * @returns DailyAllowance object with amount, status, and message
  *
  * @pure This function is a pure function: given the same inputs it always
@@ -351,7 +356,9 @@ export function computeDailyAllowance(
   incomeSmoothing?: IncomeSmoothing,
   carryoverEnabled?: boolean,
   countCreditImmediately?: boolean,
-  fundingSources?: FundingSource[]
+  fundingSources?: FundingSource[],
+  paySchedule?: PaySchedule | null,
+  incomeHistory?: Transaction[]
 ): DailyAllowance {
   // Step 1: Calculate total monthly budget from all category limits.
   //
@@ -362,8 +369,41 @@ export function computeDailyAllowance(
   //   • If 2 of 6 categories have limits set, the pool = sum of those 2 limits.
   //   • The remaining 4 categories are purely informational (tracking only).
   //   • The daily budget reflects only what the user has explicitly budgeted.
+  //
+  // WEEKLY-PERIOD BUDGETS (Task 102.1):
+  // When a budget has period === 'weekly', its monthlyLimit IS the weekly limit.
+  // The monthly contribution to the pool = monthlyLimit × 4.33.
+  //
+  // PAYDAY-ALIGNED BUDGETS (Task 103.1):
+  // When a budget has period === 'payday_aligned', its monthlyLimit is the monthly
+  // amount. The pay-period equivalent is computed via AVG_DAYS_PER_MONTH scaling.
+  // For the pool sum, we keep the monthly-equivalent so the totalFixed subtraction
+  // (also monthly) stays consistent. The effectiveDays divisor handles the rest.
   const budgetsWithLimits = budgets.filter(b => b.monthlyLimit > 0)
-  const totalMonthlyBudget = budgetsWithLimits.reduce((sum, budget) => sum + budget.monthlyLimit, 0)
+  const totalMonthlyBudget = budgetsWithLimits.reduce((sum, budget) => {
+    // For weekly-period budgets, scale up to monthly equivalent
+    return sum + (budget.period === 'weekly' ? budget.monthlyLimit * 4.33 : budget.monthlyLimit)
+  }, 0)
+
+  // Step 1 (payday): Determine whether pay-cycle mode is active.
+  // Active when: paySchedule is provided AND at least one budget has period === 'payday_aligned'.
+  const hasPaydayAlignedBudget = budgetsWithLimits.some(b => b.period === 'payday_aligned')
+  const usePaydayCycle = !!paySchedule && hasPaydayAlignedBudget
+
+  // When payday-cycle mode is active, resolve the current pay period boundaries.
+  // lastPayday = start of current pay period (exclusive lower bound for rollover)
+  // nextPayday = end of current pay period (used for daysInPayCycle)
+  const history = incomeHistory ?? transactions
+  const lastPayday = usePaydayCycle
+    ? getLastPayday(paySchedule!, currentDate, history)
+    : null
+  const nextPayday = usePaydayCycle
+    ? getNextPayday(paySchedule!, currentDate, history)
+    : null
+  // Days from lastPayday to nextPayday inclusive = full cycle length
+  const daysInPayCycle = (lastPayday && nextPayday)
+    ? Math.max(1, Math.round((nextPayday.getTime() - lastPayday.getTime()) / (24 * 60 * 60 * 1000)))
+    : 0
   
   // Step 1a: Sum actual income transactions logged in the current month
   const currentMonthPrefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
@@ -416,18 +456,31 @@ export function computeDailyAllowance(
     setupDate.getFullYear() === currentDate.getFullYear() &&
     setupDate.getMonth() === currentDate.getMonth()
   
-  // When mid-month setup, divide by remaining days from setupDate; otherwise full month
-  const effectiveDays = isSetupMidMonth
-    ? getDaysRemainingFromLocal(setupDate!, currentDate)
-    : daysInMonth
-  
+  // When payday-cycle mode is active, effectiveDays = daysInPayCycle and
+  // the monthly pool is converted to a pay-period pool via AVG_DAYS_PER_MONTH.
+  // When mid-month setup (calendar mode), divide by remaining days from setupDate.
+  // Otherwise use the full calendar month.
+  const effectiveDays = usePaydayCycle
+    ? daysInPayCycle
+    : isSetupMidMonth
+      ? getDaysRemainingFromLocal(setupDate!, currentDate)
+      : daysInMonth
+
+  // For payday-aligned budgets, the pool is the pay-period equivalent of the monthly pool.
+  // periodPool = monthlyPool * (daysInPayCycle / AVG_DAYS_PER_MONTH)
+  // dailyBudget = periodPool / daysInPayCycle = monthlyPool / AVG_DAYS_PER_MONTH
+  // We route through effectiveDays for the division, so we adjust the pool here.
+  const paydayScaledPool = usePaydayCycle && daysInPayCycle > 0
+    ? (pool: number) => pool * (daysInPayCycle / AVG_DAYS_PER_MONTH)
+    : (pool: number) => pool
+
   let dailyBudget: number
   switch (incomeSource) {
     case 'budget':
-      dailyBudget = Math.max(0, totalMonthlyBudget - totalFixed) / effectiveDays
+      dailyBudget = Math.max(0, paydayScaledPool(totalMonthlyBudget - totalFixed)) / effectiveDays
       break
     case 'transactions':
-      dailyBudget = Math.max(0, smoothedIncome - totalFixed) / effectiveDays
+      dailyBudget = Math.max(0, paydayScaledPool(smoothedIncome - totalFixed)) / effectiveDays
       break
     case 'estimate':
       // Intentionally uses a fixed 30-day divisor (not daysInMonth) for estimates.
@@ -503,23 +556,32 @@ export function computeDailyAllowance(
   // the first day — the month boundary resets naturally without special-case logic.
   // On day 2, rollover only reflects day 1's delta, which is inherently within the
   // ±2-day cap since it's a single day's variance.
-  const dayOfMonth = currentDate.getDate()
   
   // When mid-month setup, rollover only covers days from setupDate to yesterday
   const setupDay = isSetupMidMonth ? setupDate!.getDate() : 1
-  const daysElapsedSinceSetup = dayOfMonth - setupDay
+  const dayOfMonth = currentDate.getDate()
+  
+  // In payday-cycle mode, rollover covers days from lastPayday to yesterday
+  // instead of from month start / setupDate.
+  // In calendar mode, the existing month-based logic applies.
+  const rolloverStart: Date = usePaydayCycle && lastPayday
+    ? lastPayday
+    : isSetupMidMonth
+      ? new Date(currentDate.getFullYear(), currentDate.getMonth(), setupDay)
+      : getMonthStartLocal(currentDate)
+
+  const daysElapsedSinceSetup = usePaydayCycle && lastPayday
+    ? Math.max(0, Math.round((currentDate.getTime() - lastPayday.getTime()) / (24 * 60 * 60 * 1000)))
+    : dayOfMonth - setupDay
   
   let rollover = 0
   if (daysElapsedSinceSetup > 0) {
-    const rolloverStart = isSetupMidMonth
-      ? new Date(currentDate.getFullYear(), currentDate.getMonth(), setupDay)
-      : getMonthStartLocal(currentDate)
     const yesterday = subtractDaysLocal(currentDate, 1)
     
-    // Expected spend from setupDate (or month start) to yesterday
+    // Expected spend from rollover start to yesterday
     const expectedSpendToYesterday = dailyBudget * daysElapsedSinceSetup
     
-    // Actual spend from setupDate (or month start) to yesterday
+    // Actual spend from rollover start to yesterday
     // Apply the same settlement filtering as spentToday
     const rolloverExpenses = transactions
       .filter(t => {

@@ -9,7 +9,8 @@ import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal } from "@/types"
 import type { IncomeSmoothing } from "@/types/folio"
 import type { SpendingMode } from "@/lib/spendingModes"
-import { SPENDING_MODE_LABELS } from "@/lib/spendingModes"
+import { SPENDING_MODE_LABELS, OVER_LIMIT_RESPONSE_LABELS } from "@/lib/spendingModes"
+import type { OverLimitResponse } from "@/lib/spendingModes"
 import type { HeroMeaning } from "@/types/folio"
 import { computeBudgetSummary } from "@/lib/budgetSummary"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -46,6 +47,8 @@ export interface SettingsScreenProps {
   onSetSpendingMode?: (mode: SpendingMode) => void
   heroMeaning?: HeroMeaning
   onSetHeroMeaning?: (meaning: HeroMeaning) => void
+  overLimitResponse?: OverLimitResponse
+  onSetOverLimitResponse?: (response: OverLimitResponse) => void
   countCreditImmediately?: boolean
   onSetIncomeSmoothing?: (s: IncomeSmoothing) => void
   onUpdateCountCreditImmediately?: (value: boolean) => void
@@ -145,6 +148,34 @@ const HERO_MEANING_OPTIONS: HeroMeaningOption[] = [
 ]
 
 // ============================================================================
+// Over-limit response options
+// ============================================================================
+
+type OverLimitResponseOption = {
+  key: OverLimitResponse
+  label: string
+  desc: string
+}
+
+const OVER_LIMIT_RESPONSE_OPTIONS: OverLimitResponseOption[] = [
+  {
+    key: 'quiet',
+    label: OVER_LIMIT_RESPONSE_LABELS.quiet.label,
+    desc: OVER_LIMIT_RESPONSE_LABELS.quiet.description,
+  },
+  {
+    key: 'gentle',
+    label: OVER_LIMIT_RESPONSE_LABELS.gentle.label,
+    desc: OVER_LIMIT_RESPONSE_LABELS.gentle.description,
+  },
+  {
+    key: 'headsup',
+    label: OVER_LIMIT_RESPONSE_LABELS.headsup.label,
+    desc: OVER_LIMIT_RESPONSE_LABELS.headsup.description,
+  },
+]
+
+// ============================================================================
 // SettingsScreen Component
 // ============================================================================
 
@@ -164,6 +195,8 @@ export function SettingsScreen({
   onSetSpendingMode,
   heroMeaning: heroMeaningProp,
   onSetHeroMeaning,
+  overLimitResponse: overLimitResponseProp,
+  onSetOverLimitResponse,
   countCreditImmediately: countCreditImmediatelyProp,
   onSetIncomeSmoothing,
   onUpdateCountCreditImmediately,
@@ -190,6 +223,9 @@ export function SettingsScreen({
 
   // Resolve active hero meaning — default to 'allowance' when not provided
   const heroMeaning: HeroMeaning = heroMeaningProp ?? 'allowance'
+
+  // Resolve over-limit response — default to 'gentle' when not provided
+  const overLimitResponse: OverLimitResponse = overLimitResponseProp ?? 'gentle'
 
   // ── Budget summary computations ────────────────────────────────────────────
   const { totalMonthly, dailyBudget } = computeBudgetSummary(budgets)
@@ -254,6 +290,102 @@ export function SettingsScreen({
                   aria-label={`Set spending mode to ${opt.label}`}
                 >
                   {opt.label}
+                </motion.button>
+              )
+            })}
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── When you go over, what should happen? ──────────────────────── */}
+      {onSetOverLimitResponse && spendingMode !== 'tracker' && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong, marginBottom: 4 }}>
+            When you go over, what should happen?
+          </p>
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
+            All options are calm and shame-free — the loudest is still just one quiet line.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {OVER_LIMIT_RESPONSE_OPTIONS.map((opt, idx) => {
+              const isActive = overLimitResponse === opt.key
+              return (
+                <motion.button
+                  key={opt.key}
+                  onClick={() => onSetOverLimitResponse(opt.key)}
+                  whileTap={{ scale: 0.98 }}
+                  transition={springs.snappy}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 12,
+                    padding: "12px 0",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: idx < OVER_LIMIT_RESPONSE_OPTIONS.length - 1 ? "1px solid var(--border)" : "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    width: "100%",
+                  }}
+                  aria-pressed={isActive}
+                  aria-label={`Over-limit response: ${opt.label}`}
+                >
+                  {/* Radio dot */}
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      marginTop: 3,
+                      width: 18,
+                      height: 18,
+                      borderRadius: "50%",
+                      border: `2px solid ${isActive ? "rgba(167, 139, 250, 0.9)" : "rgba(255, 255, 255, 0.2)"}`,
+                      background: isActive ? "rgba(167, 139, 250, 0.9)" : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "border-color 0.15s ease, background 0.15s ease",
+                    }}
+                    aria-hidden="true"
+                  >
+                    {isActive && (
+                      <span
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: "50%",
+                          background: "#fff",
+                        }}
+                      />
+                    )}
+                  </span>
+
+                  {/* Label + description */}
+                  <span style={{ flex: 1 }}>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: 14,
+                        fontWeight: isActive ? 600 : 400,
+                        color: isActive ? "var(--text)" : "var(--sub)",
+                        lineHeight: 1.4,
+                        transition: "color 0.15s ease, font-weight 0.15s ease",
+                      }}
+                    >
+                      {opt.label}
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: 12,
+                        color: "var(--muted)",
+                        lineHeight: 1.4,
+                        marginTop: 2,
+                      }}
+                    >
+                      {opt.desc}
+                    </span>
+                  </span>
                 </motion.button>
               )
             })}

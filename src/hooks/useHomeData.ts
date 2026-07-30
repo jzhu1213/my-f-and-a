@@ -49,6 +49,8 @@ import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
 import { computeWeekendAllowance } from '@/lib/weekendAllowance'
 import type { WeekendAllowanceResult } from '@/lib/weekendAllowance'
 import type { SpendingMode } from '@/lib/spendingModes'
+import type { OverLimitResponse } from '@/lib/spendingModes'
+import { getOverLimitResponse, setOverLimitResponsePref } from '@/lib/spendingModes'
 import type { HeroMeaning } from '@/types/folio'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
@@ -291,6 +293,16 @@ export interface UseHomeDataReturn {
    * Persisted to localStorage.
    */
   heroMeaning: HeroMeaning
+  /**
+   * The user's over-limit response preference — controls how the app reacts when
+   * the user goes over their daily allowance.
+   * - `'quiet'`: color change only (existing OverBudgetStrip is hidden)
+   * - `'gentle'`: one calm line below the hero
+   * - `'headsup'`: one calm line + a small actionable chip
+   * Defaults to a mode-appropriate value when not explicitly set.
+   * Persisted to localStorage.
+   */
+  overLimitResponse: OverLimitResponse
   
   // ── Computed Values (Memoized) ─────────────────────────────────
   /** Daily allowance calculation (Requirement 13.2) */
@@ -472,6 +484,11 @@ export interface UseHomeDataReturn {
    * Controls which metric is shown as the large hero number.
    */
   setHeroMeaning: (meaning: HeroMeaning) => void
+  /**
+   * Persist a new over-limit response preference and update state.
+   * Controls what happens in the UI when the user goes over their daily allowance.
+   */
+  setOverLimitResponse: (response: OverLimitResponse) => void
 }
 
 /**
@@ -520,6 +537,9 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     const mode = loadSpendingModePreference()
     return mode === 'tracker' ? 'spent_today' : 'allowance'
   })
+  const [overLimitResponse, setOverLimitResponseState] = useState<OverLimitResponse>(
+    () => getOverLimitResponse()
+  )
   const [isLoading, setIsLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isStale, setIsStale] = useState(false)
@@ -1290,6 +1310,17 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     setHeroMeaningState(meaning)
   }, [])
 
+  // ── Over-limit Response Mutation ───────────────────────────────
+  /**
+   * Persist a new over-limit response preference and update state.
+   * Uses localStorage as the persistence layer.
+   * Controls what the UI shows when the user exceeds their daily allowance.
+   */
+  const setOverLimitResponseFn = useCallback((response: OverLimitResponse) => {
+    setOverLimitResponsePref(response)
+    setOverLimitResponseState(response)
+  }, [])
+
   // ── Memoized Computations ──────────────────────────────────────
   /**
    * Daily allowance calculation (memoized)
@@ -1365,9 +1396,11 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       incomeSmoothing ?? undefined,
       undefined, // carryoverEnabled
       countCreditImmediately,
-      fundingSources
+      fundingSources,
+      paySchedule,   // Task 103.1: pass pay schedule for payday-aligned budget periods
+      transactions   // Task 103.1: income history for irregular cadence estimation
     )
-  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, fundingSources])
+  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, fundingSources, paySchedule])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
@@ -1545,5 +1578,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     setIncomeSmoothing,
     setSpendingMode: setSpendingModeFn,
     setHeroMeaning: setHeroMeaningFn,
+    overLimitResponse,
+    setOverLimitResponse: setOverLimitResponseFn,
   }
 }

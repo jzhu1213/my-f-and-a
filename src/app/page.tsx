@@ -142,6 +142,9 @@ export default function FolioApp() {
   const [splitPreEnabled, setSplitPreEnabled] = useState(false)
   const [backfillSheetOpen, setBackfillSheetOpen] = useState(false)
 
+  // ── Per-transaction alert state (task 102.2) ───────────────────
+  const [perTxAlertMessage, setPerTxAlertMessage] = useState<string | null>(null)
+
   // ── Income Anchor Banner (task 95.1) ───────────────────────────
   // A first-run nudge shown once after onboarding to encourage the user to
   // anchor their timeline by setting their last payday. Gated by
@@ -199,6 +202,8 @@ export default function FolioApp() {
     setSpendingMode,
     heroMeaning,
     setHeroMeaning,
+    overLimitResponse,
+    setOverLimitResponse,
     fundingSources,
     addFundingSource,
     updateFundingSource,
@@ -875,6 +880,7 @@ export default function FolioApp() {
           budgets={budgets}
           onUpdateBudget={handleUpdateBudget}
           onBack={() => setShowBudgetSettings(false)}
+          paySchedule={paySchedule}
         />
       </div>
     )
@@ -1072,6 +1078,7 @@ export default function FolioApp() {
                 spendingMode={spendingMode}
                 heroMeaning={heroMeaning}
                 heroDisplay={heroDisplay}
+                overLimitResponse={overLimitResponse}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => setIncomeSheetOpen(true)}
@@ -1135,6 +1142,8 @@ export default function FolioApp() {
                 onSetSpendingMode={setSpendingMode}
                 heroMeaning={heroMeaning}
                 onSetHeroMeaning={setHeroMeaning}
+                overLimitResponse={overLimitResponse}
+                onSetOverLimitResponse={setOverLimitResponse}
                 countCreditImmediately={user?.countCreditImmediately}
                 onSetIncomeSmoothing={setIncomeSmoothing}
                 onUpdateCountCreditImmediately={handleUpdateCountCreditImmediately}
@@ -1167,7 +1176,56 @@ export default function FolioApp() {
         splitPreEnabled={splitPreEnabled}
         fundingSources={fundingSources}
         recentSplitPartners={recentSplitPartners}
+        budgets={budgets}
+        onAlertMessage={(msg) => setPerTxAlertMessage(msg)}
+        spendingMode={spendingMode}
       />
+
+      {/* ── Per-transaction alert notice (task 102.2) ──────────── */}
+      {perTxAlertMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 88,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9000,
+            maxWidth: 360,
+            width: 'calc(100% - 40px)',
+            padding: '12px 16px',
+            background: 'rgba(26, 26, 46, 0.96)',
+            border: '1px solid rgba(129, 140, 248, 0.25)',
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'Inter, sans-serif', lineHeight: 1.4 }}>
+            {perTxAlertMessage}
+          </span>
+          <button
+            onClick={() => setPerTxAlertMessage(null)}
+            aria-label="Dismiss alert"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--muted)',
+              fontSize: 18,
+              lineHeight: 1,
+              padding: '0 2px',
+              flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* ── Income Sheet ───────────────────────────────────────── */}
       <IncomeSheet

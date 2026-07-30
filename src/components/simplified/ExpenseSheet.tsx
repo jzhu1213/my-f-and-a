@@ -11,7 +11,8 @@ import { triggerHaptic } from '@/lib/haptics'
 import { predictHabit, getTopHabitChips } from '@/lib/habitEngine'
 import { getMostRecentExpenseCategory } from '@/lib/transactionUtils'
 import { useToast } from '@/contexts/ToastContext'
-import type { TransactionCategory, Transaction } from '@/types'
+import { checkPerTransactionAlert } from '@/lib/budgetUtils'
+import type { TransactionCategory, Transaction, Budget } from '@/types'
 import type { SmartSuggestion, CustomCategory } from '@/types/folio'
 import type { HabitChip } from '@/lib/habitEngine'
 import type { CategoryDisplayItem } from '@/lib/customCategories'
@@ -21,6 +22,7 @@ import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius, roundButton } from '@/styles/shared'
 import type { FundingSource } from '@/lib/fundingSources'
 import { predictFundingSource } from '@/lib/fundingSources'
+import type { SpendingMode } from '@/lib/spendingModes'
 
 interface ExpenseSheetProps {
   isOpen: boolean
@@ -38,6 +40,20 @@ interface ExpenseSheetProps {
   fundingSources?: FundingSource[]
   /** Recent split partner names for quick-select chips (task 5.3 polish) */
   recentSplitPartners?: string[]
+  /** Budgets array — used to check per-transaction alert thresholds (task 102.2) */
+  budgets?: Budget[]
+  /**
+   * Called after a successful expense log if the amount exceeds the category's
+   * per-transaction alert threshold. The parent can display the message as a
+   * dismissable inline notice. (task 102.2)
+   */
+  onAlertMessage?: (message: string) => void
+  /**
+   * Current spending mode (task 105.1).
+   * In 'tracker' mode the category field becomes optional — users can log
+   * without picking a category and the transaction falls back to 'other'.
+   */
+  spendingMode?: SpendingMode
 }
 
 // ── Date helper utilities (task 87.1) ────────────────────────────────────
@@ -114,6 +130,9 @@ export function ExpenseSheet({
   splitPreEnabled = false,
   fundingSources = [],
   recentSplitPartners = [],
+  budgets = [],
+  onAlertMessage,
+  spendingMode = 'guided',
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
@@ -289,7 +308,11 @@ export function ExpenseSheet({
 
   const handleSubmit = useCallback(() => {
     const parsed = parseFloat(amount)
-    if (!parsed || parsed <= 0 || !category) return
+    if (!parsed || parsed <= 0) return
+
+    // In tracker mode category is optional — fall back to 'other' when not picked
+    const effectiveCategory: TransactionCategory = category ?? (spendingMode === 'tracker' ? 'other' : null!)
+    if (!effectiveCategory) return
 
     // When split is enabled, submit the user's share instead of the full amount
     const submittedAmount = splitEnabled ? computeSplitAmount(parsed, splitCount) : parsed
@@ -299,7 +322,7 @@ export function ExpenseSheet({
 
     onSubmit({
       amount: submittedAmount,
-      category,
+      category: effectiveCategory,
       note: note.trim() || undefined,
       date: selectedDate,
       fundingSourceId: selectedSourceId || undefined,
@@ -308,7 +331,7 @@ export function ExpenseSheet({
       splitOwedAmount: splitEnabled && splitWith.trim() ? computeOwedAmount(parsed, splitCount) : undefined,
     })
     // Show success toast with optional undo action
-    const categoryLabel = displayCategories.find(c => c.categoryValue === category)?.label ?? category
+    const categoryLabel = displayCategories.find(c => c.categoryValue === effectiveCategory)?.label ?? effectiveCategory
     const amountStr = submittedAmount % 1 === 0 ? `$${submittedAmount}` : `$${submittedAmount.toFixed(2)}`
     const splitSuffix = splitEnabled ? ` (your share of $${parsed % 1 === 0 ? parsed : parsed.toFixed(2)})` : ''
     showToast(
@@ -316,12 +339,25 @@ export function ExpenseSheet({
       'success',
       onUndo ? { label: 'Undo', onClick: onUndo } : undefined
     )
+
+    // Check per-transaction alert threshold (task 102.2)
+    // Fire after successful log — gentle nudge, never blocking
+    if (onAlertMessage) {
+      const budget = budgets.find(b => b.category === effectiveCategory)
+      const alertMsg = checkPerTransactionAlert(submittedAmount, budget)
+      if (alertMsg) {
+        onAlertMessage(alertMsg)
+      }
+    }
+
     onClose()
-  }, [amount, category, note, splitEnabled, splitCount, splitWith, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast])
+  }, [amount, category, spendingMode, note, splitEnabled, splitCount, splitWith, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
-    if (!parsed || parsed <= 0 || parsed > MAX_AMOUNT || !category) return false
+    if (!parsed || parsed <= 0 || parsed > MAX_AMOUNT) return false
+    // In tracker mode, category is optional — amount alone is enough
+    if (spendingMode !== 'tracker' && !category) return false
     if (splitEnabled) {
       const share = computeSplitAmount(parsed, splitCount)
       return share > 0 && share <= MAX_AMOUNT && splitCount >= 2
@@ -722,6 +758,7 @@ export function ExpenseSheet({
               </div>
 
               {/* ── Category Grid (3×2) with glass-pill glow ────────── */}
+              {/* In tracker mode the entire section is optional — the label reflects that */}
               <div
                 style={{
                   display: 'grid',
@@ -730,7 +767,7 @@ export function ExpenseSheet({
                   marginBottom: 24,
                 }}
                 role="group"
-                aria-label="Expense categories"
+                aria-label={spendingMode === 'tracker' ? 'Category (optional)' : 'Expense categories'}
                 onKeyDown={(e) => {
                   const currentIndex = category
                     ? displayCategories.findIndex(c => c.categoryValue === category)
@@ -760,9 +797,86 @@ export function ExpenseSheet({
                   }
                 }}
               >
+                {/* In tracker mode: show a small helper label above the grid */}
+                {spendingMode === 'tracker' && (
+                  <div
+                    style={{
+                      gridColumn: '1 / -1',
+                      fontSize: 12,
+                      fontFamily: FONT_FAMILY,
+                      fontWeight: 400,
+                      color: 'var(--muted)',
+                      marginBottom: 2,
+                    }}
+                  >
+                    Category <span style={{ opacity: 0.7 }}>(optional)</span>
+                  </div>
+                )}
+
+                {/* In tracker mode: "No category / General" first option so users can skip picking */}
+                {spendingMode === 'tracker' && (
+                  <motion.button
+                    type="button"
+                    onClick={() => { setCategory(null); setManualCategorySelection(false); setIsAutoSuggested(false); triggerHaptic('light') }}
+                    aria-label="No category — log without picking"
+                    aria-pressed={category === null}
+                    tabIndex={category === null ? 0 : -1}
+                    className="cat-pill"
+                    variants={cardTapVariants}
+                    initial={false}
+                    animate={prefersReducedMotion ? {} : { y: category === null ? -2 : 0, scale: category === null ? 1.02 : 1 }}
+                    whileTap="tap"
+                    transition={springs.snappy}
+                    style={{
+                      minHeight: 72,
+                      borderRadius: 'var(--radius-md)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      cursor: 'pointer',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      ...(category === null
+                        ? {
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            background: 'rgba(129, 140, 248, 0.08)',
+                            border: '1.5px solid rgba(129, 140, 248, 0.4)',
+                            boxShadow: '0 0 12px rgba(129, 140, 248, 0.15)',
+                          }
+                        : {
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                          }),
+                    }}
+                  >
+                    <motion.span
+                      style={{ fontSize: 24, lineHeight: 1, display: 'inline-block' }}
+                      variants={iconBounceVariants}
+                      transition={ICON_BOUNCE_SPRING}
+                      aria-hidden="true"
+                    >
+                      ·
+                    </motion.span>
+                    <span
+                      style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: category === null ? 'var(--text)' : 'var(--sub)',
+                      }}
+                    >
+                      General
+                    </span>
+                  </motion.button>
+                )}
+
                 {displayCategories.map((cat, index) => {
                   const selected = category === cat.categoryValue
-                  const isRovingActive = selected || (category === null && index === 0)
+                  // In tracker mode the "General" button is the roving anchor when nothing is selected
+                  const isRovingActive = selected || (category === null && index === 0 && spendingMode !== 'tracker')
 
                   // Selection lift: slight upward shift + scale
                   const selectionAnimate = prefersReducedMotion

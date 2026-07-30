@@ -93,6 +93,25 @@ export interface Budget {
    * Never actually blocks logging — this is a UX preference only.
    */
   limitType?: 'soft' | 'hard'
+  /**
+   * The budget period for `monthlyLimit`.
+   * - `'monthly'` (default): `monthlyLimit` is a calendar-month amount.
+   * - `'weekly'`: `monthlyLimit` is treated as a *weekly* amount directly.
+   *   Monthly equivalent = monthlyLimit × 4.33.
+   * - `'payday_aligned'`: the budget period runs from one payday to the next
+   *   instead of calendar-month boundaries. The daily allowance is divided by
+   *   the number of days in the current pay cycle.
+   *
+   * Absent/undefined behaves identically to `'monthly'` (fully backward-compatible).
+   */
+  period?: 'monthly' | 'weekly' | 'payday_aligned'
+  /**
+   * Optional per-transaction alert threshold (in dollars).
+   * When a single expense for this category exceeds this amount,
+   * a gentle one-line nudge is surfaced — never blocking.
+   * `undefined` or `0` means disabled.
+   */
+  perTransactionAlert?: number
 }
 
 export const BUDGET_CATEGORIES: { category: TransactionCategory; emoji: string; label: string }[] = [
