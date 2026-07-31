@@ -275,8 +275,9 @@ export function ExpenseSheet({
       setShowSourcePicker(false)
       setTrackAsIOU(false)
       
-      // Auto-focus amount input (Task 73: removed setTimeout for instant focus)
-      amountRef.current?.focus()
+      // NOTE: Do NOT auto-focus the amount input here. On iOS, focusing an input
+      // triggers the virtual keyboard which resizes the viewport and pushes the
+      // fixed-position sheet up awkwardly. The user can tap the input when ready.
     }
   }, [isOpen, effectiveDefault, defaultCategory, habitPrediction, splitPreEnabled, fundingSources, transactions])
 

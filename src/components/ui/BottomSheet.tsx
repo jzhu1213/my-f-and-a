@@ -154,16 +154,12 @@ export function BottomSheet({
 
       document.addEventListener("keydown", handleKeyDown)
 
-      // Move focus to the first focusable element inside the sheet
-      // Use a short delay to allow the animation to start and DOM to settle
+      // Move focus to the sheet container itself rather than the first
+      // interactive element. Focusing an <input> would trigger the iOS virtual
+      // keyboard, pushing the fixed-position sheet up. The container has
+      // tabIndex={-1} so focus moves there without activating a keyboard.
       const timer = setTimeout(() => {
-        const focusable = getFocusableElements()
-        if (focusable.length > 0) {
-          focusable[0].focus()
-        } else {
-          // If no focusable children, focus the sheet container itself
-          sheetRef.current?.focus()
-        }
+        sheetRef.current?.focus()
       }, 50)
 
       return () => {
