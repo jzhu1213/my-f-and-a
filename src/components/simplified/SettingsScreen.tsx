@@ -77,6 +77,8 @@ export interface SettingsScreenProps {
   onDeleteCategorizationRule?: (id: string) => void
   /** Callback to open the Sharing overlay (task 115.1) */
   onOpenSharing?: () => void
+  /** Callback to open the Category Hub overlay (task 138.1) */
+  onOpenCategoryHub?: () => void
   /** Number of active share links (task 115.1) */
   activeShareCount?: number
   /** Current term schedule (task 121.1) */
@@ -247,6 +249,7 @@ export function SettingsScreen({
   onAddCategorizationRule,
   onDeleteCategorizationRule,
   onOpenSharing,
+  onOpenCategoryHub,
   activeShareCount = 0,
   termSchedule,
   onSetTermSchedule,
@@ -639,6 +642,27 @@ export function SettingsScreen({
           {isTrackerMode ? "View saved limits →" : "Manage limits →"}
         </motion.button>
       </GlassCard>
+
+      {/* ── Category Hub (task 138.1) ─────────────────────────────────────── */}
+      {onOpenCategoryHub && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong }}>
+            Categories
+          </p>
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
+            Add, rename, reorder, or archive your spending categories.
+          </p>
+          <motion.button
+            onClick={onOpenCategoryHub}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={linkButton}
+            aria-label="Manage categories"
+          >
+            Manage categories →
+          </motion.button>
+        </GlassCard>
+      )}
 
       {/* ── Income Calculation ────────────────────────────────────────────── */}
       {onSetIncomeSmoothing && (

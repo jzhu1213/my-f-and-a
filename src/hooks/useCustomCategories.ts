@@ -4,11 +4,12 @@ import {
   fetchCustomCategories,
   createCustomCategory,
   deleteCustomCategory,
+  updateCustomCategory,
 } from '@/lib/customCategories'
 
 /**
  * Hook for managing user-defined custom categories.
- * Fetches on mount and exposes add/remove helpers.
+ * Fetches on mount and exposes add/remove/update helpers.
  *
  * Requirements: 3.1, 12.3, new
  */
@@ -17,6 +18,7 @@ export interface UseCustomCategoriesReturn {
   isLoading: boolean
   addCustomCategory: (label: string, emoji: string) => Promise<CustomCategory | null>
   removeCustomCategory: (id: string) => Promise<boolean>
+  renameCustomCategory: (id: string, updates: { label?: string; emoji?: string }) => Promise<CustomCategory | null>
 }
 
 export function useCustomCategories(userId: string | null | undefined): UseCustomCategoriesReturn {
@@ -65,10 +67,19 @@ export function useCustomCategories(userId: string | null | undefined): UseCusto
     return success
   }, [])
 
+  const renameCustomCategory = useCallback(async (id: string, updates: { label?: string; emoji?: string }): Promise<CustomCategory | null> => {
+    const result = await updateCustomCategory(id, updates)
+    if (result) {
+      setCustomCategories((prev) => prev.map((c) => c.id === id ? result : c))
+    }
+    return result
+  }, [])
+
   return {
     customCategories,
     isLoading,
     addCustomCategory,
     removeCustomCategory,
+    renameCustomCategory,
   }
 }

@@ -117,3 +117,37 @@ export async function deleteCustomCategory(id: string): Promise<boolean> {
 
   return true
 }
+
+/**
+ * Update a custom category's label and/or emoji.
+ */
+export async function updateCustomCategory(
+  id: string,
+  updates: { label?: string; emoji?: string }
+): Promise<CustomCategory | null> {
+  const updatePayload: Record<string, string> = {}
+  if (updates.label !== undefined) updatePayload.label = updates.label
+  if (updates.emoji !== undefined) updatePayload.emoji = updates.emoji
+
+  if (Object.keys(updatePayload).length === 0) return null
+
+  const { data, error } = await supabase
+    .from('custom_categories')
+    .update(updatePayload)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating custom category:', error)
+    return null
+  }
+
+  return {
+    id: data.id,
+    label: data.label,
+    emoji: data.emoji,
+    userId: data.user_id,
+    createdAt: data.created_at,
+  }
+}

@@ -103,6 +103,10 @@ const SharingScreen = dynamic(
   () => import('@/components/simplified/SharingScreen').then(m => ({ default: m.SharingScreen })),
   { ssr: false }
 )
+const CategoryHubScreen = dynamic(
+  () => import('@/components/simplified/CategoryHubScreen').then(m => ({ default: m.CategoryHubScreen })),
+  { ssr: false }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -154,6 +158,7 @@ export default function FolioApp() {
   const [showLinkedAccounts, setShowLinkedAccounts] = useState(false)
   const [showTrajectory, setShowTrajectory] = useState(false)
   const [showSharing, setShowSharing] = useState(false)
+  const [showCategoryHub, setShowCategoryHub] = useState(false)
 
   // ── Tutorial Setup State ───────────────────────────────────────
   const [tutorialSetupState, setTutorialSetupState] = useState<TutorialSetupState>({
@@ -259,7 +264,7 @@ export default function FolioApp() {
   } = useHomeData(user?.id, user)
 
   // ── Custom Categories ──────────────────────────────────────────
-  const { customCategories, addCustomCategory } = useCustomCategories(user?.id)
+  const { customCategories, addCustomCategory, removeCustomCategory, renameCustomCategory } = useCustomCategories(user?.id)
 
   // ── Offline Sync (background retry of queued expenses) ─────────
   const {
@@ -1266,6 +1271,21 @@ export default function FolioApp() {
     )
   }
 
+  // ── Category Hub (full-screen overlay, task 138.1) ─────────────
+  if (showCategoryHub) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <CategoryHubScreen
+          customCategories={customCategories}
+          onAddCustomCategory={addCustomCategory}
+          onRemoveCustomCategory={removeCustomCategory}
+          onRenameCustomCategory={renameCustomCategory}
+          onClose={() => setShowCategoryHub(false)}
+        />
+      </div>
+    )
+  }
+
   // ── Debt Tracking (full-screen overlay) ────────────────────────
   if (flags.debtTracking && showDebt) {
     return (
@@ -1490,6 +1510,7 @@ export default function FolioApp() {
                 onAddCategorizationRule={handleAddCategorizationRule}
                 onDeleteCategorizationRule={handleDeleteCategorizationRule}
                 onOpenSharing={() => setShowSharing(true)}
+                onOpenCategoryHub={() => setShowCategoryHub(true)}
                 activeShareCount={getActiveShareLinks().length}
                 spendDownPlans={spendDownPlans}
                 onAddSpendDownPlan={addSpendDownPlan}

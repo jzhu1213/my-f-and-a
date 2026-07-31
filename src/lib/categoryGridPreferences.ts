@@ -23,6 +23,21 @@ export interface CategoryGridPreference {
   customLabel?: string
   /** User-defined emoji override (undefined = use default) */
   customEmoji?: string
+  /** Whether the category is archived (hidden from quick-log grid but keeps history) */
+  archived?: boolean
+}
+
+/**
+ * Returns whether a category is archived based on saved preferences.
+ * If no preferences are saved or the category is not found, defaults to false.
+ */
+export function isCategoryArchived(
+  prefs: CategoryGridPreference[] | null,
+  categoryId: string
+): boolean {
+  if (!prefs) return false
+  const pref = prefs.find(p => p.categoryId === categoryId)
+  return pref?.archived === true
 }
 
 /**
