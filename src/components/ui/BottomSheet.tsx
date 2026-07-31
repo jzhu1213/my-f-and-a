@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useRef, type ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { springs, timings, useReducedMotion } from "@/lib/animations"
+import { timings, useReducedMotion } from "@/lib/animations"
 
 // ============================================================================
 // Types
@@ -35,14 +35,14 @@ export interface BottomSheetProps {
 // ============================================================================
 
 /**
- * Standardized sheet spring matching animations.ts snappy preset (task 3.5).
- * ~150ms settle time for "quick in, quick out" sheet interactions.
+ * Critically-damped sheet spring — no overshoot so the sheet doesn't bounce
+ * past its resting position. Damping ratio ≥ 1 eliminates the "too high" flash.
  */
-const SHEET_SPRING = springs.snappy
+const SHEET_SPRING = { type: "spring", stiffness: 400, damping: 40 } as const
 
 const sheetVariantsFull = {
   hidden: { y: "100%" },
-  visible: { y: 0, transition: SHEET_SPRING },
+  visible: { y: "0%", transition: SHEET_SPRING },
   exit: { y: "100%", transition: timings.normal },
 }
 
@@ -227,7 +227,7 @@ export function BottomSheet({
               borderRadius: "var(--radius-lg) var(--radius-lg) 0 0",
               maxHeight,
               minHeight,
-              overflowY: "auto",
+              overflow: "hidden",
               willChange: "transform",
               transform: "translate3d(0, 0, 0)",
               paddingBottom: "max(32px, env(safe-area-inset-bottom))",
@@ -236,7 +236,10 @@ export function BottomSheet({
             {/* Drag handle */}
             <div className="sheet-handle" />
 
-            {children}
+            {/* Scrollable content wrapper */}
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+              {children}
+            </div>
           </motion.div>
         </>
       )}
