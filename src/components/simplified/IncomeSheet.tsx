@@ -46,11 +46,13 @@ interface IncomeSheetProps {
   fundingSources?: FundingSource[]
   /** User's transaction history for smart source prediction */
   transactions?: Transaction[]
+  /** Called when user wants to create a disbursement from this income (financial aid spread) */
+  onCreateDisbursement?: (data: { amount: number; coverMonths: number; label: string }) => void
 }
 
 const MAX_AMOUNT = 99999
 
-export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo, fundingSources = [], transactions = [] }: IncomeSheetProps) {
+export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo, fundingSources = [], transactions = [], onCreateDisbursement }: IncomeSheetProps) {
   const { showToast } = useToast()
   const { prefersReducedMotion } = useReducedMotion()
   const amountRef = useRef<HTMLInputElement>(null)
@@ -59,6 +61,9 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
   const [note, setNote] = useState('')
   const [showNoteField, setShowNoteField] = useState(false)
   const [isGigIncome, setIsGigIncome] = useState(false)
+  const [isFinancialAid, setIsFinancialAid] = useState(false)
+  const [showSpreadPrompt, setShowSpreadPrompt] = useState(false)
+  const [spreadMonths, setSpreadMonths] = useState(4)
 
   // ── Date picker state (task 87.2) ──────────────────────────────────────
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -76,6 +81,9 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       setNote('')
       setShowNoteField(false)
       setIsGigIncome(false)
+      setIsFinancialAid(false)
+      setShowSpreadPrompt(false)
+      setSpreadMonths(4)
       setSelectedDate(new Date().toISOString().slice(0, 10))
       setShowDatePicker(false)
       setShowCustomDateInput(false)
@@ -129,10 +137,20 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
     }
     onSubmit(data)
 
+    // If financial aid toggle is on, show spread prompt or create disbursement
+    if (isFinancialAid && onCreateDisbursement) {
+      onCreateDisbursement({
+        amount: parsed,
+        coverMonths: spreadMonths,
+        label: note.trim() || 'Financial Aid',
+      })
+    }
+
     // Show success toast with undo action
     const formatted = parsed % 1 === 0 ? `$${parsed}` : `$${parsed.toFixed(2)}`
+    const suffix = isFinancialAid ? ` (spread over ${spreadMonths}mo)` : ''
     showToast(
-      `Logged +${formatted} income ✓`,
+      `Logged +${formatted} income${suffix} ✓`,
       'success',
       onUndo ? { label: 'Undo', onClick: onUndo } : undefined
     )
@@ -143,7 +161,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
     }
 
     onClose()
-  }, [amount, note, isGigIncome, selectedSourceId, selectedDate, onSubmit, onClose, onUndo, showToast, onShowPaycheck])
+  }, [amount, note, isGigIncome, isFinancialAid, spreadMonths, selectedSourceId, selectedDate, onSubmit, onClose, onUndo, showToast, onShowPaycheck, onCreateDisbursement])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -458,6 +476,100 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                   {isGigIncome ? 'Gig / freelance income' : 'This is gig / freelance income'}
                 </button>
               </div>
+
+              {/* ── Financial Aid / Scholarship Toggle ────────────────────── */}
+              {onCreateDisbursement && (
+                <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFinancialAid(!isFinancialAid)
+                      if (!isFinancialAid) setShowSpreadPrompt(true)
+                      else setShowSpreadPrompt(false)
+                    }}
+                    aria-label={isFinancialAid ? 'Marked as financial aid' : 'Mark as financial aid or scholarship'}
+                    aria-pressed={isFinancialAid}
+                    style={{
+                      background: isFinancialAid
+                        ? 'rgba(129, 140, 248, 0.15)'
+                        : 'transparent',
+                      border: isFinancialAid
+                        ? '1px solid rgba(129, 140, 248, 0.4)'
+                        : '1px dashed rgba(255, 255, 255, 0.15)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '10px 16px',
+                      fontSize: 13,
+                      fontFamily: FONT_FAMILY,
+                      fontWeight: isFinancialAid ? 500 : 400,
+                      color: isFinancialAid ? '#818cf8' : 'var(--sub)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span style={{ fontSize: 14 }}>{isFinancialAid ? '✓' : '🎓'}</span>
+                    {isFinancialAid ? 'Financial aid / scholarship' : 'This is financial aid / scholarship'}
+                  </button>
+
+                  {/* Spread across semester prompt */}
+                  <AnimatePresence>
+                    {isFinancialAid && showSpreadPrompt && (
+                      <motion.div
+                        key="spread-prompt"
+                        initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                        animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                        exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                        transition={springs.snappy}
+                        style={{
+                          marginTop: 12,
+                          padding: '12px 16px',
+                          background: 'rgba(129, 140, 248, 0.08)',
+                          border: '1px solid rgba(129, 140, 248, 0.2)',
+                          borderRadius: 'var(--radius-md)',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <p style={{ fontSize: 13, color: 'var(--text)', margin: '0 0 10px', fontFamily: FONT_FAMILY }}>
+                          Spread this across the semester?
+                        </p>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                          {[3, 4, 5, 6].map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => setSpreadMonths(m)}
+                              aria-label={`Spread over ${m} months`}
+                              aria-pressed={spreadMonths === m}
+                              style={{
+                                padding: '6px 12px',
+                                background: spreadMonths === m
+                                  ? 'rgba(129, 140, 248, 0.2)'
+                                  : 'rgba(255, 255, 255, 0.04)',
+                                border: spreadMonths === m
+                                  ? '1px solid rgba(129, 140, 248, 0.5)'
+                                  : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: borderRadius.full,
+                                cursor: 'pointer',
+                                fontSize: 13,
+                                fontWeight: spreadMonths === m ? 600 : 400,
+                                fontFamily: FONT_FAMILY,
+                                color: spreadMonths === m ? '#818cf8' : 'var(--sub)',
+                              }}
+                            >
+                              {m}mo
+                            </button>
+                          ))}
+                        </div>
+                        <p style={{ fontSize: 11, color: 'var(--muted)', margin: '8px 0 0', fontFamily: FONT_FAMILY }}>
+                          Adds ~${amount ? Math.round(parseFloat(amount) / spreadMonths).toLocaleString('en-US') : '0'}/mo to your daily budget
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
               {/* ── Date Picker (optional, task 87.2) ────────────────────────── */}
               <div style={{ marginBottom: 28, textAlign: 'center' }}>

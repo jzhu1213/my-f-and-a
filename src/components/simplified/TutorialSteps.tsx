@@ -31,8 +31,8 @@ export const TUTORIAL_FEATURE_STEPS: TutorialStep[] = [
   {
     type: 'interactive',
     id: 'tap-allowance-hero',
-    title: 'Your daily allowance',
-    subtitle: 'One number tells you if you can afford something today.',
+    title: 'Can I afford this today?',
+    subtitle: 'This one number is your daily spending guide — tap to see the breakdown.',
     emoji: '✨',
     prompt: 'Tap the allowance card to see the breakdown.',
   },

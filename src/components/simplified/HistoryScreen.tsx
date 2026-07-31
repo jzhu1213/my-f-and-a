@@ -1,8 +1,10 @@
 "use client"
 
 import type { Transaction } from "@/types"
+import type { DailyAllowance } from "@/types/folio"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
+import { FONT_FAMILY } from "@/styles/typography"
 import { HistoryView } from "@/components/accounting/HistoryView"
 import { InsightTrendCard } from "./InsightTrendCard"
 import { InsightBreakdownCard } from "./InsightBreakdownCard"
@@ -24,6 +26,8 @@ export interface HistoryScreenProps {
   onLogExpense: () => void
   /** Called when user wants to repeat a transaction across dates (Task 93.1) */
   onRepeatTransaction?: (tx: Transaction) => void
+  /** Daily allowance data — reinforces the core "can I afford this?" identity (Task 117.1) */
+  allowance?: DailyAllowance | null
 }
 
 // ============================================================================
@@ -45,9 +49,44 @@ export function HistoryScreen({
   onDeleteTransaction,
   onLogExpense,
   onRepeatTransaction,
+  allowance,
 }: HistoryScreenProps) {
   return (
     <div className="history-screen">
+      {/* Compact daily allowance reinforcement — keeps the core identity visible (Task 117.1) */}
+      {allowance && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            padding: "10px 16px 2px",
+            fontFamily: FONT_FAMILY,
+          }}
+          aria-label={`Today's remaining: $${Math.round(allowance.amount)}`}
+        >
+          <span
+            style={{
+              fontSize: 13,
+              color: "var(--sub)",
+              fontWeight: 400,
+            }}
+          >
+            Today&rsquo;s budget:
+          </span>
+          <span
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              color: allowance.amount > 0 ? "var(--success)" : "var(--error)",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            ${Math.round(allowance.amount)}
+          </span>
+        </div>
+      )}
       {/* Month-over-month trend insight (Requirement 9.4) */}
       <div style={{ padding: "12px 16px 0" }}>
         <InsightTrendCard transactions={transactions} />

@@ -24,6 +24,8 @@ export type TransactionCategory =
   | 'transport'
   | 'school'
   | 'fun'
+  | 'health'
+  | 'subscriptions'
   | 'gig'
   | 'income'
   | 'other'
@@ -110,7 +112,7 @@ export interface Budget {
    *
    * Absent/undefined behaves identically to `'monthly'` (fully backward-compatible).
    */
-  period?: 'monthly' | 'weekly' | 'payday_aligned'
+  period?: 'monthly' | 'weekly' | 'payday_aligned' | 'semester'
   /**
    * Optional per-transaction alert threshold (in dollars).
    * When a single expense for this category exceeds this amount,
@@ -121,20 +123,24 @@ export interface Budget {
 }
 
 export const BUDGET_CATEGORIES: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: 'food', emoji: '🍔', label: 'Food' },
-  { category: 'rent', emoji: '🏠', label: 'Rent' },
-  { category: 'transport', emoji: '🚌', label: 'Transport' },
+  { category: 'food', emoji: '🍕', label: 'Food & Drinks' },
+  { category: 'rent', emoji: '🏠', label: 'Rent & Bills' },
+  { category: 'transport', emoji: '🚲', label: 'Getting Around' },
   { category: 'school', emoji: '📚', label: 'School' },
-  { category: 'fun', emoji: '🎉', label: 'Social' },
+  { category: 'fun', emoji: '🎶', label: 'Going Out' },
+  { category: 'health', emoji: '💪', label: 'Health' },
+  { category: 'subscriptions', emoji: '🔄', label: 'Subscriptions' },
   { category: 'other', emoji: '📦', label: 'Other' },
 ]
 
 export const TRANSACTION_CATEGORIES: { category: TransactionCategory; emoji: string; label: string; type: TransactionType }[] = [
-  { category: 'food', emoji: '🍔', label: 'Food', type: 'expense' },
-  { category: 'rent', emoji: '🏠', label: 'Rent', type: 'expense' },
-  { category: 'transport', emoji: '🚌', label: 'Transport', type: 'expense' },
+  { category: 'food', emoji: '🍕', label: 'Food & Drinks', type: 'expense' },
+  { category: 'rent', emoji: '🏠', label: 'Rent & Bills', type: 'expense' },
+  { category: 'transport', emoji: '🚲', label: 'Getting Around', type: 'expense' },
   { category: 'school', emoji: '📚', label: 'School', type: 'expense' },
-  { category: 'fun', emoji: '🎉', label: 'Social', type: 'expense' },
+  { category: 'fun', emoji: '🎶', label: 'Going Out', type: 'expense' },
+  { category: 'health', emoji: '💪', label: 'Health', type: 'expense' },
+  { category: 'subscriptions', emoji: '🔄', label: 'Subscriptions', type: 'expense' },
   { category: 'other', emoji: '📦', label: 'Other', type: 'expense' },
   { category: 'income', emoji: '⚡', label: 'Other Pay', type: 'income' },
   { category: 'income', emoji: '💵', label: 'Paycheck', type: 'income' },

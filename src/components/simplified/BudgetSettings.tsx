@@ -45,18 +45,18 @@ function saveLimitType(category: TransactionCategory, type: "soft" | "hard"): vo
 
 const BUDGET_PERIODS_STORAGE_KEY = "folio-budget-periods"
 
-function loadBudgetPeriods(): Record<string, "monthly" | "weekly" | "payday_aligned"> {
+function loadBudgetPeriods(): Record<string, "monthly" | "weekly" | "payday_aligned" | "semester"> {
   if (typeof window === "undefined") return {}
   try {
     const raw = localStorage.getItem(BUDGET_PERIODS_STORAGE_KEY)
     if (!raw) return {}
-    return JSON.parse(raw) as Record<string, "monthly" | "weekly" | "payday_aligned">
+    return JSON.parse(raw) as Record<string, "monthly" | "weekly" | "payday_aligned" | "semester">
   } catch {
     return {}
   }
 }
 
-function saveBudgetPeriod(category: TransactionCategory, period: "monthly" | "weekly" | "payday_aligned"): void {
+function saveBudgetPeriod(category: TransactionCategory, period: "monthly" | "weekly" | "payday_aligned" | "semester"): void {
   if (typeof window === "undefined") return
   try {
     const existing = loadBudgetPeriods()
@@ -119,7 +119,7 @@ export interface BudgetSettingsProps {
    * Optional — if not provided, period changes are still persisted to
    * localStorage but the parent is not notified.
    */
-  onUpdatePeriod?: (category: TransactionCategory, period: "monthly" | "weekly" | "payday_aligned") => void
+  onUpdatePeriod?: (category: TransactionCategory, period: "monthly" | "weekly" | "payday_aligned" | "semester") => void
   /**
    * Called when user changes the per-transaction alert threshold for a category.
    * Optional — if not provided, alert changes are still persisted to
@@ -169,7 +169,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
   const [expandedCategory, setExpandedCategory] = useState<TransactionCategory | null>(null)
   const [localLimits, setLocalLimits] = useState<Record<string, number>>({})
   const [limitTypes, setLimitTypes] = useState<Record<string, "soft" | "hard">>({})
-  const [budgetPeriods, setBudgetPeriods] = useState<Record<string, "monthly" | "weekly" | "payday_aligned">>({})
+  const [budgetPeriods, setBudgetPeriods] = useState<Record<string, "monthly" | "weekly" | "payday_aligned" | "semester">>({})
   const [perTxAlerts, setPerTxAlerts] = useState<Record<string, number>>({})
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [rolloverEnabled, setRolloverEnabled] = useState(false)
@@ -231,7 +231,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
 
   // ── Get the period for a category ─────────────────────────────────────────
   const getBudgetPeriod = useCallback(
-    (category: TransactionCategory): "monthly" | "weekly" | "payday_aligned" => {
+    (category: TransactionCategory): "monthly" | "weekly" | "payday_aligned" | "semester" => {
       return budgetPeriods[category] ?? budgets.find(b => b.category === category)?.period ?? "monthly"
     },
     [budgets, budgetPeriods]
@@ -239,7 +239,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
 
   // ── Handle period toggle ──────────────────────────────────────────────────
   const handlePeriodChange = useCallback(
-    (category: TransactionCategory, period: "monthly" | "weekly" | "payday_aligned") => {
+    (category: TransactionCategory, period: "monthly" | "weekly" | "payday_aligned" | "semester") => {
       setBudgetPeriods(prev => ({ ...prev, [category]: period }))
       saveBudgetPeriod(category, period)
       onUpdatePeriod?.(category, period)
@@ -458,6 +458,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
           const currentPeriod = getBudgetPeriod(cat.category)
           const isWeekly = currentPeriod === "weekly"
           const isPaydayAligned = currentPeriod === "payday_aligned"
+          const isSemester = currentPeriod === "semester"
           // When weekly: the limit IS the weekly amount; monthly equiv = limit × 4.33
           // When monthly or payday_aligned: weekly equiv = limit / 4.33
           const weeklyEquiv = isWeekly ? limit : limit / 4.33
@@ -803,19 +804,19 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                           <div
                             role="group"
                             aria-label={`Budget period for ${cat.label}`}
-                            style={{ ...segmentedControl, maxWidth: paySchedule ? 330 : 220 }}
+                            style={{ ...segmentedControl, maxWidth: paySchedule ? 400 : 290 }}
                           >
                             <motion.button
                               onClick={() => handlePeriodChange(cat.category, "monthly")}
                               whileTap={{ scale: 0.96 }}
                               transition={springs.bouncy}
                               role="radio"
-                              aria-checked={!isWeekly && !isPaydayAligned}
+                              aria-checked={!isWeekly && !isPaydayAligned && !isSemester}
                               style={{
                                 ...segmentedButtonBase,
-                                background: !isWeekly && !isPaydayAligned ? "rgba(255,255,255,0.08)" : "transparent",
-                                color: !isWeekly && !isPaydayAligned ? "var(--text)" : "var(--muted)",
-                                boxShadow: !isWeekly && !isPaydayAligned ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                                background: !isWeekly && !isPaydayAligned && !isSemester ? "rgba(255,255,255,0.08)" : "transparent",
+                                color: !isWeekly && !isPaydayAligned && !isSemester ? "var(--text)" : "var(--muted)",
+                                boxShadow: !isWeekly && !isPaydayAligned && !isSemester ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
                               }}
                             >
                               Monthly
@@ -852,6 +853,21 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                 Payday cycle
                               </motion.button>
                             )}
+                            <motion.button
+                              onClick={() => handlePeriodChange(cat.category, "semester")}
+                              whileTap={{ scale: 0.96 }}
+                              transition={springs.bouncy}
+                              role="radio"
+                              aria-checked={isSemester}
+                              style={{
+                                ...segmentedButtonBase,
+                                background: isSemester ? "rgba(251, 191, 36, 0.15)" : "transparent",
+                                color: isSemester ? "var(--warning)" : "var(--muted)",
+                                boxShadow: isSemester ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                              }}
+                            >
+                              Semester
+                            </motion.button>
                           </div>
                           <p
                             style={{
@@ -866,7 +882,9 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                               ? `$${limit}/week — tracked on a 7-day rolling basis.`
                               : isPaydayAligned
                                 ? `Resets with each paycheck — your daily budget adjusts to your pay cycle.`
-                                : `$${limit}/month — divided into weekly chunks automatically.`}
+                                : isSemester
+                                  ? `Spreads across your whole term — make this last until the end.`
+                                  : `$${limit}/month — divided into weekly chunks automatically.`}
                           </p>
                         </div>
                       )}

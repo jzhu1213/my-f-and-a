@@ -48,7 +48,7 @@ const STATUS_CONFIG: Record<AllowanceStatus, { label: string; color: string; emo
     bg: "rgba(245, 158, 11, 0.1)",
   },
   over: {
-    label: "Over budget today",
+    label: "A little over today",
     color: "rgba(248, 113, 113, 1)",
     emoji: "↑",
     bg: "rgba(248, 113, 113, 0.08)",

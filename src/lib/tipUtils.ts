@@ -5,6 +5,7 @@ import { TIP_EMOJI, TIP_TITLES } from '@/lib/vocabulary'
 import type { SpendingMode } from '@/lib/spendingModes'
 import type { DetectedSubscription, SubscriptionAlert } from '@/lib/subscriptionDetector'
 import { getSubscriptionAlerts } from '@/lib/subscriptionDetector'
+import { getUnreadMicroLessons } from '@/lib/microLessons'
 
 // ============================================================================
 // Tip Cooldown & Throttle (Task 75)
@@ -364,6 +365,7 @@ export function selectContextualTip(
       emoji: TIP_EMOJI.celebration,
       priority: 'high',
       triggerCondition: { type: 'under_budget_streak', days: context.underBudgetStreak },
+      relatedLessonId: 'budgeting-101',
     })
   }
 
@@ -380,6 +382,7 @@ export function selectContextualTip(
       actionLabel: 'See breakdown',
       actionType: 'view_insight',
       triggerCondition: { type: 'over_budget_today' },
+      relatedLessonId: 'budgeting-101',
     })
   }
 
@@ -401,6 +404,7 @@ export function selectContextualTip(
       actionLabel: 'See breakdown',
       actionType: 'view_insight',
       triggerCondition: { type: 'category_spike', category: context.topCategory, percentIncrease: 80 },
+      relatedLessonId: 'budgeting-101',
     })
   }
 
@@ -450,6 +454,7 @@ export function selectContextualTip(
           type: 'burn_rate_warning',
           projectedOverspend: projectedSpend - context.discretionaryPoolRemaining,
         },
+        relatedLessonId: 'budgeting-101',
       })
     }
   }
@@ -629,6 +634,7 @@ export function selectContextualTip(
       actionLabel: 'See breakdown',
       actionType: 'view_insight',
       triggerCondition: { type: 'source_breakdown', creditPercent, creditTotal, monthlyIncome },
+      relatedLessonId: 'credit-cards',
     })
   }
 
@@ -643,7 +649,33 @@ export function selectContextualTip(
       emoji: TIP_EMOJI.did_you_know,
       priority: 'low',
       triggerCondition: { type: 'first_goal_progress' },
+      relatedLessonId: 'budgeting-101',
     })
+  }
+
+  // Step 3b: Micro-lesson tip — surface an unread micro-lesson as educational content
+  // when the user has enough transaction history (≥10) but no higher-priority tip fires.
+  // Picks a random unread micro-lesson to keep it fresh. Low priority ensures it
+  // never competes with celebrations, nudges, or bills-due reminders.
+  if (context.totalTransactions >= 10) {
+    const unreadMicro = getUnreadMicroLessons()
+    if (unreadMicro.length > 0) {
+      // Deterministic pick based on day-of-year to avoid flicker across re-renders
+      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
+      const pick = unreadMicro[dayOfYear % unreadMicro.length]
+      candidates.push({
+        id: `micro-lesson-${pick.id}`,
+        type: 'did_you_know',
+        title: pick.title,
+        message: pick.content,
+        emoji: pick.emoji,
+        actionLabel: 'Learn more',
+        actionType: 'learn_more',
+        priority: 'low',
+        triggerCondition: { type: 'weekly_summary' },
+        relatedLessonId: pick.relatedLessonId,
+      })
+    }
   }
 
   // Step 4: Filter out previously dismissed tips

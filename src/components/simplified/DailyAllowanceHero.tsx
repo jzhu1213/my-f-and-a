@@ -866,7 +866,7 @@ export function DailyAllowanceHero({
                           <strong style={{ color: "var(--text)" }}>Daily budget</strong> = (monthly income − fixed bills) ÷ days in month
                         </li>
                         <li>
-                          <strong style={{ color: "var(--text)" }}>Rollover</strong> = what you saved or overspent from previous days (capped at ±2 days)
+                          <strong style={{ color: "var(--text)" }}>Rollover</strong> = what you saved or spent extra from previous days (capped at ±2 days)
                         </li>
                         <li>
                           <strong style={{ color: "var(--text)" }}>Today&apos;s allowance</strong> = daily budget + rollover − spent today

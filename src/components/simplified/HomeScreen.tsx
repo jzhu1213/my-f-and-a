@@ -48,6 +48,8 @@ import { CategoryDetailSheet } from "@/components/accounting/CategoryDetailSheet
 import { SwipeableTransactionRow } from "./SwipeableTransactionRow"
 import { InlineTransactionEditor } from "./InlineTransactionEditor"
 import { PullToRefresh } from "./PullToRefresh"
+import { TimeHorizonPills } from "./TimeHorizonPills"
+import type { TimeHorizonStats } from "@/lib/timeHorizonStats"
 import { AffordabilitySheet } from "./AffordabilitySheet"
 import { WelcomeBackBadge } from "./WelcomeBackBadge"
 import { IncomeAnchorBanner } from "./IncomeAnchorBanner"
@@ -248,17 +250,27 @@ export interface HomeScreenProps {
   /** Pre-computed weekend allowance data from useHomeData */
   weekendAllowance?: { weekendAmount: number; label: string; daysUntilWeekend: number } | null
 
+  // ── Time horizon stats (task 128.1) ────────────────────────────────────────
+  /** Unified time-horizon stats for secondary pills below the hero */
+  timeHorizonStats?: TimeHorizonStats
+
   // ── Navigation helpers for empty states ────────────────────────────────────
   /** Called when user taps the CTA in the "no budgets" empty state */
   onOpenBudgetSettings?: () => void
   /** Called when user taps the "Split" quick action (task 5.3 — one-tap split) */
   onOpenSplitExpense?: () => void
 
+  // ── Lessons navigation (task 118.1) ────────────────────────────────────────
+  /** Called when a contextual tip links to a lesson — navigates to the Learn overlay */
+  onOpenLesson?: (lessonId: string) => void
+
   // ── Outstanding Splits (task 5.3 — who-owes-whom summary) ──────────────────
   /** Outstanding split balances: positive = they owe you */
   outstandingSplits?: { name: string; amount: number }[]
   /** Called when user taps the outstanding splits summary to see full ledger */
   onOpenReimbursements?: () => void
+  /** Called when user taps "Settled?" on a split — settles all IOUs for that person (task 123.1) */
+  onSettleSplit?: (personName: string) => void
   /** Set of transaction IDs that were split (for badge display) */
   splitTransactionIds?: Set<string>
 
@@ -283,6 +295,8 @@ export interface HomeScreenProps {
    * - headsup: one calm line + a small actionable chip
    */
   overLimitResponse?: import('@/lib/spendingModes').OverLimitResponse
+  /** Active spend-down plan result (for compact indicator below the hero) */
+  activeSpendDown?: import('@/lib/spendDown').SpendDownResult | null
 }
 
 // ============================================================================
@@ -331,10 +345,13 @@ export function HomeScreen({
   upcomingBills,
   detectedSubscriptions,
   weekendAllowance,
+  timeHorizonStats,
   onOpenBudgetSettings,
   onOpenSplitExpense,
+  onOpenLesson,
   outstandingSplits,
   onOpenReimbursements,
+  onSettleSplit,
   splitTransactionIds,
   showIncomeAnchorBanner,
   onIncomeAnchorSetItNow,
@@ -343,6 +360,7 @@ export function HomeScreen({
   heroMeaning,
   heroDisplay,
   overLimitResponse = 'gentle',
+  activeSpendDown,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -875,11 +893,14 @@ export function HomeScreen({
             )}
           </AnimatePresence>
 
-          {/* ── Weekend allowance pill (task 5.1) — only Fri/Sat/Sun ───── */}
-          {weekendAllowance && weekendAllowance.daysUntilWeekend === 0 && (
+          {/* ── Time horizon pills (task 128.1) — weekend, payday, term ── */}
+          {timeHorizonStats && <TimeHorizonPills stats={timeHorizonStats} />}
+
+          {/* ── Spend-down plan indicator (task 122.1) ────────────────── */}
+          {activeSpendDown && (
             <motion.div
               role="status"
-              aria-label={`${weekendAllowance.label}: $${weekendAllowance.weekendAmount} safe to spend`}
+              aria-label={`${activeSpendDown.label}: $${activeSpendDown.dailyAmount} per day, $${activeSpendDown.remaining} left`}
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={timings.normal}
@@ -899,7 +920,7 @@ export function HomeScreen({
                 marginRight: 'auto',
               }}
             >
-              <span style={{ fontSize: 13 }} aria-hidden="true">🎉</span>
+              <span style={{ fontSize: 13 }} aria-hidden="true">💰</span>
               <span
                 style={{
                   fontSize: 12,
@@ -908,7 +929,17 @@ export function HomeScreen({
                   opacity: 0.85,
                 }}
               >
-                ${weekendAllowance.weekendAmount} {weekendAllowance.label.toLowerCase()}
+                ${activeSpendDown.dailyAmount}/day • ${activeSpendDown.remaining} left
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  color: activeSpendDown.onTrack ? 'var(--success, #4ade80)' : 'var(--warning, #fbbf24)',
+                  fontFamily: FONT_FAMILY,
+                  marginLeft: 2,
+                }}
+              >
+                {activeSpendDown.onTrack ? 'On track ✓' : 'A bit ahead of pace'}
               </span>
             </motion.div>
           )}
@@ -978,7 +1009,7 @@ export function HomeScreen({
           </div>
 
           {/* Tertiary: Can I afford this? — subtle text link below primary buttons */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 8 }}>
             {onOpenSplitExpense && (
               <button
                 type="button"
@@ -987,14 +1018,16 @@ export function HomeScreen({
                 style={{
                   fontSize: 13,
                   color: 'var(--sub)',
-                  background: 'none',
-                  border: 'none',
+                  background: 'rgba(129, 140, 248, 0.06)',
+                  border: '1px solid rgba(129, 140, 248, 0.15)',
+                  borderRadius: borderRadius.full,
+                  padding: '6px 14px',
                   cursor: 'pointer',
                   fontFamily: FONT_FAMILY,
-                  opacity: 0.7,
+                  fontWeight: 500,
                 }}
               >
-                ✂️ Split
+                🤝 Split
               </button>
             )}
             <button
@@ -1004,11 +1037,13 @@ export function HomeScreen({
               style={{
                 fontSize: 13,
                 color: 'var(--sub)',
-                background: 'none',
-                border: 'none',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: borderRadius.full,
+                padding: '6px 14px',
                 cursor: 'pointer',
                 fontFamily: FONT_FAMILY,
-                opacity: 0.7,
+                fontWeight: 500,
               }}
             >
               🤔 Can I afford this?
@@ -1016,55 +1051,94 @@ export function HomeScreen({
           </div>
         </section>
 
-        {/* ── Outstanding Splits Summary (task 5.3 — who-owes-whom) ── */}
+        {/* ── Outstanding Splits Summary (task 5.3 + 123.1 — one-tap settle) ── */}
         {outstandingSplits && outstandingSplits.length > 0 && (
-          <button
-            type="button"
-            onClick={onOpenReimbursements}
-            aria-label="View outstanding splits"
+          <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
               width: '100%',
-              padding: '10px 16px',
               marginTop: 4,
               background: 'rgba(129, 140, 248, 0.05)',
               border: '1px solid rgba(129, 140, 248, 0.15)',
               borderRadius: borderRadius.md,
-              cursor: 'pointer',
-              transition: 'background 0.15s ease',
+              overflow: 'hidden',
             }}
           >
-            <span style={{ fontSize: 14 }} aria-hidden="true">💸</span>
-            <span
-              style={{
-                flex: 1,
-                fontFamily: FONT_FAMILY,
-                fontSize: 13,
-                fontWeight: 500,
-                color: 'var(--sub)',
-                textAlign: 'left',
-              }}
-            >
-              {outstandingSplits.length === 1
-                ? `${outstandingSplits[0].name} owes you $${outstandingSplits[0].amount.toFixed(2)}`
-                : `Friends owe you $${outstandingSplits.reduce((s, p) => s + p.amount, 0).toFixed(2)}`}
-            </span>
-            {outstandingSplits.length > 1 && (
-              <span
+            {outstandingSplits.slice(0, 3).map((split, idx) => (
+              <div
+                key={split.name}
                 style={{
-                  fontFamily: FONT_FAMILY,
-                  fontSize: 11,
-                  color: 'var(--sub)',
-                  opacity: 0.6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 16px',
+                  borderTop: idx > 0 ? '1px solid rgba(255, 255, 255, 0.04)' : undefined,
                 }}
               >
-                {outstandingSplits.length} people
-              </span>
+                <span style={{ fontSize: 14 }} aria-hidden="true">💸</span>
+                <span
+                  style={{
+                    flex: 1,
+                    fontFamily: FONT_FAMILY,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--sub)',
+                    textAlign: 'left',
+                  }}
+                >
+                  {split.name} owes you ${split.amount % 1 === 0 ? split.amount : split.amount.toFixed(2)}
+                </span>
+                {onSettleSplit && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSettleSplit(split.name)
+                    }}
+                    aria-label={`Mark ${split.name}'s split as settled`}
+                    style={{
+                      fontSize: 11,
+                      fontFamily: FONT_FAMILY,
+                      fontWeight: 600,
+                      color: 'var(--success, #4ade80)',
+                      background: 'rgba(74, 222, 128, 0.08)',
+                      border: '1px solid rgba(74, 222, 128, 0.2)',
+                      borderRadius: borderRadius.full,
+                      padding: '4px 10px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Settled? ✓
+                  </button>
+                )}
+              </div>
+            ))}
+            {outstandingSplits.length > 3 && (
+              <button
+                type="button"
+                onClick={onOpenReimbursements}
+                aria-label="View all outstanding splits"
+                style={{
+                  width: '100%',
+                  padding: '8px 16px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+                  background: 'transparent',
+                  border: 'none',
+                  borderTopStyle: 'solid',
+                  borderTopWidth: 1,
+                  borderTopColor: 'rgba(255, 255, 255, 0.04)',
+                  cursor: 'pointer',
+                  fontFamily: FONT_FAMILY,
+                  fontSize: 12,
+                  color: 'var(--sub)',
+                  opacity: 0.7,
+                  textAlign: 'center',
+                }}
+              >
+                View all ({outstandingSplits.length}) →
+              </button>
             )}
-            <span style={{ fontSize: 12, color: 'var(--sub)', opacity: 0.5 }}>→</span>
-          </button>
+          </div>
         )}
 
         {/* ══════════════════════════════════════════════════════════
@@ -1138,8 +1212,16 @@ export function HomeScreen({
             <ContextualTipCard
               tip={activeTip}
               onDismiss={handleDismissTip}
-              onLearnMore={() => {}}
-              onActionComplete={() => {}}
+              onLearnMore={() => {
+                if (activeTip.relatedLessonId && onOpenLesson) {
+                  onOpenLesson(activeTip.relatedLessonId)
+                }
+              }}
+              onActionComplete={() => {
+                if (activeTip.actionType === 'learn_more' && activeTip.relatedLessonId && onOpenLesson) {
+                  onOpenLesson(activeTip.relatedLessonId)
+                }
+              }}
             />
           )}
         </AnimatePresence>

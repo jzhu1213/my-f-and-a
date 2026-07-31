@@ -36,6 +36,9 @@ import { useFeatureFlags } from "@/hooks/useFeatureFlags"
 import type { FeatureFlags } from "@/lib/featureFlags"
 import type { CategorizationRule } from "@/lib/categorizationRules"
 import { getCategoryEmoji } from "@/lib/vocabulary"
+import type { TermSchedule } from "@/lib/termSchedule"
+import { TERM_PRESETS, isTermActive, getDaysRemainingInTerm, getTermProgress } from "@/lib/termSchedule"
+import { formatDateLocal, addDaysLocal } from "@/lib/dateUtils"
 
 // ============================================================================
 // Types
@@ -77,6 +80,20 @@ export interface SettingsScreenProps {
   onOpenSharing?: () => void
   /** Number of active share links (task 115.1) */
   activeShareCount?: number
+  /** Current term schedule (task 121.1) */
+  termSchedule?: TermSchedule | null
+  /** Callback to set/clear the term schedule (task 121.1) */
+  onSetTermSchedule?: (schedule: TermSchedule | null) => void
+  /** Whether any budget has period === 'semester' (task 121.1) */
+  hasTermBudget?: boolean
+  /** Spend-down plans (task 122.1) */
+  spendDownPlans?: import('@/lib/spendDown').SpendDownPlan[]
+  /** Callback to add a new spend-down plan (task 122.1) */
+  onAddSpendDownPlan?: (data: Omit<import('@/lib/spendDown').SpendDownPlan, 'id'>) => import('@/lib/spendDown').SpendDownPlan
+  /** Callback to remove a spend-down plan (task 122.1) */
+  onRemoveSpendDownPlan?: (id: string) => void
+  /** Existing disbursements (for "from a disbursement" quick preset) */
+  disbursements?: import('@/lib/disbursements').Disbursement[]
 }
 
 // ============================================================================
@@ -232,6 +249,13 @@ export function SettingsScreen({
   onDeleteCategorizationRule,
   onOpenSharing,
   activeShareCount = 0,
+  termSchedule,
+  onSetTermSchedule,
+  hasTermBudget = false,
+  spendDownPlans = [],
+  onAddSpendDownPlan,
+  onRemoveSpendDownPlan,
+  disbursements = [],
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -244,6 +268,19 @@ export function SettingsScreen({
   const [showAddRuleForm, setShowAddRuleForm] = useState(false)
   const [newRuleKeyword, setNewRuleKeyword] = useState("")
   const [newRuleCategory, setNewRuleCategory] = useState<TransactionCategory>("food")
+
+  // ── Term schedule form state (task 121.1) ─────────────────────────────
+  const [showTermSetup, setShowTermSetup] = useState(false)
+  const [termStartDate, setTermStartDate] = useState("")
+  const [termEndDate, setTermEndDate] = useState("")
+  const [termLabel, setTermLabel] = useState("")
+
+  // ── Spend-down plan form state (task 122.1) ────────────────────────────
+  const [showSpendDownForm, setShowSpendDownForm] = useState(false)
+  const [sdLabel, setSdLabel] = useState("")
+  const [sdAmount, setSdAmount] = useState("")
+  const [sdEndDate, setSdEndDate] = useState("")
+  const [sdEmoji, setSdEmoji] = useState("💰")
 
   // Resolve active spending mode — default to 'guided' when not provided
   const spendingMode: SpendingMode = spendingModeProp ?? 'guided'
@@ -642,6 +679,460 @@ export function SettingsScreen({
               )
             })}
           </div>
+        </GlassCard>
+      )}
+
+      {/* ── Academic Term (task 121.1) ─────────────────────────────────────── */}
+      {onSetTermSchedule && (hasTermBudget || termSchedule) && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+            📚 Academic Term
+          </p>
+
+          {termSchedule && isTermActive(termSchedule, new Date()) ? (
+            <>
+              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 10, lineHeight: 1.5 }}>
+                {termSchedule.label || "Current term"} — {getDaysRemainingInTerm(termSchedule, new Date())} days left
+              </p>
+              {/* Progress bar */}
+              <div style={{
+                height: 6,
+                borderRadius: 3,
+                background: "rgba(255,255,255,0.08)",
+                marginBottom: 14,
+                overflow: "hidden",
+              }}>
+                <div style={{
+                  height: "100%",
+                  borderRadius: 3,
+                  width: `${Math.round(getTermProgress(termSchedule, new Date()) * 100)}%`,
+                  background: "var(--accent, #818cf8)",
+                  transition: "width 0.3s ease",
+                }} />
+              </div>
+              <motion.button
+                onClick={() => onSetTermSchedule(null)}
+                whileTap={{ scale: 0.97 }}
+                transition={springs.snappy}
+                style={{ ...linkButton, color: "var(--error, #f87171)" }}
+                aria-label="Clear term schedule"
+              >
+                Clear term
+              </motion.button>
+            </>
+          ) : termSchedule && !isTermActive(termSchedule, new Date()) ? (
+            <>
+              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 10, lineHeight: 1.5 }}>
+                Your term has ended. Set up a new one to keep your budget on track.
+              </p>
+              <motion.button
+                onClick={() => { setShowTermSetup(true); setTermStartDate(""); setTermEndDate(""); setTermLabel(""); }}
+                whileTap={{ scale: 0.97 }}
+                transition={springs.snappy}
+                style={linkButton}
+                aria-label="Set up a new term"
+              >
+                Set up a new term →
+              </motion.button>
+            </>
+          ) : !showTermSetup ? (
+            <>
+              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 10, lineHeight: 1.5 }}>
+                Set a semester budget period to make your money last the whole term.
+              </p>
+              <motion.button
+                onClick={() => setShowTermSetup(true)}
+                whileTap={{ scale: 0.97 }}
+                transition={springs.snappy}
+                style={linkButton}
+                aria-label="Set up a term"
+              >
+                Set up a term →
+              </motion.button>
+            </>
+          ) : (
+            <>
+              {/* Quick presets */}
+              <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 8 }}>Quick start:</p>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                {TERM_PRESETS.map(preset => (
+                  <motion.button
+                    key={preset.label}
+                    onClick={() => {
+                      const start = new Date()
+                      const end = addDaysLocal(start, preset.durationWeeks * 7 - 1)
+                      setTermStartDate(formatDateLocal(start))
+                      setTermEndDate(formatDateLocal(end))
+                      setTermLabel(preset.label)
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={springs.snappy}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "var(--text)",
+                      fontSize: 12,
+                      cursor: "pointer",
+                      fontFamily: FONT_FAMILY,
+                    }}
+                    aria-label={`Use ${preset.label} preset`}
+                  >
+                    {preset.emoji} {preset.label}
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* Date inputs */}
+              <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, color: "var(--sub)", display: "block", marginBottom: 4 }}>Start date</label>
+                  <input
+                    type="date"
+                    value={termStartDate}
+                    onChange={e => setTermStartDate(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "var(--text)",
+                      fontSize: 13,
+                      fontFamily: FONT_FAMILY,
+                    }}
+                    aria-label="Term start date"
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, color: "var(--sub)", display: "block", marginBottom: 4 }}>End date</label>
+                  <input
+                    type="date"
+                    value={termEndDate}
+                    onChange={e => setTermEndDate(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "var(--text)",
+                      fontSize: 13,
+                      fontFamily: FONT_FAMILY,
+                    }}
+                    aria-label="Term end date"
+                  />
+                </div>
+              </div>
+
+              {/* Optional label */}
+              <input
+                type="text"
+                value={termLabel}
+                onChange={e => setTermLabel(e.target.value)}
+                placeholder="Label (optional, e.g. Fall 2025)"
+                maxLength={30}
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "var(--text)",
+                  fontSize: 13,
+                  fontFamily: FONT_FAMILY,
+                  marginBottom: 14,
+                }}
+                aria-label="Term label"
+              />
+
+              {/* Action buttons */}
+              <div style={{ display: "flex", gap: 10 }}>
+                <motion.button
+                  onClick={() => {
+                    if (termStartDate && termEndDate && termStartDate < termEndDate) {
+                      onSetTermSchedule({
+                        startDate: termStartDate,
+                        endDate: termEndDate,
+                        label: termLabel || undefined,
+                      })
+                      setShowTermSetup(false)
+                    }
+                  }}
+                  disabled={!termStartDate || !termEndDate || termStartDate >= termEndDate}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={{
+                    ...linkButton,
+                    opacity: (!termStartDate || !termEndDate || termStartDate >= termEndDate) ? 0.4 : 1,
+                  }}
+                  aria-label="Save term schedule"
+                >
+                  Save
+                </motion.button>
+                <motion.button
+                  onClick={() => setShowTermSetup(false)}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={{ ...linkButton, color: "var(--sub)" }}
+                  aria-label="Cancel term setup"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </>
+          )}
+        </GlassCard>
+      )}
+
+      {/* ── Spend-Down Plans (task 122.1) ─────────────────────────────── */}
+      {onAddSpendDownPlan && (
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+            💰 Spend-Down Plans
+          </p>
+          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 12, lineHeight: 1.5 }}>
+            Got a lump sum? Set a target date and we'll show you a safe daily amount.
+          </p>
+
+          {/* Active plans list */}
+          {spendDownPlans.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              {spendDownPlans.map(plan => {
+                const now = new Date()
+                const todayStr = now.toISOString().slice(0, 10)
+                const isActive = todayStr >= plan.startDate && todayStr <= plan.endDate
+                const isExpired = todayStr > plan.endDate
+                return (
+                  <div
+                    key={plan.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 0",
+                      borderBottom: "1px solid rgba(255,255,255,0.06)",
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: 14, color: "var(--text)" }}>
+                        {plan.emoji} {plan.label}
+                      </span>
+                      <br />
+                      <span style={{ fontSize: 12, color: "var(--sub)" }}>
+                        ${plan.totalAmount.toLocaleString()} until {plan.endDate}
+                        {isActive && " • Active"}
+                        {isExpired && " • Ended"}
+                      </span>
+                    </div>
+                    {onRemoveSpendDownPlan && (
+                      <motion.button
+                        onClick={() => onRemoveSpendDownPlan(plan.id)}
+                        whileTap={{ scale: 0.95 }}
+                        transition={springs.snappy}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "var(--error, #f87171)",
+                          fontSize: 12,
+                          cursor: "pointer",
+                          padding: "4px 8px",
+                        }}
+                        aria-label={`Remove ${plan.label} plan`}
+                      >
+                        Remove
+                      </motion.button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Add plan form */}
+          {showSpendDownForm ? (
+            <div style={{ marginTop: 8 }}>
+              {/* Quick preset: from a disbursement */}
+              {disbursements.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 6 }}>
+                    Quick fill from a disbursement:
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {disbursements.slice(0, 3).map(d => (
+                      <motion.button
+                        key={d.id}
+                        onClick={() => {
+                          setSdLabel(d.label)
+                          setSdAmount(String(d.amount))
+                          setSdEmoji(d.emoji)
+                          // End date = start + coverMonths
+                          const parts = d.startDate.split('-').map(Number)
+                          if (parts.length === 3) {
+                            const end = new Date(parts[0], parts[1] - 1 + d.coverMonths, parts[2])
+                            setSdEndDate(end.toISOString().slice(0, 10))
+                          }
+                        }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={springs.snappy}
+                        style={{
+                          background: "rgba(129, 140, 248, 0.1)",
+                          border: "1px solid rgba(129, 140, 248, 0.2)",
+                          borderRadius: 8,
+                          padding: "4px 10px",
+                          fontSize: 12,
+                          color: "var(--accent, #818cf8)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {d.emoji} {d.label}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <label style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}>
+                Label
+              </label>
+              <input
+                type="text"
+                value={sdLabel}
+                onChange={e => setSdLabel(e.target.value)}
+                placeholder="e.g. Fall Aid Refund"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 8,
+                  color: "var(--text)",
+                  marginBottom: 10,
+                  outline: "none",
+                }}
+              />
+
+              <label style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}>
+                Total Amount ($)
+              </label>
+              <input
+                type="number"
+                value={sdAmount}
+                onChange={e => setSdAmount(e.target.value)}
+                placeholder="3000"
+                min="1"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 8,
+                  color: "var(--text)",
+                  marginBottom: 10,
+                  outline: "none",
+                }}
+              />
+
+              <label style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}>
+                Make it last until
+              </label>
+              <input
+                type="date"
+                value={sdEndDate}
+                onChange={e => setSdEndDate(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 8,
+                  color: "var(--text)",
+                  marginBottom: 10,
+                  outline: "none",
+                }}
+              />
+
+              <label style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}>
+                Emoji
+              </label>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                {["💰", "🎓", "🏅", "📦", "🎉"].map(e => (
+                  <motion.button
+                    key={e}
+                    onClick={() => setSdEmoji(e)}
+                    whileTap={{ scale: 0.9 }}
+                    style={{
+                      background: sdEmoji === e ? "rgba(129, 140, 248, 0.2)" : "rgba(255,255,255,0.05)",
+                      border: sdEmoji === e ? "1px solid rgba(129, 140, 248, 0.4)" : "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 8,
+                      padding: "6px 10px",
+                      fontSize: 16,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {e}
+                  </motion.button>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <motion.button
+                  onClick={() => {
+                    const amount = parseFloat(sdAmount)
+                    const today = new Date().toISOString().slice(0, 10)
+                    if (sdLabel && amount > 0 && sdEndDate && sdEndDate > today) {
+                      onAddSpendDownPlan({
+                        label: sdLabel,
+                        totalAmount: amount,
+                        startDate: today,
+                        endDate: sdEndDate,
+                        emoji: sdEmoji,
+                      })
+                      // Reset form
+                      setSdLabel("")
+                      setSdAmount("")
+                      setSdEndDate("")
+                      setSdEmoji("💰")
+                      setShowSpendDownForm(false)
+                    }
+                  }}
+                  disabled={!sdLabel || !sdAmount || parseFloat(sdAmount) <= 0 || !sdEndDate}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={{
+                    ...linkButton,
+                    opacity: (!sdLabel || !sdAmount || parseFloat(sdAmount) <= 0 || !sdEndDate) ? 0.4 : 1,
+                  }}
+                  aria-label="Save spend-down plan"
+                >
+                  Save Plan
+                </motion.button>
+                <motion.button
+                  onClick={() => setShowSpendDownForm(false)}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={{ ...linkButton, color: "var(--sub)" }}
+                  aria-label="Cancel spend-down plan setup"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </div>
+          ) : (
+            <motion.button
+              onClick={() => setShowSpendDownForm(true)}
+              whileTap={{ scale: 0.97 }}
+              transition={springs.snappy}
+              style={linkButton}
+              aria-label="Add a spend-down plan"
+            >
+              + Add plan
+            </motion.button>
+          )}
         </GlassCard>
       )}
 

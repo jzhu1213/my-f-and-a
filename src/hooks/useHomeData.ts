@@ -41,6 +41,8 @@ import type { PaySchedule } from '@/lib/paySchedule'
 import type { SinkingFund } from '@/lib/sinkingFunds'
 import type { FundingSource } from '@/lib/fundingSources'
 import { getTotalMonthlyReserve } from '@/lib/sinkingFunds'
+import type { Disbursement } from '@/lib/disbursements'
+import { loadDisbursements, saveDisbursements, computeActiveDisbursementBonus, generateDisbursementId } from '@/lib/disbursements'
 import { computeSavingsRate } from '@/lib/allocationUtils'
 import { computeSetAside } from '@/lib/setAside'
 import type { SetAsideBreakdown } from '@/lib/setAside'
@@ -48,6 +50,14 @@ import type { IncomeAllocation } from '@/types/folio'
 import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
 import { computeWeekendAllowance } from '@/lib/weekendAllowance'
 import type { WeekendAllowanceResult } from '@/lib/weekendAllowance'
+import { computeTermAllowance } from '@/lib/termAllowance'
+import type { TermAllowanceResult } from '@/lib/termAllowance'
+import { loadSpendDownPlans, saveSpendDownPlans, computeSpendDown, isSpendDownActive, generateSpendDownId } from '@/lib/spendDown'
+import type { SpendDownPlan, SpendDownResult } from '@/lib/spendDown'
+import { computeTimeHorizonStats } from '@/lib/timeHorizonStats'
+import type { TimeHorizonStats } from '@/lib/timeHorizonStats'
+import type { TermSchedule } from '@/lib/termSchedule'
+import { loadTermSchedule, saveTermSchedule } from '@/lib/termSchedule'
 import type { SpendingMode } from '@/lib/spendingModes'
 import type { OverLimitResponse } from '@/lib/spendingModes'
 import { getOverLimitResponse, setOverLimitResponsePref } from '@/lib/spendingModes'
@@ -328,6 +338,22 @@ export interface UseHomeDataReturn {
   savingsRate: number
   /** Weekend allowance quick-view data (safe to spend this weekend) */
   weekendAllowance: WeekendAllowanceResult | null
+  /** Term allowance — "make this last until end of term" daily number */
+  termAllowance: TermAllowanceResult | null
+  /** Unified time-horizon stats: weekend, payday, term (each nullable) */
+  timeHorizonStats: TimeHorizonStats
+  /** The user's active term schedule, or null when not set */
+  termSchedule: TermSchedule | null
+  /** Active spend-down plan result (first active plan), or null when none active */
+  activeSpendDown: SpendDownResult | null
+  /** All persisted spend-down plans */
+  spendDownPlans: SpendDownPlan[]
+  /** Add a new spend-down plan (persisted to localStorage) */
+  addSpendDownPlan: (data: Omit<SpendDownPlan, 'id'>) => SpendDownPlan
+  /** Remove a spend-down plan by ID (persisted to localStorage) */
+  removeSpendDownPlan: (id: string) => void
+  /** Update an existing spend-down plan (persisted to localStorage) */
+  updateSpendDownPlan: (id: string, updates: Partial<SpendDownPlan>) => void
   
   // ── Loading State ──────────────────────────────────────────────
   /** Whether initial data is still loading */
@@ -468,6 +494,12 @@ export interface UseHomeDataReturn {
   setBudgets: React.Dispatch<React.SetStateAction<Budget[]>>
   /** Set disbursement bonus (monthly income boost from lump-sum aid/refunds) */
   setDisbursementBonus: React.Dispatch<React.SetStateAction<number>>
+  /** Persisted disbursement entries (financial aid, scholarships, refunds) */
+  disbursements: Disbursement[]
+  /** Add a new disbursement (persisted to localStorage) */
+  addDisbursement: (data: Omit<Disbursement, 'id'>) => Disbursement
+  /** Remove a disbursement by ID (persisted to localStorage) */
+  removeDisbursement: (id: string) => void
   /** Set goals directly (for optimistic updates) */
   setGoals: React.Dispatch<React.SetStateAction<Goal[]>>
   /**
@@ -490,6 +522,11 @@ export interface UseHomeDataReturn {
    * Controls what happens in the UI when the user goes over their daily allowance.
    */
   setOverLimitResponse: (response: OverLimitResponse) => void
+  /**
+   * Persist a new term schedule and update state.
+   * Pass `null` to clear the term schedule.
+   */
+  setTermSchedule: (schedule: TermSchedule | null) => void
 }
 
 /**
@@ -524,6 +561,9 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   const [paySchedule, setPaySchedule] = useState<PaySchedule | null>(null)
   const [sinkingFunds, setSinkingFunds] = useState<SinkingFund[]>([])
   const [fundingSources, setFundingSources] = useState<FundingSource[]>([])
+  const [disbursements, setDisbursements] = useState<Disbursement[]>(() => loadDisbursements())
+  const [spendDownPlans, setSpendDownPlans] = useState<SpendDownPlan[]>(() => loadSpendDownPlans())
+  const [termSchedule, setTermScheduleState] = useState<TermSchedule | null>(() => loadTermSchedule())
   const [disbursementBonus, setDisbursementBonus] = useState(0)
   const [incomeSmoothing, setIncomeSmoothingState] = useState<IncomeSmoothing | null>(
     () => loadIncomeSmoothingPreference()
@@ -1170,6 +1210,31 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     }
   }, [userId])
   
+  // ── Disbursement Mutations (localStorage-only) ────────────────────────
+  /**
+   * Add a new disbursement and persist to localStorage.
+   */
+  const addDisbursement = useCallback((data: Omit<Disbursement, 'id'>) => {
+    const newDisbursement: Disbursement = { ...data, id: generateDisbursementId() }
+    setDisbursements(prev => {
+      const updated = [...prev, newDisbursement]
+      saveDisbursements(updated)
+      return updated
+    })
+    return newDisbursement
+  }, [])
+
+  /**
+   * Remove a disbursement by ID and persist to localStorage.
+   */
+  const removeDisbursement = useCallback((id: string) => {
+    setDisbursements(prev => {
+      const updated = prev.filter(d => d.id !== id)
+      saveDisbursements(updated)
+      return updated
+    })
+  }, [])
+
   // ── Funding Source Mutations ───────────────────────────────────
   /**
    * Add a new funding source
@@ -1391,7 +1456,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       budgets,
       transactions,
       currentDay,
-      (monthlyIncome ?? 0) + disbursementBonus,
+      (monthlyIncome ?? 0) + computeActiveDisbursementBonus(disbursements, currentDay),
       allFixedExpenses,
       undefined,
       incomeSmoothing ?? undefined,
@@ -1399,9 +1464,10 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       countCreditImmediately,
       fundingSources,
       paySchedule,   // Task 103.1: pass pay schedule for payday-aligned budget periods
-      transactions   // Task 103.1: income history for irregular cadence estimation
+      transactions,  // Task 103.1: income history for irregular cadence estimation
+      termSchedule   // Task 121.1: term schedule for semester-based budget periods
     )
-  }, [budgets, transactions, debts, sinkingFunds, disbursementBonus, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, fundingSources, paySchedule])
+  }, [budgets, transactions, debts, sinkingFunds, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, fundingSources, paySchedule, termSchedule])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
@@ -1512,6 +1578,91 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     if (!allowance) return null
     return computeWeekendAllowance(allowance.dailyBudget, transactions, new Date())
   }, [allowance, transactions])
+
+  /**
+   * Term allowance quick-view (memoized)
+   * Computes "make this last until end of term" daily number.
+   */
+  const termAllowance = useMemo<TermAllowanceResult | null>(() => {
+    if (!termSchedule || !allowance) return null
+    // Use the monthly pool (dailyBudget * AVG_DAYS_PER_MONTH) as the monthlyPool param
+    // This gives us the monthly equivalent that termAllowance will scale to the full term
+    const monthlyPool = allowance.dailyBudget * 30.44
+    return computeTermAllowance(termSchedule, transactions, monthlyPool, currentDay)
+  }, [termSchedule, allowance, transactions, currentDay])
+
+  /**
+   * Persist a new term schedule and update state.
+   */
+  const setTermSchedule = useCallback((schedule: TermSchedule | null) => {
+    setTermScheduleState(schedule)
+    saveTermSchedule(schedule)
+  }, [])
+
+  /**
+   * Active spend-down plan result (memoized)
+   * Computes the result for the first active plan, or null when none active.
+   */
+  const activeSpendDown = useMemo<SpendDownResult | null>(() => {
+    if (spendDownPlans.length === 0) return null
+    for (const plan of spendDownPlans) {
+      if (isSpendDownActive(plan, currentDay)) {
+        return computeSpendDown(plan, transactions, currentDay)
+      }
+    }
+    return null
+  }, [spendDownPlans, transactions, currentDay])
+
+  /**
+   * Time horizon stats (memoized)
+   * Computes multi-horizon secondary stats: weekend, payday, term.
+   */
+  const timeHorizonStats = useMemo<TimeHorizonStats>(() => {
+    const discretionaryAvailable = allowance ? allowance.amount : 0
+    return computeTimeHorizonStats(
+      weekendAllowance,
+      paySchedule,
+      termAllowance,
+      discretionaryAvailable,
+      transactions,
+      currentDay
+    )
+  }, [weekendAllowance, paySchedule, termAllowance, allowance, transactions, currentDay])
+
+  /**
+   * Add a new spend-down plan (persisted to localStorage).
+   */
+  const addSpendDownPlan = useCallback((data: Omit<SpendDownPlan, 'id'>): SpendDownPlan => {
+    const plan: SpendDownPlan = { ...data, id: generateSpendDownId() }
+    setSpendDownPlans(prev => {
+      const next = [...prev, plan]
+      saveSpendDownPlans(next)
+      return next
+    })
+    return plan
+  }, [])
+
+  /**
+   * Remove a spend-down plan by ID (persisted to localStorage).
+   */
+  const removeSpendDownPlan = useCallback((id: string): void => {
+    setSpendDownPlans(prev => {
+      const next = prev.filter(p => p.id !== id)
+      saveSpendDownPlans(next)
+      return next
+    })
+  }, [])
+
+  /**
+   * Update an existing spend-down plan (persisted to localStorage).
+   */
+  const updateSpendDownPlan = useCallback((id: string, updates: Partial<SpendDownPlan>): void => {
+    setSpendDownPlans(prev => {
+      const next = prev.map(p => p.id === id ? { ...p, ...updates } : p)
+      saveSpendDownPlans(next)
+      return next
+    })
+  }, [])
   
   // ── Return Hook Interface ──────────────────────────────────────
   return {
@@ -1530,6 +1681,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     // Computed values (memoized)
     allowance,
     weekendAllowance,
+    termAllowance,
+    timeHorizonStats,
     categoryRows,
     totalSetAside,
     setAside,
@@ -1585,10 +1738,20 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     setBudgets,
     setGoals,
     setDisbursementBonus,
+    disbursements,
+    addDisbursement,
+    removeDisbursement,
     setIncomeSmoothing,
     setSpendingMode: setSpendingModeFn,
     setHeroMeaning: setHeroMeaningFn,
     overLimitResponse,
     setOverLimitResponse: setOverLimitResponseFn,
+    termSchedule,
+    setTermSchedule,
+    activeSpendDown,
+    spendDownPlans,
+    addSpendDownPlan,
+    removeSpendDownPlan,
+    updateSpendDownPlan,
   }
 }

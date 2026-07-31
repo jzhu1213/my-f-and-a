@@ -206,18 +206,18 @@ export function SmartNotificationSettings() {
           lineHeight: 1.5,
         }}
       >
-        Helpful heads-ups about your spending and upcoming bills. Always opt-in.
+        Helpful heads-ups about your daily allowance and upcoming bills. Always opt-in.
       </p>
 
       {/* ── Low balance alert ─────────────────────────────────────────── */}
       <SettingToggle
-        label="Low balance alert"
+        label="Low daily allowance alert"
         enabled={prefs.lowAllowanceEnabled}
         onToggle={handleToggleLowAllowance}
         ariaLabel={
           prefs.lowAllowanceEnabled
-            ? "Disable low balance alert"
-            : "Enable low balance alert"
+            ? "Disable low daily allowance alert"
+            : "Enable low daily allowance alert"
         }
       />
 
@@ -231,7 +231,7 @@ export function SmartNotificationSettings() {
               fontFamily: FONT_FAMILY,
             }}
           >
-            Alert when balance drops below
+            Alert when daily allowance drops below
           </p>
           <div style={{ ...segmentedControl, marginBottom: showCustomInput ? 10 : 0 }}>
             {THRESHOLD_OPTIONS.map((opt) => {

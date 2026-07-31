@@ -234,13 +234,14 @@ export function refreshAllSharedSummaries(
 function getCategoryEmojiSimple(category: string): string {
   const emojiMap: Record<string, string> = {
     food: '🍕',
-    transport: '🚗',
-    entertainment: '🎬',
-    shopping: '🛍️',
-    health: '💊',
-    education: '📚',
-    bills: '📱',
-    personal: '✨',
+    rent: '🏠',
+    transport: '🚲',
+    school: '📚',
+    fun: '🎶',
+    health: '💪',
+    subscriptions: '🔄',
+    gig: '⚡',
+    income: '💵',
     other: '📦',
   }
   return emojiMap[category] ?? '📦'

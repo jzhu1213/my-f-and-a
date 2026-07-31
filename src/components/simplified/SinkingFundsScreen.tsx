@@ -17,6 +17,11 @@ import {
   summarizeSinkingFunds,
   validateSinkingFund,
 } from "@/lib/sinkingFunds"
+import type { Disbursement } from "@/lib/disbursements"
+import {
+  isDisbursementActive,
+  getRemainingMonths,
+} from "@/lib/disbursements"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -38,6 +43,12 @@ export interface SinkingFundsScreenProps {
   onDeleteFund: (id: string) => Promise<void>
   onClose: () => void
   onSetDisbursement?: (monthlyAmount: number) => void
+  /** Persisted disbursements list */
+  disbursements?: Disbursement[]
+  /** Add a new disbursement */
+  onAddDisbursement?: (data: Omit<Disbursement, 'id'>) => void
+  /** Remove a disbursement by ID */
+  onRemoveDisbursement?: (id: string) => void
 }
 
 // ============================================================================
@@ -120,6 +131,9 @@ export function SinkingFundsScreen({
   onDeleteFund,
   onClose,
   onSetDisbursement,
+  disbursements = [],
+  onAddDisbursement,
+  onRemoveDisbursement,
 }: SinkingFundsScreenProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -409,8 +423,13 @@ export function SinkingFundsScreen({
       )}
 
       {/* ── Financial Aid / Disbursement ───────────────────────────────────── */}
-      {onSetDisbursement && (
-        <DisbursementSection onSetDisbursement={onSetDisbursement} />
+      {(onSetDisbursement || onAddDisbursement) && (
+        <DisbursementSection
+          onSetDisbursement={onSetDisbursement ?? (() => {})}
+          disbursements={disbursements}
+          onAddDisbursement={onAddDisbursement}
+          onRemoveDisbursement={onRemoveDisbursement}
+        />
       )}
     </div>
   )
@@ -422,17 +441,41 @@ export function SinkingFundsScreen({
 
 interface DisbursementSectionProps {
   onSetDisbursement: (monthlyAmount: number) => void
+  disbursements?: Disbursement[]
+  onAddDisbursement?: (data: Omit<Disbursement, 'id'>) => void
+  onRemoveDisbursement?: (id: string) => void
 }
 
-function DisbursementSection({ onSetDisbursement }: DisbursementSectionProps) {
+function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbursement, onRemoveDisbursement }: DisbursementSectionProps) {
   const [expanded, setExpanded] = useState(false)
   const [lumpSum, setLumpSum] = useState(0)
   const [months, setMonths] = useState(4)
+  const [label, setLabel] = useState('')
+  const [disbursementType, setDisbursementType] = useState<'financial_aid' | 'scholarship' | 'refund' | 'other'>('financial_aid')
 
+  const now = new Date()
   const monthlyShare = computeDisbursementMonthlyShare(lumpSum, months)
+  const activeDisbursements = disbursements.filter(d => isDisbursementActive(d, now))
 
   function handleSave() {
-    onSetDisbursement(monthlyShare)
+    if (onAddDisbursement && lumpSum > 0) {
+      onAddDisbursement({
+        label: label.trim() || 'Financial Aid',
+        amount: lumpSum,
+        coverMonths: months,
+        startDate: new Date().toISOString().slice(0, 10),
+        type: disbursementType,
+        emoji: disbursementType === 'scholarship' ? '🏅' : disbursementType === 'refund' ? '🧾' : '🎓',
+      })
+      // Reset form
+      setLumpSum(0)
+      setLabel('')
+      setMonths(4)
+      setDisbursementType('financial_aid')
+    } else {
+      // Fallback to legacy behavior
+      onSetDisbursement(monthlyShare)
+    }
     setExpanded(false)
   }
 
@@ -460,6 +503,56 @@ function DisbursementSection({ onSetDisbursement }: DisbursementSectionProps) {
         </span>
       </div>
 
+      {/* ── Active Disbursements List ───────────────────────────────── */}
+      {activeDisbursements.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          {activeDisbursements.map(d => {
+            const remaining = getRemainingMonths(d, now)
+            const monthly = computeDisbursementMonthlyShare(d.amount, d.coverMonths)
+            return (
+              <div
+                key={d.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 0",
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                <span style={{ fontSize: 18 }}>{d.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+                    {d.label}
+                  </p>
+                  <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0" }}>
+                    +${monthly.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mo · {remaining}mo left
+                  </p>
+                </div>
+                {onRemoveDisbursement && (
+                  <motion.button
+                    onClick={() => onRemoveDisbursement(d.id)}
+                    whileTap={{ scale: 0.9 }}
+                    transition={springs.snappy}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: "4px 8px",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      color: "var(--error)",
+                    }}
+                    aria-label={`Remove ${d.label}`}
+                  >
+                    ✕
+                  </motion.button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -469,6 +562,19 @@ function DisbursementSection({ onSetDisbursement }: DisbursementSectionProps) {
             transition={springs.gentle}
             style={{ overflow: "hidden", marginTop: 16 }}
           >
+            {/* Label input */}
+            <div style={{ marginBottom: 12 }}>
+              <p style={labelStyle}>Label (optional)</p>
+              <input
+                type="text"
+                value={label}
+                onChange={e => setLabel(e.target.value)}
+                placeholder="e.g. Fall 2024 Aid Refund"
+                style={inputStyle}
+                aria-label="Disbursement label"
+              />
+            </div>
+
             {/* Lump-sum input */}
             <div style={{ marginBottom: 12 }}>
               <p style={labelStyle}>Lump-sum amount ($)</p>
@@ -482,6 +588,43 @@ function DisbursementSection({ onSetDisbursement }: DisbursementSectionProps) {
                 style={inputStyle}
                 aria-label="Lump-sum amount"
               />
+            </div>
+
+            {/* Type selector */}
+            <div style={{ marginBottom: 12 }}>
+              <p style={labelStyle}>Type</p>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {([
+                  { value: 'financial_aid', label: '🎓 Aid', key: 'financial_aid' },
+                  { value: 'scholarship', label: '🏅 Scholarship', key: 'scholarship' },
+                  { value: 'refund', label: '🧾 Refund', key: 'refund' },
+                  { value: 'other', label: '💼 Other', key: 'other' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setDisbursementType(opt.value)}
+                    aria-pressed={disbursementType === opt.value}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: borderRadius.full,
+                      border: disbursementType === opt.value
+                        ? "1.5px solid var(--accent)"
+                        : "1px solid var(--border)",
+                      background: disbursementType === opt.value
+                        ? "rgba(129, 140, 248, 0.1)"
+                        : "rgba(0,0,0,0.15)",
+                      color: disbursementType === opt.value ? "var(--accent)" : "var(--sub)",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      fontFamily: FONT_FAMILY,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Term selector */}
@@ -546,7 +689,7 @@ function DisbursementSection({ onSetDisbursement }: DisbursementSectionProps) {
               }}
               aria-label="Apply disbursement to daily allowance"
             >
-              Apply to daily allowance
+              {onAddDisbursement ? 'Add disbursement' : 'Apply to daily allowance'}
             </motion.button>
           </motion.div>
         )}

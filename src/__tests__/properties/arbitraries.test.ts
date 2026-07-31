@@ -36,6 +36,8 @@ describe('Arbitrary Generators', () => {
             'transport',
             'school',
             'fun',
+            'health',
+            'subscriptions',
             'gig',
             'income',
             'other',

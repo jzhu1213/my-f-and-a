@@ -40,7 +40,7 @@ interface FormState {
 // Constants
 // ============================================================================
 
-const PAYMENT_EMOJIS = ["💳", "💵", "💎", "📱", "🍎", "🏦", "👛", "💰", "🪙", "🤝"]
+const PAYMENT_EMOJIS = ["💳", "💵", "💎", "📱", "🍎", "🏦", "👛", "💰", "🪙", "🤝", "🎓"]
 
 const KIND_OPTIONS: { value: FundingSourceKind; label: string }[] = [
   { value: "cash", label: "Cash" },

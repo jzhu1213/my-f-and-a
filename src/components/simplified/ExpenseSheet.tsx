@@ -68,6 +68,11 @@ interface ExpenseSheetProps {
    * Callback when user taps "Always categorize [note] as [category]" (task 113.3).
    */
   onAddCategorizationRule?: (keyword: string, category: TransactionCategory) => void
+  /**
+   * Current daily allowance amount — used to show the estimated remaining after
+   * entering an amount. Reinforces the core "can I afford this?" identity. (Task 117.1)
+   */
+  dailyAllowanceAmount?: number
 }
 
 // ── Date helper utilities (task 87.1) ────────────────────────────────────
@@ -119,11 +124,11 @@ function isFutureDate(dateStr: string): boolean {
 }
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food' },
-  { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Transport' },
-  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Social' },
+  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food & Drinks' },
+  { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Getting Around' },
+  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Going Out' },
   { category: 'school', emoji: getCategoryEmoji('school'), label: 'School' },
-  { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent' },
+  { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent & Bills' },
   { category: 'other', emoji: getCategoryEmoji('other'), label: 'Other' },
 ]
 
@@ -149,6 +154,7 @@ export function ExpenseSheet({
   spendingMode = 'guided',
   categorizationRules = [],
   onAddCategorizationRule,
+  dailyAllowanceAmount,
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
@@ -293,6 +299,14 @@ export function ExpenseSheet({
     }
   }, [category, transactions, fundingSources])
 
+  // Auto-sync splitCount with friend chips (task 123.1 — Splitwise-level ease)
+  // When friends are added/removed, count = friends + 1 (you). No manual stepper needed.
+  useEffect(() => {
+    if (splitFriends.length > 0) {
+      setSplitCount(splitFriends.length + 1)
+    }
+  }, [splitFriends])
+
   // Determine if selected funding source is borrowed (task 84.1)
   const selectedSourceIsBorrowed = useMemo(() => {
     if (!selectedSourceId || fundingSources.length === 0) return false
@@ -383,12 +397,24 @@ export function ExpenseSheet({
       splitOwedAmount: splitEnabled && allFriends && totalOwed > 0 ? totalOwed : undefined,
       tags: tags.length > 0 ? tags : undefined,
     })
-    // Show success toast with optional undo action
+    // Show success toast with split-aware copy (task 123.1 — Splitwise-level ease)
     const categoryLabel = displayCategories.find(c => c.categoryValue === effectiveCategory)?.label ?? effectiveCategory
     const amountStr = submittedAmount % 1 === 0 ? `$${submittedAmount}` : `$${submittedAmount.toFixed(2)}`
-    const splitSuffix = splitEnabled ? ` (your share of $${parsed % 1 === 0 ? parsed : parsed.toFixed(2)})` : ''
+    let toastMessage: string
+    if (splitEnabled && allFriends && totalOwed > 0) {
+      const owedStr = totalOwed % 1 === 0 ? `$${totalOwed}` : `$${totalOwed.toFixed(2)}`
+      // Show who owes what: single friend gets named, multiple shows "friends"
+      const friendNames = splitFriends.length > 0 ? splitFriends : (splitWith.trim() ? [splitWith.trim()] : [])
+      if (friendNames.length === 1) {
+        toastMessage = `Logged ${amountStr} (your share) — ${friendNames[0]} owes you ${owedStr} 💸`
+      } else {
+        toastMessage = `Logged ${amountStr} (your share) — friends owe you ${owedStr} 💸`
+      }
+    } else {
+      toastMessage = `Logged ${amountStr} for ${categoryLabel} ✓`
+    }
     showToast(
-      `Logged ${amountStr}${splitSuffix} for ${categoryLabel} ✓`,
+      toastMessage,
       'success',
       onUndo ? { label: 'Undo', onClick: onUndo } : undefined
     )
@@ -708,6 +734,26 @@ export function ExpenseSheet({
                 >
                   How much did you spend?
                 </p>
+
+                {/* ── "Remaining after this" indicator (Task 117.1) ── */}
+                {dailyAllowanceAmount != null && dailyAllowanceAmount > 0 && parseFloat(amount) > 0 && (
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: (dailyAllowanceAmount - parseFloat(amount)) >= 0 ? 'var(--success)' : 'var(--error)',
+                      marginTop: 6,
+                      fontFamily: FONT_FAMILY,
+                      fontWeight: 500,
+                      fontVariantNumeric: 'tabular-nums',
+                      opacity: 0.85,
+                    }}
+                    aria-live="polite"
+                  >
+                    {(dailyAllowanceAmount - parseFloat(amount)) >= 0
+                      ? `$${Math.round(dailyAllowanceAmount - parseFloat(amount))} left after this`
+                      : `$${Math.abs(Math.round(dailyAllowanceAmount - parseFloat(amount)))} over today\u2019s budget`}
+                  </p>
+                )}
 
                 {/* ── Source Chip (optional, task 81.1) ────────────────── */}
                 {fundingSources.length > 0 && (
@@ -1764,7 +1810,6 @@ export function ExpenseSheet({
                                   type="button"
                                   onClick={() => {
                                     setSplitFriends((prev) => prev.filter((f) => f !== name))
-                                    setSplitCount((c) => Math.max(2, c - 1))
                                     triggerHaptic('light')
                                   }}
                                   aria-label={`Remove ${name}`}
@@ -1797,7 +1842,6 @@ export function ExpenseSheet({
                               const name = splitWith.trim().replace(/,+$/, '')
                               if (name && !splitFriends.includes(name)) {
                                 setSplitFriends((prev) => [...prev, name])
-                                setSplitCount((c) => Math.min(20, c + 1))
                               }
                               setSplitWith('')
                               triggerHaptic('light')
@@ -1830,8 +1874,8 @@ export function ExpenseSheet({
                           Press Enter or comma to add
                         </span>
 
-                        {/* Recent split partner chips */}
-                        {recentSplitPartners.length > 0 && !splitWith.trim() && splitFriends.length === 0 && (
+                        {/* Recent split partner chips — shown always when there are available partners (task 123.1 — smarter suggestions) */}
+                        {recentSplitPartners.filter((n) => !splitFriends.includes(n)).length > 0 && !splitWith.trim() && (
                           <div
                             style={{
                               display: 'flex',
@@ -1839,15 +1883,26 @@ export function ExpenseSheet({
                               flexWrap: 'wrap',
                               marginTop: 10,
                             }}
-                            aria-label="Recent split partners"
+                            aria-label={splitFriends.length > 0 ? 'Add another split partner' : 'Recent split partners'}
                           >
+                            {splitFriends.length > 0 && (
+                              <span
+                                style={{
+                                  fontFamily: FONT_FAMILY,
+                                  fontSize: 11,
+                                  color: 'var(--muted)',
+                                  alignSelf: 'center',
+                                }}
+                              >
+                                Add:
+                              </span>
+                            )}
                             {recentSplitPartners.filter((n) => !splitFriends.includes(n)).slice(0, 5).map((name) => (
                               <button
                                 key={name}
                                 type="button"
                                 onClick={() => {
                                   setSplitFriends((prev) => [...prev, name])
-                                  setSplitCount((c) => Math.min(20, c + 1))
                                   triggerHaptic('light')
                                 }}
                                 aria-label={`Split with ${name}`}
@@ -1923,8 +1978,8 @@ export function ExpenseSheet({
                         </button>
                       </div>
 
-                      {/* Split count stepper — only in even mode */}
-                      {splitMode === 'even' && (
+                      {/* Split count stepper — only in even mode AND when no friend chips entered (task 123.1) */}
+                      {splitMode === 'even' && splitFriends.length === 0 && (
                         <div
                           style={{
                             display: 'flex',

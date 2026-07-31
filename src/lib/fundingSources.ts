@@ -68,6 +68,12 @@ const DEFAULT_SOURCES: Omit<FundingSource, 'id' | 'userId' | 'createdAt'>[] = [
     kind: 'borrowed',
     reducesBalanceNow: false,
   },
+  {
+    label: 'Campus Card',
+    emoji: '🎓',
+    kind: 'external_wallet',
+    reducesBalanceNow: true,
+  },
 ]
 
 /**

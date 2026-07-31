@@ -5,9 +5,11 @@ import { LessonCard } from './LessonCard'
 import { CreditPayoffCalculator } from './CreditPayoffCalculator'
 import { CompoundGrowthCalculator } from './CompoundGrowthCalculator'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { MicroLessonCard } from '@/components/simplified/MicroLessonCard'
 import type { Lesson, UserLessonProgress } from '@/types'
 import { LESSON_TOPICS } from '@/types'
 import { LESSONS } from '@/lib/lessonsContent'
+import { getUnreadMicroLessons, markMicroLessonRead } from '@/lib/microLessons'
 import { FONT_FAMILY } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
@@ -23,15 +25,29 @@ import {
 interface LessonsScreenProps {
   lessonProgress: UserLessonProgress[]
   onCompleteLesson: (lessonId: string, score: number) => void
+  /** When provided, auto-opens this lesson on mount (e.g. from a contextual tip link). */
+  initialLessonId?: string
 }
 
 // ============================================================================
 // LessonsScreen
 // ============================================================================
 
-export function LessonsScreen({ lessonProgress, onCompleteLesson }: LessonsScreenProps) {
-  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null)
+export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonId }: LessonsScreenProps) {
+  const [activeLesson, setActiveLesson] = useState<Lesson | null>(() => {
+    if (initialLessonId) {
+      return LESSONS.find(l => l.id === initialLessonId) ?? null
+    }
+    return null
+  })
   const [showCalculator, setShowCalculator] = useState<'credit' | 'compound' | null>(null)
+  const [readMicroIds, setReadMicroIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set<string>()
+    try {
+      const stored = localStorage.getItem('folio-read-micro-lessons')
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>()
+    } catch { return new Set<string>() }
+  })
 
   const completedCount = lessonProgress.filter(p => p.completed).length
   const totalLessons = LESSONS.length
@@ -120,6 +136,45 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson }: LessonsScree
           </p>
         </div>
       </GlassCard>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Quick Tips (micro-lessons)                                           */}
+      {/* ------------------------------------------------------------------ */}
+      {(() => {
+        const unreadMicro = getUnreadMicroLessons().filter(m => !readMicroIds.has(m.id)).slice(0, 3)
+        if (unreadMicro.length === 0) return null
+        return (
+          <div style={{ marginTop: 24 }}>
+            <p style={{ ...sectionHeading, marginBottom: 12 }}>Quick tips</p>
+            <div
+              style={{
+                display: 'flex',
+                gap: 12,
+                overflowX: 'auto',
+                paddingBottom: 8,
+                scrollSnapType: 'x mandatory',
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
+              {unreadMicro.map(ml => (
+                <div key={ml.id} style={{ scrollSnapAlign: 'start' }}>
+                  <MicroLessonCard
+                    lesson={ml}
+                    onLearnMore={(lessonId) => {
+                      const lesson = LESSONS.find(l => l.id === lessonId)
+                      if (lesson) setActiveLesson(lesson)
+                    }}
+                    onDismiss={(id) => {
+                      markMicroLessonRead(id)
+                      setReadMicroIds(prev => new Set([...prev, id]))
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ------------------------------------------------------------------ */}
       {/* Up Next                                                              */}
