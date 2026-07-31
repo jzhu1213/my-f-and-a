@@ -138,6 +138,8 @@ export interface ContextualTip {
   actionType?: 'set_goal' | 'adjust_budget' | 'view_insight' | 'learn_more'
   priority: 'low' | 'medium' | 'high'
   triggerCondition: TipTrigger
+  /** Links this tip to a related financial literacy lesson (used by "Learn more" action). */
+  relatedLessonId?: string
 }
 
 /**
@@ -193,10 +195,14 @@ export type CelebrationType =
   | 'under_budget_today'
   | 'streak_3_days'
   | 'streak_7_days'
+  | 'streak_14_days'
+  | 'streak_30_days'
   | 'goal_progress'
   | 'goal_complete'
   | 'first_transaction'
   | 'weekly_win'
+  | 'logging_streak'
+  | 'lowest_spend_day'
   | 'no_spend_streak'
   | 'no_spend_weekend'
 

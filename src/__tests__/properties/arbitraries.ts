@@ -40,6 +40,8 @@ export const arbTransactionCategory = (): fc.Arbitrary<TransactionCategory> =>
     'transport',
     'school',
     'fun',
+    'health',
+    'subscriptions',
     'gig',
     'income',
     'other'
@@ -200,6 +202,8 @@ export const arbBudgetSet = (): fc.Arbitrary<Budget[]> => {
     'transport',
     'school',
     'fun',
+    'health',
+    'subscriptions',
     'other',
   ]
   return fc.record(
@@ -309,10 +313,16 @@ export const arbCelebrationType = (): fc.Arbitrary<CelebrationType> =>
     'under_budget_today',
     'streak_3_days',
     'streak_7_days',
+    'streak_14_days',
+    'streak_30_days',
     'goal_progress',
     'goal_complete',
     'first_transaction',
-    'weekly_win'
+    'weekly_win',
+    'logging_streak',
+    'lowest_spend_day',
+    'no_spend_streak',
+    'no_spend_weekend'
   )
 
 /**
@@ -456,6 +466,8 @@ export const arbOnboardingResult = (): fc.Arbitrary<OnboardingResult> =>
         transport: arbBudgetAmount(),
         school: arbBudgetAmount(),
         fun: arbBudgetAmount(),
+        health: arbBudgetAmount(),
+        subscriptions: arbBudgetAmount(),
         gig: arbBudgetAmount(),
         income: arbBudgetAmount(),
         other: arbBudgetAmount(),

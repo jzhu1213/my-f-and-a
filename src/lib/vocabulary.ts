@@ -25,11 +25,13 @@ import type { AllowanceStatus } from '@/types/folio'
  * This is THE single lookup — if you need an emoji for a category, use this.
  */
 export const CATEGORY_EMOJI: Record<TransactionCategory, string> = {
-  food: '🍔',
+  food: '🍕',
   rent: '🏠',
-  transport: '🚌',
+  transport: '🚲',
   school: '📚',
-  fun: '🎉',
+  fun: '🎶',
+  health: '💪',
+  subscriptions: '🔄',
   other: '📦',
   gig: '⚡',
   income: '💵',
@@ -80,9 +82,14 @@ export const CELEBRATION_EMOJI = {
   under_budget_today: '🌟',
   streak_3_days: '🔥',
   streak_7_days: '🏆',
+  streak_14_days: '💎',
+  streak_30_days: '👑',
   goal_progress: '🎯',
   goal_complete: '🎉',
   first_transaction: '✨',
+  weekly_win: '🎊',
+  logging_streak: '📝',
+  lowest_spend_day: '🌱',
   no_spend_streak: '🌿',
   no_spend_weekend: '🎯',
 } as const
@@ -187,9 +194,29 @@ export const CELEBRATION_COPY = {
     title: 'One whole week!',
     message: "Seven days under budget — that's seriously impressive.",
   },
+  streak_14_days: {
+    title: 'Two-week streak!',
+    message: "Fourteen days under budget. You're in a groove!",
+  },
+  streak_30_days: {
+    title: 'A whole month!',
+    message: "Thirty days under budget — you've built a real habit.",
+  },
   first_transaction: {
     title: 'First one logged!',
     message: "You've started tracking. That's the hardest part.",
+  },
+  weekly_win: {
+    title: 'Weekly win!',
+    message: "You finished the week under budget — great week overall!",
+  },
+  logging_streak: {
+    title: 'Logging streak!',
+    message: "You've been logging consistently — keep it up!",
+  },
+  lowest_spend_day: {
+    title: 'Lowest spend day!',
+    message: "Today's your lightest spending day this week so far.",
   },
   no_spend_streak: {
     title: 'No-spend streak!',

@@ -384,6 +384,260 @@ export function checkNoSpendStreak(
 }
 
 /**
+ * Checks if a 14-day under-budget streak celebration should trigger.
+ *
+ * Fires when the user has spent under their daily budget for 14 consecutive days.
+ *
+ * @param budgets - User's budget limits
+ * @param transactions - All user transactions
+ * @param now - Current date (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkStreak14Days(
+  budgets: Budget[],
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  const streak = calculateStreak(budgets, transactions, now)
+  if (streak < 14) return null
+
+  const streakEndDate = formatDateLocal(subtractDaysLocal(now, 1))
+  const id = `streak_14_days_${streakEndDate}`
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'streak_14_days',
+    CELEBRATION_COPY.streak_14_days.title,
+    CELEBRATION_COPY.streak_14_days.message,
+    CELEBRATION_EMOJI.streak_14_days,
+    'confetti',
+    4000,
+    'cheerful'
+  )
+}
+
+/**
+ * Checks if a 30-day under-budget streak celebration should trigger.
+ *
+ * Fires when the user has spent under their daily budget for 30 consecutive days.
+ *
+ * @param budgets - User's budget limits
+ * @param transactions - All user transactions
+ * @param now - Current date (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkStreak30Days(
+  budgets: Budget[],
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  const streak = calculateStreak(budgets, transactions, now)
+  if (streak < 30) return null
+
+  const streakEndDate = formatDateLocal(subtractDaysLocal(now, 1))
+  const id = `streak_30_days_${streakEndDate}`
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'streak_30_days',
+    CELEBRATION_COPY.streak_30_days.title,
+    CELEBRATION_COPY.streak_30_days.message,
+    CELEBRATION_EMOJI.streak_30_days,
+    'confetti',
+    5000,
+    'cheerful'
+  )
+}
+
+/**
+ * Returns the number of consecutive days (ending yesterday) where the user
+ * logged at least one transaction. Today is excluded (still in progress).
+ * Looks back up to 30 days.
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date/time (for testability)
+ * @returns Number of consecutive logging days (0–30)
+ */
+export function getLoggingStreak(
+  transactions: Transaction[],
+  now: Date = new Date()
+): number {
+  let streak = 0
+  for (let i = 1; i <= 30; i++) {
+    const day = subtractDaysLocal(now, i)
+    const dayStr = formatDateLocal(day)
+    const hasTransaction = transactions.some(t => t.date === dayStr)
+    if (hasTransaction) {
+      streak++
+    } else {
+      break
+    }
+  }
+  return streak
+}
+
+/**
+ * Checks if a logging streak celebration should trigger.
+ *
+ * Fires at 3, 7, 14, and 30 consecutive days of logging at least one transaction.
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkLoggingStreak(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  const streak = getLoggingStreak(transactions, now)
+
+  // Fire at specific milestones
+  const milestones = [30, 14, 7, 3] // Check highest first
+  const reachedMilestone = milestones.find(m => streak >= m)
+  if (!reachedMilestone) return null
+
+  const streakEndDate = formatDateLocal(subtractDaysLocal(now, 1))
+  const id = `logging_streak_${reachedMilestone}_${streakEndDate}`
+  if (hasBeenTriggered(id)) return null
+
+  const titles: Record<number, string> = {
+    3: '3 days logging!',
+    7: 'A week of logging!',
+    14: 'Two weeks of logging!',
+    30: 'A month of logging!',
+  }
+  const messages: Record<number, string> = {
+    3: "Three days in a row — you're building a habit!",
+    7: "A full week of tracking. That consistency pays off!",
+    14: "Two weeks straight — tracking is second nature now.",
+    30: "A whole month of daily logging. Incredible commitment!",
+  }
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'logging_streak',
+    titles[reachedMilestone],
+    messages[reachedMilestone],
+    CELEBRATION_EMOJI.logging_streak,
+    reachedMilestone >= 14 ? 'confetti' : 'sparkle',
+    reachedMilestone >= 14 ? 4000 : 3000,
+    reachedMilestone >= 14 ? 'cheerful' : 'subtle'
+  )
+}
+
+/**
+ * Checks if the weekly win celebration should trigger.
+ *
+ * Fires on Monday when total spending for the prior week (Mon–Sun) was under
+ * the total weekly budget (monthly limits ÷ ~4.33 weeks).
+ *
+ * @param budgets - User's budget limits
+ * @param transactions - All user transactions
+ * @param now - Current date (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkWeeklyWin(
+  budgets: Budget[],
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  // Only trigger on Monday (day after the week ended)
+  if (now.getDay() !== 1) return null
+
+  const totalMonthly = budgets.reduce((sum, b) => sum + b.monthlyLimit, 0)
+  if (totalMonthly <= 0) return null
+
+  // Weekly budget = monthly / 4.33 (average weeks per month)
+  const weeklyBudget = totalMonthly / 4.33
+
+  // Calculate last week's spending (Monday through Sunday)
+  // Today is Monday, so last week's Sunday was yesterday (1 day ago)
+  // and last week's Monday was 7 days ago
+  let weeklySpending = 0
+  for (let i = 1; i <= 7; i++) {
+    const day = subtractDaysLocal(now, i)
+    const dayStr = formatDateLocal(day)
+    weeklySpending += getSpendingForDay(transactions, dayStr)
+  }
+
+  if (weeklySpending >= weeklyBudget) return null
+
+  const lastSunday = formatDateLocal(subtractDaysLocal(now, 1))
+  const id = `weekly_win_${lastSunday}`
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'weekly_win',
+    CELEBRATION_COPY.weekly_win.title,
+    CELEBRATION_COPY.weekly_win.message,
+    CELEBRATION_EMOJI.weekly_win,
+    'confetti',
+    4000,
+    'cheerful'
+  )
+}
+
+/**
+ * Checks if today is the lowest spend day of the week so far.
+ *
+ * A micro-celebration that fires once per week when today's total spending
+ * (so far) is the lowest of any completed day this week.
+ * Only fires if we're past at least 2 days in the week and after 6 PM (to
+ * ensure the day is mostly done).
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date/time (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkLowestSpendDay(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  // Only check after 6 PM so the day is mostly done
+  if (now.getHours() < 18) return null
+
+  const dayOfWeek = now.getDay() // 0=Sun, 1=Mon...6=Sat
+  // Need at least 2 prior days in the week to compare
+  // Week starts on Monday (dayOfWeek 1)
+  const daysIntoWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Mon=0, Tue=1...Sun=6
+  if (daysIntoWeek < 2) return null
+
+  const todayStr = formatDateLocal(now)
+  const todaySpending = getSpendingForDay(transactions, todayStr)
+
+  // Compare against each prior day this week
+  for (let i = 1; i <= daysIntoWeek; i++) {
+    const priorDay = subtractDaysLocal(now, i)
+    const priorDayStr = formatDateLocal(priorDay)
+    const priorSpending = getSpendingForDay(transactions, priorDayStr)
+    if (todaySpending >= priorSpending) return null
+  }
+
+  // Today is the lowest — fire micro-celebration
+  const id = `lowest_spend_day_${todayStr}`
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'lowest_spend_day',
+    CELEBRATION_COPY.lowest_spend_day.title,
+    CELEBRATION_COPY.lowest_spend_day.message,
+    CELEBRATION_EMOJI.lowest_spend_day,
+    'pulse',
+    2000,
+    'subtle'
+  )
+}
+
+/**
  * Runs all celebration checks and returns any newly triggered events.
  *
  * **Validates: Requirements 6.1–6.6**
@@ -418,6 +672,12 @@ export function checkAllCelebrations(
   const streak7 = checkStreak7Days(budgets, transactions, now)
   if (streak7) events.push(streak7)
 
+  const streak14 = checkStreak14Days(budgets, transactions, now)
+  if (streak14) events.push(streak14)
+
+  const streak30 = checkStreak30Days(budgets, transactions, now)
+  if (streak30) events.push(streak30)
+
   const goalEvents = checkGoalProgress(goals)
   events.push(...goalEvents)
 
@@ -427,6 +687,18 @@ export function checkAllCelebrations(
   // No-spend streak and weekend celebrations
   const noSpendEvents = checkNoSpendStreak(transactions, now)
   events.push(...noSpendEvents)
+
+  // Logging streak celebration
+  const loggingStreak = checkLoggingStreak(transactions, now)
+  if (loggingStreak) events.push(loggingStreak)
+
+  // Weekly win celebration (fires on Mondays)
+  const weeklyWin = checkWeeklyWin(budgets, transactions, now)
+  if (weeklyWin) events.push(weeklyWin)
+
+  // Micro-celebration: lowest spend day this week
+  const lowestSpend = checkLowestSpendDay(transactions, now)
+  if (lowestSpend) events.push(lowestSpend)
 
   return events
 }
