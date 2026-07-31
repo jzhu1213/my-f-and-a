@@ -79,7 +79,16 @@ export async function logQuickTransaction(
   }
 
   // Network/DB failure — queue locally for background retry
-  addToOfflineQueue(userId, transaction)
+  addToOfflineQueue(userId, {
+    kind: 'create',
+    payload: {
+      category: transaction.category,
+      amount: transaction.amount,
+      type: 'expense',
+      date,
+      note: transaction.note,
+    },
+  })
   return { success: false, transaction: null, queued: true }
 }
 

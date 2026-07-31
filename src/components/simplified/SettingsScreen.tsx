@@ -29,8 +29,7 @@ import {
   dangerZone,
 } from "@/styles/shared"
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
-import { DailyReminderSetting } from "./DailyReminderSetting"
-import { SmartNotificationSettings } from "./SmartNotificationSettings"
+import { NotificationCenter } from "./NotificationCenter"
 import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
 import { useFeatureFlags } from "@/hooks/useFeatureFlags"
 import type { FeatureFlags } from "@/lib/featureFlags"
@@ -1441,11 +1440,8 @@ export function SettingsScreen({
         )}
       </GlassCard>
 
-      {/* ── Daily Reminder ─────────────────────────────────────────────── */}
-      <DailyReminderSetting />
-
-      {/* ── Smart Alerts (task 114.2) ──────────────────────────────────── */}
-      <SmartNotificationSettings />
+      {/* ── Notification Center (consolidated nudges) ──────────────── */}
+      <NotificationCenter />
 
       {/* ── Low-Balance Buffer ─────────────────────────────────────────── */}
       <div style={{ marginBottom: 20 }}>

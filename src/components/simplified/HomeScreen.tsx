@@ -23,8 +23,8 @@ import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEng
 import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/vocabulary"
 import { recordLastActive } from "@/lib/reminderPreferences"
 import { getInsightsEnabled } from "@/lib/insightPreferences"
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
-import { springs, timings, STAGGER_STEP } from "@/lib/animations"
+import { motion, AnimatePresence } from "framer-motion"
+import { springs, timings, STAGGER_STEP, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
 import type { SpendingMode } from "@/lib/spendingModes"
 import {
@@ -115,7 +115,7 @@ const CelebrationOverlay = dynamic(
  * - Entrance animation: fade-in only (respects prefers-reduced-motion)
  */
 function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
-  const prefersReducedMotion = useReducedMotion() ?? false
+  const { prefersReducedMotion } = useAppReducedMotion()
 
   const motionProps = prefersReducedMotion
     ? {
@@ -374,7 +374,7 @@ export function HomeScreen({
   // ── "New day" micro-celebration (task 74) ────────────────────────────────
   // Shows a brief warm indicator when the user opens the app on a new calendar day.
   const [showNewDayRefresh, setShowNewDayRefresh] = useState(false)
-  const prefersReducedMotion = useReducedMotion() ?? false
+  const { prefersReducedMotion } = useAppReducedMotion()
   useEffect(() => {
     if (typeof window === "undefined") return
     try {

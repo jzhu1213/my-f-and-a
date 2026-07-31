@@ -5,6 +5,7 @@ import React from 'react'
 // ============================================================================
 // SyncIndicator — subtle sync status display for offline queue
 // Requirements: 10.3, 10.4
+// Extends Phase 1 task 7 — shows "synced ✓" briefly after successful replay
 // ============================================================================
 
 interface SyncIndicatorProps {
@@ -12,6 +13,8 @@ interface SyncIndicatorProps {
   pendingCount: number
   /** Whether any items have permanently failed */
   hasFailed: boolean
+  /** Number of items recently synced (for brief "synced ✓" display) */
+  recentlySyncedCount?: number
   /** Callback to retry failed transactions */
   onRetry: () => void
 }
@@ -19,9 +22,22 @@ interface SyncIndicatorProps {
 export function SyncIndicator({
   pendingCount,
   hasFailed,
+  recentlySyncedCount = 0,
   onRetry,
 }: SyncIndicatorProps) {
-  // Render nothing when everything is synced
+  // Show brief "synced" indicator after successful replay
+  if (pendingCount === 0 && recentlySyncedCount > 0) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm">
+        <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+        <span className="text-emerald-300">
+          Synced ✓
+        </span>
+      </div>
+    )
+  }
+
+  // Render nothing when everything is synced and no recent activity
   if (pendingCount === 0) return null
 
   // Failed state — show retry prompt

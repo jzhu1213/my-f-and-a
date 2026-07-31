@@ -25,6 +25,8 @@ export interface SmartNotificationPreferences {
   billDueEnabled: boolean
   /** Days before bill due date to notify (default: 1) */
   billDueLeadDays: number
+  /** Weekly spending recap notification (default: off) */
+  weeklyRecapEnabled: boolean
   /** Last dates each notification type was fired (prevent duplicates) */
   lastFired: {
     lowAllowance: string | null // ISO date
@@ -49,6 +51,7 @@ const DEFAULT_PREFS: SmartNotificationPreferences = {
   lowAllowanceThreshold: 10,
   billDueEnabled: false,
   billDueLeadDays: 1,
+  weeklyRecapEnabled: false,
   lastFired: {
     lowAllowance: null,
     billDue: {},

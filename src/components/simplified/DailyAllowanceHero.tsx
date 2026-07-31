@@ -11,7 +11,7 @@ import type { AllowanceStatus, HeroMeaning, HeroDisplay } from "@/types/folio"
 import { getStatus, generateEncouragingMessage } from "@/lib/dailyAllowanceUtils"
 import { GlassCard, AmbientGlow } from "@/components/ui"
 import { useReducedMotion, springs, timings } from "@/lib/animations"
-import { typography } from "@/styles/typography"
+import { typography, pxToRem } from "@/styles/typography"
 import { AllowanceRing } from "./AllowanceRing"
 import { STATUS_EMOJI, STATUS_LABELS } from "@/lib/vocabulary"
 import type { SpendingMode } from "@/lib/spendingModes"
@@ -221,7 +221,7 @@ function AnimatedAmount({
       className={prefersReducedMotion ? undefined : "hero-amount"}
       style={{
         ...typography.display,
-        fontSize: 46,
+        fontSize: pxToRem(46),
         lineHeight: 1.05,
         display: "block",
         textAlign: "center",
@@ -564,7 +564,7 @@ export function DailyAllowanceHero({
         <p
           className="text-center"
           style={{
-            fontSize: 22,
+            fontSize: pxToRem(22),
             fontWeight: 600,
             color,
             lineHeight: 1.3,
@@ -583,7 +583,7 @@ export function DailyAllowanceHero({
         {(heroLabel) && (
           <p
             style={{
-              fontSize: 12,
+              fontSize: pxToRem(12),
               color: "var(--sub)",
               opacity: 0.7,
               margin: 0,
@@ -665,10 +665,10 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`${formatCurrency(reservedForBills + reservedForScheduled)} total reserved for upcoming bills and scheduled items`}
           >
-            <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.8 }}>
+            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.8 }}>
               🔒
             </span>
-            <span style={{ fontSize: 12, color: "var(--sub)", opacity: 0.9 }}>
+            <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.9 }}>
               {formatCurrency(reservedForBills + reservedForScheduled)} reserved total
             </span>
           </motion.div>
@@ -690,10 +690,10 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}`}
           >
-            <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.7 }}>
+            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.7 }}>
               🛡️
             </span>
-            <span style={{ fontSize: 12, color: "var(--sub)", opacity: 0.85 }}>
+            <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.85 }}>
               {formatCurrency(reservedForBills)} set aside for {upcomingBillCount} upcoming bill{upcomingBillCount === 1 ? '' : 's'}
             </span>
           </motion.div>
@@ -715,10 +715,10 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`On credit: ${formatCurrency(deferredSpending)}`}
           >
-            <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.7 }}>
+            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.7 }}>
               💳
             </span>
-            <span style={{ fontSize: 12, color: "var(--sub)", opacity: 0.85 }}>
+            <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.85 }}>
               On credit: {formatCurrency(deferredSpending)}
             </span>
           </motion.div>
@@ -740,10 +740,10 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`${formatCurrency(reservedForScheduled)} scheduled for ${scheduledCount} upcoming item${scheduledCount === 1 ? '' : 's'}`}
           >
-            <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.7 }}>
+            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.7 }}>
               📅
             </span>
-            <span style={{ fontSize: 12, color: "var(--sub)", opacity: 0.85 }}>
+            <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.85 }}>
               {formatCurrency(reservedForScheduled)} scheduled
             </span>
           </motion.div>
@@ -788,7 +788,7 @@ export function DailyAllowanceHero({
                     }}
                   >
                     <span className="flex items-center gap-2">
-                      <span aria-hidden="true" style={{ fontSize: 14 }}>
+                      <span aria-hidden="true" style={{ fontSize: pxToRem(14) }}>
                         {row.icon}
                       </span>
                       {row.label}

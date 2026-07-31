@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import type { Transaction, TransactionCategory } from "@/types"
 import { getCategoryEmoji } from "@/lib/vocabulary"
+import { TagInput } from "./TagInput"
+import { getTagsForTransaction } from "@/lib/tagUtils"
+import { ReceiptAttachment } from "./ReceiptAttachment"
 
 // ============================================================================
 // InlineTransactionEditor
@@ -16,7 +19,7 @@ export interface InlineTransactionEditorProps {
   /** Called with the updated fields */
   onSave: (
     id: string,
-    data: { amount: number; category: TransactionCategory; note?: string }
+    data: { amount: number; category: TransactionCategory; note?: string; tags?: string[] }
   ) => Promise<Transaction | null>
   /** Called when user cancels or finishes editing */
   onClose: () => void
@@ -51,6 +54,7 @@ export function InlineTransactionEditor({
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState<TransactionCategory>(transaction.category)
   const [note, setNote] = useState(transaction.note ?? "")
+  const [tags, setTags] = useState<string[]>(transaction.tags ?? getTagsForTransaction(transaction.id) ?? [])
   const [isSaving, setIsSaving] = useState(false)
 
   // Populate with transaction values
@@ -62,6 +66,7 @@ export function InlineTransactionEditor({
     )
     setCategory(transaction.category)
     setNote(transaction.note ?? "")
+    setTags(transaction.tags ?? getTagsForTransaction(transaction.id) ?? [])
     // Auto-focus amount input after a brief delay for animation
     setTimeout(() => amountRef.current?.focus(), 100)
   }, [transaction])
@@ -94,10 +99,11 @@ export function InlineTransactionEditor({
       amount: parsed,
       category,
       note: note.trim() || undefined,
+      tags: tags.length > 0 ? tags : undefined,
     })
     setIsSaving(false)
     onClose()
-  }, [amount, category, note, isSaving, transaction.id, onSave, onClose])
+  }, [amount, category, note, tags, isSaving, transaction.id, onSave, onClose])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -270,6 +276,24 @@ export function InlineTransactionEditor({
                 padding: "6px 0",
                 caretColor: "var(--text)",
               }}
+            />
+          </div>
+
+          {/* Tags (optional, task 130.1) */}
+          <div style={{ marginBottom: 10 }}>
+            <TagInput
+              tags={tags}
+              onChange={setTags}
+              collapsible
+            />
+          </div>
+
+          {/* Receipt (optional, task 130.2) */}
+          <div style={{ marginBottom: 10 }}>
+            <ReceiptAttachment
+              transactionId={transaction.id}
+              receiptUrl={transaction.receiptUrl}
+              compact
             />
           </div>
 

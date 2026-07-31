@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { triggerHaptic } from '@/lib/haptics'
 import type { Transaction } from '@/types'
+import { TagInput } from './TagInput'
+import { getRecentTags } from '@/lib/tagUtils'
 
 // ── Date picker helpers ──────────────────────────────────────────────────────
 
@@ -37,7 +39,7 @@ function getDateLabel(dateStr: string): string {
 interface IncomeSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; note?: string; fundingSourceId?: string; date?: string }) => void
+  onSubmit: (data: { amount: number; note?: string; fundingSourceId?: string; date?: string; tags?: string[] }) => void
   /** Called after successful submit to show PaycheckSheet. Receives the logged amount and gig flag. */
   onShowPaycheck?: (amount: number, isGigIncome?: boolean) => void
   /** Called when user taps Undo on the success toast */
@@ -64,6 +66,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
   const [isFinancialAid, setIsFinancialAid] = useState(false)
   const [showSpreadPrompt, setShowSpreadPrompt] = useState(false)
   const [spreadMonths, setSpreadMonths] = useState(4)
+  const [tags, setTags] = useState<string[]>([])
 
   // ── Date picker state (task 87.2) ──────────────────────────────────────
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -84,6 +87,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       setIsFinancialAid(false)
       setShowSpreadPrompt(false)
       setSpreadMonths(4)
+      setTags([])
       setSelectedDate(new Date().toISOString().slice(0, 10))
       setShowDatePicker(false)
       setShowCustomDateInput(false)
@@ -134,6 +138,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       note: note.trim() || undefined,
       fundingSourceId: selectedSourceId || undefined,
       date: selectedDate,
+      tags: tags.length > 0 ? tags : undefined,
     }
     onSubmit(data)
 
@@ -161,7 +166,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
     }
 
     onClose()
-  }, [amount, note, isGigIncome, isFinancialAid, spreadMonths, selectedSourceId, selectedDate, onSubmit, onClose, onUndo, showToast, onShowPaycheck, onCreateDisbursement])
+  }, [amount, note, isGigIncome, isFinancialAid, spreadMonths, selectedSourceId, selectedDate, tags, onSubmit, onClose, onUndo, showToast, onShowPaycheck, onCreateDisbursement])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -779,6 +784,16 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+
+              {/* ── Tags (optional, task 130.1) ────────────────────────── */}
+              <div style={{ marginBottom: 28 }}>
+                <TagInput
+                  tags={tags}
+                  onChange={setTags}
+                  suggestions={getRecentTags(transactions)}
+                  collapsible
+                />
               </div>
 
               {/* ── Done Button (thumb zone — pinned at bottom of sheet) ── */}

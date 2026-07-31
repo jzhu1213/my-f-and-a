@@ -152,6 +152,25 @@ body {
   color: var(--muted);
 }
 
+/* ── Dynamic type overflow safety ───────────────────────────────── */
+/*
+ * Prevents layout breakage at large system font sizes.
+ * Applied to key containers (hero, dock) to ensure text wraps or
+ * truncates gracefully rather than clipping or overflowing bounds.
+ * Requirement: 15.5 (scalable text via rem-based sizing).
+ */
+.dynamic-type-safe {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.dynamic-type-clamp {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Mono utility for tabular numbers ───────────────────────────── */
 .font-mono {
   font-family: 'Inter', sans-serif;

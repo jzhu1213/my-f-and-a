@@ -9,6 +9,7 @@ import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePer
 import { autoCategorizeWithRules } from '@/lib/autoCategorize'
 import type { CategorizationRule } from '@/lib/categorizationRules'
 import { hasExistingRule } from '@/lib/categorizationRules'
+import { lookupMerchant, recordMerchant } from '@/lib/merchantMemory'
 import { triggerHaptic } from '@/lib/haptics'
 import { predictHabit, getTopHabitChips } from '@/lib/habitEngine'
 import { getMostRecentExpenseCategory } from '@/lib/transactionUtils'
@@ -179,6 +180,8 @@ export function ExpenseSheet({
   const [manualCategorySelection, setManualCategorySelection] = useState(false)
   // Tracks whether the current category was auto-suggested
   const [isAutoSuggested, setIsAutoSuggested] = useState(false)
+  // Tracks whether merchant memory pre-filled category/amount (task 130.3)
+  const [merchantMatched, setMerchantMatched] = useState(false)
 
   // ── Date selection state (task 87.1) ────────────────────────────────────
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -251,6 +254,7 @@ export function ExpenseSheet({
       setSplitFriends([])
       setManualCategorySelection(!!effectiveDefault)
       setIsAutoSuggested(!!(!defaultCategory && !effectiveDefault && habitPrediction))
+      setMerchantMatched(false)
       setShowAddCategoryForm(false)
       setNewCategoryLabel('')
       setNewCategoryEmoji('✨')
@@ -429,6 +433,11 @@ export function ExpenseSheet({
       }
     }
 
+    // Record merchant memory for future pre-fill (task 130.3)
+    if (note.trim()) {
+      recordMerchant(note.trim(), effectiveCategory, submittedAmount)
+    }
+
     onClose()
   }, [amount, category, spendingMode, note, tags, splitEnabled, splitCount, splitWith, splitFriends, splitMode, customShareInput, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage])
 
@@ -477,6 +486,20 @@ export function ExpenseSheet({
     if (sanitized && !showNoteField) {
       setShowNoteField(true)
     }
+
+    // Merchant memory has highest priority (task 130.3)
+    if (!manualCategorySelection && sanitized.trim().length >= 2) {
+      const merchant = lookupMerchant(sanitized)
+      if (merchant) {
+        setCategory(merchant.category)
+        setAmount(merchant.amount % 1 === 0 ? String(merchant.amount) : merchant.amount.toFixed(2))
+        setIsAutoSuggested(true)
+        setMerchantMatched(true)
+        return
+      }
+    }
+
+    setMerchantMatched(false)
 
     // Auto-categorize: only apply if user hasn't manually picked a category
     if (!manualCategorySelection) {
@@ -1354,6 +1377,22 @@ export function ExpenseSheet({
                         }}
                       >
                         {note.length}/60
+                      </span>
+                    )}
+                    {/* Merchant remembered indicator (task 130.3) */}
+                    {merchantMatched && note.length < 50 && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          bottom: 14,
+                          fontSize: 11,
+                          fontFamily: FONT_FAMILY,
+                          fontWeight: 400,
+                          color: 'rgba(74, 222, 128, 0.8)',
+                        }}
+                      >
+                        ✓ remembered
                       </span>
                     )}
                   </div>

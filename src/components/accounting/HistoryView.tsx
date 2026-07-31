@@ -2,7 +2,8 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { TransactionList } from './TransactionList'
-import type { Transaction } from '@/types'
+import type { Transaction, TransactionCategory } from '@/types'
+import type { FundingSource } from '@/lib/fundingSources'
 import { shiftMonth, toMonthString } from '@/lib/budgetUtils'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { springs } from '@/lib/animations'
@@ -14,11 +15,20 @@ interface HistoryViewProps {
   onDeleteTransaction: (id: string) => void
   /** Callback to trigger bulk repeat flow (Task 93.1) */
   onRepeatTransaction?: (tx: Transaction) => void
+  /** Funding sources for search/filter in TransactionList (Task 129) */
+  fundingSources?: FundingSource[]
+  /** Bulk delete multiple transactions (Task 131) */
+  onBulkDelete?: (ids: string[]) => void
+  /** Bulk recategorize multiple transactions (Task 131) */
+  onBulkRecategorize?: (ids: string[], category: TransactionCategory) => void
+  /** Bulk tag multiple transactions (Task 131) */
+  onBulkTag?: (ids: string[], tags: string[]) => void
 }
 
 export function HistoryView({
   transactions, isLoading = false,
   onEditTransaction, onDeleteTransaction, onRepeatTransaction,
+  fundingSources, onBulkDelete, onBulkRecategorize, onBulkTag,
 }: HistoryViewProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => toMonthString(new Date()))
   const currentMonth   = toMonthString(new Date())
@@ -144,6 +154,10 @@ export function HistoryView({
             onDelete={isCurrentMonth ? onDeleteTransaction : undefined}
             onEdit={isCurrentMonth ? onEditTransaction : undefined}
             onRepeat={isCurrentMonth ? onRepeatTransaction : undefined}
+            fundingSources={fundingSources}
+            onBulkDelete={isCurrentMonth ? onBulkDelete : undefined}
+            onBulkRecategorize={isCurrentMonth ? onBulkRecategorize : undefined}
+            onBulkTag={isCurrentMonth ? onBulkTag : undefined}
           />
         )}
       </div>

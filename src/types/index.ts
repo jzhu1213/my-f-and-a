@@ -69,6 +69,11 @@ export interface Transaction {
    * until a DB column is available.
    */
   tags?: string[]
+  /**
+   * Optional receipt photo URL. When a receipt is attached via Supabase Storage,
+   * this holds the public/signed URL. Falls back to localStorage blob URL offline.
+   */
+  receiptUrl?: string
 }
 
 // Account Types (3 buckets)

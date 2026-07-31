@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
-import { springs, timings } from "@/lib/animations"
+import { motion, AnimatePresence } from "framer-motion"
+import { springs, timings, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   getLastActiveInfo,
@@ -48,7 +48,7 @@ function pickWelcomeMessage(): string {
 export function WelcomeBackBadge() {
   const [visible, setVisible] = useState(false)
   const [message, setMessage] = useState("")
-  const prefersReducedMotion = useReducedMotion()
+  const { prefersReducedMotion } = useAppReducedMotion()
 
   useEffect(() => {
     // Don't show if already dismissed this session

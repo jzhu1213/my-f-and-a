@@ -9,7 +9,7 @@
  */
 
 import type { CSSProperties } from "react"
-import { FONT_FAMILY, spacing } from "./typography"
+import { FONT_FAMILY, spacing, pxToRem } from "./typography"
 
 // ============================================================================
 // Layout constants
@@ -33,7 +33,7 @@ export const HORIZONTAL_PADDING = 20
  * "Categories", "Recent", etc.
  */
 export const sectionHeading: CSSProperties = {
-  fontSize: 13,
+  fontSize: pxToRem(13),
   fontWeight: 500,
   color: "var(--sub)",
   fontFamily: FONT_FAMILY,
@@ -44,7 +44,7 @@ export const sectionHeading: CSSProperties = {
  * fontWeight 600 with muted color and letter-spacing.
  */
 export const sectionHeadingStrong: CSSProperties = {
-  fontSize: 13,
+  fontSize: pxToRem(13),
   fontWeight: 600,
   color: "var(--muted)",
   letterSpacing: "0.02em",
@@ -58,7 +58,7 @@ export const linkButton: CSSProperties = {
   background: "none",
   border: "none",
   padding: 0,
-  fontSize: 14,
+  fontSize: pxToRem(14),
   fontWeight: 500,
   color: "var(--sub)",
   cursor: "pointer",
@@ -79,7 +79,7 @@ export const emptyStateContainer: CSSProperties = {
  * Empty state title text.
  */
 export const emptyStateTitle: CSSProperties = {
-  fontSize: 14,
+  fontSize: pxToRem(14),
   color: "var(--text)",
   textAlign: "center",
   fontFamily: FONT_FAMILY,
@@ -90,7 +90,7 @@ export const emptyStateTitle: CSSProperties = {
  * Empty state subtitle / description text.
  */
 export const emptyStateSubtitle: CSSProperties = {
-  fontSize: 12,
+  fontSize: pxToRem(12),
   color: "var(--sub)",
   textAlign: "center",
   fontFamily: FONT_FAMILY,
@@ -105,7 +105,7 @@ export const listRow: CSSProperties = {
   justifyContent: "space-between",
   alignItems: "center",
   padding: "6px 0",
-  fontSize: 14,
+  fontSize: pxToRem(14),
   color: "var(--text)",
 }
 
@@ -119,7 +119,7 @@ export const pillButton: CSSProperties = {
   borderRadius: 99,
   padding: "10px 20px",
   color: "var(--success)",
-  fontSize: 13,
+  fontSize: pxToRem(13),
   fontWeight: 500,
   fontFamily: FONT_FAMILY,
   cursor: "pointer",
@@ -138,7 +138,7 @@ export const chipButton: CSSProperties = {
   border: "1px solid rgba(255, 255, 255, 0.1)",
   borderRadius: 99,
   color: "var(--text)",
-  fontSize: 13,
+  fontSize: pxToRem(13),
   fontWeight: 500,
   fontFamily: FONT_FAMILY,
   cursor: "pointer",
@@ -198,7 +198,7 @@ export const segmentedButtonBase: CSSProperties = {
   padding: "10px 0",
   borderRadius: 9,
   border: "none",
-  fontSize: 13,
+  fontSize: pxToRem(13),
   fontWeight: 500,
   fontFamily: FONT_FAMILY,
   cursor: "pointer",
@@ -248,7 +248,7 @@ export const roundButton: CSSProperties = {
   borderRadius: "50%",
   background: "rgba(255, 255, 255, 0.06)",
   border: "1px solid rgba(255, 255, 255, 0.1)",
-  fontSize: 18,
+  fontSize: pxToRem(18),
   fontFamily: FONT_FAMILY,
   display: "flex",
   alignItems: "center",

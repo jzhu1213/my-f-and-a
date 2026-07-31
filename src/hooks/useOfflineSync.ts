@@ -4,11 +4,15 @@ import {
   processOfflineQueue,
   clearOfflineQueue,
   updateQueueItem,
+  getPendingTransactionIds,
+  getRecentlySyncedIds,
+  markRecentlySynced,
 } from '@/lib/offlineQueue'
 
 // ============================================================================
 // useOfflineSync — React hook for managing offline transaction queue
 // Requirements: 10.2, 10.3, 10.4, 13.7
+// Extends Phase 1 task 7 — exposes per-item sync state
 // ============================================================================
 
 export interface UseOfflineSyncReturn {
@@ -18,6 +22,10 @@ export interface UseOfflineSyncReturn {
   hasFailed: boolean
   /** Whether a sync operation is currently in progress */
   isSyncing: boolean
+  /** Set of transaction IDs currently pending in the offline queue (for per-item indicators) */
+  pendingIds: Set<string>
+  /** Set of IDs recently synced (briefly shows "synced ✓" state) */
+  recentlySyncedIds: Set<string>
   /** Retry all pending and failed transactions */
   retryAll: () => Promise<void>
   /** Dismiss failed items by clearing them from the queue */
@@ -30,17 +38,32 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
   const [pendingCount, setPendingCount] = useState(0)
   const [hasFailed, setHasFailed] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
+  const [recentlySyncedIds, setRecentlySyncedIds] = useState<Set<string>>(new Set())
 
   const refresh = useCallback(() => {
     const queue = getOfflineQueue()
     setPendingCount(queue.length)
     setHasFailed(queue.some((item) => item.status === 'failed'))
-  }, [])
+    if (userId) {
+      setPendingIds(getPendingTransactionIds(userId))
+    }
+    setRecentlySyncedIds(getRecentlySyncedIds())
+  }, [userId])
 
   // Read queue state on mount and when userId changes
   useEffect(() => {
     refresh()
   }, [refresh, userId])
+
+  // Expire recently-synced indicators after the display window
+  useEffect(() => {
+    if (recentlySyncedIds.size === 0) return
+    const timer = setTimeout(() => {
+      setRecentlySyncedIds(getRecentlySyncedIds())
+    }, 5500)
+    return () => clearTimeout(timer)
+  }, [recentlySyncedIds])
 
   // Attempt background sync on mount if there are pending items
   useEffect(() => {
@@ -52,7 +75,16 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     if (hasPending) {
       // Slight delay to avoid blocking initial render
       const timer = setTimeout(() => {
-        processOfflineQueue(userId).then(() => refresh())
+        processOfflineQueue(userId).then((result) => {
+          if (result.succeeded > 0) {
+            markRecentlySynced(
+              queue
+                .filter((i) => i.userId === userId && i.status === 'pending')
+                .map((i) => i.id)
+            )
+          }
+          refresh()
+        })
       }, 2000)
       return () => clearTimeout(timer)
     }
@@ -64,7 +96,17 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
   useEffect(() => {
     if (!userId || typeof window === 'undefined') return
     const handleOnline = () => {
-      processOfflineQueue(userId).then(() => refresh())
+      const queue = getOfflineQueue()
+      processOfflineQueue(userId).then((result) => {
+        if (result.succeeded > 0) {
+          markRecentlySynced(
+            queue
+              .filter((i) => i.userId === userId && i.status !== 'failed')
+              .map((i) => i.id)
+          )
+        }
+        refresh()
+      })
     }
     window.addEventListener('online', handleOnline)
     return () => window.removeEventListener('online', handleOnline)
@@ -82,7 +124,12 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
       }
     }
 
-    await processOfflineQueue(userId)
+    const result = await processOfflineQueue(userId)
+    if (result.succeeded > 0) {
+      markRecentlySynced(
+        queue.filter((i) => i.userId === userId).map((i) => i.id)
+      )
+    }
     refresh()
     setIsSyncing(false)
   }, [userId, isSyncing, refresh])
@@ -98,11 +145,7 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
       // All are failed — just clear everything
       clearOfflineQueue()
     } else {
-      // Remove failed items individually
-      for (const id of failedIds) {
-        // We can reuse removeFromOfflineQueue logic but to avoid repeated reads
-        // we'll clear failed items by filtering and re-persisting
-      }
+      // Remove failed items by filtering and re-persisting
       const remaining = queue.filter((item) => item.status !== 'failed')
       if (typeof window !== 'undefined') {
         localStorage.setItem('folio-offline-queue', JSON.stringify(remaining))
@@ -115,6 +158,8 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     pendingCount,
     hasFailed,
     isSyncing,
+    pendingIds,
+    recentlySyncedIds,
     retryAll,
     dismissFailed,
     refresh,

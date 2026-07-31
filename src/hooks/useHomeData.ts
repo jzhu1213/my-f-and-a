@@ -741,14 +741,18 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
         if (data.type === 'expense') {
           await recalculateBudgetSpentForCategory(data.category)
         }
-      } else if (data.type === 'expense') {
-        // Persistence failed — queue the expense locally for background retry
-        // so it is not silently lost. Income is intentionally not queued because
-        // the offline queue only replays expenses. (Requirements 10.2, 13.7)
+      } else {
+        // Persistence failed — queue locally for background retry so it is
+        // not silently lost. Supports both expense and income. (Requirements 10.2, 13.7)
         addToOfflineQueue(userId, {
-          category: data.category,
-          amount: data.amount,
-          note: data.note,
+          kind: 'create',
+          payload: {
+            category: data.category,
+            amount: data.amount,
+            type: data.type,
+            date: data.date,
+            note: data.note,
+          },
         })
       }
       
@@ -808,6 +812,23 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
         if (data.type === 'expense' && data.category !== oldTx?.category) {
           await recalculateBudgetSpentForCategory(data.category)
         }
+      } else {
+        // Persistence failed — queue the edit for background retry (Requirements 10.2)
+        addToOfflineQueue(userId, {
+          kind: 'update',
+          payload: {
+            transactionId: id,
+            amount: data.amount,
+            category: data.category,
+            type: data.type,
+            date: data.date,
+            note: data.note,
+          },
+        })
+        // Optimistically update local state so the user sees their change
+        if (oldTx) {
+          setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
+        }
       }
       
       return result
@@ -832,6 +853,17 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
         setTransactions(prev => prev.filter(t => t.id !== id))
         
         // Recalculate budget spent if it was an expense
+        if (tx?.type === 'expense') {
+          await recalculateBudgetSpentForCategory(tx.category)
+        }
+      } else {
+        // Persistence failed — queue the delete for background retry (Requirements 10.2)
+        addToOfflineQueue(userId, {
+          kind: 'delete',
+          payload: { transactionId: id },
+        })
+        // Optimistically remove from local state
+        setTransactions(prev => prev.filter(t => t.id !== id))
         if (tx?.type === 'expense') {
           await recalculateBudgetSpentForCategory(tx.category)
         }

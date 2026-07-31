@@ -118,6 +118,7 @@ import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { applyRoundUp, getRoundUpTargetGoal } from '@/lib/roundUpSavings'
 import { createRefundTransaction } from '@/lib/refundUtils'
 import { saveTagsForTransaction } from '@/lib/tagUtils'
+import { useUndo } from '@/hooks/useUndo'
 import { useRecurringBills } from '@/hooks/useRecurringBills'
 import { useSmartNotifications } from '@/hooks/useSmartNotifications'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
@@ -130,6 +131,7 @@ type OnboardingStep = 'loading' | 'tutorial' | 'done'
 export default function FolioApp() {
   const { user, loading: authLoading, refreshUser } = useAuth()
   const { showToast } = useToast()
+  const { performWithUndo } = useUndo()
 
   // ── Routing & UI State ─────────────────────────────────────────
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('loading')
@@ -263,6 +265,7 @@ export default function FolioApp() {
   const {
     pendingCount: offlinePendingCount,
     hasFailed: offlineHasFailed,
+    recentlySyncedIds: offlineRecentlySyncedIds,
     retryAll: retryOfflineSync,
     refresh: refreshOfflineSync,
   } = useOfflineSync(user?.id ?? undefined)
@@ -721,8 +724,102 @@ export default function FolioApp() {
 
   // ── Transaction Delete ─────────────────────────────────────────
   const handleDeleteTransaction = useCallback(async (id: string) => {
-    await deleteTransaction(id)
-  }, [deleteTransaction])
+    const tx = transactions.find(t => t.id === id)
+    if (!tx) { await deleteTransaction(id); return }
+
+    await performWithUndo(
+      'delete_transaction',
+      () => deleteTransaction(id),
+      () => addTransaction({
+        amount: tx.amount,
+        category: tx.category,
+        type: tx.type,
+        date: tx.date,
+        note: tx.note,
+      }),
+      tx.type === 'expense' ? 'Expense deleted' : 'Transaction deleted',
+    )
+  }, [transactions, deleteTransaction, addTransaction, performWithUndo])
+
+  // ── Bulk Delete (Task 131) ─────────────────────────────────────
+  const handleBulkDelete = useCallback(async (ids: string[]) => {
+    const snapshot = transactions.filter(t => ids.includes(t.id))
+
+    await performWithUndo(
+      'bulk_delete',
+      async () => { for (const id of ids) { await deleteTransaction(id) } },
+      async () => {
+        for (const tx of snapshot) {
+          await addTransaction({
+            amount: tx.amount,
+            category: tx.category,
+            type: tx.type,
+            date: tx.date,
+            note: tx.note,
+          })
+        }
+      },
+      `${ids.length} transaction${ids.length > 1 ? 's' : ''} deleted`,
+    )
+  }, [transactions, deleteTransaction, addTransaction, performWithUndo])
+
+  // ── Bulk Recategorize (Task 131) ───────────────────────────────
+  const handleBulkRecategorize = useCallback(async (ids: string[], category: TransactionCategory) => {
+    const targets = transactions.filter(t => ids.includes(t.id))
+    const originals = targets.map(t => ({ id: t.id, category: t.category, amount: t.amount, type: t.type, date: t.date, note: t.note }))
+
+    await performWithUndo(
+      'bulk_recategorize',
+      async () => {
+        for (const tx of targets) {
+          await updateTransaction(tx.id, {
+            amount: tx.amount,
+            category,
+            type: tx.type,
+            date: tx.date,
+            note: tx.note,
+          })
+        }
+      },
+      async () => {
+        for (const orig of originals) {
+          await updateTransaction(orig.id, {
+            amount: orig.amount,
+            category: orig.category,
+            type: orig.type,
+            date: orig.date,
+            note: orig.note,
+          })
+        }
+      },
+      `${ids.length} transaction${ids.length > 1 ? 's' : ''} recategorized`,
+    )
+  }, [transactions, updateTransaction, performWithUndo])
+
+  // ── Bulk Tag (Task 131) ────────────────────────────────────────
+  const handleBulkTag = useCallback(async (ids: string[], tags: string[]) => {
+    // Snapshot original tags for undo
+    const originals = ids.map(id => {
+      const tx = transactions.find(t => t.id === id)
+      return { id, tags: tx?.tags ? [...tx.tags] : undefined }
+    })
+    // Apply tags
+    for (const id of ids) {
+      saveTagsForTransaction(id, tags)
+    }
+    // Refresh to pick up new tags
+    await refresh()
+    showToast(`Tags added to ${ids.length} transaction${ids.length > 1 ? 's' : ''}`, 'success', {
+      label: 'Undo',
+      onClick: async () => {
+        for (const { id, tags: orig } of originals) {
+          saveTagsForTransaction(id, orig ?? [])
+        }
+        await refresh()
+        showToast('Tags removed')
+      },
+    })
+  }, [transactions, showToast, refresh])
 
   // ── Transaction Edit ───────────────────────────────────────────
   const handleEditTransaction = useCallback((tx: Transaction) => {
@@ -791,14 +888,28 @@ export default function FolioApp() {
   ) => {
     const tx = transactions.find(t => t.id === id)
     if (!tx) return null
-    return updateTransaction(id, {
-      amount: data.amount,
-      category: data.category,
-      type: tx.type,
-      date: tx.date,
-      note: data.note,
-    })
-  }, [transactions, updateTransaction])
+
+    const originalData = { amount: tx.amount, category: tx.category, type: tx.type, date: tx.date, note: tx.note }
+
+    await performWithUndo(
+      'edit_transaction',
+      async () => {
+        await updateTransaction(id, {
+          amount: data.amount,
+          category: data.category,
+          type: tx.type,
+          date: tx.date,
+          note: data.note,
+        })
+      },
+      async () => {
+        await updateTransaction(id, originalData)
+      },
+      'Transaction updated',
+    )
+
+    return transactions.find(t => t.id === id) ?? null
+  }, [transactions, updateTransaction, performWithUndo])
 
   // ── Refund Handling ────────────────────────────────────────────
   const handleOpenRefund = useCallback((tx: Transaction) => {
@@ -809,14 +920,34 @@ export default function FolioApp() {
   const handleLogRefund = useCallback(async (originalTx: Transaction, refundAmount: number) => {
     if (!user?.id) return
     const refundData = createRefundTransaction(originalTx, refundAmount)
-    await addTransaction({
-      amount: refundData.amount,
-      category: refundData.category,
-      type: refundData.type,
-      date: refundData.date,
-      note: refundData.note,
-    })
-  }, [user?.id, addTransaction])
+
+    await performWithUndo(
+      'refund',
+      async () => {
+        await addTransaction({
+          amount: refundData.amount,
+          category: refundData.category,
+          type: refundData.type,
+          date: refundData.date,
+          note: refundData.note,
+        })
+      },
+      async () => {
+        // Find the refund transaction we just added and delete it
+        // It will be the most recent transaction matching the refund data
+        const refundTx = transactions.find(t =>
+          t.type === 'income' &&
+          t.amount === refundData.amount &&
+          t.category === refundData.category &&
+          (t.note === refundData.note || t.note?.startsWith('Refund'))
+        )
+        if (refundTx) {
+          await deleteTransaction(refundTx.id)
+        }
+      },
+      'Refund logged',
+    )
+  }, [user?.id, addTransaction, deleteTransaction, transactions, performWithUndo])
 
   // ── Goal Handlers (delegated to useHomeData) ───────────────────
   const handleCreateGoal = async (data: { name: string; targetAmount: number; emoji: string; targetDate?: string }) => {
@@ -1223,11 +1354,12 @@ export default function FolioApp() {
         onQuickLog={anySheetOpen ? undefined : () => setExpenseSheetOpen(true)}
         hideDock={anySheetOpen}
       >
-        {offlinePendingCount > 0 && (
+        {(offlinePendingCount > 0 || offlineRecentlySyncedIds.size > 0) && (
           <div style={{ marginBottom: 12 }}>
             <SyncIndicator
               pendingCount={offlinePendingCount}
               hasFailed={offlineHasFailed}
+              recentlySyncedCount={offlineRecentlySyncedIds.size}
               onRetry={retryOfflineSync}
             />
           </div>
@@ -1295,6 +1427,10 @@ export default function FolioApp() {
                 onLogExpense={() => handleOpenExpenseSheet()}
                 onRepeatTransaction={handleRepeatTransaction}
                 allowance={allowance}
+                fundingSources={fundingSources}
+                onBulkDelete={handleBulkDelete}
+                onBulkRecategorize={handleBulkRecategorize}
+                onBulkTag={handleBulkTag}
               />
             )}
             {activeNav === 'tools' && (

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo, useRef, useEffect } from "react"
-import { motion, AnimatePresence, PanInfo, Variants } from "framer-motion"
+import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+import { motion, AnimatePresence, PanInfo, Variants, Reorder } from "framer-motion"
 import type { Transaction, Budget, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { QuickTransaction, SmartSuggestion, CustomCategory } from "@/types/folio"
@@ -11,6 +11,12 @@ import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animatio
 import { getCategoryEmoji } from "@/lib/vocabulary"
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius } from '@/styles/shared'
+import {
+  loadCategoryGridPrefs,
+  saveCategoryGridPrefs,
+  mergePrefsWithDefaults,
+  categoriesToPrefs,
+} from "@/lib/categoryGridPreferences"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -270,6 +276,133 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion }: Sugg
   )
 }
 
+// ── Edit Category Inline (Task 133.1) ────────────────────────────────────────
+
+interface EditCategoryInlineProps {
+  emoji: string
+  label: string
+  onSave: (emoji: string, label: string) => void
+  onCancel: () => void
+  reducedMotion: boolean
+}
+
+/**
+ * Small inline form to rename a category's label and emoji.
+ * Appears when tapping a category in customize/edit mode.
+ */
+function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: EditCategoryInlineProps) {
+  const [editEmoji, setEditEmoji] = useState(emoji)
+  const [editLabel, setEditLabel] = useState(label)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmedLabel = editLabel.trim()
+    if (trimmedLabel.length === 0) return
+    onSave(editEmoji.trim() || emoji, trimmedLabel)
+  }
+
+  return (
+    <motion.form
+      onSubmit={handleSubmit}
+      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+      animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+      transition={springs.snappy}
+      style={{
+        display: "flex",
+        gap: 8,
+        alignItems: "center",
+        padding: "10px 12px",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+        borderRadius: borderRadius.md,
+      }}
+      aria-label={`Edit ${label} category`}
+    >
+      <input
+        type="text"
+        value={editEmoji}
+        onChange={(e) => setEditEmoji(e.target.value)}
+        style={{
+          width: 36,
+          height: 36,
+          fontSize: 20,
+          textAlign: "center",
+          background: "rgba(255, 255, 255, 0.06)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: borderRadius.sm,
+          color: "var(--text)",
+          padding: 0,
+        }}
+        aria-label="Category emoji"
+        maxLength={4}
+      />
+      <input
+        ref={inputRef}
+        type="text"
+        value={editLabel}
+        onChange={(e) => setEditLabel(e.target.value.slice(0, 20))}
+        style={{
+          flex: 1,
+          height: 36,
+          fontSize: 13,
+          fontWeight: 500,
+          background: "rgba(255, 255, 255, 0.06)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: borderRadius.sm,
+          color: "var(--text)",
+          padding: "0 10px",
+          fontFamily: FONT_FAMILY,
+        }}
+        aria-label="Category label"
+        maxLength={20}
+      />
+      <button
+        type="submit"
+        style={{
+          height: 36,
+          padding: "0 12px",
+          fontSize: 12,
+          fontWeight: 500,
+          background: "rgba(167, 139, 250, 0.2)",
+          border: "1px solid rgba(167, 139, 250, 0.4)",
+          borderRadius: borderRadius.sm,
+          color: "var(--text)",
+          cursor: "pointer",
+          fontFamily: FONT_FAMILY,
+        }}
+        aria-label="Save category changes"
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        style={{
+          height: 36,
+          padding: "0 10px",
+          fontSize: 12,
+          fontWeight: 500,
+          background: "none",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: borderRadius.sm,
+          color: "var(--muted)",
+          cursor: "pointer",
+          fontFamily: FONT_FAMILY,
+        }}
+        aria-label="Cancel editing"
+      >
+        ✕
+      </button>
+    </motion.form>
+  )
+}
+
 interface CustomAmountPanelProps {
   category: TransactionCategory
   onSubmit: (transaction: QuickTransaction) => void
@@ -458,6 +591,21 @@ export function QuickLogArea({
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // ── Customize mode state (Task 133.1) ──────────────────────────────────────
+  const [isCustomizing, setIsCustomizing] = useState(false)
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
+  const [customizedCategories, setCustomizedCategories] = useState<
+    { category: TransactionCategory; emoji: string; label: string }[]
+  >([])
+
+  // Load saved preferences on mount
+  useEffect(() => {
+    const prefs = loadCategoryGridPrefs()
+    if (prefs) {
+      setCustomizedCategories(mergePrefsWithDefaults(prefs))
+    }
+  }, [])
+
   // Clean up the ripple reset timer on unmount.
   useEffect(() => {
     return () => {
@@ -479,6 +627,21 @@ export function QuickLogArea({
 
   // ── 6.2: Sort categories by usage frequency (Requirement 3.2) ──────────────
   const sortedCategories = useMemo(() => {
+    // If user has customized preferences, use those (Task 133.1)
+    if (customizedCategories.length > 0) {
+      // Append custom categories after the user's saved built-in order
+      const custom = [...customCategories]
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .map((c) => ({
+          category: 'other' as TransactionCategory,
+          emoji: c.emoji,
+          label: c.label,
+          customId: c.id,
+        }))
+      return [...customizedCategories, ...custom]
+    }
+
+    // Fallback: frequency-based sorting for new users
     // Count transactions per expense category (look at the last 50 for performance)
     const usageCount = new Map<TransactionCategory, number>()
     const sample = recentTransactions.slice(0, 50)
@@ -503,7 +666,7 @@ export function QuickLogArea({
       }))
 
     return [...builtIn, ...custom]
-  }, [recentTransactions, customCategories])
+  }, [recentTransactions, customCategories, customizedCategories])
 
   // ── 6.3: Smart suggestions for selected category (Requirements 3.3, 3.6) ───
   const suggestions = useMemo<SmartSuggestion[]>(() => {
@@ -582,6 +745,45 @@ export function QuickLogArea({
     return BUDGET_CATEGORIES.find((c) => c.category === category)?.label ?? category
   }
 
+  // ── Customize mode handlers (Task 133.1) ───────────────────────────────────
+
+  /** Enter customize mode — copy current order into editable state */
+  const handleStartCustomize = useCallback(() => {
+    setIsCustomizing(true)
+    setSelectedCategory(null)
+    setShowCustomInput(false)
+    setEditingCategoryId(null)
+    // Use only built-in categories for reorder (custom categories handled separately)
+    const builtInCats = sortedCategories.filter(c => !('customId' in c))
+    setCustomizedCategories(builtInCats)
+  }, [sortedCategories])
+
+  /** Save customized order + labels and exit edit mode */
+  const handleDoneCustomize = useCallback(() => {
+    const prefs = categoriesToPrefs(customizedCategories)
+    saveCategoryGridPrefs(prefs)
+    setIsCustomizing(false)
+    setEditingCategoryId(null)
+    showToast("Categories updated ✓", "success")
+  }, [customizedCategories, showToast])
+
+  /** Update a category's label/emoji inline */
+  const handleSaveCategoryEdit = useCallback((categoryId: string, newEmoji: string, newLabel: string) => {
+    setCustomizedCategories(prev =>
+      prev.map(c =>
+        c.category === categoryId
+          ? { ...c, emoji: newEmoji, label: newLabel }
+          : c
+      )
+    )
+    setEditingCategoryId(null)
+  }, [])
+
+  /** Handle reorder from framer-motion Reorder.Group */
+  const handleReorder = useCallback((newOrder: { category: TransactionCategory; emoji: string; label: string }[]) => {
+    setCustomizedCategories(newOrder)
+  }, [])
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -601,73 +803,243 @@ export function QuickLogArea({
         >
           Log expense
         </span>
-        {selectedCategory && !showCustomInput && (
-          <motion.button
-            type="button"
-            onClick={() => setShowCustomInput(true)}
-            style={{
-              fontSize: 12,
-              color: "var(--muted)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "4px 0",
-            }}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Enter custom amount"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            Custom ↓
-          </motion.button>
-        )}
+        <div className="flex items-center gap-3">
+          {isCustomizing ? (
+            <motion.button
+              type="button"
+              onClick={handleDoneCustomize}
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: "var(--text)",
+                background: "rgba(167, 139, 250, 0.2)",
+                border: "1px solid rgba(167, 139, 250, 0.4)",
+                borderRadius: borderRadius.full,
+                padding: "5px 12px",
+                cursor: "pointer",
+                fontFamily: FONT_FAMILY,
+              }}
+              whileTap={{ scale: 0.95 }}
+              aria-label="Done customizing categories"
+            >
+              Done
+            </motion.button>
+          ) : (
+            <>
+              {!selectedCategory && (
+                <motion.button
+                  type="button"
+                  onClick={handleStartCustomize}
+                  style={{
+                    fontSize: 12,
+                    color: "var(--muted)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "4px 0",
+                    fontFamily: FONT_FAMILY,
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Customize category order and labels"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  Customize
+                </motion.button>
+              )}
+              {selectedCategory && !showCustomInput && (
+                <motion.button
+                  type="button"
+                  onClick={() => setShowCustomInput(true)}
+                  style={{
+                    fontSize: 12,
+                    color: "var(--muted)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "4px 0",
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Enter custom amount"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  Custom ↓
+                </motion.button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Category grid (Requirement 3.1) ── */}
-      <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: `repeat(${sortedCategories.length}, 1fr)` }}
-        role="group"
-        aria-label="Expense categories"
-        onKeyDown={(e) => {
-          const items = sortedCategories
-          const currentIndex = selectedCategory
-            ? items.findIndex(c => c.category === selectedCategory)
-            : -1
-          let nextIndex = -1
-          if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-            e.preventDefault()
-            nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
-          } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-            e.preventDefault()
-            nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
-          }
-          if (nextIndex >= 0) {
-            handleCategorySelect(items[nextIndex].category)
-            // Focus the next button
-            const container = e.currentTarget
-            const buttons = container.querySelectorAll<HTMLButtonElement>('[role="group"] > button, button[aria-pressed]')
-            buttons[nextIndex]?.focus()
-          }
-        }}
-      >
-        {sortedCategories.map((cat, index) => (
-          <CategoryButton
-            key={'customId' in cat && cat.customId ? `custom-${cat.customId}` : cat.category}
-            category={cat.category}
-            emoji={cat.emoji}
-            label={cat.label}
-            isSelected={selectedCategory === cat.category}
-            onSelect={() => handleCategorySelect(cat.category)}
-            reducedMotion={prefersReducedMotion}
-            tabIndex={
-              selectedCategory === cat.category ? 0
-                : selectedCategory === null && index === 0 ? 0
-                : -1
+      {isCustomizing ? (
+        /* ── Customize mode: drag-to-reorder (Task 133.1) ── */
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Reorder.Group
+            axis="x"
+            values={customizedCategories}
+            onReorder={handleReorder}
+            style={{
+              display: "flex",
+              gap: 8,
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+              overflowX: "auto",
+              paddingBottom: 4,
+            }}
+            aria-label="Drag to reorder expense categories"
+          >
+            {customizedCategories.map((cat) => (
+              <Reorder.Item
+                key={cat.category}
+                value={cat}
+                style={{ cursor: "grab", touchAction: "none" }}
+                whileDrag={prefersReducedMotion ? undefined : { scale: 1.05, boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }}
+                dragListener={editingCategoryId !== cat.category}
+              >
+                <motion.button
+                  type="button"
+                  className="cat-pill cat-pill--glass"
+                  style={{
+                    minHeight: 80,
+                    minWidth: 48,
+                    position: "relative",
+                    border: editingCategoryId === cat.category
+                      ? "1.5px solid rgba(167, 139, 250, 0.6)"
+                      : undefined,
+                  }}
+                  onClick={() =>
+                    setEditingCategoryId(
+                      editingCategoryId === cat.category ? null : cat.category
+                    )
+                  }
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.94 }}
+                  aria-label={`Edit ${cat.label} category. Drag to reorder.`}
+                >
+                  {/* Drag handle indicator */}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: 16,
+                      height: 3,
+                      borderRadius: 2,
+                      background: "rgba(255, 255, 255, 0.2)",
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: "relative",
+                      zIndex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 8,
+                      paddingTop: 6,
+                    }}
+                  >
+                    <span style={{ fontSize: 24 }} aria-hidden="true">
+                      {cat.emoji}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: "var(--sub)",
+                        letterSpacing: "0.03em",
+                        maxWidth: 60,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {cat.label}
+                    </span>
+                  </span>
+                </motion.button>
+              </Reorder.Item>
+            ))}
+          </Reorder.Group>
+
+          {/* Inline edit form for tapped category */}
+          <AnimatePresence mode="wait">
+            {editingCategoryId && (
+              <EditCategoryInline
+                key={editingCategoryId}
+                emoji={customizedCategories.find(c => c.category === editingCategoryId)?.emoji ?? "📦"}
+                label={customizedCategories.find(c => c.category === editingCategoryId)?.label ?? ""}
+                onSave={(emoji, label) => handleSaveCategoryEdit(editingCategoryId, emoji, label)}
+                onCancel={() => setEditingCategoryId(null)}
+                reducedMotion={prefersReducedMotion}
+              />
+            )}
+          </AnimatePresence>
+
+          <p
+            style={{
+              fontSize: 11,
+              color: "var(--muted)",
+              textAlign: "center",
+              marginTop: 2,
+              fontFamily: FONT_FAMILY,
+            }}
+            aria-live="polite"
+          >
+            Drag to reorder · Tap to rename
+          </p>
+        </div>
+      ) : (
+        /* ── Normal mode: category grid ── */
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${sortedCategories.length}, 1fr)` }}
+          role="group"
+          aria-label="Expense categories"
+          onKeyDown={(e) => {
+            const items = sortedCategories
+            const currentIndex = selectedCategory
+              ? items.findIndex(c => c.category === selectedCategory)
+              : -1
+            let nextIndex = -1
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+              e.preventDefault()
+              nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+              e.preventDefault()
+              nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
             }
-          />
-        ))}
-      </div>
+            if (nextIndex >= 0) {
+              handleCategorySelect(items[nextIndex].category)
+              // Focus the next button
+              const container = e.currentTarget
+              const buttons = container.querySelectorAll<HTMLButtonElement>('[role="group"] > button, button[aria-pressed]')
+              buttons[nextIndex]?.focus()
+            }
+          }}
+        >
+          {sortedCategories.map((cat, index) => (
+            <CategoryButton
+              key={'customId' in cat && cat.customId ? `custom-${cat.customId}` : cat.category}
+              category={cat.category}
+              emoji={cat.emoji}
+              label={cat.label}
+              isSelected={selectedCategory === cat.category}
+              onSelect={() => handleCategorySelect(cat.category)}
+              reducedMotion={prefersReducedMotion}
+              tabIndex={
+                selectedCategory === cat.category ? 0
+                  : selectedCategory === null && index === 0 ? 0
+                  : -1
+              }
+            />
+          ))}
+        </div>
+      )}
 
       {/* ── First-time user prompt (Requirement 14.4) ── */}
       {recentTransactions.length === 0 && !selectedCategory && (

@@ -1,9 +1,10 @@
 "use client"
 
-import type { Transaction } from "@/types"
+import type { Transaction, TransactionCategory } from "@/types"
 import type { DailyAllowance } from "@/types/folio"
+import type { FundingSource } from "@/lib/fundingSources"
 import { motion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, useReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
 import { HistoryView } from "@/components/accounting/HistoryView"
 import { InsightTrendCard } from "./InsightTrendCard"
@@ -28,6 +29,14 @@ export interface HistoryScreenProps {
   onRepeatTransaction?: (tx: Transaction) => void
   /** Daily allowance data — reinforces the core "can I afford this?" identity (Task 117.1) */
   allowance?: DailyAllowance | null
+  /** Funding sources for search/filter in TransactionList (Task 129) */
+  fundingSources?: FundingSource[]
+  /** Bulk delete multiple transactions (Task 131) */
+  onBulkDelete?: (ids: string[]) => void
+  /** Bulk recategorize multiple transactions (Task 131) */
+  onBulkRecategorize?: (ids: string[], category: TransactionCategory) => void
+  /** Bulk tag multiple transactions (Task 131) */
+  onBulkTag?: (ids: string[], tags: string[]) => void
 }
 
 // ============================================================================
@@ -50,7 +59,12 @@ export function HistoryScreen({
   onLogExpense,
   onRepeatTransaction,
   allowance,
+  fundingSources,
+  onBulkDelete,
+  onBulkRecategorize,
+  onBulkTag,
 }: HistoryScreenProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   return (
     <div className="history-screen">
       {/* Compact daily allowance reinforcement — keeps the core identity visible (Task 117.1) */}
@@ -103,6 +117,10 @@ export function HistoryScreen({
         onEditTransaction={onEditTransaction}
         onDeleteTransaction={onDeleteTransaction}
         onRepeatTransaction={onRepeatTransaction}
+        fundingSources={fundingSources}
+        onBulkDelete={onBulkDelete}
+        onBulkRecategorize={onBulkRecategorize}
+        onBulkTag={onBulkTag}
       />
 
       {/* Floating Action Button — log new expense */}
@@ -110,7 +128,7 @@ export function HistoryScreen({
         type="button"
         className="history-screen__fab"
         onClick={onLogExpense}
-        whileTap={{ scale: 0.96 }}
+        whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
         transition={springs.snappy}
         aria-label="Log new expense"
       >
