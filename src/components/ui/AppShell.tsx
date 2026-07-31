@@ -78,6 +78,11 @@ export interface AppShellProps {
    * expense logging from any screen.
    */
   onQuickLog?: () => void
+  /**
+   * When true, hides the floating dock navigation (e.g. when a bottom sheet is
+   * open and would overlap with it due to z-index stacking).
+   */
+  hideDock?: boolean
 }
 
 /** A single dock destination with its icon + accessible label. */
@@ -137,6 +142,7 @@ export function AppShell({
   hideTopBar = false,
   contentClassName = '',
   onQuickLog,
+  hideDock = false,
 }: AppShellProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
@@ -217,6 +223,7 @@ export function AppShell({
       )}
 
       {/* ── Floating dock navigation ───────────────────────────── */}
+      {!hideDock && (
       <nav className="app-dock" aria-label="Primary">
         <ul
           className="app-dock__list"
@@ -282,6 +289,7 @@ export function AppShell({
           })}
         </ul>
       </nav>
+      )}
     </div>
   )
 }

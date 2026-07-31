@@ -108,7 +108,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
-import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement } from '@/lib/supabaseData'
+import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement } from '@/lib/supabaseData'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
 import type { TransactionCategory, Transaction } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
@@ -144,6 +144,7 @@ export default function FolioApp() {
   const [showDebt, setShowDebt] = useState(false)
   const [showReimbursements, setShowReimbursements] = useState(false)
   const [showLearn, setShowLearn] = useState(false)
+  const [initialLessonId, setInitialLessonId] = useState<string | null>(null)
   const [showCompoundGrowth, setShowCompoundGrowth] = useState(false)
   const [showCreditPayoff, setShowCreditPayoff] = useState(false)
   const [profileSheetOpen, setProfileSheetOpen] = useState(false)
@@ -194,6 +195,9 @@ export default function FolioApp() {
   const [bulkRepeatSheetOpen, setBulkRepeatSheetOpen] = useState(false)
   const [bulkRepeatTransaction, setBulkRepeatTransaction] = useState<{ amount: number; category: TransactionCategory; note?: string } | null>(null)
 
+  // ── Derived: any bottom sheet open (hides FAB + dock to prevent z-index overlap) ──
+  const anySheetOpen = expenseSheetOpen || incomeSheetOpen || paycheckSheetOpen || backfillSheetOpen || editSheetOpen || refundSheetOpen || bulkRepeatSheetOpen || profileSheetOpen
+
   // ── Celebration State ──────────────────────────────────────────
   const [celebrationEvent, setCelebrationEvent] = useState<CelebrationEvent | null>(null)
 
@@ -229,6 +233,9 @@ export default function FolioApp() {
     updateSinkingFund,
     deleteSinkingFund,
     setDisbursementBonus,
+    disbursements,
+    addDisbursement,
+    removeDisbursement,
     incomeSmoothing,
     setIncomeSmoothing,
     spendingMode,
@@ -241,6 +248,12 @@ export default function FolioApp() {
     addFundingSource,
     updateFundingSource,
     deleteFundingSource,
+    activeSpendDown,
+    spendDownPlans,
+    addSpendDownPlan,
+    removeSpendDownPlan,
+    updateSpendDownPlan,
+    timeHorizonStats,
   } = useHomeData(user?.id, user)
 
   // ── Custom Categories ──────────────────────────────────────────
@@ -346,23 +359,24 @@ export default function FolioApp() {
       .reduce((sum, t) => sum + t.amount, 0)
   }, [transactions])
 
-  // ── Recent split partners (derived from reimbursements, task 5.3 polish) ──
+  // ── Recent split partners (derived from reimbursements, task 5.3 + 123.1 — sorted by frequency) ──
   const recentSplitPartners = useMemo(() => {
     if (reimbursements.length === 0) return []
-    const seen = new Set<string>()
-    const names: string[] = []
-    // Walk most recent first (assuming sorted by createdAt desc from DB)
-    const sorted = [...reimbursements].sort((a, b) =>
-      (b.createdAt || '').localeCompare(a.createdAt || '')
-    )
-    for (const r of sorted) {
+    // Count frequency per person (how often they appear in splits)
+    const freq = new Map<string, number>()
+    const canonical = new Map<string, string>() // lowercase → display name
+    for (const r of reimbursements) {
       const name = r.personName.trim()
-      if (!name || seen.has(name.toLowerCase())) continue
-      seen.add(name.toLowerCase())
-      names.push(name)
-      if (names.length >= 5) break
+      if (!name) continue
+      const key = name.toLowerCase()
+      freq.set(key, (freq.get(key) ?? 0) + 1)
+      if (!canonical.has(key)) canonical.set(key, name)
     }
-    return names
+    // Sort by frequency descending, take top 5
+    return [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([key]) => canonical.get(key)!)
   }, [reimbursements])
 
   // ── Outstanding splits: who owes the user (task 5.3 — who-owes-whom surface) ──
@@ -507,6 +521,25 @@ export default function FolioApp() {
     setSplitPreEnabled(true)
     setExpenseSheetOpen(true)
   }, [])
+
+  // Settle all unsettled IOUs for a given person (task 123.1 — one-tap settle from HomeScreen)
+  const handleSettleSplit = useCallback(async (personName: string) => {
+    if (!user?.id) return
+    const unsettled = reimbursements.filter(
+      (r) => !r.settled && r.personName.trim().toLowerCase() === personName.trim().toLowerCase() && r.direction === 'owed_to_me'
+    )
+    if (unsettled.length === 0) return
+    // Optimistic update
+    setReimbursements((prev) =>
+      prev.map((r) =>
+        unsettled.some((u) => u.id === r.id) ? { ...r, settled: true, settledAt: new Date().toISOString() } : r
+      )
+    )
+    // Persist each settlement
+    for (const r of unsettled) {
+      await settleReimbursement(user.id, r.id)
+    }
+  }, [user?.id, reimbursements])
 
   const handleExpenseSubmit = useCallback(async (data: {
     amount: number
@@ -991,6 +1024,9 @@ export default function FolioApp() {
           onDeleteFund={async (id) => { await deleteSinkingFund(id) }}
           onClose={() => setShowSinkingFunds(false)}
           onSetDisbursement={(monthly) => setDisbursementBonus(monthly)}
+          disbursements={disbursements}
+          onAddDisbursement={(data) => addDisbursement(data)}
+          onRemoveDisbursement={(id) => removeDisbursement(id)}
         />
       </div>
     )
@@ -1132,7 +1168,7 @@ export default function FolioApp() {
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <div style={{ padding: '0 16px' }}>
           <button
-            onClick={() => setShowLearn(false)}
+            onClick={() => { setShowLearn(false); setInitialLessonId(null) }}
             style={{
               background: 'none',
               border: 'none',
@@ -1150,6 +1186,7 @@ export default function FolioApp() {
         <LessonsScreen
           lessonProgress={lessonProgress}
           onCompleteLesson={completeLesson}
+          initialLessonId={initialLessonId ?? undefined}
         />
       </div>
     )
@@ -1183,7 +1220,8 @@ export default function FolioApp() {
         avatarUrl={undefined}
         avatarInitial={user?.email?.charAt(0)}
         meshVariant="home"
-        onQuickLog={() => setExpenseSheetOpen(true)}
+        onQuickLog={anySheetOpen ? undefined : () => setExpenseSheetOpen(true)}
+        hideDock={anySheetOpen}
       >
         {offlinePendingCount > 0 && (
           <div style={{ marginBottom: 12 }}>
@@ -1212,6 +1250,8 @@ export default function FolioApp() {
                 isLoading={dataLoading}
                 isStale={isStale}
                 weekendAllowance={weekendAllowance}
+                activeSpendDown={activeSpendDown}
+                timeHorizonStats={timeHorizonStats}
                 spendingMode={spendingMode}
                 heroMeaning={heroMeaning}
                 heroDisplay={heroDisplay}
@@ -1232,6 +1272,7 @@ export default function FolioApp() {
                 onOpenSplitExpense={handleOpenSplitExpense}
                 outstandingSplits={outstandingSplits}
                 onOpenReimbursements={() => setShowReimbursements(true)}
+                onSettleSplit={handleSettleSplit}
                 splitTransactionIds={splitTransactionIds}
                 showIncomeAnchorBanner={incomeAnchorBannerVisible}
                 onIncomeAnchorSetItNow={() => {
@@ -1239,6 +1280,10 @@ export default function FolioApp() {
                   setBackfillSheetOpen(true)
                 }}
                 onIncomeAnchorSkip={() => setIncomeAnchorBannerVisible(false)}
+                onOpenLesson={(lessonId) => {
+                  setInitialLessonId(lessonId)
+                  setShowLearn(true)
+                }}
               />
             )}
             {activeNav === 'history' && (
@@ -1249,6 +1294,7 @@ export default function FolioApp() {
                 onDeleteTransaction={handleDeleteTransaction}
                 onLogExpense={() => handleOpenExpenseSheet()}
                 onRepeatTransaction={handleRepeatTransaction}
+                allowance={allowance}
               />
             )}
             {activeNav === 'tools' && (
@@ -1309,6 +1355,10 @@ export default function FolioApp() {
                 onDeleteCategorizationRule={handleDeleteCategorizationRule}
                 onOpenSharing={() => setShowSharing(true)}
                 activeShareCount={getActiveShareLinks().length}
+                spendDownPlans={spendDownPlans}
+                onAddSpendDownPlan={addSpendDownPlan}
+                onRemoveSpendDownPlan={removeSpendDownPlan}
+                disbursements={disbursements}
               />
             )}
           </motion.div>
@@ -1333,6 +1383,7 @@ export default function FolioApp() {
         spendingMode={spendingMode}
         categorizationRules={categorizationRules}
         onAddCategorizationRule={handleAddCategorizationRule}
+        dailyAllowanceAmount={allowance?.amount}
       />
 
       {/* ── Per-transaction alert notice (task 102.2) ──────────── */}
@@ -1390,6 +1441,16 @@ export default function FolioApp() {
         onUndo={lastLoggedId ? handleIncomeUndo : undefined}
         fundingSources={fundingSources}
         transactions={transactions}
+        onCreateDisbursement={({ amount, coverMonths, label }) => {
+          addDisbursement({
+            label,
+            amount,
+            coverMonths,
+            startDate: new Date().toISOString().slice(0, 10),
+            type: 'financial_aid',
+            emoji: '🎓',
+          })
+        }}
       />
 
       {/* ── Paycheck Sheet ─────────────────────────────────────── */}
