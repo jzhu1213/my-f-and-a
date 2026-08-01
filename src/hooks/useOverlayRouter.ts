@@ -23,6 +23,7 @@ export type OverlayId =
   | 'sharing'
   | 'categoryHub'
   | 'savingsProjections'
+  | 'manageSavings'
 
 // ── Sheet IDs (bottom sheets — can be open alongside main content) ───────────
 
@@ -57,6 +58,7 @@ export interface OverlayPayloads {
   sharing: undefined
   categoryHub: undefined
   savingsProjections: undefined
+  manageSavings: undefined
 }
 
 export interface SheetPayloads {

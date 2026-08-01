@@ -111,6 +111,10 @@ const SavingsProjectionsScreen = dynamic(
   () => import('@/components/simplified/SavingsProjectionsScreen').then(m => ({ default: m.SavingsProjectionsScreen })),
   { ssr: false }
 )
+const ManageSavingsAccountsScreen = dynamic(
+  () => import('@/components/simplified/ManageSavingsAccountsScreen').then(m => ({ default: m.ManageSavingsAccountsScreen })),
+  { ssr: false }
+)
 const CashFlowForecastScreen = dynamic(
   () => import('@/components/simplified/CashFlowForecastScreen').then(m => ({ default: m.CashFlowForecastScreen })),
   { ssr: false }
@@ -238,6 +242,7 @@ export default function FolioApp() {
     createSavingsAccount,
     updateSavingsAccount,
     deleteSavingsAccount,
+    contributeToSavingsAccount,
     totalSavingsBalance,
   } = useHomeData(user?.id, user)
 
@@ -1366,6 +1371,21 @@ export default function FolioApp() {
     )
   }
 
+  // ── Manage Savings Accounts (full CRUD overlay, task 158.1) ────
+  if (flags.savingsProjections && overlay.activeOverlay === 'manageSavings') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <ManageSavingsAccountsScreen
+          savingsAccounts={savingsAccounts}
+          onCreateAccount={createSavingsAccount}
+          onUpdateAccount={updateSavingsAccount}
+          onDeleteAccount={deleteSavingsAccount}
+          onBack={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
   // ── Main App Shell ─────────────────────────────────────────────
   return (
     <>
@@ -1468,6 +1488,7 @@ export default function FolioApp() {
                 onOpenSinkingFunds={() => overlay.openOverlay('sinkingFunds')}
                 onOpenLearn={() => overlay.openOverlay('learn', { initialLessonId: null })}
                 onOpenSavingsProjections={() => overlay.openOverlay('savingsProjections')}
+                onOpenManageSavings={() => overlay.openOverlay('manageSavings')}
                 onOpenDebt={handleOpenDebt}
                 onOpenRecurringBills={() => overlay.openOverlay('recurringBills')}
                 onOpenReimbursements={() => overlay.openOverlay('reimbursements')}
@@ -1613,6 +1634,8 @@ export default function FolioApp() {
             emoji: '🎓',
           })
         }}
+        savingsAccounts={savingsAccounts}
+        onContributeToSavings={(id, amt) => contributeToSavingsAccount(id, amt)}
       />
 
       {/* ── Paycheck Sheet ─────────────────────────────────────── */}
@@ -1624,6 +1647,8 @@ export default function FolioApp() {
         onAllocate={handleAllocateIncome}
         onClose={() => overlay.closeSheet('paycheck')}
         isGigIncome={overlay.getSheetPayload('paycheck')?.isGigIncome ?? false}
+        savingsAccounts={savingsAccounts}
+        onContributeToSavings={(id, amt) => contributeToSavingsAccount(id, amt)}
       />
 
       {/* ── Edit Transaction Sheet ─────────────────────────────── */}

@@ -11,8 +11,47 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { triggerHaptic } from '@/lib/haptics'
 import type { Transaction } from '@/types'
+import type { SavingsAccount } from '@/types/folio'
+import { getAccountTypeMetadata } from '@/lib/savingsAccountUtils'
 import { TagInput } from './TagInput'
 import { getRecentTags } from '@/lib/tagUtils'
+
+// ── Quick-contribute dedupe (task 157.2) ─────────────────────────────────────
+// Persist which paychecks have already shown the savings-contribute chip so the
+// same logged income event doesn't nag on re-open / re-log within a short window.
+
+const CONTRIBUTE_PROMPT_SEEN_KEY = 'folio_income_contribute_seen'
+
+/** Build a stable key for a paycheck event from its date + amount. */
+function makePaycheckKey(date: string, amount: number): string {
+  return `${date}_${amount}`
+}
+
+/** Whether the contribute chip has already been surfaced for this paycheck. */
+function hasSeenContributePrompt(key: string): boolean {
+  try {
+    const raw = localStorage.getItem(CONTRIBUTE_PROMPT_SEEN_KEY)
+    if (!raw) return false
+    const seen = JSON.parse(raw)
+    return Array.isArray(seen) && seen.includes(key)
+  } catch {
+    return false
+  }
+}
+
+/** Record that the contribute chip has been surfaced for this paycheck. */
+function markContributePromptSeen(key: string): void {
+  try {
+    const raw = localStorage.getItem(CONTRIBUTE_PROMPT_SEEN_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    const seen: string[] = Array.isArray(parsed) ? parsed : []
+    if (!seen.includes(key)) seen.push(key)
+    // Bound growth — keep only the most recent entries.
+    localStorage.setItem(CONTRIBUTE_PROMPT_SEEN_KEY, JSON.stringify(seen.slice(-20)))
+  } catch {
+    /* ignore — dedupe is best-effort */
+  }
+}
 
 // ── Date picker helpers ──────────────────────────────────────────────────────
 
@@ -50,11 +89,15 @@ interface IncomeSheetProps {
   transactions?: Transaction[]
   /** Called when user wants to create a disbursement from this income (financial aid spread) */
   onCreateDisbursement?: (data: { amount: number; coverMonths: number; label: string }) => void
+  /** Savings/investment accounts — used to offer a quick-contribute chip after logging (task 157.2) */
+  savingsAccounts?: SavingsAccount[]
+  /** Called when user taps the quick-contribute chip for a recurring saver (task 157.2) */
+  onContributeToSavings?: (accountId: string, amount: number) => void
 }
 
 const MAX_AMOUNT = 99999
 
-export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo, fundingSources = [], transactions = [], onCreateDisbursement }: IncomeSheetProps) {
+export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo, fundingSources = [], transactions = [], onCreateDisbursement, savingsAccounts = [], onContributeToSavings }: IncomeSheetProps) {
   const { showToast } = useToast()
   const { prefersReducedMotion } = useReducedMotion()
   const amountRef = useRef<HTMLInputElement>(null)
@@ -77,6 +120,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
   const [showSourcePicker, setShowSourcePicker] = useState(false)
 
+  // ── Quick-contribute prompt state (task 157.2) ─────────────────────────
+  // When set, the sheet shows a subtle "Contribute $X to <account>?" phase
+  // after income is logged, before finally closing. null = form phase.
+  const [contributePrompt, setContributePrompt] = useState<{ amount: number; isGigIncome: boolean } | null>(null)
+
   // Reset state when opening
   useEffect(() => {
     if (isOpen) {
@@ -91,6 +139,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       setSelectedDate(new Date().toISOString().slice(0, 10))
       setShowDatePicker(false)
       setShowCustomDateInput(false)
+      setContributePrompt(null)
       
       // Smart source prediction for income (task 81.2)
       // Use 'income' category for prediction
@@ -162,13 +211,56 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       onUndo ? { label: 'Undo', onClick: onUndo } : undefined
     )
 
+    // Quick-contribute chip for recurring savers (task 157.2).
+    // If the user has savings accounts with a monthly contribution, surface a
+    // subtle in-sheet prompt before closing — but only once per paycheck.
+    const eligibleAccounts = savingsAccounts.filter(a => a.monthlyContribution > 0)
+    if (eligibleAccounts.length > 0 && onContributeToSavings) {
+      const paycheckKey = makePaycheckKey(selectedDate, parsed)
+      if (!hasSeenContributePrompt(paycheckKey)) {
+        markContributePromptSeen(paycheckKey)
+        // Show the contribute phase; finalize (paycheck sheet + close) is
+        // deferred until the user contributes or dismisses.
+        setContributePrompt({ amount: parsed, isGigIncome: !!isGigIncome })
+        return
+      }
+    }
+
     // Trigger PaycheckSheet if handler provided
     if (onShowPaycheck) {
       onShowPaycheck(parsed, isGigIncome || undefined)
     }
 
     onClose()
-  }, [amount, note, isGigIncome, isFinancialAid, spreadMonths, selectedSourceId, selectedDate, tags, onSubmit, onClose, onUndo, showToast, onShowPaycheck, onCreateDisbursement])
+  }, [amount, note, isGigIncome, isFinancialAid, spreadMonths, selectedSourceId, selectedDate, tags, onSubmit, onClose, onUndo, showToast, onShowPaycheck, onCreateDisbursement, savingsAccounts, onContributeToSavings])
+
+  /** Finish the flow after the contribute phase: open PaycheckSheet then close. */
+  const finalizeSubmit = useCallback((parsed: number, gig: boolean) => {
+    if (onShowPaycheck) {
+      onShowPaycheck(parsed, gig || undefined)
+    }
+    onClose()
+  }, [onShowPaycheck, onClose])
+
+  /** User tapped a quick-contribute chip — contribute, celebrate, then finish. */
+  const handleQuickContribute = useCallback((account: SavingsAccount) => {
+    triggerHaptic('light')
+    onContributeToSavings?.(account.id, account.monthlyContribution)
+    const amt = account.monthlyContribution
+    const formatted = amt % 1 === 0 ? `$${amt}` : `$${amt.toFixed(2)}`
+    showToast(`Nice — ${formatted} on its way to ${account.name} 🌱`, 'success')
+    const pending = contributePrompt
+    setContributePrompt(null)
+    if (pending) finalizeSubmit(pending.amount, pending.isGigIncome)
+  }, [onContributeToSavings, showToast, contributePrompt, finalizeSubmit])
+
+  /** User dismissed the contribute phase — just finish the flow. */
+  const handleDismissContribute = useCallback(() => {
+    triggerHaptic('light')
+    const pending = contributePrompt
+    setContributePrompt(null)
+    if (pending) finalizeSubmit(pending.amount, pending.isGigIncome)
+  }, [contributePrompt, finalizeSubmit])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -177,6 +269,88 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} minHeight="50vh" ariaLabel="Log income">
+      {contributePrompt ? (
+        /* ── Quick-contribute phase (task 157.2) ─────────────────── */
+        <div style={{ padding: '8px 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <motion.div
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            transition={springs.snappy}
+            style={{ textAlign: 'center' }}
+          >
+            <div style={{ fontSize: 40, marginBottom: 8 }} aria-hidden="true">🌱</div>
+            <h2 style={{ fontSize: 20, fontWeight: 600, fontFamily: FONT_FAMILY, color: 'var(--text)', margin: '0 0 6px' }}>
+              Income logged ✓
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--muted)', fontFamily: FONT_FAMILY, margin: '0 0 20px' }}>
+              Want to move a little toward future you?
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {savingsAccounts
+                .filter(a => a.monthlyContribution > 0)
+                .sort((a, b) => b.monthlyContribution - a.monthlyContribution)
+                .slice(0, 3)
+                .map((account) => {
+                  const meta = getAccountTypeMetadata(account.type)
+                  const amt = account.monthlyContribution
+                  const formatted = amt % 1 === 0 ? `$${amt.toLocaleString('en-US')}` : `$${amt.toFixed(2)}`
+                  return (
+                    <button
+                      key={account.id}
+                      type="button"
+                      onClick={() => handleQuickContribute(account)}
+                      aria-label={`Contribute ${formatted} to ${account.name}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '14px 16px',
+                        background: 'rgba(74, 222, 128, 0.10)',
+                        border: '1px solid rgba(74, 222, 128, 0.35)',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        fontFamily: FONT_FAMILY,
+                        textAlign: 'left',
+                      }}
+                    >
+                      <span style={{ fontSize: 22 }} aria-hidden="true">{meta.emoji}</span>
+                      <span style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
+                          Contribute {formatted} to {account.name}?
+                        </span>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                          Your usual monthly contribution
+                        </span>
+                      </span>
+                      <span style={{ fontSize: 18, color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }} aria-hidden="true">→</span>
+                    </button>
+                  )
+                })}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDismissContribute}
+              aria-label="Not now"
+              style={{
+                marginTop: 16,
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--sub)',
+                fontSize: 14,
+                fontFamily: FONT_FAMILY,
+                fontWeight: 500,
+                cursor: 'pointer',
+                padding: '10px 16px',
+              }}
+            >
+              Not now
+            </button>
+          </motion.div>
+        </div>
+      ) : (
       <div style={{ padding: '0 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
               {/* ── Amount Input (calculator-style) ─────────────────── */}
               <div style={{ textAlign: 'center', marginBottom: 28 }}>
@@ -826,6 +1000,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                 Done
               </button>
             </div>
+      )}
     </BottomSheet>
   )
 }

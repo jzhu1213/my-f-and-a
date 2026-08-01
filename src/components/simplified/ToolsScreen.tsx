@@ -35,6 +35,7 @@ export interface ToolsScreenProps {
   onOpenSinkingFunds?: () => void
   onOpenLearn?: () => void
   onOpenSavingsProjections?: () => void
+  onOpenManageSavings?: () => void
   onOpenDebt?: () => void
   onOpenRecurringBills?: () => void
   onOpenReimbursements?: () => void
@@ -96,7 +97,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "planning",
     label: "Planning",
-    toolIds: ["sinking-funds", "savings-projections", "cash-flow-forecast", "compound-growth", "credit-payoff"],
+    toolIds: ["sinking-funds", "savings-projections", "manage-savings", "cash-flow-forecast", "compound-growth", "credit-payoff"],
   },
   {
     id: "learn",
@@ -125,6 +126,7 @@ export function ToolsScreen({
   onOpenSinkingFunds,
   onOpenLearn,
   onOpenSavingsProjections,
+  onOpenManageSavings,
   onOpenDebt,
   onOpenRecurringBills,
   onOpenReimbursements,
@@ -152,6 +154,7 @@ export function ToolsScreen({
     "subscriptions": "subscriptionAudit",
     "cancel-negotiate": "subscriptionAudit",
     "savings-projections": "savingsProjections",
+    "manage-savings": "savingsProjections",
     "cash-flow-forecast": "cashFlowForecast",
     "compound-growth": "compoundGrowthCalculator",
     "credit-payoff": "creditPayoffCalculator",
@@ -225,6 +228,13 @@ export function ToolsScreen({
       title: "Savings Projections",
       description: "Project how your savings accounts and investments might grow.",
       onOpen: onOpenSavingsProjections,
+    },
+    {
+      id: "manage-savings",
+      emoji: "✏️",
+      title: "Manage Savings Accounts",
+      description: "Add, edit, or remove your savings and investment accounts.",
+      onOpen: onOpenManageSavings,
     },
     {
       id: "cash-flow-forecast",

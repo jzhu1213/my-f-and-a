@@ -14,6 +14,8 @@ import {
   type AutoContribution,
 } from '@/lib/autoContributeUtils'
 import type { Goal, IncomeAllocation, AllocationPreset } from '@/types'
+import type { SavingsAccount } from '@/types/folio'
+import { getAccountTypeMetadata } from '@/lib/savingsAccountUtils'
 import { FONT_FAMILY } from '@/styles/typography'
 
 // ── Default presets ──────────────────────────────────────────────────────────
@@ -45,6 +47,10 @@ interface PaycheckSheetProps {
   onClose: () => void
   /** When true, shows a tax set-aside suggestion for gig/freelance income */
   isGigIncome?: boolean
+  /** Savings/investment accounts available to fund from the Invest bucket */
+  savingsAccounts?: SavingsAccount[]
+  /** Called when the user contributes from the Invest bucket to a savings account */
+  onContributeToSavings?: (accountId: string, amount: number) => void
 }
 
 // ── Helper: round to 2 decimal places ────────────────────────────────────────
@@ -63,6 +69,8 @@ export function PaycheckSheet({
   onAllocate,
   onClose,
   isGigIncome,
+  savingsAccounts,
+  onContributeToSavings,
 }: PaycheckSheetProps) {
   const { showToast } = useToast()
 
@@ -70,7 +78,9 @@ export function PaycheckSheet({
   const [percentages, setPercentages] = useState<[number, number, number, number]>([80, 10, 5, 5])
   const [activePreset, setActivePreset] = useState<number | null>(0) // index into ALLOCATION_PRESETS or null for custom
   const [showGoalContributions, setShowGoalContributions] = useState(false)
+  const [showSavingsContributions, setShowSavingsContributions] = useState(false)
   const [contributed, setContributed] = useState(0)
+  const [savingsContributed, setSavingsContributed] = useState(0)
   const [taxSuggestionDismissed, setTaxSuggestionDismissed] = useState(false)
 
   // ── Auto-contribute state ─────────────────────────────────────
@@ -92,7 +102,9 @@ export function PaycheckSheet({
       setPercentages([80, 10, 5, 5])
       setActivePreset(0)
       setShowGoalContributions(false)
+      setShowSavingsContributions(false)
       setContributed(0)
+      setSavingsContributed(0)
       setTaxSuggestionDismissed(false)
       setAutoContributeSkipped(false)
       setAutoContributeApplied(false)
@@ -128,6 +140,10 @@ export function PaycheckSheet({
       const bIsEF = b.type === 'emergency_fund' ? 0 : 1
       return aIsEF - bIsEF
     })
+
+  // Savings accounts available to fund from the Invest bucket
+  const availableSavingsAccounts = savingsAccounts ?? []
+  const hasSavingsStep = availableSavingsAccounts.length > 0 && allocation.invest > 0
 
   // Auto-contribute: show the banner when there are pending contributions
   const showAutoContributeBanner =
@@ -174,9 +190,15 @@ export function PaycheckSheet({
       return
     }
 
+    // Otherwise, if there are savings accounts to fund, offer that step
+    if (hasSavingsStep) {
+      setShowSavingsContributions(true)
+      return
+    }
+
     showToast('Income allocated ✓', 'success')
     onClose()
-  }, [isValid, allocation, onAllocate, activeGoals, showToast, onClose, showAutoContributeBanner, autoContributions, autoContributeTotal, onContribute])
+  }, [isValid, allocation, onAllocate, activeGoals, hasSavingsStep, showToast, onClose, showAutoContributeBanner, autoContributions, autoContributeTotal, onContribute])
 
   const handleContribute = useCallback((goalId: string, goalName: string, amt: number) => {
     onContribute(goalId, amt)
@@ -185,6 +207,23 @@ export function PaycheckSheet({
   }, [onContribute, showToast])
 
   const handleDone = useCallback(() => {
+    // After goal contributions, offer the optional savings-account funding step
+    if (hasSavingsStep) {
+      setShowGoalContributions(false)
+      setShowSavingsContributions(true)
+      return
+    }
+    showToast('Income allocated ✓', 'success')
+    onClose()
+  }, [hasSavingsStep, showToast, onClose])
+
+  const handleContributeToSavings = useCallback((accountId: string, accountName: string, amt: number) => {
+    onContributeToSavings?.(accountId, amt)
+    setSavingsContributed(c => c + amt)
+    showToast(`+$${amt} → ${accountName} ✓`, 'success')
+  }, [onContributeToSavings, showToast])
+
+  const handleFinishSavings = useCallback(() => {
     showToast('Income allocated ✓', 'success')
     onClose()
   }, [showToast, onClose])
@@ -227,9 +266,11 @@ export function PaycheckSheet({
                     marginTop: 10,
                   }}
                 >
-                  {showGoalContributions
-                    ? 'Allocate some savings to your goals'
-                    : 'Split it up — pick a preset or customize'}
+                  {showSavingsContributions
+                    ? 'Move some of your invest bucket into your accounts'
+                    : showGoalContributions
+                      ? 'Allocate some savings to your goals'
+                      : 'Split it up — pick a preset or customize'}
                 </p>
               </div>
 
@@ -379,7 +420,155 @@ export function PaycheckSheet({
               )}
 
               <AnimatePresence mode="wait">
-                {!showGoalContributions ? (
+                {showSavingsContributions ? (
+                  <motion.div
+                    key="savings-view"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={timings.fast}
+                  >
+                    {/* ── Invest bucket remaining ─────────────────── */}
+                    <GlassCard
+                      elevation="low"
+                      glow="healthy"
+                      style={{ padding: '12px 16px', marginBottom: 16 }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>
+                          📈 Invest bucket remaining
+                        </p>
+                        <p style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 600, color: '#818cf8', fontVariantNumeric: 'tabular-nums' }}>
+                          ${Math.max(0, allocation.invest - savingsContributed).toLocaleString()}
+                        </p>
+                      </div>
+                    </GlassCard>
+
+                    <p
+                      style={{
+                        fontSize: 13,
+                        fontFamily: FONT_FAMILY,
+                        color: 'var(--muted)',
+                        marginBottom: 10,
+                      }}
+                    >
+                      Fund your future 🌱 — tap to move money into an account
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                      {availableSavingsAccounts.map(account => {
+                        const meta = getAccountTypeMetadata(account.type)
+                        const remaining = Math.max(0, allocation.invest - savingsContributed)
+                        // Quick-tap amounts derived from the account's monthly contribution.
+                        // Offer the full monthly contribution plus a couple sensible fractions,
+                        // all capped at the remaining invest bucket. Fall back to small presets
+                        // when no monthly contribution is configured.
+                        const baseAmounts = account.monthlyContribution > 0
+                          ? [
+                              Math.round(account.monthlyContribution / 2),
+                              Math.round(account.monthlyContribution),
+                            ]
+                          : [25, 50, 100]
+                        const quickAmounts = Array.from(new Set(baseAmounts))
+                          .filter(a => a > 0 && a <= remaining)
+
+                        return (
+                          <GlassCard key={account.id} elevation="low" style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                              <span style={{ fontSize: 22 }}>{meta.emoji}</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p
+                                  style={{
+                                    fontSize: 15,
+                                    fontFamily: FONT_FAMILY,
+                                    fontWeight: 500,
+                                    color: 'var(--text)',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {account.name}
+                                </p>
+                                <p
+                                  style={{
+                                    fontSize: 12,
+                                    fontFamily: FONT_FAMILY,
+                                    color: 'var(--muted)',
+                                    marginTop: 2,
+                                    fontVariantNumeric: 'tabular-nums',
+                                  }}
+                                >
+                                  {meta.label} · ${account.balance.toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Quick-contribution chips */}
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              {quickAmounts.length > 0 ? quickAmounts.map(q => (
+                                <button
+                                  key={q}
+                                  onClick={() => handleContributeToSavings(account.id, account.name, q)}
+                                  aria-label={`Contribute $${q} to ${account.name}`}
+                                  style={{
+                                    flex: 1,
+                                    padding: '10px 0',
+                                    fontSize: 14,
+                                    fontFamily: FONT_FAMILY,
+                                    fontWeight: 600,
+                                    color: 'var(--text)',
+                                    background: 'rgba(255, 255, 255, 0.06)',
+                                    border: '1px solid var(--line)',
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer',
+                                    fontVariantNumeric: 'tabular-nums',
+                                  }}
+                                >
+                                  +${q}
+                                </button>
+                              )) : (
+                                <p
+                                  style={{
+                                    fontSize: 12,
+                                    fontFamily: FONT_FAMILY,
+                                    color: 'var(--muted)',
+                                    padding: '10px 0',
+                                  }}
+                                >
+                                  Invest bucket fully allocated
+                                </p>
+                              )}
+                            </div>
+                          </GlassCard>
+                        )
+                      })}
+                    </div>
+
+                    {/* ── Finish button (always skippable) ─────────── */}
+                    <button
+                      onClick={handleFinishSavings}
+                      aria-label="Done — finish allocation"
+                      style={{
+                        width: '100%',
+                        height: 52,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'linear-gradient(135deg, #4ade80, #22c55e)',
+                        color: '#fff',
+                        fontFamily: FONT_FAMILY,
+                        fontSize: 16,
+                        fontWeight: 600,
+                        borderRadius: 'var(--radius-md)',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {savingsContributed > 0 ? 'Done' : 'Skip for now'}
+                    </button>
+                  </motion.div>
+                ) : !showGoalContributions ? (
                   <motion.div
                     key="allocation-view"
                     initial={{ opacity: 0 }}
@@ -705,7 +894,7 @@ export function PaycheckSheet({
                         cursor: 'pointer',
                       }}
                     >
-                      Done
+                      {hasSavingsStep ? 'Next — fund your accounts' : 'Done'}
                     </button>
                   </motion.div>
                 )}

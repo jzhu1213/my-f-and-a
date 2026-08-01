@@ -63,6 +63,7 @@ import type { OverLimitResponse } from '@/lib/spendingModes'
 import { getOverLimitResponse, setOverLimitResponsePref } from '@/lib/spendingModes'
 import type { HeroMeaning } from '@/types/folio'
 import { syncWidgetData } from '@/lib/widgetSync'
+import { recordContribution, clearContributionHistory } from '@/lib/savingsContributionHistory'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
 // Stored in localStorage as a fallback (no dedicated Supabase table yet).
@@ -1119,11 +1120,21 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   ) => {
     if (!userId) return null
     
+    // Capture the balance before the edit so we can log a manual balance change
+    // to the contribution history (task 158.2).
+    const previousBalance = savingsAccounts.find(a => a.id === id)?.balance
+    
     try {
       const result = await updateSavingsAccountApi(userId, id, data)
       
       if (result) {
         setSavingsAccounts(prev => prev.map(a => a.id === id ? result : a))
+        // If the balance was edited directly, record the net change so the
+        // account's history reflects manual balance updates too.
+        if (data.balance !== undefined && previousBalance !== undefined) {
+          const delta = result.balance - previousBalance
+          if (delta !== 0) recordContribution(id, delta, result.balance)
+        }
       }
       
       return result
@@ -1131,7 +1142,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       console.error('Error updating savings account:', err)
       return null
     }
-  }, [userId])
+  }, [userId, savingsAccounts])
   
   /**
    * Delete a savings account
@@ -1144,6 +1155,9 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       
       if (success) {
         setSavingsAccounts(prev => prev.filter(a => a.id !== id))
+        // Clean up locally-stored contribution history so orphaned entries
+        // don't accumulate (task 158.2).
+        clearContributionHistory(id)
       }
       
       return success
@@ -1167,6 +1181,9 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       
       if (result) {
         setSavingsAccounts(prev => prev.map(a => a.id === id ? result : a))
+        // Record the contribution locally so it appears in the account's
+        // per-account contribution history (task 158.2).
+        recordContribution(id, amount, result.balance)
       }
       
       return result
