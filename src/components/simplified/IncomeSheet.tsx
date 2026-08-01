@@ -39,7 +39,7 @@ function getDateLabel(dateStr: string): string {
 interface IncomeSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; note?: string; fundingSourceId?: string; date?: string; tags?: string[] }) => void
+  onSubmit: (data: { amount: number; note?: string; fundingSourceId?: string; date?: string; tags?: string[]; isGigIncome?: boolean }) => void
   /** Called after successful submit to show PaycheckSheet. Receives the logged amount and gig flag. */
   onShowPaycheck?: (amount: number, isGigIncome?: boolean) => void
   /** Called when user taps Undo on the success toast */
@@ -140,6 +140,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       fundingSourceId: selectedSourceId || undefined,
       date: selectedDate,
       tags: tags.length > 0 ? tags : undefined,
+      isGigIncome: isGigIncome || undefined,
     }
     onSubmit(data)
 

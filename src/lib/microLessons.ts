@@ -97,6 +97,22 @@ export const MICRO_LESSONS: MicroLesson[] = [
     relatedLessonId: 'credit-cards',
   },
   {
+    id: 'micro-credit-autopay',
+    title: 'Autopay Is Your Safety Net',
+    content: 'Set up autopay for at least the minimum payment. One missed payment can follow your credit report for years — autopay makes it worry-free.',
+    emoji: '🔒',
+    topic: 'credit',
+    relatedLessonId: 'common-credit-mistakes',
+  },
+  {
+    id: 'micro-credit-score-check',
+    title: 'Checking Won\'t Hurt',
+    content: 'Checking your own credit score is a soft inquiry — it never lowers your score. Most bank apps show it free. Check monthly to spot surprises early.',
+    emoji: '🔍',
+    topic: 'credit',
+    relatedLessonId: 'credit-score-monitoring',
+  },
+  {
     id: 'micro-compound-time',
     title: 'Time Is the Secret',
     content: 'Starting to invest even $20/month at 20 beats starting $200/month at 35. Time does the heavy lifting.',

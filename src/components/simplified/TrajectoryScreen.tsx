@@ -16,7 +16,10 @@ import {
   type TrajectoryInsight,
 } from "@/lib/trajectoryUtils"
 import type { Transaction, Goal } from "@/types"
-import type { Debt } from "@/types/folio"
+import type { Debt, SavingsAccount } from "@/types/folio"
+import type { SinkingFund } from "@/lib/sinkingFunds"
+import type { FundingSource } from "@/lib/fundingSources"
+import { computeTotalSavingsBalance, computeMonthlyContributions } from "@/lib/savingsAccountUtils"
 
 // ============================================================================
 // Types
@@ -27,6 +30,10 @@ export interface TrajectoryScreenProps {
   goals?: Goal[]
   debts?: Debt[]
   savingsRate?: number
+  savingsAccounts?: SavingsAccount[]
+  totalSetAside?: number
+  sinkingFunds?: SinkingFund[]
+  fundingSources?: FundingSource[]
   onBack: () => void
 }
 
@@ -59,6 +66,10 @@ export function TrajectoryScreen({
   goals,
   debts,
   savingsRate,
+  savingsAccounts,
+  totalSetAside,
+  sinkingFunds,
+  fundingSources,
   onBack,
 }: TrajectoryScreenProps) {
   const trajectory = useMemo(
@@ -68,9 +79,61 @@ export function TrajectoryScreen({
         goals,
         debts,
         savingsRate,
+        savingsAccounts,
+        totalSetAside,
+        sinkingFunds,
       }),
-    [transactions, goals, debts, savingsRate]
+    [transactions, goals, debts, savingsRate, savingsAccounts, totalSetAside, sinkingFunds]
   )
+
+  // ── Compute summary pills for the Financial Health section ─────
+  const summaryPills = useMemo(() => {
+    const pills: { label: string; arrow: string; color: string; direction: TrajectoryDirection }[] = []
+
+    // Savings direction
+    if (savingsAccounts && savingsAccounts.length > 0) {
+      const monthlyContrib = computeMonthlyContributions(savingsAccounts)
+      const totalBalance = computeTotalSavingsBalance(savingsAccounts)
+      if (totalBalance > 0 || monthlyContrib > 0) {
+        const dir: TrajectoryDirection = monthlyContrib > 0 ? "improving" : "steady"
+        pills.push({
+          label: "Savings",
+          arrow: dir === "improving" ? "↗" : "→",
+          color: dir === "improving" ? "var(--success)" : "var(--sub)",
+          direction: dir,
+        })
+      }
+    }
+
+    // Debt direction
+    if (debts && debts.length > 0) {
+      const totalDebt = debts.reduce((s, d) => s + (d.balance ?? 0), 0)
+      if (totalDebt > 0) {
+        // If they're tracking debt, that's at least steady (having visibility)
+        pills.push({
+          label: "Debt",
+          arrow: "↘",
+          color: "var(--success)",
+          direction: "improving",
+        })
+      }
+    }
+
+    // Cushion (set-aside + savings combined)
+    const hasSetAside = (totalSetAside ?? 0) > 0
+    const hasSavings = savingsAccounts && savingsAccounts.length > 0 && computeTotalSavingsBalance(savingsAccounts) > 0
+    if (hasSetAside || hasSavings) {
+      const dir: TrajectoryDirection = hasSetAside && hasSavings ? "improving" : "steady"
+      pills.push({
+        label: "Cushion",
+        arrow: dir === "improving" ? "↗" : "→",
+        color: dir === "improving" ? "var(--success)" : "var(--sub)",
+        direction: dir,
+      })
+    }
+
+    return pills
+  }, [savingsAccounts, debts, totalSetAside])
 
   const { arrow, color, label } = DIRECTION_DISPLAY[trajectory.overall]
 
@@ -159,6 +222,44 @@ export function TrajectoryScreen({
         </p>
       </motion.div>
 
+      {/* ── Financial Health Summary pills ─────────────────────────── */}
+      {summaryPills.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springs.gentle, delay: 0.1 }}
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 10,
+            marginBottom: 24,
+            flexWrap: "wrap",
+          }}
+        >
+          {summaryPills.map((pill) => (
+            <div
+              key={pill.label}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 14px",
+                borderRadius: 20,
+                background: "var(--surface)",
+                border: "1px solid var(--border, rgba(255,255,255,0.06))",
+                fontSize: 13,
+                fontWeight: 500,
+                color: pill.color,
+                fontFamily: FONT_FAMILY,
+              }}
+            >
+              <span>{pill.label}</span>
+              <span style={{ fontSize: 15 }}>{pill.arrow}</span>
+            </div>
+          ))}
+        </motion.div>
+      )}
+
       {/* ── Insight cards ──────────────────────────────────────────── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {trajectory.insights.length === 0 && (
@@ -187,6 +288,36 @@ export function TrajectoryScreen({
           <InsightCard key={insight.id} insight={insight} index={idx} />
         ))}
       </div>
+
+      {/* ── Savings empty state (encourage tracking) ───────────────── */}
+      {(!savingsAccounts || savingsAccounts.length === 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springs.gentle, delay: 0.15 }}
+          style={{ marginTop: 16 }}
+        >
+          <GlassCard elevation="low" style={{ padding: "16px 18px", textAlign: "center" }}>
+            <p style={{ fontSize: 22, marginBottom: 6 }} aria-hidden="true">
+              🌱
+            </p>
+            <p
+              style={{
+                fontSize: 14,
+                color: "var(--text)",
+                fontWeight: 500,
+                marginBottom: 4,
+              }}
+            >
+              Track your savings too
+            </p>
+            <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5 }}>
+              Add savings accounts to see your full financial picture here — every
+              little bit you set aside counts.
+            </p>
+          </GlassCard>
+        </motion.div>
+      )}
 
       {/* ── Footer note ────────────────────────────────────────────── */}
       <p

@@ -107,6 +107,14 @@ const CategoryHubScreen = dynamic(
   () => import('@/components/simplified/CategoryHubScreen').then(m => ({ default: m.CategoryHubScreen })),
   { ssr: false }
 )
+const SavingsProjectionsScreen = dynamic(
+  () => import('@/components/simplified/SavingsProjectionsScreen').then(m => ({ default: m.SavingsProjectionsScreen })),
+  { ssr: false }
+)
+const CashFlowForecastScreen = dynamic(
+  () => import('@/components/simplified/CashFlowForecastScreen').then(m => ({ default: m.CashFlowForecastScreen })),
+  { ssr: false }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -128,6 +136,7 @@ import { useSmartNotifications } from '@/hooks/useSmartNotifications'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
+import { useOverlayRouter } from '@/hooks/useOverlayRouter'
 import { SyncIndicator } from '@/components/simplified/SyncIndicator'
 
 type OnboardingStep = 'loading' | 'tutorial' | 'done'
@@ -140,25 +149,9 @@ export default function FolioApp() {
   // ── Routing & UI State ─────────────────────────────────────────
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('loading')
   const [activeNav, setActiveNav] = useState<AppNavKey>('home')
-  const [showBudgetSettings, setShowBudgetSettings] = useState(false)
-  const [showGoals, setShowGoals] = useState(false)
-  const [showSinkingFunds, setShowSinkingFunds] = useState(false)
-  const [showSubscriptionAudit, setShowSubscriptionAudit] = useState(false)
-  const [showCancelNegotiate, setShowCancelNegotiate] = useState(false)
-  const [cancelNegotiateTarget, setCancelNegotiateTarget] = useState<DetectedSubscription | null>(null)
-  const [showRecurringBills, setShowRecurringBills] = useState(false)
-  const [showDebt, setShowDebt] = useState(false)
-  const [showReimbursements, setShowReimbursements] = useState(false)
-  const [showLearn, setShowLearn] = useState(false)
-  const [initialLessonId, setInitialLessonId] = useState<string | null>(null)
-  const [showCompoundGrowth, setShowCompoundGrowth] = useState(false)
-  const [showCreditPayoff, setShowCreditPayoff] = useState(false)
-  const [profileSheetOpen, setProfileSheetOpen] = useState(false)
-  const [showFundingSources, setShowFundingSources] = useState(false)
-  const [showLinkedAccounts, setShowLinkedAccounts] = useState(false)
-  const [showTrajectory, setShowTrajectory] = useState(false)
-  const [showSharing, setShowSharing] = useState(false)
-  const [showCategoryHub, setShowCategoryHub] = useState(false)
+
+  // Single overlay/sheet state machine (replaces ~20 individual boolean flags)
+  const overlay = useOverlayRouter()
 
   // ── Tutorial Setup State ───────────────────────────────────────
   const [tutorialSetupState, setTutorialSetupState] = useState<TutorialSetupState>({
@@ -166,16 +159,6 @@ export default function FolioApp() {
     budgetPreset: 'student_moderate' as BudgetPreset,
     categoryLimits: {},
   })
-
-  // ── Sheet State ────────────────────────────────────────────────
-  const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
-  const [incomeSheetOpen, setIncomeSheetOpen] = useState(false)
-  const [paycheckSheetOpen, setPaycheckSheetOpen] = useState(false)
-  const [paycheckAmount, setPaycheckAmount] = useState(0)
-  const [paycheckIsGigIncome, setPaycheckIsGigIncome] = useState(false)
-  const [defaultExpenseCategory, setDefaultExpenseCategory] = useState<TransactionCategory | undefined>(undefined)
-  const [splitPreEnabled, setSplitPreEnabled] = useState(false)
-  const [backfillSheetOpen, setBackfillSheetOpen] = useState(false)
 
   // ── Per-transaction alert state (task 102.2) ───────────────────
   const [perTxAlertMessage, setPerTxAlertMessage] = useState<string | null>(null)
@@ -192,18 +175,8 @@ export default function FolioApp() {
   // folio-income-anchor-offered so it only ever shows once.
   const [incomeAnchorBannerVisible, setIncomeAnchorBannerVisible] = useState(false)
 
-  // ── Edit/Refund Sheet State ────────────────────────────────────
-  const [editSheetOpen, setEditSheetOpen] = useState(false)
-  const [editTransaction, setEditTransaction] = useState<Transaction | null>(null)
-  const [refundSheetOpen, setRefundSheetOpen] = useState(false)
-  const [refundTransaction, setRefundTransaction] = useState<Transaction | null>(null)
-  
-  // ── Bulk Repeat Sheet State (Task 93.1) ────────────────────────
-  const [bulkRepeatSheetOpen, setBulkRepeatSheetOpen] = useState(false)
-  const [bulkRepeatTransaction, setBulkRepeatTransaction] = useState<{ amount: number; category: TransactionCategory; note?: string } | null>(null)
-
   // ── Derived: any bottom sheet open (hides FAB + dock to prevent z-index overlap) ──
-  const anySheetOpen = expenseSheetOpen || incomeSheetOpen || paycheckSheetOpen || backfillSheetOpen || editSheetOpen || refundSheetOpen || bulkRepeatSheetOpen || profileSheetOpen
+  const anySheetOpen = overlay.anySheetOpen
 
   // ── Celebration State ──────────────────────────────────────────
   const [celebrationEvent, setCelebrationEvent] = useState<CelebrationEvent | null>(null)
@@ -261,6 +234,11 @@ export default function FolioApp() {
     removeSpendDownPlan,
     updateSpendDownPlan,
     timeHorizonStats,
+    savingsAccounts,
+    createSavingsAccount,
+    updateSavingsAccount,
+    deleteSavingsAccount,
+    totalSavingsBalance,
   } = useHomeData(user?.id, user)
 
   // ── Custom Categories ──────────────────────────────────────────
@@ -303,8 +281,8 @@ export default function FolioApp() {
       setDebts(data)
       setDebtsLoaded(true)
     }
-    setShowDebt(true)
-  }, [debtsLoaded, user?.id])
+    overlay.openOverlay('debt')
+  }, [debtsLoaded, user?.id, overlay])
 
   // Load debts and reimbursements when tools tab is active (for obligations summary)
   // Also load reimbursements on home tab for split partner suggestions (task 5.3)
@@ -449,9 +427,9 @@ export default function FolioApp() {
     // Mark as offered so it only shows once
     localStorage.setItem('folio-backfill-offered', 'true')
     // Small delay so the home screen renders first
-    const timer = setTimeout(() => setBackfillSheetOpen(true), 600)
+    const timer = setTimeout(() => overlay.openSheet('backfill'), 600)
     return () => clearTimeout(timer)
-  }, [dataLoading, transactions.length])
+  }, [dataLoading, transactions.length, overlay])
 
   // ── Income anchor banner (task 95.1) ──────────────────────────
   // After the user has their daily number and the backfill sheet hasn't
@@ -462,12 +440,12 @@ export default function FolioApp() {
     if (dataLoading) return
     if (localStorage.getItem('folio-income-anchor-offered') === 'true') return
     // Don't show the banner if the full BackfillSheet is already open
-    if (backfillSheetOpen) return
+    if (overlay.isSheetOpen('backfill')) return
 
     localStorage.setItem('folio-income-anchor-offered', 'true')
     const timer = setTimeout(() => setIncomeAnchorBannerVisible(true), 1200)
     return () => clearTimeout(timer)
-  }, [dataLoading, backfillSheetOpen])
+  }, [dataLoading, overlay])
 
   // ── Budget limit carry-forward on mount ────────────────────────
   useEffect(() => {
@@ -518,17 +496,13 @@ export default function FolioApp() {
 
   // ── Expense Logging ────────────────────────────────────────────
   const handleOpenExpenseSheet = useCallback((category?: TransactionCategory) => {
-    setDefaultExpenseCategory(category)
-    setSplitPreEnabled(false)
-    setExpenseSheetOpen(true)
-  }, [])
+    overlay.openSheet('expense', { defaultCategory: category, splitPreEnabled: false })
+  }, [overlay])
 
   // Opens expense sheet with split toggle pre-enabled (task 65 — one-tap split)
   const handleOpenSplitExpense = useCallback(() => {
-    setDefaultExpenseCategory(undefined)
-    setSplitPreEnabled(true)
-    setExpenseSheetOpen(true)
-  }, [])
+    overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: true })
+  }, [overlay])
 
   // Settle all unsettled IOUs for a given person (task 123.1 — one-tap settle from HomeScreen)
   const handleSettleSplit = useCallback(async (personName: string) => {
@@ -646,13 +620,16 @@ export default function FolioApp() {
     note?: string
     fundingSourceId?: string
     date?: string
+    isGigIncome?: boolean
   }) => {
     if (!user?.id) return
 
     const today = data.date ?? new Date().toISOString().slice(0, 10)
     const result = await addTransaction({
+      // Persist gig income under the 'gig' category so surfaces like the
+      // Financial Trajectory can compute the tax set-aside (task 154.1).
+      category: data.isGigIncome ? 'gig' : 'other',
       amount: data.amount,
-      category: 'other',
       type: 'income',
       date: today,
       note: data.note,
@@ -676,10 +653,8 @@ export default function FolioApp() {
 
   // ── Paycheck Sheet (show after income logged, only if active goals) ──
   const handleShowPaycheck = useCallback((amount: number, isGigIncome?: boolean) => {
-    setPaycheckAmount(amount)
-    setPaycheckIsGigIncome(!!isGigIncome)
-    setPaycheckSheetOpen(true)
-  }, [])
+    overlay.openSheet('paycheck', { amount, isGigIncome: !!isGigIncome })
+  }, [overlay])
 
   // ── Income Allocation (optimistic, reversible on persistence failure) ──
   const handleAllocateIncome = useCallback(async (allocation: IncomeAllocation) => {
@@ -828,19 +803,13 @@ export default function FolioApp() {
 
   // ── Transaction Edit ───────────────────────────────────────────
   const handleEditTransaction = useCallback((tx: Transaction) => {
-    setEditTransaction(tx)
-    setEditSheetOpen(true)
-  }, [])
+    overlay.openSheet('edit', { transaction: tx })
+  }, [overlay])
   
   // ── Transaction Bulk Repeat (Task 93.1) ───────────────────────
   const handleRepeatTransaction = useCallback((tx: Transaction) => {
-    setBulkRepeatTransaction({
-      amount: tx.amount,
-      category: tx.category,
-      note: tx.note,
-    })
-    setBulkRepeatSheetOpen(true)
-  }, [])
+    overlay.openSheet('bulkRepeat', { transaction: { amount: tx.amount, category: tx.category, note: tx.note } })
+  }, [overlay])
   
   const handleBulkRepeatSubmit = useCallback(async (
     transactions: Array<{
@@ -876,15 +845,17 @@ export default function FolioApp() {
     id: string,
     data: { amount: number; category: TransactionCategory; note?: string; date?: string }
   ) => {
-    if (!editTransaction) return null
+    const editPayload = overlay.getSheetPayload('edit')
+    const editTx = editPayload?.transaction ?? null
+    if (!editTx) return null
     return updateTransaction(id, {
       amount: data.amount,
       category: data.category,
-      type: editTransaction.type,
-      date: data.date ?? editTransaction.date, // Use provided date or keep original
+      type: editTx.type,
+      date: data.date ?? editTx.date, // Use provided date or keep original
       note: data.note,
     })
-  }, [editTransaction, updateTransaction])
+  }, [overlay, updateTransaction])
 
   /** Inline edit handler — looks up the transaction from the list (no sheet state needed) */
   const handleInlineSaveTransaction = useCallback(async (
@@ -918,9 +889,8 @@ export default function FolioApp() {
 
   // ── Refund Handling ────────────────────────────────────────────
   const handleOpenRefund = useCallback((tx: Transaction) => {
-    setRefundTransaction(tx)
-    setRefundSheetOpen(true)
-  }, [])
+    overlay.openSheet('refund', { transaction: tx })
+  }, [overlay])
 
   const handleLogRefund = useCallback(async (originalTx: Transaction, refundAmount: number) => {
     if (!user?.id) return
@@ -1064,7 +1034,7 @@ export default function FolioApp() {
 
   // ── Profile Handlers ───────────────────────────────────────────
   const handleOpenProfile = () => {
-    setProfileSheetOpen(true)
+    overlay.openSheet('profile')
   }
 
   const handleProfileUpdate = async () => {
@@ -1119,13 +1089,13 @@ export default function FolioApp() {
   }
 
   // ── Budget Settings (full-screen overlay) ─────────────────────
-  if (showBudgetSettings) {
+  if (overlay.activeOverlay === 'budgetSettings') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <BudgetSettings
           budgets={budgets}
           onUpdateBudget={handleUpdateBudget}
-          onBack={() => setShowBudgetSettings(false)}
+          onBack={() => overlay.closeOverlay()}
           paySchedule={paySchedule}
         />
       </div>
@@ -1133,7 +1103,7 @@ export default function FolioApp() {
   }
 
   // ── Goals (full-screen overlay) ───────────────────────────────
-  if (flags.goals && showGoals) {
+  if (flags.goals && overlay.activeOverlay === 'goals') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <GoalsScreen
@@ -1143,14 +1113,14 @@ export default function FolioApp() {
           onUpdateGoal={handleUpdateGoal}
           onContributeToGoal={handleContributeToGoal}
           onDeleteGoal={handleDeleteGoal}
-          onBack={() => setShowGoals(false)}
+          onBack={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── Sinking Funds (full-screen overlay) ────────────────────────
-  if (flags.sinkingFunds && showSinkingFunds) {
+  if (flags.sinkingFunds && overlay.activeOverlay === 'sinkingFunds') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <SinkingFundsScreen
@@ -1158,7 +1128,7 @@ export default function FolioApp() {
           onAddFund={async (data) => { await addSinkingFund(data) }}
           onUpdateFund={async (id, updates) => { await updateSinkingFund(id, updates) }}
           onDeleteFund={async (id) => { await deleteSinkingFund(id) }}
-          onClose={() => setShowSinkingFunds(false)}
+          onClose={() => overlay.closeOverlay()}
           onSetDisbursement={(monthly) => setDisbursementBonus(monthly)}
           disbursements={disbursements}
           onAddDisbursement={(data) => addDisbursement(data)}
@@ -1169,16 +1139,15 @@ export default function FolioApp() {
   }
 
   // ── Subscription Audit (full-screen overlay) ───────────────────
-  if (flags.subscriptionAudit && showSubscriptionAudit) {
+  if (flags.subscriptionAudit && overlay.activeOverlay === 'subscriptionAudit') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <SubscriptionAuditScreen
           subscriptions={detectedSubscriptions}
           onDismiss={handleDismissSubscription}
-          onClose={() => setShowSubscriptionAudit(false)}
+          onClose={() => overlay.closeOverlay()}
           onOpenCancelNegotiate={(sub) => {
-            setCancelNegotiateTarget(sub)
-            setShowCancelNegotiate(true)
+            overlay.openOverlay('cancelNegotiate', { target: sub })
           }}
         />
       </div>
@@ -1186,22 +1155,20 @@ export default function FolioApp() {
   }
 
   // ── Cancel / Negotiate Helper (full-screen overlay, DIY) ───────
-  if (showCancelNegotiate) {
+  if (overlay.activeOverlay === 'cancelNegotiate') {
+    const cancelPayload = overlay.getOverlayPayload('cancelNegotiate')
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <CancelNegotiateHelper
-          subscription={cancelNegotiateTarget}
-          onClose={() => {
-            setShowCancelNegotiate(false)
-            setCancelNegotiateTarget(null)
-          }}
+          subscription={cancelPayload?.target ?? null}
+          onClose={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── Recurring Bills (full-screen overlay, task 65) ─────────────
-  if (flags.recurringBills && showRecurringBills) {
+  if (flags.recurringBills && overlay.activeOverlay === 'recurringBills') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <RecurringBillsScreen
@@ -1209,14 +1176,14 @@ export default function FolioApp() {
           onAddBill={addBill}
           onUpdateBill={updateBill}
           onDeleteBill={deleteBill}
-          onClose={() => setShowRecurringBills(false)}
+          onClose={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── Funding Sources (full-screen overlay) ────────────────────────
-  if (showFundingSources) {
+  if (overlay.activeOverlay === 'fundingSources') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <FundingSourcesScreen
@@ -1224,25 +1191,25 @@ export default function FolioApp() {
           onAdd={addFundingSource}
           onEdit={updateFundingSource}
           onRemove={deleteFundingSource}
-          onBack={() => setShowFundingSources(false)}
+          onBack={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── Linked Accounts (optional bank/card linking — full-screen overlay) ──
-  if (showLinkedAccounts) {
+  if (overlay.activeOverlay === 'linkedAccounts') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <LinkedAccountsScreen
-          onBack={() => setShowLinkedAccounts(false)}
+          onBack={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── Financial Trajectory (full-screen overlay, task 111.1) ─────
-  if (flags.financialTrajectory && showTrajectory) {
+  if (flags.financialTrajectory && overlay.activeOverlay === 'trajectory') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <TrajectoryScreen
@@ -1250,14 +1217,35 @@ export default function FolioApp() {
           goals={goals}
           debts={debts}
           savingsRate={savingsRate}
-          onBack={() => setShowTrajectory(false)}
+          savingsAccounts={savingsAccounts}
+          totalSetAside={totalSetAside}
+          sinkingFunds={sinkingFunds}
+          fundingSources={fundingSources}
+          onBack={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
+  // ── Cash Flow Forecast (full-screen overlay, task 148.1) ────────
+  if (flags.cashFlowForecast && overlay.activeOverlay === 'cashFlowForecast') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <CashFlowForecastScreen
+          currentBalance={allowance?.amount ?? 0}
+          paySchedule={paySchedule}
+          bills={recurringBills}
+          sinkingFunds={sinkingFunds}
+          transactions={transactions}
+          disbursements={disbursements}
+          onBack={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── Sharing (full-screen overlay, task 115.1) ──────────────────
-  if (showSharing && user?.id) {
+  if (overlay.activeOverlay === 'sharing' && user?.id) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <SharingScreen
@@ -1265,14 +1253,14 @@ export default function FolioApp() {
           transactions={transactions}
           budgets={budgets}
           allowance={allowance}
-          onBack={() => setShowSharing(false)}
+          onBack={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── Category Hub (full-screen overlay, task 138.1) ─────────────
-  if (showCategoryHub) {
+  if (overlay.activeOverlay === 'categoryHub') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <CategoryHubScreen
@@ -1280,14 +1268,14 @@ export default function FolioApp() {
           onAddCustomCategory={addCustomCategory}
           onRemoveCustomCategory={removeCustomCategory}
           onRenameCustomCategory={renameCustomCategory}
-          onClose={() => setShowCategoryHub(false)}
+          onClose={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── Debt Tracking (full-screen overlay) ────────────────────────
-  if (flags.debtTracking && showDebt) {
+  if (flags.debtTracking && overlay.activeOverlay === 'debt') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <DebtScreen
@@ -1295,31 +1283,32 @@ export default function FolioApp() {
           onAddDebt={handleAddDebt}
           onUpdateDebt={handleUpdateDebt}
           onDeleteDebt={handleDeleteDebt}
-          onClose={() => setShowDebt(false)}
+          onClose={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── IOUs & Reimbursements (full-screen overlay) ────────────────
-  if (flags.reimbursements && showReimbursements && user?.id) {
+  if (flags.reimbursements && overlay.activeOverlay === 'reimbursements' && user?.id) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <ReimbursementLedger
           userId={user.id}
-          onBack={() => setShowReimbursements(false)}
+          onBack={() => overlay.closeOverlay()}
         />
       </div>
     )
   }
 
   // ── Learn / Lessons (full-screen overlay) ──────────────────────
-  if (flags.lessons && showLearn) {
+  if (flags.lessons && overlay.activeOverlay === 'learn') {
+    const learnPayload = overlay.getOverlayPayload('learn')
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <div style={{ padding: '0 16px' }}>
           <button
-            onClick={() => { setShowLearn(false); setInitialLessonId(null) }}
+            onClick={() => overlay.closeOverlay()}
             style={{
               background: 'none',
               border: 'none',
@@ -1337,26 +1326,42 @@ export default function FolioApp() {
         <LessonsScreen
           lessonProgress={lessonProgress}
           onCompleteLesson={completeLesson}
-          initialLessonId={initialLessonId ?? undefined}
+          initialLessonId={learnPayload?.initialLessonId ?? undefined}
         />
       </div>
     )
   }
 
   // ── Compound Growth Calculator (full-screen overlay, Tools tab) ─
-  if (flags.compoundGrowthCalculator && showCompoundGrowth) {
+  if (flags.compoundGrowthCalculator && overlay.activeOverlay === 'compoundGrowth') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <CompoundGrowthCalculator onBack={() => setShowCompoundGrowth(false)} />
+        <CompoundGrowthCalculator onBack={() => overlay.closeOverlay()} />
       </div>
     )
   }
 
   // ── Credit Payoff Calculator (full-screen overlay, Tools tab) ──
-  if (flags.creditPayoffCalculator && showCreditPayoff) {
+  if (flags.creditPayoffCalculator && overlay.activeOverlay === 'creditPayoff') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <CreditPayoffCalculator onBack={() => setShowCreditPayoff(false)} />
+        <CreditPayoffCalculator onBack={() => overlay.closeOverlay()} />
+      </div>
+    )
+  }
+
+  // ── Savings Projections (full-screen overlay, task 156) ────────
+  if (flags.savingsProjections && overlay.activeOverlay === 'savingsProjections') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <SavingsProjectionsScreen
+          savingsAccounts={savingsAccounts}
+          totalBalance={totalSavingsBalance}
+          onCreateAccount={createSavingsAccount}
+          onUpdateAccount={updateSavingsAccount}
+          onDeleteAccount={deleteSavingsAccount}
+          onBack={() => overlay.closeOverlay()}
+        />
       </div>
     )
   }
@@ -1371,7 +1376,7 @@ export default function FolioApp() {
         avatarUrl={undefined}
         avatarInitial={user?.email?.charAt(0)}
         meshVariant="home"
-        onQuickLog={anySheetOpen ? undefined : () => setExpenseSheetOpen(true)}
+        onQuickLog={anySheetOpen ? undefined : () => overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: false })}
         hideDock={anySheetOpen}
       >
         {(offlinePendingCount > 0 || offlineRecentlySyncedIds.size > 0) && (
@@ -1410,7 +1415,7 @@ export default function FolioApp() {
                 overLimitResponse={overLimitResponse}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
-                onLogIncome={() => setIncomeSheetOpen(true)}
+                onLogIncome={() => overlay.openSheet('income')}
                 onRepeatLog={handleRepeatLog}
                 onViewTransaction={handleEditTransaction}
                 onViewAllHistory={() => setActiveNav('history')}
@@ -1420,21 +1425,20 @@ export default function FolioApp() {
                 celebrationEvent={celebrationEvent}
                 onCelebrationDismiss={() => setCelebrationEvent(null)}
                 detectedSubscriptions={detectedSubscriptions}
-                onOpenBudgetSettings={() => setShowBudgetSettings(true)}
+                onOpenBudgetSettings={() => overlay.openOverlay('budgetSettings')}
                 onOpenSplitExpense={handleOpenSplitExpense}
                 outstandingSplits={outstandingSplits}
-                onOpenReimbursements={() => setShowReimbursements(true)}
+                onOpenReimbursements={() => overlay.openOverlay('reimbursements')}
                 onSettleSplit={handleSettleSplit}
                 splitTransactionIds={splitTransactionIds}
                 showIncomeAnchorBanner={incomeAnchorBannerVisible}
                 onIncomeAnchorSetItNow={() => {
                   setIncomeAnchorBannerVisible(false)
-                  setBackfillSheetOpen(true)
+                  overlay.openSheet('backfill')
                 }}
                 onIncomeAnchorSkip={() => setIncomeAnchorBannerVisible(false)}
                 onOpenLesson={(lessonId) => {
-                  setInitialLessonId(lessonId)
-                  setShowLearn(true)
+                  overlay.openOverlay('learn', { initialLessonId: lessonId })
                 }}
               />
             )}
@@ -1455,20 +1459,20 @@ export default function FolioApp() {
             )}
             {activeNav === 'tools' && (
               <ToolsScreen
-                onOpenCompoundGrowth={() => setShowCompoundGrowth(true)}
-                onOpenCreditPayoff={() => setShowCreditPayoff(true)}
-                onOpenSubscriptions={() => setShowSubscriptionAudit(true)}
+                onOpenCompoundGrowth={() => overlay.openOverlay('compoundGrowth')}
+                onOpenCreditPayoff={() => overlay.openOverlay('creditPayoff')}
+                onOpenSubscriptions={() => overlay.openOverlay('subscriptionAudit')}
                 onOpenCancelNegotiate={() => {
-                  setCancelNegotiateTarget(null)
-                  setShowCancelNegotiate(true)
+                  overlay.openOverlay('cancelNegotiate', { target: null })
                 }}
-                onOpenSinkingFunds={() => setShowSinkingFunds(true)}
-                onOpenLearn={() => setShowLearn(true)}
-                onOpenSavingsProjections={undefined}
+                onOpenSinkingFunds={() => overlay.openOverlay('sinkingFunds')}
+                onOpenLearn={() => overlay.openOverlay('learn', { initialLessonId: null })}
+                onOpenSavingsProjections={() => overlay.openOverlay('savingsProjections')}
                 onOpenDebt={handleOpenDebt}
-                onOpenRecurringBills={() => setShowRecurringBills(true)}
-                onOpenReimbursements={() => setShowReimbursements(true)}
-                onOpenTrajectory={() => setShowTrajectory(true)}
+                onOpenRecurringBills={() => overlay.openOverlay('recurringBills')}
+                onOpenReimbursements={() => overlay.openOverlay('reimbursements')}
+                onOpenTrajectory={() => overlay.openOverlay('trajectory')}
+                onOpenCashFlowForecast={() => overlay.openOverlay('cashFlowForecast')}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}
@@ -1477,6 +1481,7 @@ export default function FolioApp() {
                 reimbursements={reimbursements}
                 goals={goals}
                 budgets={budgets}
+                contributeToGoal={contributeToGoal}
               />
             )}
             {activeNav === 'settings' && (
@@ -1494,13 +1499,13 @@ export default function FolioApp() {
                 countCreditImmediately={user?.countCreditImmediately}
                 onSetIncomeSmoothing={setIncomeSmoothing}
                 onUpdateCountCreditImmediately={handleUpdateCountCreditImmediately}
-                onOpenBudgetSettings={() => setShowBudgetSettings(true)}
-                onOpenGoals={() => setShowGoals(true)}
+                onOpenBudgetSettings={() => overlay.openOverlay('budgetSettings')}
+                onOpenGoals={() => overlay.openOverlay('goals')}
                 onOpenTools={() => setActiveNav('tools')}
                 onOpenProfile={handleOpenProfile}
-                onOpenFundingSources={() => setShowFundingSources(true)}
-                onOpenLinkedAccounts={() => setShowLinkedAccounts(true)}
-                onOpenBackfill={() => setBackfillSheetOpen(true)}
+                onOpenFundingSources={() => overlay.openOverlay('fundingSources')}
+                onOpenLinkedAccounts={() => overlay.openOverlay('linkedAccounts')}
+                onOpenBackfill={() => overlay.openSheet('backfill')}
                 onSignOut={handleSignOut}
                 onResetOnboarding={handleResetOnboarding}
                 onExportData={handleExportData}
@@ -1509,8 +1514,8 @@ export default function FolioApp() {
                 categorizationRules={categorizationRules}
                 onAddCategorizationRule={handleAddCategorizationRule}
                 onDeleteCategorizationRule={handleDeleteCategorizationRule}
-                onOpenSharing={() => setShowSharing(true)}
-                onOpenCategoryHub={() => setShowCategoryHub(true)}
+                onOpenSharing={() => overlay.openOverlay('sharing')}
+                onOpenCategoryHub={() => overlay.openOverlay('categoryHub')}
                 activeShareCount={getActiveShareLinks().length}
                 spendDownPlans={spendDownPlans}
                 onAddSpendDownPlan={addSpendDownPlan}
@@ -1524,15 +1529,15 @@ export default function FolioApp() {
 
       {/* ── Expense Sheet ──────────────────────────────────────── */}
       <ExpenseSheet
-        isOpen={expenseSheetOpen}
-        onClose={() => { setExpenseSheetOpen(false); setSplitPreEnabled(false) }}
+        isOpen={overlay.isSheetOpen('expense')}
+        onClose={() => overlay.closeSheet('expense')}
         onSubmit={handleExpenseSubmit}
         onUndo={lastLoggedId ? handleExpenseUndo : undefined}
-        defaultCategory={defaultExpenseCategory}
+        defaultCategory={overlay.getSheetPayload('expense')?.defaultCategory}
         transactions={transactions}
         customCategories={customCategories}
         onAddCustomCategory={addCustomCategory}
-        splitPreEnabled={splitPreEnabled}
+        splitPreEnabled={overlay.getSheetPayload('expense')?.splitPreEnabled ?? false}
         fundingSources={fundingSources}
         recentSplitPartners={recentSplitPartners}
         budgets={budgets}
@@ -1591,8 +1596,8 @@ export default function FolioApp() {
 
       {/* ── Income Sheet ───────────────────────────────────────── */}
       <IncomeSheet
-        isOpen={incomeSheetOpen}
-        onClose={() => setIncomeSheetOpen(false)}
+        isOpen={overlay.isSheetOpen('income')}
+        onClose={() => overlay.closeSheet('income')}
         onSubmit={handleIncomeSubmit}
         onShowPaycheck={handleShowPaycheck}
         onUndo={lastLoggedId ? handleIncomeUndo : undefined}
@@ -1612,36 +1617,36 @@ export default function FolioApp() {
 
       {/* ── Paycheck Sheet ─────────────────────────────────────── */}
       <PaycheckSheet
-        isOpen={paycheckSheetOpen}
-        amount={paycheckAmount}
+        isOpen={overlay.isSheetOpen('paycheck')}
+        amount={overlay.getSheetPayload('paycheck')?.amount ?? 0}
         goals={goals}
         onContribute={handleContributeToGoal}
         onAllocate={handleAllocateIncome}
-        onClose={() => setPaycheckSheetOpen(false)}
-        isGigIncome={paycheckIsGigIncome}
+        onClose={() => overlay.closeSheet('paycheck')}
+        isGigIncome={overlay.getSheetPayload('paycheck')?.isGigIncome ?? false}
       />
 
       {/* ── Edit Transaction Sheet ─────────────────────────────── */}
       <EditTransactionSheet
-        isOpen={editSheetOpen}
-        onClose={() => setEditSheetOpen(false)}
-        transaction={editTransaction}
+        isOpen={overlay.isSheetOpen('edit')}
+        onClose={() => overlay.closeSheet('edit')}
+        transaction={overlay.getSheetPayload('edit')?.transaction ?? null}
         onSave={handleSaveTransaction}
         onRefund={handleOpenRefund}
       />
 
       {/* ── Refund Sheet ───────────────────────────────────────── */}
       <RefundSheet
-        isOpen={refundSheetOpen}
-        onClose={() => setRefundSheetOpen(false)}
-        transaction={refundTransaction}
+        isOpen={overlay.isSheetOpen('refund')}
+        onClose={() => overlay.closeSheet('refund')}
+        transaction={overlay.getSheetPayload('refund')?.transaction ?? null}
         onLogRefund={handleLogRefund}
       />
 
       {/* ── Backfill Sheet (task 88) ──────────────────────────── */}
       <BackfillSheet
-        isOpen={backfillSheetOpen}
-        onClose={() => setBackfillSheetOpen(false)}
+        isOpen={overlay.isSheetOpen('backfill')}
+        onClose={() => overlay.closeSheet('backfill')}
         onLogExpense={async (data) => {
           await addTransaction({
             amount: data.amount,
@@ -1663,19 +1668,19 @@ export default function FolioApp() {
       />
 
       {/* ── Bulk Repeat Sheet (task 93.1) ─────────────────────── */}
-      {bulkRepeatTransaction && (
+      {overlay.getSheetPayload('bulkRepeat')?.transaction && (
         <BulkRepeatSheet
-          isOpen={bulkRepeatSheetOpen}
-          onClose={() => setBulkRepeatSheetOpen(false)}
-          transaction={bulkRepeatTransaction}
+          isOpen={overlay.isSheetOpen('bulkRepeat')}
+          onClose={() => overlay.closeSheet('bulkRepeat')}
+          transaction={overlay.getSheetPayload('bulkRepeat')!.transaction}
           onSubmit={handleBulkRepeatSubmit}
         />
       )}
 
       {/* ── Profile Sheet ──────────────────────────────────────── */}
       <ProfileSheet
-        isOpen={profileSheetOpen}
-        onClose={() => setProfileSheetOpen(false)}
+        isOpen={overlay.isSheetOpen('profile')}
+        onClose={() => overlay.closeSheet('profile')}
         userEmail={user?.email}
         displayName={user?.displayName}
         avatarUrl={user?.avatarUrl}

@@ -39,6 +39,7 @@ export interface ToolsScreenProps {
   onOpenRecurringBills?: () => void
   onOpenReimbursements?: () => void
   onOpenTrajectory?: () => void
+  onOpenCashFlowForecast?: () => void
   /** Display-only: total set-aside amount this month */
   totalSetAside?: number
   /** Display-only: savings rate percentage */
@@ -55,6 +56,8 @@ export interface ToolsScreenProps {
   goals?: Goal[]
   /** User's budgets — for auto-earmark computation */
   budgets?: Budget[]
+  /** Contribute to a goal (auto-sweep uses this) */
+  contributeToGoal?: (goalId: string, amount: number) => Promise<unknown>
 }
 
 // ============================================================================
@@ -70,6 +73,39 @@ interface ToolItem {
 }
 
 // ============================================================================
+// Section definitions
+// ============================================================================
+
+interface ToolSection {
+  id: string
+  label: string
+  toolIds: string[]
+}
+
+const SECTIONS: ToolSection[] = [
+  {
+    id: "money-map",
+    label: "Money Map",
+    toolIds: ["trajectory"],
+  },
+  {
+    id: "obligations",
+    label: "Obligations",
+    toolIds: ["debt", "recurring-bills", "reimbursements", "subscriptions", "cancel-negotiate"],
+  },
+  {
+    id: "planning",
+    label: "Planning",
+    toolIds: ["sinking-funds", "savings-projections", "cash-flow-forecast", "compound-growth", "credit-payoff"],
+  },
+  {
+    id: "learn",
+    label: "Learn",
+    toolIds: ["learn"],
+  },
+]
+
+// ============================================================================
 // ToolsScreen Component
 // ============================================================================
 
@@ -77,8 +113,9 @@ interface ToolItem {
  * ToolsScreen — opt-in "Tools" area for advanced features that don't pass
  * the "would a typical sophomore use this in a normal week?" test.
  *
- * Accessible from the dock navigation. Presents advanced tools as a simple
- * list of glass cards with emoji, title, and description.
+ * Accessible from the dock navigation. Presents advanced tools grouped into
+ * logical sections (Money Map, Obligations, Planning, Learn) as glass cards
+ * with emoji, title, and description.
  */
 export function ToolsScreen({
   onOpenCompoundGrowth,
@@ -92,6 +129,7 @@ export function ToolsScreen({
   onOpenRecurringBills,
   onOpenReimbursements,
   onOpenTrajectory,
+  onOpenCashFlowForecast,
   totalSetAside,
   savingsRate,
   fundingSources,
@@ -100,6 +138,7 @@ export function ToolsScreen({
   reimbursements,
   goals,
   budgets,
+  contributeToGoal,
 }: ToolsScreenProps) {
   const { flags } = useFeatureFlags()
 
@@ -113,6 +152,7 @@ export function ToolsScreen({
     "subscriptions": "subscriptionAudit",
     "cancel-negotiate": "subscriptionAudit",
     "savings-projections": "savingsProjections",
+    "cash-flow-forecast": "cashFlowForecast",
     "compound-growth": "compoundGrowthCalculator",
     "credit-payoff": "creditPayoffCalculator",
     "learn": "lessons",
@@ -187,6 +227,13 @@ export function ToolsScreen({
       onOpen: onOpenSavingsProjections,
     },
     {
+      id: "cash-flow-forecast",
+      emoji: "📉",
+      title: "Cash Flow Forecast",
+      description: "See your projected balance through your next payday or end of term.",
+      onOpen: onOpenCashFlowForecast,
+    },
+    {
       id: "compound-growth",
       emoji: "📈",
       title: "Compound Growth Calculator",
@@ -209,11 +256,32 @@ export function ToolsScreen({
     },
   ]
 
-  // Filter tools by feature flags
-  const tools = allTools.filter(tool => {
-    const flagKey = toolFlagMap[tool.id]
+  // Helper: check if a tool is visible based on feature flags
+  const isToolVisible = (toolId: string): boolean => {
+    const flagKey = toolFlagMap[toolId]
     if (!flagKey) return true // no flag = always show
     return flags[flagKey]
+  }
+
+  // Filter tools for a given section
+  const getVisibleToolsForSection = (section: ToolSection): ToolItem[] => {
+    return allTools.filter(
+      (tool) => section.toolIds.includes(tool.id) && isToolVisible(tool.id)
+    )
+  }
+
+  // Check if the Money Map section's inline widget (SourceBalancesView) is visible
+  const hasSourceBalances =
+    fundingSources != null && fundingSources.length > 0 && transactions != null
+
+  // Determine which sections have at least one visible item
+  const visibleSections = SECTIONS.filter((section) => {
+    const visibleTools = getVisibleToolsForSection(section)
+    // Money map also has SourceBalancesView inline widget
+    if (section.id === "money-map") return visibleTools.length > 0 || hasSourceBalances
+    // Obligations also has ObligationsSummary inline widget (always shows if section renders)
+    if (section.id === "obligations") return visibleTools.length > 0
+    return visibleTools.length > 0
   })
 
   return (
@@ -283,80 +351,102 @@ export function ToolsScreen({
         </div>
       )}
 
-      {/* ── Where My Money Is ────────────────────────────────────────── */}
-      {fundingSources && fundingSources.length > 0 && transactions && (
-        <SourceBalancesView
-          fundingSources={fundingSources}
-          transactions={transactions}
-        />
-      )}
+      {/* ── Grouped Sections ───────────────────────────────────────────── */}
+      {visibleSections.map((section) => {
+        const sectionTools = getVisibleToolsForSection(section)
 
-      {/* ── Net Obligations Summary ──────────────────────────────────── */}
-      <ObligationsSummary obligations={obligations} />
+        return (
+          <div key={section.id} style={{ marginBottom: 24 }}>
+            {/* Section heading */}
+            <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+              {section.label}
+            </p>
 
-      {/* ── Tool Cards ─────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {tools.map((tool) => (
-          <motion.div
-            key={tool.id}
-            whileTap={{ scale: 0.98 }}
-            transition={springs.snappy}
-          >
-            <GlassCard
-              elevation="low"
-              style={{
-                padding: "16px 18px",
-                cursor: tool.onOpen ? "pointer" : "default",
-                opacity: tool.onOpen ? 1 : 0.5,
-              }}
-              onClick={tool.onOpen}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                <span
-                  style={{ fontSize: 24, lineHeight: 1, flexShrink: 0, marginTop: 2 }}
-                  aria-hidden="true"
-                >
-                  {tool.emoji}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 600,
-                      color: "var(--text)",
-                      marginBottom: 4,
-                    }}
-                  >
-                    {tool.title}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "var(--sub)",
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {tool.description}
-                  </p>
-                </div>
-                {tool.onOpen && (
-                  <span
-                    style={{
-                      fontSize: 14,
-                      color: "var(--muted)",
-                      marginTop: 4,
-                      flexShrink: 0,
-                    }}
-                    aria-hidden="true"
-                  >
-                    →
-                  </span>
-                )}
+            {/* Money Map inline widget: SourceBalancesView */}
+            {section.id === "money-map" && hasSourceBalances && (
+              <div style={{ marginBottom: sectionTools.length > 0 ? 12 : 0 }}>
+                <SourceBalancesView
+                  fundingSources={fundingSources!}
+                  transactions={transactions!}
+                />
               </div>
-            </GlassCard>
-          </motion.div>
-        ))}
-      </div>
+            )}
+
+            {/* Obligations inline widget: ObligationsSummary */}
+            {section.id === "obligations" && (
+              <div style={{ marginBottom: sectionTools.length > 0 ? 12 : 0 }}>
+                <ObligationsSummary obligations={obligations} />
+              </div>
+            )}
+
+            {/* Tool Cards */}
+            {sectionTools.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {sectionTools.map((tool) => (
+                  <motion.div
+                    key={tool.id}
+                    whileTap={{ scale: 0.98 }}
+                    transition={springs.snappy}
+                  >
+                    <GlassCard
+                      elevation="low"
+                      style={{
+                        padding: "16px 18px",
+                        cursor: tool.onOpen ? "pointer" : "default",
+                        opacity: tool.onOpen ? 1 : 0.5,
+                      }}
+                      onClick={tool.onOpen}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                        <span
+                          style={{ fontSize: 24, lineHeight: 1, flexShrink: 0, marginTop: 2 }}
+                          aria-hidden="true"
+                        >
+                          {tool.emoji}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p
+                            style={{
+                              fontSize: 15,
+                              fontWeight: 600,
+                              color: "var(--text)",
+                              marginBottom: 4,
+                            }}
+                          >
+                            {tool.title}
+                          </p>
+                          <p
+                            style={{
+                              fontSize: 13,
+                              color: "var(--sub)",
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {tool.description}
+                          </p>
+                        </div>
+                        {tool.onOpen && (
+                          <span
+                            style={{
+                              fontSize: 14,
+                              color: "var(--muted)",
+                              marginTop: 4,
+                              flexShrink: 0,
+                            }}
+                            aria-hidden="true"
+                          >
+                            →
+                          </span>
+                        )}
+                      </div>
+                    </GlassCard>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
 
       {/* ── Savings Automation ─────────────────────────────────────────── */}
       <div style={{ marginTop: 28 }}>
@@ -369,6 +459,7 @@ export function ToolsScreen({
             transactions={transactions}
             budgets={budgets}
             goals={goals}
+            contributeToGoal={contributeToGoal}
           />
         </div>
       </div>

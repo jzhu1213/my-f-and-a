@@ -31,6 +31,11 @@ export interface FeatureFlags {
    */
   financialTrajectory: boolean
   /**
+   * Cash-flow forecast — projects the balance forward through next payday or
+   * end of term using income schedule, recurring bills, and sinking-fund reserves.
+   */
+  cashFlowForecast: boolean
+  /**
    * Optional bank/card account linking (e.g. Plaid). Disabled by default —
    * Folio's positioning is "free core + no-linking-required", so this is a
    * strictly opt-in power feature living behind Settings → Tools.
@@ -54,6 +59,7 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   lessons: true,
   goals: true,
   financialTrajectory: true,
+  cashFlowForecast: true,
   // Account linking is OFF by default — opt-in only (task 107.1).
   accountLinking: false,
 }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { LessonCard } from './LessonCard'
 import { CreditPayoffCalculator } from './CreditPayoffCalculator'
 import { CompoundGrowthCalculator } from './CompoundGrowthCalculator'
+import { CreditScoreCheckin } from './CreditScoreCheckin'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { MicroLessonCard } from '@/components/simplified/MicroLessonCard'
 import type { Lesson, UserLessonProgress } from '@/types'
@@ -41,6 +42,7 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonI
     return null
   })
   const [showCalculator, setShowCalculator] = useState<'credit' | 'compound' | null>(null)
+  const [showCreditScoreCheckin, setShowCreditScoreCheckin] = useState(false)
   const [readMicroIds, setReadMicroIds] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set<string>()
     try {
@@ -77,6 +79,7 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonI
 
   if (showCalculator === 'credit') return <CreditPayoffCalculator onBack={() => setShowCalculator(null)} />
   if (showCalculator === 'compound') return <CompoundGrowthCalculator onBack={() => setShowCalculator(null)} />
+  if (showCreditScoreCheckin) return <CreditScoreCheckin onBack={() => setShowCreditScoreCheckin(false)} />
 
   // --------------------------------------------------------------------------
   // Main lessons list
@@ -345,6 +348,37 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonI
               </button>
             </GlassCard>
           ))}
+
+          {/* Credit Score Check-In */}
+          <GlassCard elevation="low">
+            <button
+              onClick={() => setShowCreditScoreCheckin(true)}
+              style={{
+                width: '100%',
+                padding: 16,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <span style={{ fontSize: 20 }}>📊</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                  Credit Score Check-In
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginTop: 2 }}>
+                  Track your score over time
+                </p>
+              </div>
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} style={{ color: 'var(--muted)', flexShrink: 0 }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </GlassCard>
         </div>
       </div>
     </div>

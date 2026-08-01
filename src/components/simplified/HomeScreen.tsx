@@ -469,8 +469,9 @@ export function HomeScreen({
         detectedSubscriptions,
         today: todayStr,
         spendingMode,
+        goals,
       }),
-    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode]
+    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals]
   )
 
   const activeTip = useMemo(

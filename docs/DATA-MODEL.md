@@ -429,3 +429,101 @@ Users can also define `CustomCategory` entries (id, label, emoji) which map to `
 | `has_completed_onboarding`  | `hasCompletedOnboarding`  | profiles                     |
 
 All conversions happen in the `db*ToApp()` mapper functions at the top of `src/lib/supabaseData.ts`.
+
+
+---
+
+## Module Map (Phase 3 Reorganization)
+
+As of Phase 3 task 144, the `src/lib/` utility layer is organized into domain clusters
+via barrel `index.ts` files. Each domain can be imported as a namespace:
+
+```ts
+import { computeDailyAllowance } from '@/lib/allowance'
+import { getTotalMonthlyReserve } from '@/lib/obligations'
+```
+
+Existing per-file imports (`@/lib/dailyAllowanceUtils`) continue to work unchanged.
+
+### Domain Clusters
+
+| Domain | Path | Contains |
+|--------|------|----------|
+| **allowance** | `src/lib/allowance/` | dailyAllowanceUtils, termAllowance, weekendAllowance, spendDown, spendingModes, affordabilityUtils |
+| **income** | `src/lib/income/` | allocationUtils, paySchedule, disbursements, autoContributeUtils |
+| **obligations** | `src/lib/obligations/` | debtUtils, fixedExpenses, obligationsUtils, sinkingFunds, subscriptionDetector |
+| **sources** | `src/lib/sources/` | fundingSources, sourceBalances, linkedAccounts, accountUtils |
+| **savings** | `src/lib/savings/` | savingsAccountUtils, compoundGrowthUtils, goalUtils, goalDeadlineUtils, saveUpPlanUtils, roundUpSavings, autoEarmarkSavings, emergencyFund, setAside, taxSetAside |
+| **insights** | `src/lib/insights/` | insightUtils, insightPreferences, spendingInsights, tipUtils, celebrationEngine, habitEngine, trajectoryUtils, timeHorizonStats |
+| **dates** | `src/lib/dates/` | dateUtils, termSchedule |
+| **transactions** | `src/lib/transactions/` | transactionUtils, transactionValidation, refundUtils, tagUtils, merchantMemory, receiptStorage, splitUtils |
+| **categories** | `src/lib/categories/` | autoCategorize, categorizationRules, customCategories, categoryGridPreferences, budgetUtils, budgetSummary |
+| **notifications** | `src/lib/notifications/` | notificationScheduler, reminderPreferences, smartNotifications |
+| **education** | `src/lib/education/` | lessonsContent, microLessons, vocabulary |
+| **challenges** | `src/lib/challenges/` | noSpendChallenge, minBalanceBuffer |
+| **infra** | `src/lib/infra/` | supabaseClient, supabaseData, offlineQueue, homeCache, storage, featureFlags, haptics, animations, widgetSync, undoStack, sharingUtils |
+
+### Cross-Cutting (Unclustered)
+
+These remain at `src/lib/` root as they span multiple domains:
+
+| File | Purpose |
+|------|---------|
+| `suggestionUtils.ts` | Smart amount suggestions — reads transactions, categories, and spending patterns |
+| `defaultsEngine.ts` | Time-of-day category & source prediction — reads transactions and funding sources |
+| `reimbursements.ts` | IOU ledger — standalone feature with its own data model |
+
+### Set-Aside / Reserve Deduplication Notes
+
+The set-aside layer was audited during this task:
+
+- **`setAside.ts`** is the single source of truth for "money reserved from spending." It reconciles allocations, sinking funds, goals, and emergency fund into one `SetAsideBreakdown` with clearly separated FLOW (this month) vs. BALANCE (accumulated stock) facets.
+- **`taxSetAside.ts`** handles a distinct concern: computing the suggested tax reserve for gig/1099 income at a configurable rate. It does NOT overlap with `setAside.ts`.
+- **`sinkingFunds.ts`** owns the SinkingFund model and reserve math. `setAside.ts` imports `getTotalMonthlyReserve` from it — no duplication.
+- **`allocationUtils.ts`** provides `computeTotalSetAside` for the allocation-bucket slice only, with a clear doc comment pointing callers to `setAside.ts` for the full picture.
+
+No deduplication was required — each file has a distinct, well-documented responsibility.
+
+---
+
+## Phase 2/3 Runtime Types (Not Persisted)
+
+These types were added in Phases 2 and 3 and exist only at runtime (computed from
+persisted tables or held in localStorage). They complement the "Computed / Derived
+Models" section above.
+
+| Type | File | Purpose |
+|------|------|---------|
+| `MerchantEntry` | `src/lib/merchantMemory.ts` | note→category→amount association stored in localStorage (LRU, max 100). Used for merchant pre-fill on repeat entries. |
+| `SmartDefault` | `src/lib/defaultsEngine.ts` | Predicted category + funding source for the current time-of-day slot, with confidence scores. Powers the auto-suggestion in the expense sheet. |
+| `HabitPrediction` | `src/lib/habitEngine.ts` | A single predicted expense (category, amount, note) with confidence. Used internally by the defaults engine. |
+| `HabitChip` | `src/lib/habitEngine.ts` | A rendered chip suggestion with label and frequency. Drives the QuickLog area's smart chips. |
+| `TimeSlot` | `src/lib/habitEngine.ts` | Time-of-day bucket: `early_morning` · `morning` · `midday` · `afternoon` · `evening` · `night`. |
+| `UndoEntry` | `src/lib/undoStack.ts` | A reversible destructive action with expiry timer. At most one pending entry at a time. Supports: delete, edit, bulk delete, bulk recategorize, refund. |
+| `UndoActionType` | `src/lib/undoStack.ts` | Union: `'delete_transaction'` · `'edit_transaction'` · `'bulk_delete'` · `'bulk_recategorize'` · `'refund'` |
+| `SpendingMode` | `src/lib/spendingModes.ts` | User's display preference: `'tracker'` · `'guided'` · `'structured'`. Controls budget signal intensity. localStorage only. |
+| `OverLimitResponse` | `src/lib/spendingModes.ts` | What to show when over daily allowance: `'quiet'` · `'gentle'` · `'headsup'`. Shame-free by design. |
+| `SetAsideBreakdown` | `src/lib/setAside.ts` | Fully reconciled view of money reserved: monthly flow (allocationSetAside + sinkingFundReserve) and accumulated balance (goalsSaved + sinkingFundSaved). |
+| `TaxSetAsideResult` | `src/lib/taxSetAside.ts` | Suggested gig-income tax reserve with rate and friendly rationale. |
+| `SinkingFundSummary` | `src/lib/sinkingFunds.ts` | Aggregate stats across all sinking funds: counts, totals, funded status. |
+| Transaction tags | `src/lib/tagUtils.ts` | Free-text labels (max 5 per transaction, max 20 chars each). Stored in localStorage keyed by transaction ID until DB migration adds a column. |
+| Receipt references | `src/lib/receiptStorage.ts` | Per-transaction receipt photo URLs. Stored in Supabase Storage (`receipts` bucket) with localStorage fallback for offline/instant access. |
+
+### How New Runtime Types Feed the App
+
+```
+  defaultsEngine (SmartDefault)
+      ↓ pre-selects category + source in ExpenseSheet
+  merchantMemory (MerchantEntry)
+      ↓ pre-fills category + amount when note matches known merchant
+  habitEngine (HabitPrediction, HabitChip)
+      ↓ drives QuickLog smart chips by time-of-day pattern
+  undoStack (UndoEntry)
+      ↓ enables "Undo" toast for any destructive action
+  spendingModes (SpendingMode, OverLimitResponse)
+      ↓ shapes how over-budget signals are displayed (never blocks logging)
+  setAside (SetAsideBreakdown)
+      ↓ single computation consumed by HomeScreen, Tools, and savings views
+  tagUtils (tags) + receiptStorage (receipts)
+      ↓ enrich transaction detail view with user annotations
+```

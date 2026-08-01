@@ -6,6 +6,11 @@ import type { SpendingMode } from '@/lib/spendingModes'
 import type { DetectedSubscription, SubscriptionAlert } from '@/lib/subscriptionDetector'
 import { getSubscriptionAlerts } from '@/lib/subscriptionDetector'
 import { getUnreadMicroLessons } from '@/lib/microLessons'
+import { computeWeeklyAutoSaved, getAutoEarmarkConfig } from '@/lib/autoEarmarkSavings'
+import { hasSeenFirstCreditSpend, markFirstCreditSpendSeen, getNextCreditLesson } from '@/lib/creditEducationPath'
+import { shouldRemindCreditScoreCheckin, canShowCreditScoreReminder, markCreditScoreReminderShown } from '@/lib/creditScoreCheckin'
+import { hasSeenFirstGoalLesson, markFirstGoalLessonSeen, hasSeenOverBudgetWeekLesson, markOverBudgetWeekLessonSeen, countOverBudgetDaysLast7 } from '@/lib/contextualLessonTriggers'
+import { shouldShowMoneyConfidenceCheckin, markMoneyConfidenceCheckinShown, getMoneyConfidenceCycle, buildMoneyConfidenceCheckin } from '@/lib/moneyConfidenceCheckin'
 
 // ============================================================================
 // Tip Cooldown & Throttle (Task 75)
@@ -211,6 +216,14 @@ export interface UserContext {
   sourceBreakdown?: { creditPercent: number; creditTotal: number; monthlyIncome: number }
   /** The user's current spending mode — influences which tips are eligible. */
   spendingMode?: SpendingMode
+  /** Whether the user has at least one expense transaction from a credit-kind funding source. */
+  hasCreditTransactions?: boolean
+  /** Set of lesson IDs the user has completed (used for credit education path). */
+  completedLessonIds?: Set<string>
+  /** Whether the user has at least one active savings goal. */
+  hasGoals?: boolean
+  /** Number of over-budget days in the last 7 days (for first over-budget week trigger). */
+  overBudgetDaysLast7?: number
 }
 
 /** Inputs required to derive a {@link UserContext} for tip selection. */
@@ -238,6 +251,8 @@ export interface BuildUserContextParams {
    * so the contextual tip system can surface a gentle heads-up.
    */
   detectedSubscriptions?: DetectedSubscription[]
+  /** User savings goals (used to detect first-goal milestone). */
+  goals?: { id: string; currentAmount: number; targetAmount: number }[]
 }
 
 /**
@@ -253,7 +268,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -326,6 +341,8 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     sourceBreakdown,
     spendingMode,
     subscriptionAlerts,
+    hasGoals: goals != null && goals.length > 0,
+    overBudgetDaysLast7: countOverBudgetDaysLast7(transactions, dailyBudget, today),
   }
 }
 
@@ -638,6 +655,159 @@ export function selectContextualTip(
     })
   }
 
+  // Step 2h-credit: First credit spend — contextual credit education trigger.
+  // Fires once ever when user makes their first transaction on a credit source.
+  // Links to the first lesson in the credit education path.
+  if (context.hasCreditTransactions && !hasSeenFirstCreditSpend()) {
+    markFirstCreditSpendSeen()
+    candidates.push({
+      id: 'first-credit-spend',
+      type: 'did_you_know',
+      title: 'New to credit?',
+      message: "Using credit is a great step — here's a quick guide to building a strong history from day one.",
+      emoji: '💳',
+      priority: 'medium',
+      actionLabel: 'Learn more',
+      actionType: 'learn_more',
+      triggerCondition: { type: 'first_goal_progress' },
+      relatedLessonId: 'building-credit-student',
+    })
+  }
+
+  // Step 2h-credit-path: Credit education path progression — suggests the next
+  // credit lesson after the user completes one. Low priority, fires at most
+  // once per completed lesson via dismissed-tips.
+  if (context.hasCreditTransactions && context.completedLessonIds && hasSeenFirstCreditSpend()) {
+    const nextCredit = getNextCreditLesson(context.completedLessonIds)
+    if (nextCredit) {
+      candidates.push({
+        id: `credit-path-next-${nextCredit}`,
+        type: 'did_you_know',
+        title: 'Credit path',
+        message: "Ready for the next step in your credit journey? We've got a short lesson waiting for you.",
+        emoji: '📚',
+        priority: 'low',
+        actionLabel: 'Continue learning',
+        actionType: 'learn_more',
+        triggerCondition: { type: 'first_goal_progress' },
+        relatedLessonId: nextCredit,
+      })
+    }
+  }
+
+  // Step 2h-credit-score: Monthly credit score check-in reminder.
+  // Fires when it's been 30+ days since the user last logged a score
+  // and the reminder hasn't been shown this month.
+  if (shouldRemindCreditScoreCheckin() && canShowCreditScoreReminder()) {
+    markCreditScoreReminderShown()
+    candidates.push({
+      id: 'credit-score-checkin-reminder',
+      type: 'did_you_know',
+      title: 'Score check-in',
+      message: "It's been a while since you logged your credit score. A quick update helps you see your progress over time.",
+      emoji: '📊',
+      priority: 'low',
+      actionLabel: 'Update score',
+      actionType: 'learn_more',
+      triggerCondition: { type: 'first_goal_progress' },
+      relatedLessonId: 'credit-score-monitoring',
+    })
+  }
+
+  // Step 2j: First goal micro-lesson — fires once after the user creates
+  // their first savings goal. Links to the "pay yourself first" micro-lesson.
+  // Medium priority, never nags (localStorage guard + dismissed-tips).
+  if (context.hasGoals && !hasSeenFirstGoalLesson()) {
+    markFirstGoalLessonSeen()
+    candidates.push({
+      id: 'first-goal-lesson',
+      type: 'did_you_know',
+      title: 'Goal set — nice!',
+      message: "You've got a target now. Here's a 30-second tip on making saving feel automatic.",
+      emoji: '🎯',
+      priority: 'medium',
+      actionLabel: 'Learn more',
+      actionType: 'learn_more',
+      triggerCondition: { type: 'first_goal_lesson' },
+      relatedLessonId: 'emergency-fund',
+    })
+  }
+
+  // Step 2k: First over-budget week micro-lesson — fires once when the user
+  // has 5+ over-budget days in the last 7. Warm and encouraging, never shaming.
+  // Links to the budgeting-101 lesson for deeper learning.
+  if (
+    !isTrackerMode &&
+    context.overBudgetDaysLast7 != null &&
+    context.overBudgetDaysLast7 >= 5 &&
+    !hasSeenOverBudgetWeekLesson()
+  ) {
+    markOverBudgetWeekLessonSeen()
+    candidates.push({
+      id: 'over-budget-week-lesson',
+      type: 'did_you_know',
+      title: 'Tough week? Totally normal',
+      message: "Some weeks run hot — it happens to everyone. Here's a quick tip on getting back on track without stress.",
+      emoji: '💪',
+      priority: 'medium',
+      actionLabel: 'Quick tip',
+      actionType: 'learn_more',
+      triggerCondition: { type: 'over_budget_week_lesson', overBudgetDays: context.overBudgetDaysLast7 },
+      relatedLessonId: 'budgeting-101',
+    })
+  }
+
+  // Step 2i: Weekly auto-save recap — a pleasant surprise showing how much was
+  // auto-saved in the past week (medium priority, once per week). Only fires
+  // when auto-earmark is enabled AND weekly swept amount > $0.
+  // Uses ISO week number in the tip ID to ensure once-per-week via dismissed-tips.
+  {
+    const earmarkConfig = getAutoEarmarkConfig()
+    if (earmarkConfig.enabled && earmarkConfig.sweepEnabled) {
+      const weeklyAutoSaved = computeWeeklyAutoSaved()
+      if (weeklyAutoSaved > 0) {
+        const weekNum = getISOWeekNumber(new Date())
+        const year = new Date().getFullYear()
+        candidates.push({
+          id: `weekly-auto-save-recap-${year}-W${weekNum}`,
+          type: 'celebration',
+          title: 'Effortless saving',
+          message: `You saved $${weeklyAutoSaved.toFixed(2)} without even trying this week — nice! 🌱`,
+          emoji: '🌱',
+          priority: 'medium',
+          triggerCondition: { type: 'weekly_auto_save_recap', weeklyAmount: weeklyAutoSaved },
+        })
+      }
+    }
+  }
+
+  // Step 2l: Money confidence check-in — a gentle, optional, infrequent
+  // "how's it going?" reflection (Task 155.1). Fires at most once every couple
+  // weeks (throttled in moneyConfidenceCheckin), celebrates real progress, and
+  // offers exactly ONE warm next step. Low priority so it never displaces an
+  // urgent nudge or a fresh celebration. The cycle token in the id means a
+  // dismissal only hides the current window, never the feature forever.
+  if (shouldShowMoneyConfidenceCheckin(context.totalTransactions)) {
+    markMoneyConfidenceCheckinShown()
+    const content = buildMoneyConfidenceCheckin({
+      underBudgetStreak: context.underBudgetStreak,
+      totalTransactions: context.totalTransactions,
+      hasGoals: context.hasGoals === true,
+    })
+    candidates.push({
+      id: `money-confidence-checkin-${getMoneyConfidenceCycle()}`,
+      type: 'celebration',
+      title: "How's it going?",
+      message: content.message,
+      emoji: '💜',
+      priority: 'low',
+      actionLabel: content.actionLabel,
+      actionType: content.actionType,
+      triggerCondition: { type: 'money_confidence_checkin' },
+      relatedLessonId: content.relatedLessonId,
+    })
+  }
+
   // Step 3: Educational trigger — fewer than 10 total transactions (low priority)
   // Only shows on the first few app opens to avoid nagging new users.
   if (context.totalTransactions < 10 && getAppOpenCount() <= EDUCATIONAL_TIP_MAX_OPENS) {
@@ -694,4 +864,20 @@ export function selectContextualTip(
   }
 
   return winner
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Returns the ISO 8601 week number for a given date (1–53).
+ * Used to generate once-per-week tip IDs.
+ */
+function getISOWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
 }

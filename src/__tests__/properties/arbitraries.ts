@@ -25,6 +25,9 @@ import {
   OnboardingResult,
   BudgetPreset,
 } from '@/types/folio'
+import type { FixedExpense } from '@/lib/fixedExpenses'
+import type { PaySchedule, PayCadence } from '@/lib/paySchedule'
+import type { TermSchedule } from '@/lib/termSchedule'
 
 // ============================================================================
 // Basic Type Arbitraries
@@ -479,3 +482,80 @@ export const arbOnboardingResult = (): fc.Arbitrary<OnboardingResult> =>
       { nil: undefined }
     ),
   })
+
+
+// ============================================================================
+// Fixed Expense Arbitraries
+// ============================================================================
+
+/**
+ * Generates arbitrary FixedExpense objects
+ */
+export const arbFixedExpense = (): fc.Arbitrary<FixedExpense> =>
+  fc.record({
+    id: fc.uuid(),
+    userId: fc.uuid(),
+    category: arbTransactionCategory(),
+    label: fc.string({ minLength: 2, maxLength: 30 }),
+    amount: arbBudgetAmount(),
+    dueDay: fc.integer({ min: 1, max: 31 }),
+    recurringId: fc.uuid(),
+    isActive: fc.boolean(),
+  })
+
+// ============================================================================
+// Pay Schedule Arbitraries
+// ============================================================================
+
+/**
+ * Generates arbitrary PayCadence values
+ */
+export const arbPayCadence = (): fc.Arbitrary<PayCadence> =>
+  fc.constantFrom<PayCadence>('weekly', 'biweekly', 'semimonthly', 'monthly', 'irregular')
+
+/**
+ * Generates arbitrary PaySchedule objects
+ */
+export const arbPaySchedule = (): fc.Arbitrary<PaySchedule> =>
+  fc.record({
+    cadence: arbPayCadence(),
+    anchorDate: arbDateString(),
+    amount: fc.option(arbBudgetAmount(), { nil: undefined }),
+  })
+
+// ============================================================================
+// Term Schedule Arbitraries
+// ============================================================================
+
+/**
+ * Generates arbitrary TermSchedule objects with valid date ranges (end > start).
+ * Term length ranges from 30 to 150 days.
+ */
+export const arbTermSchedule = (): fc.Arbitrary<TermSchedule> =>
+  fc
+    .record({
+      startYear: fc.integer({ min: 2022, max: 2026 }),
+      startMonth: fc.integer({ min: 1, max: 12 }),
+      startDay: fc.integer({ min: 1, max: 28 }),
+      durationDays: fc.integer({ min: 30, max: 150 }),
+      label: fc.option(fc.string({ minLength: 3, maxLength: 20 }), { nil: undefined }),
+    })
+    .map(({ startYear, startMonth, startDay, durationDays, label }) => {
+      const startDate = `${startYear}-${String(startMonth).padStart(2, '0')}-${String(startDay).padStart(2, '0')}`
+      const start = new Date(startYear, startMonth - 1, startDay)
+      const end = new Date(start.getTime() + durationDays * 24 * 60 * 60 * 1000)
+      const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`
+      return { startDate, endDate, label } as TermSchedule
+    })
+
+// ============================================================================
+// Budget with Period Arbitraries
+// ============================================================================
+
+/**
+ * Generates arbitrary Budget objects with a specific period
+ */
+export const arbBudgetWithPeriod = (
+  period: 'monthly' | 'weekly' | 'payday_aligned' | 'semester'
+): fc.Arbitrary<Budget> =>
+  arbBudget().map((b) => ({ ...b, period }))

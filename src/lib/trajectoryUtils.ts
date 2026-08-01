@@ -14,7 +14,10 @@
 
 import type { Transaction } from "@/types"
 import type { Goal } from "@/types"
-import type { Debt } from "@/types/folio"
+import type { Debt, SavingsAccount } from "@/types/folio"
+import type { SinkingFund } from "@/lib/sinkingFunds"
+import { computeTotalSavingsBalance, computeMonthlyContributions } from "@/lib/savingsAccountUtils"
+import { computeGigTaxTrajectory } from "@/lib/taxSetAside"
 
 // ============================================================================
 // Types
@@ -80,6 +83,33 @@ export interface TrajectoryInput {
   debts?: Debt[]
   savingsRate?: number
   previousSavingsRate?: number
+  savingsAccounts?: SavingsAccount[]
+  totalSetAside?: number
+  sinkingFunds?: SinkingFund[]
+  /**
+   * Optional override for the gig tax rate (0–1 scale) used when surfacing the
+   * gig tax set-aside insight. Defaults to the standard gig rate (25%).
+   */
+  gigTaxRate?: number
+}
+
+/**
+ * Sum of gig/1099 income logged in the given month. Gig income is persisted
+ * with the `gig` category (see the income logging flow), which lets the
+ * trajectory view surface a tax set-aside insight without any extra plumbing.
+ */
+function sumGigIncomeForMonth(
+  transactions: Transaction[],
+  monthKey: string
+): number {
+  return transactions
+    .filter(
+      (t) =>
+        t.type === "income" &&
+        t.category === "gig" &&
+        getMonthKey(t.date) === monthKey
+    )
+    .reduce((sum, t) => sum + t.amount, 0)
 }
 
 /**
@@ -89,7 +119,7 @@ export interface TrajectoryInput {
  * Never exposes raw dollar amounts — only percentages and directions.
  */
 export function computeTrajectory(input: TrajectoryInput): TrajectoryResult {
-  const { transactions, goals, debts, savingsRate } = input
+  const { transactions, goals, debts, savingsRate, savingsAccounts, totalSetAside, sinkingFunds, gigTaxRate } = input
   const insights: TrajectoryInsight[] = []
 
   const currentMonth = getCurrentMonth()
@@ -257,6 +287,93 @@ export function computeTrajectory(input: TrajectoryInput): TrajectoryResult {
     }
   }
 
+  // ── Savings growth insight ─────────────────────────────────────
+  if (savingsAccounts && savingsAccounts.length > 0) {
+    const totalBalance = computeTotalSavingsBalance(savingsAccounts)
+    const monthlyContrib = computeMonthlyContributions(savingsAccounts)
+
+    if (totalBalance > 0 || monthlyContrib > 0) {
+      const direction: TrajectoryDirection = monthlyContrib > 0 ? "improving" : "steady"
+      insights.push({
+        id: "savings-growth",
+        emoji: "🌱",
+        headline: monthlyContrib > 0
+          ? `Saving across ${savingsAccounts.length} account${savingsAccounts.length > 1 ? "s" : ""}`
+          : `${savingsAccounts.length} savings account${savingsAccounts.length > 1 ? "s" : ""} tracked`,
+        detail: monthlyContrib > 0
+          ? "Regular contributions are building momentum — keep it growing."
+          : "You've got savings working for you — even holding steady is a win.",
+        direction,
+      })
+    }
+  }
+
+  // ── Sinking fund set-aside progress ────────────────────────────
+  if (sinkingFunds && sinkingFunds.length > 0) {
+    const totalTarget = sinkingFunds.reduce((s, f) => s + f.targetAmount, 0)
+    const totalSaved = sinkingFunds.reduce((s, f) => s + f.savedAmount, 0)
+    const fundedCount = sinkingFunds.filter(f => f.savedAmount >= f.targetAmount).length
+
+    if (totalTarget > 0) {
+      const coverage = Math.round((totalSaved / totalTarget) * 100)
+      const direction: TrajectoryDirection =
+        fundedCount > 0 || coverage > 50 ? "improving" : "steady"
+
+      insights.push({
+        id: "setaside-progress",
+        emoji: "🎒",
+        headline: fundedCount > 0
+          ? `${fundedCount} set-aside${fundedCount > 1 ? "s" : ""} fully funded`
+          : `Set-asides ${coverage}% covered`,
+        detail: fundedCount > 0
+          ? "You've pre-funded upcoming costs — future-you will thank you."
+          : "Setting money aside for big costs keeps surprises manageable.",
+        direction,
+      })
+    }
+  }
+
+  // ── Gig tax set-aside (surface task 54 in the trajectory) ──────
+  {
+    const gigIncome = sumGigIncomeForMonth(transactions, currentMonth)
+    const gigTax = computeGigTaxTrajectory(
+      gigIncome,
+      totalSetAside ?? 0,
+      gigTaxRate
+    )
+
+    if (gigTax) {
+      insights.push({
+        id: "gig-tax",
+        emoji: gigTax.covered ? "🧾" : "💡",
+        headline: gigTax.headline,
+        detail: gigTax.detail,
+        // Covered → improving; otherwise a gentle steady nudge (never shaming).
+        direction: gigTax.covered ? "improving" : "steady",
+      })
+    }
+  }
+
+  // ── Financial cushion (combined directional indicator) ──────────
+  {
+    const hasSavings = savingsAccounts && savingsAccounts.length > 0 && computeTotalSavingsBalance(savingsAccounts) > 0
+    const hasSetAside = (totalSetAside ?? 0) > 0
+    const hasLowDebt = !debts || debts.length === 0 || debts.reduce((s, d) => s + (d.balance ?? 0), 0) === 0
+
+    // Only show the cushion insight if there's meaningful data
+    const cushionSignals = [hasSavings, hasSetAside, hasLowDebt].filter(Boolean).length
+
+    if (cushionSignals >= 2) {
+      insights.push({
+        id: "financial-cushion",
+        emoji: "🛡️",
+        headline: "Building a solid cushion",
+        detail: "Savings, set-asides, and manageable debt — you're creating breathing room.",
+        direction: "improving",
+      })
+    }
+  }
+
   // ── Compute overall direction ──────────────────────────────────
   // Weight the insights: count improving vs declining signals
   const improvingCount = insights.filter(
@@ -277,8 +394,15 @@ export function computeTrajectory(input: TrajectoryInput): TrajectoryResult {
     declining: "A few things to keep an eye on",
   }
 
-  // Limit to 4 insights max (trim lowest-priority ones)
-  const trimmedInsights = insights.slice(0, 4)
+  // Limit to 6 insights max (trim lowest-priority ones), but always keep the
+  // gig tax set-aside insight when present so it surfaces clearly (task 154.1).
+  const MAX_INSIGHTS = 6
+  let trimmedInsights = insights.slice(0, MAX_INSIGHTS)
+  const gigTaxInsight = insights.find((i) => i.id === "gig-tax")
+  if (gigTaxInsight && !trimmedInsights.some((i) => i.id === "gig-tax")) {
+    // Drop the last kept insight to make room, then append gig-tax.
+    trimmedInsights = [...trimmedInsights.slice(0, MAX_INSIGHTS - 1), gigTaxInsight]
+  }
 
   return {
     overall,

@@ -158,6 +158,8 @@ export type TipTrigger =
   | { type: 'under_budget_streak'; days: number }
   | { type: 'category_spike'; category: TransactionCategory; percentIncrease: number }
   | { type: 'first_goal_progress' }
+  | { type: 'first_goal_lesson' }
+  | { type: 'over_budget_week_lesson'; overBudgetDays: number }
   | { type: 'weekly_summary' }
   | { type: 'payday_detected' }
   | { type: 'burn_rate_warning'; projectedOverspend: number }
@@ -169,6 +171,8 @@ export type TipTrigger =
   | { type: 'lump_income_spike'; spikeAmount: number; averageMonthlyIncome: number }
   | { type: 'over_budget_today' }
   | { type: 'source_breakdown'; creditPercent: number; creditTotal: number; monthlyIncome: number }
+  | { type: 'weekly_auto_save_recap'; weeklyAmount: number }
+  | { type: 'money_confidence_checkin' }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)

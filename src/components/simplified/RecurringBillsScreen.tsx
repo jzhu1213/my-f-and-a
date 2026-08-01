@@ -1,18 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { ManagedListScreen, type ItemRenderContext } from "@/components/ui/ManagedListScreen"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { TransactionCategory } from "@/types"
 import type { FixedExpense } from "@/lib/fixedExpenses"
 import { getTotalFixedMonthly } from "@/lib/fixedExpenses"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
-  CONTENT_MAX_WIDTH,
-  HORIZONTAL_PADDING,
-  DOCK_PADDING_BOTTOM,
   sectionHeadingStrong,
   listRow,
   borderRadius,
@@ -91,9 +89,9 @@ const labelStyle: React.CSSProperties = {
 
 /**
  * RecurringBillsScreen — full-screen UI to add/edit/list monthly recurring bills.
- * Reached from Settings. Uses GlassCard + Inter + warm palette.
+ * Reached from Settings. Uses ManagedListScreen scaffold + GlassCard + Inter + warm palette.
  *
- * Validates: Requirements 12.3
+ * Validates: Requirements 12.3, 141.1
  */
 export function RecurringBillsScreen({
   bills,
@@ -102,44 +100,193 @@ export function RecurringBillsScreen({
   onDeleteBill,
   onClose,
 }: RecurringBillsScreenProps) {
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [form, setForm] = useState<BillFormData>(DEFAULT_FORM)
-  const [saving, setSaving] = useState(false)
-
   // ── Computed ───────────────────────────────────────────────────────────────
   const totalMonthly = getTotalFixedMonthly(bills)
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
-  function openAddForm() {
-    setEditingId(null)
-    setForm(DEFAULT_FORM)
-    setShowAddForm(true)
+  // ── Render Callbacks ───────────────────────────────────────────────────────
+  function renderSummary() {
+    return (
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <p style={sectionHeadingStrong}>Monthly Fixed Costs</p>
+        <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+          ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+          <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
+            /mo
+          </span>
+        </p>
+        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+          {bills.filter(b => b.isActive).length} active bill
+          {bills.filter(b => b.isActive).length !== 1 ? "s" : ""}
+        </p>
+      </GlassCard>
+    )
   }
 
-  function openEditForm(bill: FixedExpense) {
-    setShowAddForm(false)
-    setEditingId(bill.id)
-    setForm({
-      label: bill.label,
-      amount: bill.amount,
-      dueDay: bill.dueDay,
-      category: bill.category,
-    })
+  function renderItem(context: ItemRenderContext<FixedExpense>) {
+    const { item: bill, requestDelete, isConfirmingDelete, confirmDelete, cancelDelete } = context
+    return (
+      <div
+        style={{
+          ...listRow,
+          cursor: "pointer",
+          padding: "10px 0",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}
+          onClick={context.startEdit}
+          role="button"
+          tabIndex={0}
+          aria-label={`Edit ${bill.label}`}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") context.startEdit()
+          }}
+        >
+          <span style={{ fontSize: 18 }}>{emojiForCategory(bill.category)}</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, color: "var(--text)", margin: 0, fontWeight: 500 }}>
+              {bill.label}
+            </p>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
+              Due day {bill.dueDay}
+            </p>
+          </div>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: "var(--text)",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            ${bill.amount}
+          </span>
+        </div>
+        {isConfirmingDelete ? (
+          <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+            <motion.button
+              onClick={confirmDelete}
+              whileTap={{ scale: 0.9 }}
+              transition={springs.snappy}
+              style={{
+                background: "rgba(239, 68, 68, 0.15)",
+                border: "none",
+                padding: "4px 8px",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--error)",
+                borderRadius: 6,
+              }}
+              aria-label={`Confirm delete ${bill.label}`}
+            >
+              Delete
+            </motion.button>
+            <motion.button
+              onClick={cancelDelete}
+              whileTap={{ scale: 0.9 }}
+              transition={springs.snappy}
+              style={{
+                background: "none",
+                border: "none",
+                padding: "4px 8px",
+                cursor: "pointer",
+                fontSize: 12,
+                color: "var(--sub)",
+              }}
+              aria-label="Cancel delete"
+            >
+              ✕
+            </motion.button>
+          </div>
+        ) : (
+          <motion.button
+            onClick={requestDelete}
+            whileTap={{ scale: 0.9 }}
+            transition={springs.snappy}
+            style={{
+              background: "none",
+              border: "none",
+              padding: "4px 8px",
+              cursor: "pointer",
+              fontSize: 16,
+              color: "var(--error)",
+              marginLeft: 8,
+            }}
+            aria-label={`Delete ${bill.label}`}
+          >
+            ✕
+          </motion.button>
+        )}
+      </div>
+    )
   }
 
-  function cancelForm() {
-    setEditingId(null)
-    setShowAddForm(false)
-    setForm(DEFAULT_FORM)
+  function renderForm({
+    item,
+    onDone,
+    onCancel,
+  }: {
+    item: FixedExpense | null
+    onDone: () => void
+    onCancel: () => void
+  }) {
+    return (
+      <BillFormWrapper
+        item={item}
+        onAddBill={onAddBill}
+        onUpdateBill={onUpdateBill}
+        onDone={onDone}
+        onCancel={onCancel}
+      />
+    )
   }
+
+  return (
+    <ManagedListScreen<FixedExpense>
+      items={bills}
+      title="Recurring Bills"
+      addLabel="+ Add bill"
+      emptyEmoji="📋"
+      emptyTitle="No bills yet"
+      emptySubtitle="Add your first recurring bill to track monthly fixed costs."
+      onBack={onClose}
+      onDelete={onDeleteBill}
+      renderItem={renderItem}
+      renderForm={renderForm}
+      renderSummary={renderSummary}
+      listLayout="single-card"
+    />
+  )
+}
+
+// ============================================================================
+// BillFormWrapper — self-contained form with its own state
+// ============================================================================
+
+interface BillFormWrapperProps {
+  item: FixedExpense | null
+  onAddBill: (bill: Omit<FixedExpense, "id" | "userId">) => Promise<void>
+  onUpdateBill: (id: string, bill: Partial<FixedExpense>) => Promise<void>
+  onDone: () => void
+  onCancel: () => void
+}
+
+function BillFormWrapper({ item, onAddBill, onUpdateBill, onDone, onCancel }: BillFormWrapperProps) {
+  const [form, setForm] = useState<BillFormData>(
+    item
+      ? { label: item.label, amount: item.amount, dueDay: item.dueDay, category: item.category }
+      : DEFAULT_FORM
+  )
+  const [saving, setSaving] = useState(false)
 
   async function handleSave() {
     if (!form.label.trim() || form.amount <= 0) return
     setSaving(true)
     try {
-      if (editingId) {
-        await onUpdateBill(editingId, {
+      if (item) {
+        await onUpdateBill(item.id, {
           label: form.label.trim(),
           amount: form.amount,
           dueDay: form.dueDay,
@@ -155,227 +302,26 @@ export function RecurringBillsScreen({
           isActive: true,
         })
       }
-      cancelForm()
+      onDone()
     } finally {
       setSaving(false)
     }
   }
 
-  async function handleDelete(id: string) {
-    await onDeleteBill(id)
-    if (editingId === id) cancelForm()
-  }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div
-      style={{
-        maxWidth: CONTENT_MAX_WIDTH,
-        margin: "0 auto",
-        padding: `24px ${HORIZONTAL_PADDING}px ${DOCK_PADDING_BOTTOM - 20}px`,
-        fontFamily: FONT_FAMILY,
-      }}
-    >
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 20,
-        }}
-      >
-        <motion.button
-          onClick={onClose}
-          whileTap={{ scale: 0.92 }}
-          transition={springs.snappy}
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid var(--border)",
-            borderRadius: borderRadius.full,
-            width: 36,
-            height: 36,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            fontSize: 18,
-            color: "var(--text)",
-          }}
-          aria-label="Go back to settings"
-        >
-          ←
-        </motion.button>
-        <h2
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: "var(--text)",
-            margin: 0,
-          }}
-        >
-          Recurring Bills
-        </h2>
-      </div>
-
-      {/* ── Summary Card ───────────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={sectionHeadingStrong}>Monthly Fixed Costs</p>
-        <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
-          ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-          <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
-            /mo
-          </span>
-        </p>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
-          {bills.filter(b => b.isActive).length} active bill
-          {bills.filter(b => b.isActive).length !== 1 ? "s" : ""}
-        </p>
-      </GlassCard>
-
-      {/* ── Bills List ─────────────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={sectionHeadingStrong}>Bills</p>
-
-        {bills.length === 0 && !showAddForm && (
-          <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-            No bills yet. Add your first recurring bill below.
-          </p>
-        )}
-
-        <AnimatePresence mode="popLayout">
-          {bills.map(bill => (
-            <motion.div
-              key={bill.id}
-              layout
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={springs.gentle}
-            >
-              {editingId === bill.id ? (
-                <BillForm
-                  form={form}
-                  setForm={setForm}
-                  onSave={handleSave}
-                  onCancel={cancelForm}
-                  saving={saving}
-                  isEdit
-                />
-              ) : (
-                <div
-                  style={{
-                    ...listRow,
-                    cursor: "pointer",
-                    padding: "10px 0",
-                    borderBottom: "1px solid var(--border)",
-                  }}
-                >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}
-                    onClick={() => openEditForm(bill)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Edit ${bill.label}`}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" || e.key === " ") openEditForm(bill)
-                    }}
-                  >
-                    <span style={{ fontSize: 18 }}>{emojiForCategory(bill.category)}</span>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, color: "var(--text)", margin: 0, fontWeight: 500 }}>
-                        {bill.label}
-                      </p>
-                      <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
-                        Due day {bill.dueDay}
-                      </p>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      ${bill.amount}
-                    </span>
-                  </div>
-                  <motion.button
-                    onClick={() => handleDelete(bill.id)}
-                    whileTap={{ scale: 0.9 }}
-                    transition={springs.snappy}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: "4px 8px",
-                      cursor: "pointer",
-                      fontSize: 16,
-                      color: "var(--error)",
-                      marginLeft: 8,
-                    }}
-                    aria-label={`Delete ${bill.label}`}
-                  >
-                    ✕
-                  </motion.button>
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {/* ── Inline Add Form ──────────────────────────────────────────────── */}
-        <AnimatePresence>
-          {showAddForm && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={springs.gentle}
-              style={{ overflow: "hidden", marginTop: 12 }}
-            >
-              <BillForm
-                form={form}
-                setForm={setForm}
-                onSave={handleSave}
-                onCancel={cancelForm}
-                saving={saving}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── Add Button ───────────────────────────────────────────────────── */}
-        {!showAddForm && !editingId && (
-          <motion.button
-            onClick={openAddForm}
-            whileTap={{ scale: 0.97 }}
-            transition={springs.snappy}
-            style={{
-              marginTop: 14,
-              width: "100%",
-              padding: "12px 0",
-              background: "rgba(255,255,255,0.04)",
-              border: "1.5px dashed var(--border)",
-              borderRadius: 12,
-              color: "var(--sub)",
-              fontSize: 14,
-              fontWeight: 500,
-              fontFamily: FONT_FAMILY,
-              cursor: "pointer",
-            }}
-            aria-label="Add a new recurring bill"
-          >
-            + Add bill
-          </motion.button>
-        )}
-      </GlassCard>
-    </div>
+    <BillForm
+      form={form}
+      setForm={setForm}
+      onSave={handleSave}
+      onCancel={onCancel}
+      saving={saving}
+      isEdit={item !== null}
+    />
   )
 }
 
 // ============================================================================
-// BillForm sub-component
+// BillForm sub-component (presentational)
 // ============================================================================
 
 interface BillFormProps {

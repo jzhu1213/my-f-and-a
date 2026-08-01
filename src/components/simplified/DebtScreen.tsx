@@ -20,6 +20,7 @@ import {
   getTotalMinimumPayments,
   getPayoffMonths,
 } from "@/lib/debtUtils"
+import { MultiDebtPayoffCard } from "./MultiDebtPayoffCard"
 
 // ============================================================================
 // Types
@@ -377,6 +378,9 @@ export function DebtScreen({
           </motion.button>
         )}
       </GlassCard>
+
+      {/* ── Multi-Debt Payoff Comparison ───────────────────────────────────── */}
+      <MultiDebtPayoffCard debts={debts} />
     </div>
   )
 }

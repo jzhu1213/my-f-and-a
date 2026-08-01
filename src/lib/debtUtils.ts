@@ -8,6 +8,155 @@ import type { FixedExpense } from '@/lib/fixedExpenses'
  * and return stable values (Infinity when payoff is impossible, 0 for zero balances).
  */
 
+// ============================================================================
+// Multi-debt payoff strategy types
+// ============================================================================
+
+export interface DebtPayoffEntry {
+  debtId: string
+  paidOffMonth: number
+}
+
+export interface StrategyResult {
+  totalMonths: number
+  totalInterestPaid: number
+  payoffSchedule: DebtPayoffEntry[]
+}
+
+export type StrategyName = 'snowball' | 'avalanche'
+
+export interface StrategyComparison {
+  snowball: StrategyResult
+  avalanche: StrategyResult
+  recommended: StrategyName
+  interestSaved: number
+}
+
+// ============================================================================
+// Multi-debt payoff simulation
+// ============================================================================
+
+/**
+ * Simulates paying off multiple debts using the snowball method (smallest balance first).
+ * Pays minimums on all debts, applies extra payment to the smallest balance.
+ * @param debts Array of debts with positive balances
+ * @param extraPayment Additional monthly payment beyond all minimums combined
+ */
+export function simulateSnowball(debts: Debt[], extraPayment: number = 0): StrategyResult {
+  const sorted = [...debts].filter(d => d.balance > 0).sort((a, b) => a.balance - b.balance)
+  return simulateStrategy(sorted, extraPayment)
+}
+
+/**
+ * Simulates paying off multiple debts using the avalanche method (highest APR first).
+ * Pays minimums on all debts, applies extra payment to the highest-APR debt.
+ * @param debts Array of debts with positive balances
+ * @param extraPayment Additional monthly payment beyond all minimums combined
+ */
+export function simulateAvalanche(debts: Debt[], extraPayment: number = 0): StrategyResult {
+  const sorted = [...debts].filter(d => d.balance > 0).sort((a, b) => b.apr - a.apr)
+  return simulateStrategy(sorted, extraPayment)
+}
+
+/**
+ * Compares snowball and avalanche strategies and recommends one.
+ * @param debts Array of debts
+ * @param extraPayment Extra monthly payment beyond minimums
+ */
+export function compareStrategies(debts: Debt[], extraPayment: number = 0): StrategyComparison {
+  const snowball = simulateSnowball(debts, extraPayment)
+  const avalanche = simulateAvalanche(debts, extraPayment)
+
+  const interestSaved = Math.abs(snowball.totalInterestPaid - avalanche.totalInterestPaid)
+
+  // Recommend avalanche if it saves meaningful interest (>$25), otherwise snowball for motivation
+  const recommended: StrategyName =
+    avalanche.totalInterestPaid < snowball.totalInterestPaid && interestSaved > 25
+      ? 'avalanche'
+      : 'snowball'
+
+  return { snowball, avalanche, recommended, interestSaved }
+}
+
+/**
+ * Internal simulation engine. Debts should be pre-sorted by priority.
+ * The first debt in the array receives the extra payment.
+ */
+function simulateStrategy(sortedDebts: Debt[], extraPayment: number): StrategyResult {
+  if (sortedDebts.length === 0) {
+    return { totalMonths: 0, totalInterestPaid: 0, payoffSchedule: [] }
+  }
+
+  const balances = sortedDebts.map(d => d.balance)
+  const aprs = sortedDebts.map(d => d.apr)
+  const minimums = sortedDebts.map(d => d.minimumPayment)
+  const ids = sortedDebts.map(d => d.id)
+
+  const payoffSchedule: DebtPayoffEntry[] = []
+  let totalInterest = 0
+  let month = 0
+  const maxMonths = 1200 // 100-year cap to prevent infinite loops
+
+  while (balances.some(b => b > 0) && month < maxMonths) {
+    month++
+
+    // Accrue interest
+    for (let i = 0; i < balances.length; i++) {
+      if (balances[i] <= 0) continue
+      const monthlyInterest = balances[i] * (aprs[i] / 100) / 12
+      balances[i] += monthlyInterest
+      totalInterest += monthlyInterest
+    }
+
+    // Pay minimums on all active debts
+    let freedUp = 0
+    for (let i = 0; i < balances.length; i++) {
+      if (balances[i] <= 0) continue
+      const payment = Math.min(minimums[i], balances[i])
+      balances[i] -= payment
+      if (balances[i] <= 0.01) {
+        freedUp += minimums[i] - payment
+        balances[i] = 0
+        if (!payoffSchedule.find(e => e.debtId === ids[i])) {
+          payoffSchedule.push({ debtId: ids[i], paidOffMonth: month })
+        }
+      }
+    }
+
+    // Apply extra payment + freed-up minimums to highest-priority remaining debt
+    let extraAvailable = extraPayment + freedUp
+    for (let i = 0; i < balances.length; i++) {
+      if (balances[i] <= 0 || extraAvailable <= 0) continue
+      const payment = Math.min(extraAvailable, balances[i])
+      balances[i] -= payment
+      extraAvailable -= payment
+      if (balances[i] <= 0.01) {
+        balances[i] = 0
+        if (!payoffSchedule.find(e => e.debtId === ids[i])) {
+          payoffSchedule.push({ debtId: ids[i], paidOffMonth: month })
+        }
+      }
+    }
+  }
+
+  // If any debts remain unpaid, mark them as Infinity
+  for (let i = 0; i < balances.length; i++) {
+    if (balances[i] > 0 && !payoffSchedule.find(e => e.debtId === ids[i])) {
+      payoffSchedule.push({ debtId: ids[i], paidOffMonth: Infinity })
+    }
+  }
+
+  const totalMonths = payoffSchedule.length > 0
+    ? Math.max(...payoffSchedule.map(e => e.paidOffMonth))
+    : 0
+
+  return {
+    totalMonths,
+    totalInterestPaid: Math.round(totalInterest * 100) / 100,
+    payoffSchedule,
+  }
+}
+
 /**
  * Computes monthly interest charge for a given balance and APR.
  * @param balance Current debt balance

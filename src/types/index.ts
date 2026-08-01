@@ -1,3 +1,41 @@
+// ============================================================================
+// Folio — Money-Container Taxonomy
+// ============================================================================
+//
+// Folio tracks money through three distinct concepts. Each serves a different
+// purpose and lives in its own domain:
+//
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ Concept         │ Purpose                         │ Source              │
+// ├─────────────────┼─────────────────────────────────┼─────────────────────┤
+// │ FundingSource   │ HOW you pay (debit, cash,       │ src/lib/            │
+// │                 │ credit, wallet, borrowed)       │   fundingSources.ts │
+// │                 │ Linked to transactions via      │                     │
+// │                 │ `fundingSourceId`. Determines   │                     │
+// │                 │ whether a payment settles       │                     │
+// │                 │ immediately or is deferred.     │                     │
+// ├─────────────────┼─────────────────────────────────┼─────────────────────┤
+// │ SavingsAccount  │ WHERE long-term money grows     │ src/types/folio.ts  │
+// │                 │ (HYSA, Roth IRA, 401k,         │                     │
+// │                 │ brokerage). Tracks balance      │                     │
+// │                 │ appreciation over time with     │                     │
+// │                 │ monthly contributions and       │                     │
+// │                 │ expected returns.               │                     │
+// ├─────────────────┼─────────────────────────────────┼─────────────────────┤
+// │ LinkedAccount   │ An EXTERNAL bank/card account   │ src/types/folio.ts  │
+// │                 │ optionally connected via Plaid. │                     │
+// │                 │ Behind feature flag; Folio is   │                     │
+// │                 │ fully usable without any linked │                     │
+// │                 │ accounts.                       │                     │
+// └─────────────────┴─────────────────────────────────┴─────────────────────┘
+//
+// The legacy `Account` interface below is DEPRECATED — it was an early generic
+// abstraction that was never instantiated. `AccountType` on Transaction is a
+// vestigial field that always defaults to 'personal'.
+//
+// See also: docs/DATA-MODEL.md for the full persistence layer mapping.
+// ============================================================================
+
 // Folio - User Types
 export type UserType = 'student' | 'gig_worker' | 'small_business'
 export type UserPriority = 'avoid_overdraft' | 'pay_debt' | 'save' | 'learn_investing'
@@ -49,6 +87,15 @@ export interface Transaction {
   note?: string
   isRecurring?: boolean
   recurringId?: string
+  /**
+   * Vestigial field from an early 3-bucket account model. In all current code
+   * paths this is hardcoded to `'personal'` — the `'gig'` and `'savings'`
+   * values are never assigned. Retained for backward compatibility with
+   * existing persisted data.
+   *
+   * For tracking HOW a transaction was paid, see `fundingSourceId` below.
+   * @default 'personal'
+   */
   accountType: AccountType
   /**
    * Timestamp of when the transaction was logged in the app (ISO string).
@@ -77,8 +124,31 @@ export interface Transaction {
 }
 
 // Account Types (3 buckets)
+/**
+ * @deprecated Vestigial type from an early 3-bucket model that was never fully
+ * implemented. In practice, all transactions use `'personal'`. Retained for
+ * backward compatibility — the `accountType` field on `Transaction` always
+ * defaults to `'personal'` in all creation paths (offlineQueue, useHomeData,
+ * transactionUtils, affordabilityUtils).
+ *
+ * For the active money-container types, see:
+ * - `FundingSource` (src/lib/fundingSources.ts) — payment method tracking
+ * - `SavingsAccount` (src/types/folio.ts) — growth/investment tracking
+ * - `LinkedAccount` (src/types/folio.ts) — optional external bank linking
+ */
 export type AccountType = 'personal' | 'gig' | 'savings'
 
+/**
+ * @deprecated This interface is unused — never imported or instantiated anywhere
+ * in the app. It represented a generic "account bucket" that was superseded by
+ * the more specific `SavingsAccount` (for growth tracking) and `FundingSource`
+ * (for payment method tracking). Kept for backward compatibility only.
+ *
+ * Do NOT use this type for new features. Instead use:
+ * - `FundingSource` for payment methods (how you pay)
+ * - `SavingsAccount` for savings/investment containers (where money grows)
+ * - `LinkedAccount` for external bank connections (optional Plaid linking)
+ */
 export interface Account {
   id: string
   userId: string
@@ -252,6 +322,32 @@ export interface CompoundGrowthResult {
   totalInterest: number
   yearlyBreakdown: { year: number; balance: number }[]
 }
+
+// ============================================================================
+// Unified Money-Container Reference Type
+// ============================================================================
+
+/**
+ * Union type representing all active money-container concepts in Folio.
+ *
+ * This is a **documentation aid** — it clarifies the relationship between the
+ * three distinct container types without introducing a new runtime abstraction.
+ *
+ * - `FundingSource`: Payment method (debit, cash, credit, wallet, borrowed).
+ *   Tracks HOW you pay and whether settlement is immediate or deferred.
+ * - `SavingsAccount`: Growth container (HYSA, IRA, 401k, brokerage).
+ *   Tracks WHERE long-term money appreciates with contributions and returns.
+ * - `LinkedAccount`: External bank/card connection (optional Plaid linking).
+ *   Behind feature flag — Folio works fully without any linked accounts.
+ *
+ * These three types are intentionally kept separate because they model
+ * fundamentally different financial concepts with non-overlapping field sets.
+ */
+export type MoneyContainer = FundingSource | SavingsAccount | LinkedAccount
+
+// Re-import for the union type (these are already exported from ./folio)
+import type { FundingSource } from '@/lib/fundingSources'
+import type { SavingsAccount, LinkedAccount } from './folio'
 
 // Export Folio Simplification types
 export * from './folio'
