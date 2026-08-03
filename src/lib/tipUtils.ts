@@ -264,6 +264,8 @@ export interface BuildUserContextParams {
   goals?: { id: string; currentAmount: number; targetAmount: number }[]
   /** User savings/investment accounts (used for the end-of-month contribution gap reminder). */
   savingsAccounts?: SavingsAccount[]
+  /** Set of lesson IDs the user has completed (used for credit education path tips). */
+  completedLessonIds?: Set<string>
 }
 
 /**
@@ -279,7 +281,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -339,6 +341,20 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
       ? getSubscriptionAlerts(detectedSubscriptions, today)
       : undefined
 
+  // Derive hasCreditTransactions: true if any expense has a fundingSourceId
+  // matching a credit-kind funding source.
+  let hasCreditTransactions = false
+  if (fundingSources && fundingSources.length > 0) {
+    const creditSourceIds = new Set(
+      fundingSources.filter(s => s.kind === 'credit').map(s => s.id)
+    )
+    if (creditSourceIds.size > 0) {
+      hasCreditTransactions = transactions.some(
+        tx => tx.type === 'expense' && tx.fundingSourceId != null && creditSourceIds.has(tx.fundingSourceId)
+      )
+    }
+  }
+
   return {
     underBudgetStreak,
     todaySpentPercent,
@@ -355,6 +371,8 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     hasGoals: goals != null && goals.length > 0,
     overBudgetDaysLast7: countOverBudgetDaysLast7(transactions, dailyBudget, today),
     savingsAccounts,
+    hasCreditTransactions,
+    completedLessonIds,
   }
 }
 

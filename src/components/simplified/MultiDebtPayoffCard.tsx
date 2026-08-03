@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import type { Debt } from "@/types/folio"
+import { DEBT_TYPES } from "@/types/folio"
 import { FONT_FAMILY, pxToRem } from "@/styles/typography"
 import { sectionHeadingStrong, borderRadius } from "@/styles/shared"
-import { compareStrategies, type StrategyComparison, type StrategyName } from "@/lib/debtUtils"
+import { compareStrategies, type StrategyComparison, type StrategyResult, type StrategyName } from "@/lib/debtUtils"
 
 // ============================================================================
 // Types
@@ -53,6 +54,17 @@ function strategyDescription(name: StrategyName): string {
     : "Pay off highest interest rates first to save money"
 }
 
+function emojiForDebt(debt: Debt): string {
+  return DEBT_TYPES.find(d => d.type === debt.type)?.emoji ?? "📄"
+}
+
+function getPayoffDateFromMonth(month: number): string {
+  if (month === Infinity || month >= 1200) return "—"
+  const date = new Date()
+  date.setMonth(date.getMonth() + month)
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" })
+}
+
 // ============================================================================
 // Styles
 // ============================================================================
@@ -95,6 +107,7 @@ const inputStyle: React.CSSProperties = {
  */
 export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
   const [extraPayment, setExtraPayment] = useState(0)
+  const [showTimeline, setShowTimeline] = useState(false)
 
   const activeDebts = useMemo(() => debts.filter(d => d.balance > 0), [debts])
 
@@ -154,6 +167,62 @@ export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
           isRecommended={recommended === "avalanche"}
         />
       </div>
+
+      {/* Per-debt payoff timeline toggle */}
+      <motion.button
+        onClick={() => setShowTimeline(!showTimeline)}
+        whileTap={{ scale: 0.98 }}
+        transition={springs.snappy}
+        style={{
+          width: "100%",
+          padding: "10px 14px",
+          marginBottom: 16,
+          background: "rgba(255, 255, 255, 0.03)",
+          border: "1px solid var(--border)",
+          borderRadius: borderRadius.md,
+          color: "var(--sub)",
+          fontSize: pxToRem(13),
+          fontWeight: 500,
+          fontFamily: FONT_FAMILY,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+        aria-expanded={showTimeline}
+        aria-label="Show per-debt payoff timeline"
+      >
+        <span>📋 Per-debt payoff order</span>
+        <span
+          style={{
+            transform: showTimeline ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s ease",
+            fontSize: 12,
+          }}
+        >
+          ▼
+        </span>
+      </motion.button>
+
+      {/* Per-debt timeline details */}
+      <AnimatePresence>
+        {showTimeline && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={springs.gentle}
+            style={{ overflow: "hidden", marginBottom: 16 }}
+          >
+            <PayoffTimeline
+              debts={activeDebts}
+              snowball={snowball}
+              avalanche={avalanche}
+              recommended={recommended}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Recommendation */}
       <motion.div
@@ -256,6 +325,165 @@ function StrategyCard({ name, result, isRecommended }: StrategyCardProps) {
         >
           {formatMonths(result.totalMonths)} {"\u00B7"} {formatCurrency(result.totalInterestPaid)} interest
         </p>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// PayoffTimeline sub-component
+// ============================================================================
+
+interface PayoffTimelineProps {
+  debts: Debt[]
+  snowball: StrategyResult
+  avalanche: StrategyResult
+  recommended: StrategyName
+}
+
+/**
+ * Shows a side-by-side comparison of per-debt payoff order for each strategy.
+ * Makes the difference between snowball (smallest first) and avalanche
+ * (highest rate first) visually clear.
+ */
+function PayoffTimeline({ debts, snowball, avalanche, recommended }: PayoffTimelineProps) {
+  const debtMap = useMemo(() => {
+    const map = new Map<string, Debt>()
+    debts.forEach(d => map.set(d.id, d))
+    return map
+  }, [debts])
+
+  // Sort payoff schedules by payoff order (month ascending)
+  const snowballSchedule = [...snowball.payoffSchedule].sort((a, b) => a.paidOffMonth - b.paidOffMonth)
+  const avalancheSchedule = [...avalanche.payoffSchedule].sort((a, b) => a.paidOffMonth - b.paidOffMonth)
+
+  return (
+    <div style={{ display: "flex", gap: 10 }}>
+      {/* Snowball timeline */}
+      <TimelineColumn
+        name="snowball"
+        schedule={snowballSchedule}
+        debtMap={debtMap}
+        isRecommended={recommended === "snowball"}
+      />
+      {/* Avalanche timeline */}
+      <TimelineColumn
+        name="avalanche"
+        schedule={avalancheSchedule}
+        debtMap={debtMap}
+        isRecommended={recommended === "avalanche"}
+      />
+    </div>
+  )
+}
+
+// ============================================================================
+// TimelineColumn sub-component
+// ============================================================================
+
+interface TimelineColumnProps {
+  name: StrategyName
+  schedule: { debtId: string; paidOffMonth: number }[]
+  debtMap: Map<string, Debt>
+  isRecommended: boolean
+}
+
+function TimelineColumn({ name, schedule, debtMap, isRecommended }: TimelineColumnProps) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        padding: "12px 14px",
+        borderRadius: borderRadius.md,
+        background: isRecommended ? "rgba(6, 214, 160, 0.03)" : "rgba(255, 255, 255, 0.02)",
+        border: isRecommended
+          ? "1px solid rgba(6, 214, 160, 0.25)"
+          : "1px solid var(--border)",
+      }}
+    >
+      <p
+        style={{
+          fontSize: pxToRem(11),
+          fontWeight: 600,
+          color: isRecommended ? "var(--success)" : "var(--muted)",
+          margin: "0 0 10px",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          fontFamily: FONT_FAMILY,
+        }}
+      >
+        {strategyLabel(name)} order
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {schedule.map((entry, index) => {
+          const debt = debtMap.get(entry.debtId)
+          if (!debt) return null
+
+          return (
+            <motion.div
+              key={entry.debtId}
+              initial={{ opacity: 0, x: -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ ...springs.gentle, delay: index * 0.05 }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              {/* Order number */}
+              <span
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: isRecommended
+                    ? "rgba(6, 214, 160, 0.15)"
+                    : "rgba(255, 255, 255, 0.06)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: pxToRem(10),
+                  fontWeight: 600,
+                  color: isRecommended ? "var(--success)" : "var(--muted)",
+                  fontFamily: FONT_FAMILY,
+                  flexShrink: 0,
+                }}
+              >
+                {index + 1}
+              </span>
+
+              {/* Debt info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p
+                  style={{
+                    fontSize: pxToRem(12),
+                    fontWeight: 500,
+                    color: "var(--text)",
+                    margin: 0,
+                    fontFamily: FONT_FAMILY,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {emojiForDebt(debt)} {debt.name}
+                </p>
+                <p
+                  style={{
+                    fontSize: pxToRem(11),
+                    color: "var(--muted)",
+                    margin: 0,
+                    fontFamily: FONT_FAMILY,
+                  }}
+                >
+                  {getPayoffDateFromMonth(entry.paidOffMonth)}
+                </p>
+              </div>
+            </motion.div>
+          )
+        })}
       </div>
     </div>
   )

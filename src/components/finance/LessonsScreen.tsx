@@ -18,6 +18,7 @@ import {
   DOCK_PADDING_BOTTOM,
   sectionHeading,
 } from '@/styles/shared'
+import type { SavingsAccount } from '@/types/folio'
 
 // ============================================================================
 // Props
@@ -28,13 +29,15 @@ interface LessonsScreenProps {
   onCompleteLesson: (lessonId: string, score: number) => void
   /** When provided, auto-opens this lesson on mount (e.g. from a contextual tip link). */
   initialLessonId?: string
+  /** Savings accounts for pre-filling the compound growth calculator. */
+  savingsAccounts?: SavingsAccount[]
 }
 
 // ============================================================================
 // LessonsScreen
 // ============================================================================
 
-export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonId }: LessonsScreenProps) {
+export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonId, savingsAccounts }: LessonsScreenProps) {
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(() => {
     if (initialLessonId) {
       return LESSONS.find(l => l.id === initialLessonId) ?? null
@@ -78,7 +81,7 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonI
   }
 
   if (showCalculator === 'credit') return <CreditPayoffCalculator onBack={() => setShowCalculator(null)} />
-  if (showCalculator === 'compound') return <CompoundGrowthCalculator onBack={() => setShowCalculator(null)} />
+  if (showCalculator === 'compound') return <CompoundGrowthCalculator onBack={() => setShowCalculator(null)} savingsAccounts={savingsAccounts} />
   if (showCreditScoreCheckin) return <CreditScoreCheckin onBack={() => setShowCreditScoreCheckin(false)} />
 
   // --------------------------------------------------------------------------

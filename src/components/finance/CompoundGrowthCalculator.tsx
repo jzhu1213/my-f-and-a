@@ -2,17 +2,39 @@
 import { useState, useMemo } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { FONT_FAMILY } from '@/styles/typography'
+import { computeCombinedSavingsInputs } from '@/lib/savingsAccountUtils'
 import type { CompoundGrowthResult } from '@/types'
+import type { SavingsAccount } from '@/types/folio'
 
 interface CompoundGrowthCalculatorProps {
   onBack: () => void
+  /** When provided, shows a "Use my portfolio" chip to pre-fill inputs from combined accounts. */
+  savingsAccounts?: SavingsAccount[]
 }
 
-export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorProps) {
+export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGrowthCalculatorProps) {
   const [initialAmount,       setInitialAmount]       = useState('')
   const [monthlyContribution, setMonthlyContribution] = useState('')
   const [annualReturn,        setAnnualReturn]        = useState('7')
   const [years,               setYears]               = useState('10')
+
+  // Compute combined inputs for pre-fill (only when accounts are available)
+  const combinedInputs = useMemo(
+    () => savingsAccounts && savingsAccounts.length > 0
+      ? computeCombinedSavingsInputs(savingsAccounts)
+      : null,
+    [savingsAccounts]
+  )
+
+  const canPrefill = combinedInputs !== null &&
+    (combinedInputs.totalBalance > 0 || combinedInputs.totalMonthlyContribution > 0)
+
+  const handlePrefill = () => {
+    if (!combinedInputs) return
+    setInitialAmount(String(Math.round(combinedInputs.totalBalance)))
+    setMonthlyContribution(String(Math.round(combinedInputs.totalMonthlyContribution)))
+    setAnnualReturn(String((combinedInputs.weightedAnnualReturn * 100).toFixed(1)))
+  }
 
   const result = useMemo<CompoundGrowthResult | null>(() => {
     const principal = parseFloat(initialAmount) || 0
@@ -84,6 +106,46 @@ export function CompoundGrowthCalculator({ onBack }: CompoundGrowthCalculatorPro
       </div>
 
       <GlassCard elevation="low" style={{ padding: 20, marginBottom: 24 }}>
+        {/* Pre-fill from portfolio chip */}
+        {canPrefill && (
+          <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--line)' }}>
+            <button
+              onClick={handlePrefill}
+              aria-label="Pre-fill calculator with your combined savings portfolio values"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontFamily: FONT_FAMILY,
+                fontWeight: 500,
+                color: 'var(--sub)',
+                background: 'rgba(168, 130, 255, 0.08)',
+                border: '1px solid rgba(168, 130, 255, 0.2)',
+                borderRadius: 99,
+                padding: '7px 14px',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, background 0.15s, color 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(168, 130, 255, 0.4)'
+                e.currentTarget.style.background = 'rgba(168, 130, 255, 0.12)'
+                e.currentTarget.style.color = 'var(--text)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(168, 130, 255, 0.2)'
+                e.currentTarget.style.background = 'rgba(168, 130, 255, 0.08)'
+                e.currentTarget.style.color = 'var(--sub)'
+              }}
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2m-16 0H3m4-8h2m4 0h2m-6 4h2m4 0h2" />
+              </svg>
+              Use my portfolio
+            </button>
+          </div>
+        )}
+
         {/* Starting Amount */}
         <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
           <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Starting Amount</p>

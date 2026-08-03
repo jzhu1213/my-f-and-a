@@ -14,6 +14,7 @@ import type { CategoryBudgetRow } from "@/lib/budgetUtils"
 import { getRelativeDate } from "@/lib/dateUtils"
 import { buildUserContext, selectContextualTip } from "@/lib/tipUtils"
 import type { DetectedSubscription } from "@/lib/subscriptionDetector"
+import type { FundingSource } from "@/lib/fundingSources"
 import {
   shouldShowContextualContent,
   markSessionTipShown,
@@ -313,6 +314,12 @@ export interface HomeScreenProps {
    * contribution target hasn't been met near month-end.
    */
   savingsAccounts?: SavingsAccount[]
+
+  // ── Credit education wiring (task 151.1) ───────────────────────────────────
+  /** User's funding sources — needed to detect credit transactions for education tips. */
+  fundingSources?: FundingSource[]
+  /** Set of lesson IDs the user has completed (for credit education path tips). */
+  completedLessonIds?: Set<string>
 }
 
 // ============================================================================
@@ -379,6 +386,8 @@ export function HomeScreen({
   activeSpendDown,
   savingsRate,
   savingsAccounts,
+  fundingSources,
+  completedLessonIds,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -494,8 +503,10 @@ export function HomeScreen({
         spendingMode,
         goals,
         savingsAccounts,
+        fundingSources,
+        completedLessonIds,
       }),
-    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals, savingsAccounts]
+    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals, savingsAccounts, fundingSources, completedLessonIds]
   )
 
   const activeTip = useMemo(

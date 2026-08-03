@@ -272,6 +272,12 @@ export default function FolioApp() {
   // ── Feature Flags (improvement 4.6 — toggle advanced features) ──
   const { flags } = useFeatureFlags()
 
+  // ── Completed lesson IDs (task 151.1 — credit education path wiring) ──
+  const completedLessonIds = useMemo(
+    () => new Set(lessonProgress.filter(lp => lp.completed).map(lp => lp.lessonId)),
+    [lessonProgress]
+  )
+
   // ── Debts (loaded on demand when DebtScreen opens) ─────────────
   const [debts, setDebts] = useState<Debt[]>([])
   const [debtsLoaded, setDebtsLoaded] = useState(false)
@@ -1333,6 +1339,7 @@ export default function FolioApp() {
           lessonProgress={lessonProgress}
           onCompleteLesson={completeLesson}
           initialLessonId={learnPayload?.initialLessonId ?? undefined}
+          savingsAccounts={savingsAccounts}
         />
       </div>
     )
@@ -1342,7 +1349,7 @@ export default function FolioApp() {
   if (flags.compoundGrowthCalculator && overlay.activeOverlay === 'compoundGrowth') {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <CompoundGrowthCalculator onBack={() => overlay.closeOverlay()} />
+        <CompoundGrowthCalculator onBack={() => overlay.closeOverlay()} savingsAccounts={savingsAccounts} />
       </div>
     )
   }
@@ -1436,6 +1443,8 @@ export default function FolioApp() {
                 overLimitResponse={overLimitResponse}
                 savingsRate={savingsRate}
                 savingsAccounts={savingsAccounts}
+                fundingSources={fundingSources}
+                completedLessonIds={completedLessonIds}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => overlay.openSheet('income')}
