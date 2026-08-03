@@ -478,7 +478,7 @@ export const arbOnboardingResult = (): fc.Arbitrary<OnboardingResult> =>
       { nil: undefined }
     ),
     primaryGoal: fc.option(
-      fc.constantFrom<'save' | 'track' | 'reduce_spending'>('save', 'track', 'reduce_spending'),
+      fc.constantFrom<'save' | 'track_spending' | 'reduce_spending' | 'avoid_overdraft' | 'pay_debt' | 'learn_investing'>('save', 'track_spending', 'reduce_spending', 'avoid_overdraft', 'pay_debt', 'learn_investing'),
       { nil: undefined }
     ),
   })

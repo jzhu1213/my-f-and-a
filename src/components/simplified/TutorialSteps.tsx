@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { springs } from '@/lib/animations'
 import type { TutorialStep } from './OnboardingTutorial'
 import type { BudgetPreset, OnboardingResult } from '@/types/folio'
-import type { TransactionCategory } from '@/types'
+import type { TransactionCategory, OnboardingPath } from '@/types'
 import { getCategoryEmoji, PRESET_EMOJI } from '@/lib/vocabulary'
 import { borderRadius } from '@/styles/shared'
 
@@ -45,6 +45,69 @@ export const TUTORIAL_FEATURE_STEPS: TutorialStep[] = [
     prompt: 'Tap the card below to see details.',
   },
 ]
+
+// ============================================================================
+// Path Router Step
+// ============================================================================
+
+/**
+ * The branch/router step that asks "how do you want to start?" and sets
+ * the active onboarding path. Placed before path-specific steps.
+ */
+export const PATH_ROUTER_STEP: TutorialStep = {
+  type: 'branch',
+  id: 'path-router',
+  title: 'How do you want to start?',
+  subtitle: 'Pick what feels right — you can always change later.',
+  emoji: '🚀',
+  options: [
+    { value: 'express', label: 'I know my numbers', emoji: '🧾', description: 'Enter income + expenses directly' },
+    { value: 'preset', label: 'Help me figure it out', emoji: '🧭', description: 'Guided setup with presets' },
+    { value: 'paycheck', label: 'I get paychecks', emoji: '💵', description: 'Split your paycheck into buckets' },
+    { value: 'minimal', label: 'Just let me try it', emoji: '👀', description: 'Start with a quick estimate' },
+  ],
+}
+
+// ============================================================================
+// Step Builder (Task 212.1)
+// ============================================================================
+
+/**
+ * Builds the step list for the given onboarding path at runtime.
+ * Progress dots will reflect the chosen path's length.
+ *
+ * - Before a path is selected (path = null): shows feature demos → router step → setup
+ * - After a path is selected: shows the path-specific steps → setup tail
+ *
+ * For now, all paths share the same setup steps (Groups 32-35 will add
+ * path-specific steps later). The structure is ready to be extended.
+ */
+export function buildStepsForPath(path: OnboardingPath): TutorialStep[] {
+  if (path === null) {
+    // No path chosen yet — show feature demos then the router, then setup
+    return [...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+  }
+
+  // Once a path is selected, compose path-specific steps + shared setup tail.
+  // For now all paths use the same setup steps; Groups 32-35 will add
+  // path-specific content between the router and the setup tail.
+  switch (path) {
+    case 'express':
+      // Path A: "I know my numbers" — will get real numeric inputs later (Group 32)
+      return [...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+    case 'preset':
+      // Path B: "Help me figure it out" — will be the guided preset (Group 33)
+      return [...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+    case 'paycheck':
+      // Path C: "I get paychecks" — will add allocation steps (Group 34)
+      return [...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+    case 'minimal':
+      // Path D: "Just let me try it" — minimal setup (Group 35)
+      return [...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+    default:
+      return [...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+  }
+}
 
 // ============================================================================
 // Mini Interactive UIs
@@ -429,6 +492,8 @@ export function TutorialStepRenderer({
 }: TutorialStepRendererProps) {
   // Setup steps are handled by TutorialSetupStepRenderer, not here
   if (step.type === 'setup') return null
+  // Branch steps are handled by the parent (path selection UI)
+  if (step.type === 'branch') return null
 
   return (
     <div className="flex flex-col items-center text-center flex-1">
@@ -1019,6 +1084,9 @@ export function TutorialSetupStepRenderer({
         return null
     }
   }
+
+  // Branch steps are rendered by the parent (path selection UI) — skip here
+  if (step.type === 'branch') return null
 
   // Fall through to the original info/interactive rendering
   return (

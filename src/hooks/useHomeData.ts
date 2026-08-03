@@ -1509,6 +1509,9 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     
     // Task 82: Get user's credit spending preference (defaults to true)
     const countCreditImmediately = userProfile?.countCreditImmediately ?? true
+
+    // Task 210.3: Parse setupDate so mid-month logic divides by remaining days
+    const setupDate = userProfile?.setupDate ? new Date(userProfile.setupDate + 'T00:00:00') : undefined
     
     return computeDailyAllowance(
       budgets,
@@ -1516,7 +1519,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       currentDay,
       (monthlyIncome ?? 0) + computeActiveDisbursementBonus(disbursements, currentDay),
       allFixedExpenses,
-      undefined,
+      setupDate,
       incomeSmoothing ?? undefined,
       undefined, // carryoverEnabled
       countCreditImmediately,
@@ -1526,7 +1529,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       termSchedule,  // Task 121.1: term schedule for semester-based budget periods
       rhythmWeights  // Task 164.1: weekly spending rhythm weights
     )
-  }, [budgets, transactions, debts, sinkingFunds, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, fundingSources, paySchedule, termSchedule, rhythmWeights])
+  }, [budgets, transactions, debts, sinkingFunds, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change

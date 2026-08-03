@@ -1,4 +1,4 @@
-import { TransactionCategory, UserType, UserPriority } from './index'
+import { TransactionCategory, UserType, UserPriority, UserGoal } from './index'
 
 // ============================================================================
 // Daily Allowance Types (Requirements 1.1, 1.6-1.9)
@@ -424,7 +424,7 @@ export interface OnboardingResult {
   monthlyIncome: number
   budgetPreset: BudgetPreset
   customLimits?: Record<TransactionCategory, number>
-  primaryGoal?: 'save' | 'track' | 'reduce_spending'
+  primaryGoal?: UserGoal
 }
 
 /**

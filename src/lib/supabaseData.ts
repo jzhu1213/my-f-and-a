@@ -14,6 +14,8 @@ import type { IncomeAllocation } from '@/types/folio'
 import type { SinkingFund } from './sinkingFunds'
 import type { PaySchedule, PayCadence } from './paySchedule'
 
+import type { OnboardingPath } from '@/types'
+
 // ============================================
 // DATABASE TYPES (matching Supabase schema)
 // ============================================
@@ -43,6 +45,10 @@ interface DbProfile {
   avatar_url?: string
   created_at: string
   count_credit_immediately?: boolean
+  setup_date?: string
+  onboarding_path?: string | null
+  onboarding_completed_steps?: string[] | null
+  onboarding_skipped_steps?: string[] | null
 }
 
 interface DbBudget {
@@ -160,6 +166,10 @@ function dbProfileToApp(db: DbProfile): UserProfile {
     avatarUrl: db.avatar_url,
     createdAt: db.created_at,
     countCreditImmediately: db.count_credit_immediately,
+    setupDate: db.setup_date,
+    onboardingPath: (db.onboarding_path as OnboardingPath) ?? null,
+    onboardingCompletedSteps: db.onboarding_completed_steps ?? [],
+    onboardingSkippedSteps: db.onboarding_skipped_steps ?? [],
   }
 }
 
@@ -812,7 +822,16 @@ export async function updateLessonProgress(
 
 export async function updateProfilePreferences(
   userId: string,
-  preferences: { displayName?: string; avatarUrl?: string; countCreditImmediately?: boolean }
+  preferences: {
+    displayName?: string
+    avatarUrl?: string
+    countCreditImmediately?: boolean
+    setupDate?: string
+    onboardingPath?: OnboardingPath
+    onboardingCompletedSteps?: string[]
+    onboardingSkippedSteps?: string[]
+    hasCompletedOnboarding?: boolean
+  }
 ): Promise<UserProfile | null> {
   const updates: Record<string, any> = {}
   if (preferences.displayName !== undefined) {
@@ -823,6 +842,21 @@ export async function updateProfilePreferences(
   }
   if (preferences.countCreditImmediately !== undefined) {
     updates.count_credit_immediately = preferences.countCreditImmediately
+  }
+  if (preferences.setupDate !== undefined) {
+    updates.setup_date = preferences.setupDate
+  }
+  if (preferences.onboardingPath !== undefined) {
+    updates.onboarding_path = preferences.onboardingPath
+  }
+  if (preferences.onboardingCompletedSteps !== undefined) {
+    updates.onboarding_completed_steps = preferences.onboardingCompletedSteps
+  }
+  if (preferences.onboardingSkippedSteps !== undefined) {
+    updates.onboarding_skipped_steps = preferences.onboardingSkippedSteps
+  }
+  if (preferences.hasCompletedOnboarding !== undefined) {
+    updates.has_completed_onboarding = preferences.hasCompletedOnboarding
   }
 
   const { data, error } = await supabase

@@ -40,6 +40,16 @@
 export type UserType = 'student' | 'gig_worker' | 'small_business'
 export type UserPriority = 'avoid_overdraft' | 'pay_debt' | 'save' | 'learn_investing'
 
+/**
+ * Canonical goal type covering all goals a user can express during onboarding.
+ * Unifies the old narrow `OnboardingResult.primaryGoal` values with the broader
+ * `UserPriority` values into one comprehensive enum.
+ */
+export type UserGoal = 'save' | 'track_spending' | 'reduce_spending' | 'avoid_overdraft' | 'pay_debt' | 'learn_investing'
+
+/** The onboarding path the user selected (or null if not yet chosen) */
+export type OnboardingPath = 'express' | 'preset' | 'paycheck' | 'minimal' | null
+
 export interface UserProfile {
   id: string
   email: string
@@ -51,6 +61,13 @@ export interface UserProfile {
   displayName?: string
   avatarUrl?: string
   countCreditImmediately?: boolean
+  setupDate?: string
+  /** Which onboarding path the user chose (task 211.1) */
+  onboardingPath?: OnboardingPath
+  /** Steps the user completed during onboarding (task 211.1) */
+  onboardingCompletedSteps?: string[]
+  /** Steps the user skipped during onboarding (task 211.1) */
+  onboardingSkippedSteps?: string[]
 }
 
 // Transaction Types

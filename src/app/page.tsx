@@ -17,7 +17,7 @@ import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
 import { EditTransactionSheet } from '@/components/simplified/EditTransactionSheet'
 import { RefundSheet } from '@/components/simplified/RefundSheet'
-import { TutorialSetupStepRenderer, TUTORIAL_FEATURE_STEPS, TUTORIAL_SETUP_STEPS, TutorialSetupState, buildOnboardingResult } from '@/components/simplified/TutorialSteps'
+import { TutorialSetupStepRenderer, TutorialSetupState, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath } from '@/components/simplified/TutorialSteps'
 import { detectSubscriptions } from '@/lib/subscriptionDetector'
 import { getCategorizationRules, saveCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
 import { getActiveShareLinks } from '@/lib/sharingUtils'
@@ -126,7 +126,8 @@ import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
 import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement } from '@/lib/supabaseData'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
-import type { TransactionCategory, Transaction } from '@/types'
+import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, setOnboardingPath } from '@/lib/storage'
+import type { TransactionCategory, Transaction, OnboardingPath } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
 import { heroMeaningStatus } from '@/lib/dailyAllowanceUtils'
 import type { Reimbursement } from '@/lib/reimbursements'
@@ -163,6 +164,14 @@ export default function FolioApp() {
     budgetPreset: 'student_moderate' as BudgetPreset,
     categoryLimits: {},
   })
+
+  // ── Active onboarding path (task 212.1) ────────────────────────
+  const [activeOnboardingPath, setActiveOnboardingPath] = useState<OnboardingPath>(
+    () => {
+      if (typeof window === 'undefined') return null
+      return getOnboardingProgress().path
+    }
+  )
 
   // ── Per-transaction alert state (task 102.2) ───────────────────
   const [perTxAlertMessage, setPerTxAlertMessage] = useState<string | null>(null)
@@ -418,10 +427,12 @@ export default function FolioApp() {
   // The tutorial remains accessible from settings but never blocks value.
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Read structured progress (handles one-way migration from legacy flag)
+      const progress = getOnboardingProgress()
       // Always resolve to 'done' so new users land on the Home Screen immediately.
-      // Mark as onboarded so subsequent loads skip any legacy gate check.
-      if (localStorage.getItem('folio-onboarded') !== 'true') {
-        localStorage.setItem('folio-onboarded', 'true')
+      if (!progress.isComplete) {
+        // Mark as onboarded so subsequent loads skip any legacy gate check.
+        setOnboardingProgress({ ...progress, isComplete: true })
       }
       setOnboardingStep('done')
     }
@@ -480,18 +491,79 @@ export default function FolioApp() {
         if (limit > 0) await updateBudget(cat, limit)
       }
     }
+
+    // ── Persist monthly income so the first render uses a real number (task 210.1) ──
+    // STORAGE DECISION: seed an actual income *transaction* for the current month
+    // rather than writing a standalone "monthly income" profile field.
+    //
+    // Why a transaction (and not a profile field):
+    //   • `computeDailyAllowance` resolves its income source by priority
+    //     (budget limits → actual income transactions → $50 estimate fallback).
+    //     `useHomeData` feeds it a `monthlyIncome` derived *only* from the current
+    //     month's income transactions — a profile field would be invisible to it,
+    //     so the source would stay on 'estimate' and the hero would still show ~$50.
+    //   • Variable-income smoothing (Phase 1 task 68 — `computeSmoothedIncome`)
+    //     reads income *transactions* and only engages when the source is
+    //     'transactions'. Seeding a transaction is therefore the only target that
+    //     composes with smoothing; a profile field would not.
+    //   • It flows through the same `getTransactions` path `useHomeData` already
+    //     reads, so the daily number is correct on first render with no new plumbing.
+    //
+    // Idempotency: skip seeding if the user already logged income this month (e.g.
+    // re-running the tutorial from settings) so we never double-count income.
+    if (result.monthlyIncome > 0) {
+      const currentMonthPrefix = new Date().toISOString().slice(0, 7)
+      const hasIncomeThisMonth = transactions.some(
+        t => t.type === 'income' && t.date.startsWith(currentMonthPrefix)
+      )
+      if (!hasIncomeThisMonth) {
+        // Task 210.2: Apply savings % from the chosen budget preset so the
+        // seeded income transaction represents the *discretionary* pool, not
+        // the raw gross income. computeDailyAllowance divides this amount by
+        // days — using the reduced number means the daily figure naturally
+        // reflects the user's intended savings rate without extra plumbing.
+        const preset = BUDGET_PRESETS.find(p => p.value === result.budgetPreset)
+        const savingsPercent = preset?.savingsPercent ?? 0
+        const discretionaryIncome = Math.round(result.monthlyIncome * (1 - savingsPercent / 100))
+
+        await addTransaction({
+          amount: discretionaryIncome,
+          category: 'other',
+          type: 'income',
+          date: new Date().toISOString().slice(0, 10),
+          note: 'Monthly spending budget (from setup)',
+        })
+      }
+    }
     
-    // Persist tutorial completion flag
-    localStorage.setItem('folio-onboarded', 'true')
+    // Persist tutorial completion flag (structured state + Supabase sync)
+    const completionProgress = getOnboardingProgress()
+    completionProgress.isComplete = true
+    setOnboardingProgress(completionProgress)
     setOnboardingStep('done')
+
+    // Task 210.3: Persist setupDate on the profile so mid-month daily allowance
+    // math divides by remaining days instead of the whole month.
+    // Also sync onboarding progress to Supabase for durability (task 211.2).
+    if (user) {
+      await updateProfilePreferences(user.id, {
+        setupDate: new Date().toISOString().slice(0, 10),
+        hasCompletedOnboarding: true,
+        onboardingPath: completionProgress.path,
+        onboardingCompletedSteps: completionProgress.completedSteps,
+        onboardingSkippedSteps: completionProgress.skippedSteps,
+      })
+    }
     
-    if (result.customLimits && Object.keys(result.customLimits).length > 0) {
+    if (result.monthlyIncome > 0 || (result.customLimits && Object.keys(result.customLimits).length > 0)) {
       showToast("Tutorial complete — check today's budget")
     }
   }
 
   const handleTutorialSkip = () => {
-    localStorage.setItem('folio-onboarded', 'true')
+    const progress = getOnboardingProgress()
+    progress.isComplete = true
+    setOnboardingProgress(progress)
     setOnboardingStep('done')
   }
 
@@ -974,13 +1046,13 @@ export default function FolioApp() {
 
   // ── Sign Out ───────────────────────────────────────────────────
   const handleSignOut = () => {
-    localStorage.removeItem('folio-onboarded')
+    clearOnboardingProgress()
     setOnboardingStep('tutorial')
   }
 
   // ── Reset Onboarding ───────────────────────────────────────────
   const handleResetOnboarding = () => {
-    localStorage.removeItem('folio-onboarded')
+    clearOnboardingProgress()
     setOnboardingStep('tutorial')
     showToast('Tutorial reset - starting fresh')
   }
@@ -1037,7 +1109,7 @@ export default function FolioApp() {
     if (result.success) {
       showToast('Account deleted', 'success')
       // Sign out and reset
-      localStorage.removeItem('folio-onboarded')
+      clearOnboardingProgress()
       setOnboardingStep('tutorial')
     } else {
       showToast(result.error || 'Failed to delete account', 'error')
@@ -1070,13 +1142,17 @@ export default function FolioApp() {
   }
 
   if (onboardingStep === 'tutorial') {
-    const allSteps = [...TUTORIAL_FEATURE_STEPS, ...TUTORIAL_SETUP_STEPS]
+    const allSteps = buildStepsForPath(activeOnboardingPath)
 
     return (
       <OnboardingTutorial
         steps={allSteps}
         onComplete={handleTutorialComplete}
         onSkip={handleTutorialSkip}
+        onPathSelect={(path) => {
+          setActiveOnboardingPath(path)
+          setOnboardingPath(path)
+        }}
         renderStep={(step, completeInteraction) => (
           <TutorialSetupStepRenderer
             step={step}
