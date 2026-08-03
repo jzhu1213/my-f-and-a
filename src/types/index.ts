@@ -222,7 +222,15 @@ export const TRANSACTION_CATEGORIES: { category: TransactionCategory; emoji: str
 ]
 
 // Goal Types
-export type GoalType = 'savings' | 'emergency_fund'
+export type GoalType = 'savings' | 'emergency_fund' | 'shared'
+
+/** A participant in a shared goal (e.g., roommates splitting an apartment deposit). */
+export interface GoalParticipant {
+  id: string
+  name: string
+  contributedAmount: number
+  joinedAt: string
+}
 
 export interface Goal {
   id: string
@@ -236,6 +244,12 @@ export interface Goal {
   type?: GoalType
   /** Optional target date (ISO date string, e.g. "2025-09-01") for reaching the goal */
   targetDate?: string
+  /** Whether this goal is shared with other participants */
+  isShared?: boolean
+  /** Participants contributing toward this shared goal */
+  participants?: GoalParticipant[]
+  /** Token for sharing this goal via link (reuses the existing token flow) */
+  shareToken?: string
 }
 
 // Finance Lesson Types

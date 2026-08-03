@@ -17,6 +17,7 @@ import {
   shouldShowReminder,
   markReminderShownToday,
 } from "./reminderPreferences"
+import { shouldSuppressNotification } from "./engagementTracker"
 
 // ============================================================================
 // Types
@@ -192,6 +193,13 @@ export function scheduleLocalReminder(): boolean {
   const delay = msUntilTime(prefs.time)
 
   scheduledTimer = setTimeout(async () => {
+    // Adaptive suppression: if user consistently ignores daily reminders,
+    // skip firing (they can re-enable in Settings). Task 167.1
+    if (shouldSuppressNotification("daily_reminder")) {
+      scheduleLocalReminder()
+      return
+    }
+
     if (shouldShowReminder()) {
       const sent = await fireLocalNotification()
       if (sent) {

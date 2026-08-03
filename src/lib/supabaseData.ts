@@ -1356,6 +1356,7 @@ interface DbReimbursement {
   settled_at: string | null
   created_at: string
   linked_transaction_id?: string | null
+  settled_via_source_id?: string | null
 }
 
 function dbReimbursementToApp(db: DbReimbursement): Reimbursement {
@@ -1370,6 +1371,7 @@ function dbReimbursementToApp(db: DbReimbursement): Reimbursement {
     settledAt: db.settled_at,
     createdAt: db.created_at,
     linkedTransactionId: db.linked_transaction_id ?? undefined,
+    settledViaSourceId: db.settled_via_source_id ?? undefined,
   }
 }
 
@@ -1423,13 +1425,15 @@ export async function createReimbursement(
 
 export async function settleReimbursement(
   userId: string,
-  id: string
+  id: string,
+  fundingSourceId?: string
 ): Promise<Reimbursement | null> {
   const { data, error } = await supabase
     .from('reimbursements')
     .update({
       settled: true,
       settled_at: new Date().toISOString(),
+      ...(fundingSourceId ? { settled_via_source_id: fundingSourceId } : {}),
     })
     .eq('id', id)
     .eq('user_id', userId)
@@ -1465,6 +1469,36 @@ export async function unsettleReimbursement(
   }
 
   return dbReimbursementToApp(data)
+}
+
+/**
+ * Settle all unsettled IOUs for a given person, optionally recording the funding source.
+ * Returns the settled reimbursements or empty array on failure.
+ */
+export async function settleAllForPerson(
+  userId: string,
+  iouIds: string[],
+  fundingSourceId?: string
+): Promise<Reimbursement[]> {
+  if (iouIds.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('reimbursements')
+    .update({
+      settled: true,
+      settled_at: new Date().toISOString(),
+      ...(fundingSourceId ? { settled_via_source_id: fundingSourceId } : {}),
+    })
+    .in('id', iouIds)
+    .eq('user_id', userId)
+    .select()
+
+  if (error) {
+    console.error('Error settling all for person:', error)
+    return []
+  }
+
+  return (data || []).map(dbReimbursementToApp)
 }
 
 export async function deleteReimbursement(

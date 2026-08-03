@@ -11,6 +11,7 @@
 import type { DailyAllowance, SavingsAccount } from "@/types/folio"
 import type { FixedExpense } from "@/lib/fixedExpenses"
 import { getNotificationPermissionStatus } from "./notificationScheduler"
+import { shouldSuppressNotification } from "./engagementTracker"
 
 // ============================================================================
 // Types
@@ -131,6 +132,9 @@ export function checkLowAllowanceNotification(
 ): NotificationPayload | null {
   if (!prefs.lowAllowanceEnabled) return null
 
+  // Adaptive suppression: skip if user consistently ignores this type (Task 167.1)
+  if (shouldSuppressNotification("lowAllowance")) return null
+
   const today = new Date().toISOString().slice(0, 10)
 
   // Already fired today — don't duplicate
@@ -158,6 +162,9 @@ export function checkBillDueNotifications(
   prefs: SmartNotificationPreferences
 ): NotificationPayload[] {
   if (!prefs.billDueEnabled) return []
+
+  // Adaptive suppression: skip if user consistently ignores bill-due notifications (Task 167.1)
+  if (shouldSuppressNotification("billDue")) return []
 
   const todayStr = today.toISOString().slice(0, 10)
   const currentDay = today.getDate()
@@ -273,6 +280,9 @@ export function checkSavingsContributionNotification(
 ): NotificationPayload | null {
   if (!prefs.savingsContributionEnabled) return null
 
+  // Adaptive suppression: skip if user consistently ignores this type (Task 167.1)
+  if (shouldSuppressNotification("savingsContribution")) return null
+
   const monthKey = now.toISOString().slice(0, 7) // YYYY-MM
 
   // Already nudged this month — never repeat.
@@ -322,6 +332,9 @@ export function checkBalanceUpdateNotification(
 ): NotificationPayload | null {
   if (!prefs.balanceUpdateEnabled) return null
   if (accounts.length === 0) return null
+
+  // Adaptive suppression: skip if user consistently ignores this type (Task 167.1)
+  if (shouldSuppressNotification("balanceUpdate")) return null
 
   const monthKey = now.toISOString().slice(0, 7) // YYYY-MM
 

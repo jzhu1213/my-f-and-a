@@ -1,5 +1,5 @@
 import type { Budget, Transaction } from '@/types'
-import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover, HeroMeaning, HeroDisplay } from '@/types/folio'
+import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover, HeroMeaning, HeroDisplay, RhythmWeights, ConfidenceBand } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { FundingSource } from '@/lib/fundingSources'
 import type { PaySchedule } from '@/lib/paySchedule'
@@ -15,7 +15,8 @@ import {
   subtractDaysLocal, 
   getDaysInMonthLocal,
   getDaysRemainingFromLocal,
-  parseDateLocal
+  parseDateLocal,
+  addDaysLocal
 } from '@/lib/dateUtils'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -227,6 +228,79 @@ export function computeSmoothedIncome(
 }
 
 /**
+ * Computes a confidence band for variable income — the "usually $X–$Y/day" range.
+ *
+ * Only meaningful when income smoothing uses 'trailing_average' (indicating variable
+ * income). Determines the per-month income across the trailing window, finds the
+ * min/max, converts to daily equivalents after subtracting fixed expenses, and marks
+ * the band as significant when the spread exceeds 20% of the average daily budget.
+ *
+ * The band is purely informational — it never changes the primary daily number.
+ *
+ * **Validates: Task 164.2**
+ *
+ * @param transactions - All transactions (used to compute monthly income per month in the window)
+ * @param currentDate - Current date (determines the trailing window)
+ * @param dailyBudget - The already-computed daily budget (used for significance threshold)
+ * @param incomeSmoothing - Income smoothing config; band only activates for trailing_average
+ * @param fixedExpenses - Optional fixed monthly expenses to subtract from both min/max
+ * @returns ConfidenceBand or undefined when not applicable
+ *
+ * @pure Deterministic, no side effects.
+ */
+export function computeConfidenceBand(
+  transactions: Transaction[],
+  currentDate: Date,
+  dailyBudget: number,
+  incomeSmoothing?: IncomeSmoothing,
+  fixedExpenses?: FixedExpense[]
+): ConfidenceBand | undefined {
+  // Only activates for trailing_average strategy (variable income)
+  if (!incomeSmoothing || incomeSmoothing.strategy !== 'trailing_average') {
+    return undefined
+  }
+
+  const windowMonths = Math.max(1, Math.floor(incomeSmoothing.windowMonths ?? 3))
+
+  // Need at least 2 months to have a meaningful range
+  if (windowMonths < 2) {
+    return undefined
+  }
+
+  // Build month prefixes and compute income per month
+  const monthlyIncomes: number[] = []
+  for (let i = 0; i < windowMonths; i++) {
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
+    const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const monthIncome = transactions
+      .filter(t => t.type === 'income' && t.date.startsWith(prefix))
+      .reduce((sum, t) => sum + t.amount, 0)
+    monthlyIncomes.push(monthIncome)
+  }
+
+  // If no income in the window at all, band is not applicable
+  if (monthlyIncomes.every(m => m === 0)) {
+    return undefined
+  }
+
+  const minMonthlyIncome = Math.min(...monthlyIncomes)
+  const maxMonthlyIncome = Math.max(...monthlyIncomes)
+
+  // Subtract fixed expenses from both to get discretionary range
+  const totalFixed = getTotalFixedMonthly(fixedExpenses ?? [])
+  const daysInMonth = getDaysInMonthLocal(currentDate)
+
+  const low = Math.max(0, (minMonthlyIncome - totalFixed) / daysInMonth)
+  const high = Math.max(0, (maxMonthlyIncome - totalFixed) / daysInMonth)
+
+  // Determine significance: spread must exceed 20% of the average daily budget
+  const spread = high - low
+  const isSignificant = dailyBudget > 0 && spread > dailyBudget * 0.2
+
+  return { low, high, isSignificant }
+}
+
+/**
  * Computes the user's daily discretionary allowance — the single number answering
  * "Can I afford this today?"
  *
@@ -362,7 +436,8 @@ export function computeDailyAllowance(
   fundingSources?: FundingSource[],
   paySchedule?: PaySchedule | null,
   incomeHistory?: Transaction[],
-  termSchedule?: TermSchedule | null
+  termSchedule?: TermSchedule | null,
+  rhythmWeights?: RhythmWeights | null
 ): DailyAllowance {
   // Step 1: Calculate total monthly budget from all category limits.
   //
@@ -606,7 +681,25 @@ export function computeDailyAllowance(
     const yesterday = subtractDaysLocal(currentDate, 1)
     
     // Expected spend from rollover start to yesterday
-    const expectedSpendToYesterday = dailyBudget * daysElapsedSinceSetup
+    // Task 164.1: When rhythm weights are active and reliable, use per-day
+    // weighted expected spend instead of flat dailyBudget * daysElapsed.
+    // This ensures rollover correctly accounts for the expectation that
+    // weekends have higher spending and weekdays lower.
+    const useRhythm = rhythmWeights && rhythmWeights.isReliable
+    let expectedSpendToYesterday: number
+    if (useRhythm) {
+      // Sum dailyBudget * weight[dayOfWeek] for each day from rolloverStart to yesterday
+      expectedSpendToYesterday = 0
+      let walkDay = new Date(rolloverStart.getTime())
+      const yesterdayTime = yesterday.getTime()
+      while (walkDay.getTime() <= yesterdayTime) {
+        const dow = walkDay.getDay()
+        expectedSpendToYesterday += dailyBudget * rhythmWeights.weights[dow]
+        walkDay = addDaysLocal(walkDay, 1)
+      }
+    } else {
+      expectedSpendToYesterday = dailyBudget * daysElapsedSinceSetup
+    }
     
     // Actual spend from rollover start to yesterday
     // Apply the same settlement filtering as spentToday
@@ -628,13 +721,21 @@ export function computeDailyAllowance(
     const maxRollover = dailyBudget * 2
     rollover = Math.max(-maxRollover, Math.min(maxRollover, rawRollover))
   }
+
+  // Task 164.1: Apply rhythm adjustment to today's daily budget when weights are reliable.
+  // The `dailyBudget` used for rollover cap and status thresholds stays flat (stable),
+  // but the number shown to the user and used for the hero amount reflects rhythm.
+  const useRhythmForToday = rhythmWeights && rhythmWeights.isReliable
+  const rhythmAdjustedDailyBudget = useRhythmForToday
+    ? dailyBudget * rhythmWeights.weights[currentDate.getDay()]
+    : dailyBudget
   
   // Step 5: Calculate final daily allowance
-  const rawAmount = dailyBudget + rollover - spentToday
+  const rawAmount = rhythmAdjustedDailyBudget + rollover - spentToday
   const amount = Math.max(0, rawAmount)
   
   // Step 6: Determine status and message
-  const status = getStatus(rawAmount, dailyBudget) // Use rawAmount to detect overspending
+  const status = getStatus(rawAmount, rhythmAdjustedDailyBudget) // Use rawAmount to detect overspending
   const message = generateEncouragingMessage(status, amount, spentToday)
   const showCelebration = shouldCelebrate(status, spentToday, dailyBudget)
   
@@ -692,10 +793,21 @@ export function computeDailyAllowance(
   const reservedForScheduled = scheduledExpenses.reduce((sum, t) => sum + t.amount, 0)
   const scheduledCount = scheduledExpenses.length
 
+  // Step 10: Compute confidence band for variable income (Task 164.2)
+  // Only relevant when income comes from transactions and smoothing is in use.
+  // The band shows "usually $X–$Y/day" as supplementary info — never changes the hero number.
+  let confidenceBand: ConfidenceBand | undefined
+  if (incomeSource === 'transactions' && incomeSmoothing) {
+    const band = computeConfidenceBand(transactions, currentDate, dailyBudget, incomeSmoothing, fixedExpenses)
+    if (band && band.isSignificant) {
+      confidenceBand = band
+    }
+  }
+
   // Return valid DailyAllowance
   return {
     amount,
-    dailyBudget,
+    dailyBudget: rhythmAdjustedDailyBudget,
     spentToday,
     rollover,
     status,
@@ -710,6 +822,7 @@ export function computeDailyAllowance(
     borrowedSpending: borrowedSpending > 0 ? borrowedSpending : undefined,
     reservedForScheduled: reservedForScheduled > 0 ? reservedForScheduled : undefined,
     scheduledCount: scheduledCount > 0 ? scheduledCount : undefined,
+    confidenceBand,
   }
 }
 

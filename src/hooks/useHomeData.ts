@@ -64,6 +64,7 @@ import { getOverLimitResponse, setOverLimitResponsePref } from '@/lib/spendingMo
 import type { HeroMeaning } from '@/types/folio'
 import { syncWidgetData } from '@/lib/widgetSync'
 import { recordContribution, clearContributionHistory } from '@/lib/savingsContributionHistory'
+import { computeRhythmWeights } from '@/lib/rhythmModel'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
 // Stored in localStorage as a fallback (no dedicated Supabase table yet).
@@ -1436,6 +1437,14 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     setOverLimitResponseState(response)
   }, [])
 
+  // ── Rhythm Weights (Task 164.1) ────────────────────────────────
+  // Memoize the rhythm model — only recompute when transactions or currentDay change.
+  // This learns the user's weekly spending pattern from their history.
+  const rhythmWeights = useMemo(() => {
+    if (transactions.length === 0) return null
+    return computeRhythmWeights(transactions, currentDay)
+  }, [transactions, currentDay])
+
   // ── Memoized Computations ──────────────────────────────────────
   /**
    * Daily allowance calculation (memoized)
@@ -1514,9 +1523,10 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       fundingSources,
       paySchedule,   // Task 103.1: pass pay schedule for payday-aligned budget periods
       transactions,  // Task 103.1: income history for irregular cadence estimation
-      termSchedule   // Task 121.1: term schedule for semester-based budget periods
+      termSchedule,  // Task 121.1: term schedule for semester-based budget periods
+      rhythmWeights  // Task 164.1: weekly spending rhythm weights
     )
-  }, [budgets, transactions, debts, sinkingFunds, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, fundingSources, paySchedule, termSchedule])
+  }, [budgets, transactions, debts, sinkingFunds, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, fundingSources, paySchedule, termSchedule, rhythmWeights])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change

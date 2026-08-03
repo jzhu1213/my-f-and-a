@@ -41,6 +41,11 @@ export interface FeatureFlags {
    * strictly opt-in power feature living behind Settings → Tools.
    */
   accountLinking: boolean
+  /**
+   * Household / roommate shared budget pools — an optional shared expense
+   * pool completely separate from personal transactions and the daily number.
+   */
+  householdPool: boolean
 }
 
 // ============================================================================
@@ -62,6 +67,7 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   cashFlowForecast: true,
   // Account linking is OFF by default — opt-in only (task 107.1).
   accountLinking: false,
+  householdPool: true,
 }
 
 // ============================================================================

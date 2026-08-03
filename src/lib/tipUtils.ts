@@ -14,6 +14,8 @@ import { shouldShowMoneyConfidenceCheckin, markMoneyConfidenceCheckinShown, getM
 import type { SavingsAccount } from '@/types/folio'
 import { findLargestContributionGap, isNearEndOfMonth } from '@/lib/savingsAccountUtils'
 import { computeMonthToDateContributed, hasAnyRecordedContribution } from '@/lib/savingsContributionHistory'
+import { detectSpendAnomaly } from '@/lib/anomalyDetection'
+import { shouldSuppressTip } from '@/lib/engagementTracker'
 
 // ============================================================================
 // Tip Cooldown & Throttle (Task 75)
@@ -233,6 +235,8 @@ export interface UserContext {
    * contribution lookup happens at selection time, like other date-sensitive tips.
    */
   savingsAccounts?: SavingsAccount[]
+  /** Anomaly detected on the most recent transaction (Task 165.1) */
+  spendAnomaly?: { category: TransactionCategory; amount: number; typicalAmount: number; message: string }
 }
 
 /** Inputs required to derive a {@link UserContext} for tip selection. */
@@ -266,6 +270,8 @@ export interface BuildUserContextParams {
   savingsAccounts?: SavingsAccount[]
   /** Set of lesson IDs the user has completed (used for credit education path tips). */
   completedLessonIds?: Set<string>
+  /** The most recently logged transaction (used for anomaly detection, Task 165.1) */
+  lastLoggedTransaction?: { amount: number; category: TransactionCategory } | null
 }
 
 /**
@@ -281,7 +287,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds, lastLoggedTransaction } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -355,6 +361,24 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     }
   }
 
+  // Detect spend anomaly on the most recent transaction (Task 165.1)
+  let spendAnomaly: UserContext['spendAnomaly']
+  if (lastLoggedTransaction) {
+    const result = detectSpendAnomaly(
+      lastLoggedTransaction.amount,
+      lastLoggedTransaction.category,
+      transactions
+    )
+    if (result.isAnomaly) {
+      spendAnomaly = {
+        category: result.category,
+        amount: result.amount,
+        typicalAmount: result.typicalAmount,
+        message: result.message,
+      }
+    }
+  }
+
   return {
     underBudgetStreak,
     todaySpentPercent,
@@ -373,6 +397,7 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     savingsAccounts,
     hasCreditTransactions,
     completedLessonIds,
+    spendAnomaly,
   }
 }
 
@@ -932,6 +957,26 @@ export function selectContextualTip(
     }
   }
 
+  // Step 2-anomaly: Unusual spend heads-up — shame-free (Task 165.1)
+  // Fires when a just-logged expense is far above the user's own norm for that
+  // category. Never blocking, always dismissible, warm tone.
+  if (context.spendAnomaly) {
+    candidates.push({
+      id: `spend-anomaly-${context.spendAnomaly.category}-${Date.now()}`,
+      type: 'gentle_nudge',
+      title: 'Just so you know',
+      message: context.spendAnomaly.message,
+      emoji: '👀',
+      priority: 'medium',
+      triggerCondition: {
+        type: 'spend_anomaly',
+        category: context.spendAnomaly.category,
+        amount: context.spendAnomaly.amount,
+        typicalAmount: context.spendAnomaly.typicalAmount,
+      },
+    })
+  }
+
   // Step 3: Educational trigger — fewer than 10 total transactions (low priority)
   // Only shows on the first few app opens to avoid nagging new users.
   if (context.totalTransactions < 10 && getAppOpenCount() <= EDUCATIONAL_TIP_MAX_OPENS) {
@@ -973,7 +1018,11 @@ export function selectContextualTip(
   }
 
   // Step 4: Filter out previously dismissed tips
-  const available = candidates.filter((t) => !dismissedTips.has(t.id))
+  const notDismissed = candidates.filter((t) => !dismissedTips.has(t.id))
+
+  // Step 4b: Adaptive engagement filter — suppress tips the user consistently
+  // ignores (Task 167.1). Only ever reduces volume, never increases it.
+  const available = notDismissed.filter((t) => !shouldSuppressTip(t.id, t.type))
 
   // Step 5: Sort by priority (high first, then medium, then low)
   const priorityOrder: Record<ContextualTip['priority'], number> = { high: 0, medium: 1, low: 2 }

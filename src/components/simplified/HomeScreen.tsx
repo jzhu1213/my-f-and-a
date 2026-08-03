@@ -21,6 +21,7 @@ import {
   recordTipShown,
   incrementAppOpenCount,
 } from "@/lib/tipUtils"
+import { recordEngagement } from "@/lib/engagementTracker"
 import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
 import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/vocabulary"
 import { recordLastActive } from "@/lib/reminderPreferences"
@@ -398,6 +399,14 @@ export function HomeScreen({
   const prevTxCountRef = useRef<number>(transactions.length)
   const prevGoalsRef = useRef<string>("")
 
+  // ── Last-logged transaction for anomaly detection (Task 165.1) ─────────────
+  // Tracks the most recently logged expense in the current session. Set when
+  // the transactions array grows (a new expense was added). Transient — never
+  // persists across page reloads. Cleared after the tip system has a chance to
+  // evaluate it (via the userContext memo).
+  const [lastLoggedTransaction, setLastLoggedTransaction] = useState<{ amount: number; category: TransactionCategory } | null>(null)
+  const lastTxSnapshotRef = useRef<string | null>(null)
+
   // ── "New day" micro-celebration (task 74) ────────────────────────────────
   // Shows a brief warm indicator when the user opens the app on a new calendar day.
   const [showNewDayRefresh, setShowNewDayRefresh] = useState(false)
@@ -488,6 +497,26 @@ export function HomeScreen({
     [budgets, transactions]
   )
 
+  // ── Anomaly detection: track last-logged expense (Task 165.1) ─────────────
+  // When the transactions array grows with a new expense, capture it for
+  // anomaly detection. Clears automatically after the tip is dismissed or on
+  // the next render cycle after being consumed by buildUserContext.
+  useEffect(() => {
+    if (transactions.length === 0) return
+    const newest = transactions[0] // transactions are newest-first
+    if (!newest || newest.type !== 'expense') return
+
+    // Build a snapshot key to detect genuinely new transactions
+    const snapshotKey = `${newest.id}-${newest.amount}-${newest.category}`
+    if (snapshotKey === lastTxSnapshotRef.current) return
+
+    // Only trigger when the count grew (new transaction added, not edited)
+    if (transactions.length > prevTxCountRef.current) {
+      setLastLoggedTransaction({ amount: newest.amount, category: newest.category })
+      lastTxSnapshotRef.current = snapshotKey
+    }
+  }, [transactions])
+
   // ── Contextual tip selection (simplified — many advanced features removed) ──────────────────────────────────────────────
   // Heavy derivation lives in a pure lib function (buildUserContext); the memo
   // only re-runs when its inputs actually change.
@@ -505,8 +534,9 @@ export function HomeScreen({
         savingsAccounts,
         fundingSources,
         completedLessonIds,
+        lastLoggedTransaction,
       }),
-    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals, savingsAccounts, fundingSources, completedLessonIds]
+    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals, savingsAccounts, fundingSources, completedLessonIds, lastLoggedTransaction]
   )
 
   const activeTip = useMemo(
@@ -526,10 +556,14 @@ export function HomeScreen({
     if (!activeTip) return
     markSessionTipShown()
     recordTipShown(activeTip.id)
+    // Record engagement: tip was shown (Task 167.1)
+    recordEngagement(activeTip.id, activeTip.type, 'shown')
   }, [activeTip])
 
   const handleDismissTip = useCallback(() => {
     if (!activeTip) return
+    // Record engagement: tip was dismissed (Task 167.1)
+    recordEngagement(activeTip.id, activeTip.type, 'dismissed')
     setDismissedTips((prev) => {
       const next = new Set(prev)
       next.add(activeTip.id)
@@ -540,6 +574,10 @@ export function HomeScreen({
       }
       return next
     })
+    // Clear anomaly state after dismissal so it doesn't re-fire (Task 165.1)
+    if (activeTip.id.startsWith('spend-anomaly-')) {
+      setLastLoggedTransaction(null)
+    }
   }, [activeTip])
 
   // ── Celebration: first_transaction trigger (Requirement 6.5) ──────────────
@@ -838,6 +876,7 @@ export function HomeScreen({
             upcomingBillCount={allowance?.upcomingBillCount}
             reservedForScheduled={allowance?.reservedForScheduled}
             scheduledCount={allowance?.scheduledCount}
+            confidenceBand={allowance?.confidenceBand}
             onTapForDetails={onHeroTapDetails}
             spendingMode={spendingMode}
             heroMeaning={heroMeaning}
@@ -1298,6 +1337,8 @@ export function HomeScreen({
                 }
               }}
               onActionComplete={() => {
+                // Record engagement: user acted on the tip (Task 167.1)
+                recordEngagement(activeTip.id, activeTip.type, 'acted')
                 if (activeTip.actionType === 'learn_more' && activeTip.relatedLessonId && onOpenLesson) {
                   onOpenLesson(activeTip.relatedLessonId)
                 }

@@ -13,14 +13,17 @@ import {
   linkButton,
   listRow,
 } from "@/styles/shared"
-import type { Reimbursement, ReimbursementDirection } from "@/lib/reimbursements"
-import { getNetBalance, getNetSummary, validateReimbursement } from "@/lib/reimbursements"
+import type { Reimbursement, ReimbursementDirection, SettleUpEntry } from "@/lib/reimbursements"
+import { getNetBalance, getNetSummary, validateReimbursement, computeSettleUpLedger, generateReminder } from "@/lib/reimbursements"
+import type { FundingSource } from "@/lib/fundingSources"
 import {
   getReimbursements,
   createReimbursement,
   settleReimbursement,
   unsettleReimbursement,
   deleteReimbursement,
+  settleAllForPerson,
+  getFundingSources,
 } from "@/lib/supabaseData"
 
 // ============================================================================
@@ -32,6 +35,8 @@ export interface ReimbursementLedgerProps {
   onBack?: () => void
 }
 
+type LedgerTab = 'ious' | 'settle'
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -40,13 +45,28 @@ export interface ReimbursementLedgerProps {
  * ReimbursementLedger — simplified IOU tracking surface.
  * Shows money owed to and by the user, grouped by person with net summaries.
  * Settling is optimistic and reversible on persistence failure.
+ * Includes a settle-up ledger view with per-person net balances, remind, and
+ * batch settle with optional funding source recording.
  *
- * Validates: Requirements 12.3, 13.7
+ * Validates: Requirements 12.3, 13.7, Task 168
  */
 export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps) {
   const [reimbursements, setReimbursements] = useState<Reimbursement[]>([])
   const [loaded, setLoaded] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [activeTab, setActiveTab] = useState<LedgerTab>('ious')
+
+  // Funding sources for settle-via-source flow
+  const [fundingSources, setFundingSources] = useState<FundingSource[]>([])
+  const [sourcesLoaded, setSourcesLoaded] = useState(false)
+
+  // Settle-up source picker state
+  const [settlingPerson, setSettlingPerson] = useState<SettleUpEntry | null>(null)
+  const [showSourcePicker, setShowSourcePicker] = useState(false)
+  const [settling, setSettling] = useState(false)
+
+  // Clipboard feedback
+  const [copiedPerson, setCopiedPerson] = useState<string | null>(null)
 
   // Form state
   const [personName, setPersonName] = useState("")
@@ -58,10 +78,15 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
 
   // Load data on mount
   const loadData = useCallback(async () => {
-    const data = await getReimbursements(userId)
+    const [data, sources] = await Promise.all([
+      getReimbursements(userId),
+      !sourcesLoaded ? getFundingSources(userId) : Promise.resolve(fundingSources),
+    ])
     setReimbursements(data)
+    setFundingSources(sources)
+    setSourcesLoaded(true)
     setLoaded(true)
-  }, [userId])
+  }, [userId, sourcesLoaded, fundingSources])
 
   // Initial load
   useState(() => {
@@ -145,12 +170,58 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
     }
   }
 
+  // ── Settle-up handlers ──────────────────────────────────────────────────────
+
+  const handleRemind = async (entry: SettleUpEntry) => {
+    const message = generateReminder(entry)
+    try {
+      await navigator.clipboard.writeText(message)
+      setCopiedPerson(entry.personName)
+      setTimeout(() => setCopiedPerson(null), 2000)
+    } catch {
+      // Fallback: some browsers block clipboard in non-secure contexts
+      setCopiedPerson(null)
+    }
+  }
+
+  const handleSettleAllForPerson = (entry: SettleUpEntry) => {
+    setSettlingPerson(entry)
+    setShowSourcePicker(true)
+  }
+
+  const handleConfirmSettle = async (fundingSourceId?: string) => {
+    if (!settlingPerson) return
+    setSettling(true)
+
+    // Optimistic update
+    const prev = reimbursements
+    const idsToSettle = new Set(settlingPerson.iouIds)
+    setReimbursements(rs =>
+      rs.map(r =>
+        idsToSettle.has(r.id)
+          ? { ...r, settled: true, settledAt: new Date().toISOString(), settledViaSourceId: fundingSourceId }
+          : r
+      )
+    )
+
+    const result = await settleAllForPerson(userId, settlingPerson.iouIds, fundingSourceId)
+    if (result.length === 0) {
+      // Rollback on failure
+      setReimbursements(prev)
+    }
+
+    setSettling(false)
+    setShowSourcePicker(false)
+    setSettlingPerson(null)
+  }
+
   // ── Computed values ─────────────────────────────────────────────────────────
 
   const summary = getNetSummary(reimbursements)
   const balances = getNetBalance(reimbursements)
   const unsettled = reimbursements.filter(r => !r.settled)
   const settled = reimbursements.filter(r => r.settled)
+  const settleUpLedger = computeSettleUpLedger(reimbursements)
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -220,6 +291,206 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
         </div>
       </GlassCard>
 
+      {/* Tab Switcher */}
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          padding: 4,
+          borderRadius: 12,
+          background: "rgba(255, 255, 255, 0.04)",
+          border: "1px solid var(--border)",
+          marginBottom: 20,
+        }}
+      >
+        {([['ious', 'IOUs'], ['settle', 'Settle Up']] as const).map(([tab, label]) => (
+          <motion.button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              flex: 1,
+              padding: "10px 0",
+              borderRadius: 9,
+              border: "none",
+              fontSize: 13,
+              fontWeight: 500,
+              fontFamily: FONT_FAMILY,
+              cursor: "pointer",
+              color: activeTab === tab ? "var(--text)" : "var(--muted)",
+              background: activeTab === tab ? "rgba(255,255,255,0.08)" : "transparent",
+              boxShadow: activeTab === tab ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+              transition: "background 0.2s, color 0.2s",
+            }}
+            aria-pressed={activeTab === tab}
+          >
+            {label}
+          </motion.button>
+        ))}
+      </div>
+
+      {/* ── Settle-Up Ledger Tab ──────────────────────────────────────────────── */}
+      {activeTab === 'settle' && (
+        <>
+          {settleUpLedger.length === 0 && (
+            <GlassCard elevation="low" style={{ padding: "24px 20px", textAlign: "center" }}>
+              <p style={{ fontSize: 28, marginBottom: 8 }}>✅</p>
+              <p style={{ fontSize: 14, color: "var(--text)", fontWeight: 500, marginBottom: 4 }}>
+                All squared up
+              </p>
+              <p style={{ fontSize: 12, color: "var(--sub)" }}>
+                No outstanding balances with anyone.
+              </p>
+            </GlassCard>
+          )}
+
+          {settleUpLedger.length > 0 && (
+            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+              <p style={{ ...sectionHeadingStrong }}>Who Owes Whom</p>
+              {settleUpLedger.map(entry => (
+                <SettleUpRow
+                  key={entry.personName}
+                  entry={entry}
+                  copiedPerson={copiedPerson}
+                  onRemind={() => handleRemind(entry)}
+                  onSettle={() => handleSettleAllForPerson(entry)}
+                />
+              ))}
+            </GlassCard>
+          )}
+
+          {/* Funding Source Picker Modal */}
+          <AnimatePresence>
+            {showSourcePicker && settlingPerson && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.6)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 100,
+                  padding: 20,
+                }}
+                onClick={() => { setShowSourcePicker(false); setSettlingPerson(null) }}
+              >
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  transition={springs.gentle}
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    width: "100%",
+                    maxWidth: 360,
+                    background: "var(--surface)",
+                    borderRadius: 16,
+                    padding: "20px",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <p style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>
+                    Settle with {settlingPerson.personName}
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 16 }}>
+                    {settlingPerson.iouCount} IOU{settlingPerson.iouCount !== 1 ? 's' : ''} · ${Math.abs(settlingPerson.netAmount).toFixed(2)} net
+                  </p>
+
+                  <p style={{ ...sectionHeadingStrong }}>How are you settling?</p>
+
+                  {/* Skip source option */}
+                  <motion.button
+                    onClick={() => handleConfirmSettle(undefined)}
+                    whileTap={{ scale: 0.97 }}
+                    transition={springs.snappy}
+                    disabled={settling}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      marginBottom: 8,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      fontFamily: FONT_FAMILY,
+                      color: "var(--text)",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 10,
+                      cursor: settling ? "not-allowed" : "pointer",
+                      textAlign: "left",
+                      opacity: settling ? 0.6 : 1,
+                    }}
+                  >
+                    Just mark settled (no source)
+                  </motion.button>
+
+                  {/* Funding source options */}
+                  {fundingSources.map(source => (
+                    <motion.button
+                      key={source.id}
+                      onClick={() => handleConfirmSettle(source.id)}
+                      whileTap={{ scale: 0.97 }}
+                      transition={springs.snappy}
+                      disabled={settling}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        marginBottom: 6,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        fontFamily: FONT_FAMILY,
+                        color: "var(--text)",
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 10,
+                        cursor: settling ? "not-allowed" : "pointer",
+                        textAlign: "left",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        opacity: settling ? 0.6 : 1,
+                      }}
+                    >
+                      <span style={{ fontSize: 18 }}>{source.emoji}</span>
+                      <span>{source.label}</span>
+                    </motion.button>
+                  ))}
+
+                  {/* Cancel */}
+                  <motion.button
+                    onClick={() => { setShowSourcePicker(false); setSettlingPerson(null) }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={springs.snappy}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      marginTop: 8,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      fontFamily: FONT_FAMILY,
+                      color: "var(--muted)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </motion.button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
+
+      {/* ── IOUs Tab ─────────────────────────────────────────────────────────── */}
+      {activeTab === 'ious' && (
+        <>
       {/* Add IOU Button */}
       {!showForm && (
         <motion.button
@@ -437,6 +708,8 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
           </p>
         </GlassCard>
       )}
+        </>
+      )}
     </div>
   )
 }
@@ -444,6 +717,119 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
 // ============================================================================
 // Sub-components
 // ============================================================================
+
+interface SettleUpRowProps {
+  entry: SettleUpEntry
+  copiedPerson: string | null
+  onRemind: () => void
+  onSettle: () => void
+}
+
+function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowProps) {
+  const absAmount = Math.abs(entry.netAmount).toFixed(2)
+  const isCopied = copiedPerson === entry.personName
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 0",
+        borderBottom: "1px solid rgba(255,255,255,0.04)",
+      }}
+    >
+      {/* Direction indicator */}
+      <span
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 13,
+          fontWeight: 600,
+          background: entry.direction === 'they_owe'
+            ? "rgba(74, 222, 128, 0.12)"
+            : "rgba(248, 113, 113, 0.12)",
+          color: entry.direction === 'they_owe' ? "var(--success)" : "var(--error)",
+        }}
+        aria-hidden="true"
+      >
+        {entry.direction === 'they_owe' ? '←' : '→'}
+      </span>
+
+      {/* Person and details */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+          {entry.personName}
+        </p>
+        <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
+          {entry.iouCount} IOU{entry.iouCount !== 1 ? 's' : ''} · {entry.direction === 'they_owe' ? 'owes you' : 'you owe'}
+        </p>
+      </div>
+
+      {/* Net amount */}
+      <span
+        style={{
+          fontSize: 15,
+          fontWeight: 600,
+          fontVariantNumeric: "tabular-nums",
+          color: entry.direction === 'they_owe' ? "var(--success)" : "var(--error)",
+          marginRight: 6,
+        }}
+      >
+        ${absAmount}
+      </span>
+
+      {/* Action buttons */}
+      <div style={{ display: "flex", gap: 4 }}>
+        <motion.button
+          onClick={onRemind}
+          whileTap={{ scale: 0.93 }}
+          transition={springs.snappy}
+          style={{
+            padding: "5px 9px",
+            fontSize: 11,
+            fontWeight: 500,
+            fontFamily: FONT_FAMILY,
+            color: isCopied ? "var(--success)" : "var(--sub)",
+            background: isCopied ? "rgba(74, 222, 128, 0.1)" : "rgba(255,255,255,0.04)",
+            border: `1px solid ${isCopied ? "rgba(74, 222, 128, 0.25)" : "var(--border)"}`,
+            borderRadius: 6,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+          aria-label={`Copy reminder for ${entry.personName}`}
+          title="Copy reminder to clipboard"
+        >
+          {isCopied ? '✓ Copied' : 'Remind'}
+        </motion.button>
+        <motion.button
+          onClick={onSettle}
+          whileTap={{ scale: 0.93 }}
+          transition={springs.snappy}
+          style={{
+            padding: "5px 9px",
+            fontSize: 11,
+            fontWeight: 500,
+            fontFamily: FONT_FAMILY,
+            color: "var(--success)",
+            background: "rgba(74, 222, 128, 0.1)",
+            border: "1px solid rgba(74, 222, 128, 0.25)",
+            borderRadius: 6,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+          aria-label={`Settle all IOUs with ${entry.personName}`}
+        >
+          Settle
+        </motion.button>
+      </div>
+    </div>
+  )
+}
 
 interface IOURowProps {
   reimbursement: Reimbursement

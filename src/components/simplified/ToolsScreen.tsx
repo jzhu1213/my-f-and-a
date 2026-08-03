@@ -41,6 +41,7 @@ export interface ToolsScreenProps {
   onOpenReimbursements?: () => void
   onOpenTrajectory?: () => void
   onOpenCashFlowForecast?: () => void
+  onOpenHouseholdPool?: () => void
   /** Display-only: total set-aside amount this month */
   totalSetAside?: number
   /** Display-only: savings rate percentage */
@@ -92,7 +93,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "obligations",
     label: "Obligations",
-    toolIds: ["debt", "recurring-bills", "reimbursements", "subscriptions", "cancel-negotiate"],
+    toolIds: ["debt", "recurring-bills", "reimbursements", "subscriptions", "cancel-negotiate", "household-pool"],
   },
   {
     id: "planning",
@@ -132,6 +133,7 @@ export function ToolsScreen({
   onOpenReimbursements,
   onOpenTrajectory,
   onOpenCashFlowForecast,
+  onOpenHouseholdPool,
   totalSetAside,
   savingsRate,
   fundingSources,
@@ -159,6 +161,7 @@ export function ToolsScreen({
     "compound-growth": "compoundGrowthCalculator",
     "credit-payoff": "creditPayoffCalculator",
     "learn": "lessons",
+    "household-pool": "householdPool",
   }
 
   // Compute net obligations from existing Debt and Reimbursement models
@@ -221,6 +224,13 @@ export function ToolsScreen({
       title: "Cancel or Negotiate Helper",
       description: "DIY steps and a friendly script to lower a bill or cancel a subscription yourself.",
       onOpen: onOpenCancelNegotiate,
+    },
+    {
+      id: "household-pool",
+      emoji: "🏠",
+      title: "Shared Pools",
+      description: "Split shared expenses like groceries and utilities with roommates — separate from your daily number.",
+      onOpen: onOpenHouseholdPool,
     },
     {
       id: "savings-projections",

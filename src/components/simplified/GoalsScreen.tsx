@@ -17,6 +17,8 @@ import {
 } from "@/lib/autoContributeUtils"
 import type { Goal } from "@/types"
 import { goalProgress, isGoalComplete } from "@/lib/goalUtils"
+import { isGoalShared, getParticipantBreakdown } from "@/lib/sharedGoalUtils"
+import { SharedGoalSheet } from "./SharedGoalSheet"
 import { FONT_FAMILY } from "@/styles/typography"
 import { borderRadius } from "@/styles/shared"
 
@@ -72,13 +74,16 @@ interface GoalCardProps {
   onContribute: (goal: Goal) => void
   onEdit: (goal: Goal) => void
   onDelete: (goal: Goal) => void
+  onShare: (goal: Goal) => void
 }
 
-function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, onDelete }: GoalCardProps) {
+function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, onDelete, onShare }: GoalCardProps) {
   const pct = goalProgress(goal)
   const complete = isGoalComplete(goal)
   const remaining = Math.max(0, goal.targetAmount - goal.currentAmount)
   const fillColor = complete ? "var(--success)" : "var(--accent)"
+  const shared = isGoalShared(goal.id)
+  const participants = shared ? getParticipantBreakdown(goal.id) : []
 
   // Compute deadline feasibility when a target date is set
   const deadlineInfo = useMemo(
@@ -139,6 +144,20 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
                 }}
               >
                 {deadlineInfo?.expired ? "Past deadline" : `Target: ${formatTargetDate(goal.targetDate)}`}
+              </span>
+            )}
+            {shared && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                  fontSize: 11,
+                  color: "var(--accent)",
+                  marginTop: 2,
+                }}
+              >
+                👥 {participants.length} contributor{participants.length !== 1 ? "s" : ""}
               </span>
             )}
           </div>
@@ -246,6 +265,30 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
             aria-label={`Add money to ${goal.name}`}
           >
             Add money
+          </motion.button>
+        )}
+
+        {/* Share button */}
+        {!confirmingDelete && (
+          <motion.button
+            onClick={() => onShare(goal)}
+            whileTap={{ scale: reducedMotion ? 1 : 0.97 }}
+            transition={springs.snappy}
+            style={{
+              flex: "0 0 auto",
+              padding: "9px 12px",
+              fontSize: 13,
+              fontWeight: 500,
+              fontFamily: FONT_FAMILY,
+              color: shared ? "var(--accent)" : "var(--sub)",
+              background: shared ? "var(--accent-muted)" : "rgba(255,255,255,0.04)",
+              border: shared ? "1px solid rgba(129, 140, 248, 0.25)" : "1px solid var(--border)",
+              borderRadius: 10,
+              cursor: "pointer",
+            }}
+            aria-label={`${shared ? "Manage" : "Share"} ${goal.name}`}
+          >
+            {shared ? "👥" : "Share"}
           </motion.button>
         )}
 
@@ -378,6 +421,7 @@ export function GoalsScreen({
   const [goalSheet, setGoalSheet] = useState<{ mode: "create" | "edit"; goal: Goal | null } | null>(null)
   const [contributeGoal, setContributeGoal] = useState<Goal | null>(null)
   const [saveUpOpen, setSaveUpOpen] = useState(false)
+  const [sharedGoal, setSharedGoal] = useState<Goal | null>(null)
 
   // ── Partition goals into active vs completed ───────────────────────────────
   const { activeGoals, completedGoals } = useMemo(() => {
@@ -414,8 +458,13 @@ export function GoalsScreen({
     [onDeleteGoal]
   )
 
+  const handleShare = useCallback((goal: Goal) => {
+    setSharedGoal(goal)
+  }, [])
+
   const closeGoalSheet = useCallback(() => setGoalSheet(null), [])
   const closeContribute = useCallback(() => setContributeGoal(null), [])
+  const closeSharedSheet = useCallback(() => setSharedGoal(null), [])
 
   // ── Auto-Contribute Rules ─────────────────────────────────────────────────
   const [autoRules, setAutoRules] = useState<AutoContributeRule[]>([])
@@ -527,6 +576,7 @@ export function GoalsScreen({
                   onContribute={handleContribute}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onShare={handleShare}
                 />
               </motion.div>
             ))}
@@ -565,6 +615,7 @@ export function GoalsScreen({
                   onContribute={handleContribute}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onShare={handleShare}
                 />
               </motion.div>
             ))}
@@ -882,6 +933,13 @@ export function GoalsScreen({
         isOpen={saveUpOpen}
         onClose={() => setSaveUpOpen(false)}
         onCreateGoal={atCap ? undefined : onCreateGoal}
+      />
+
+      {/* ── Shared goal management sheet (task 169.1) ──────────────────────── */}
+      <SharedGoalSheet
+        isOpen={sharedGoal !== null}
+        goal={sharedGoal}
+        onClose={closeSharedSheet}
       />
     </div>
   )

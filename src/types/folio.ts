@@ -41,6 +41,8 @@ export interface DailyAllowance {
   reservedForScheduled?: number
   /** Number of future-dated (scheduled) transactions this month */
   scheduledCount?: number
+  /** Confidence band for variable income — "usually $X–$Y/day" (Task 164.2) */
+  confidenceBand?: ConfidenceBand
 }
 
 /**
@@ -176,6 +178,7 @@ export type TipTrigger =
   | { type: 'contribution_gap'; accountName: string; target: number; remaining: number }
   | { type: 'first_savings_account_lesson' }
   | { type: 'first_contribution_lesson' }
+  | { type: 'spend_anomaly'; category: TransactionCategory; amount: number; typicalAmount: number }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)
@@ -319,6 +322,45 @@ export interface IncomeSmoothing {
   strategy: 'current_month' | 'trailing_average'
   /** Number of months to average for trailing_average (default: 3) */
   windowMonths?: number
+}
+
+// ============================================================================
+// Confidence Band Types (Task 164.2)
+// ============================================================================
+
+/**
+ * Confidence band for variable income — shows the typical daily range
+ * ("usually $X–$Y") when income is irregular enough to warrant it.
+ * Purely informational; never changes the primary daily number.
+ */
+export interface ConfidenceBand {
+  /** Low end of the typical daily range */
+  low: number
+  /** High end of the typical daily range */
+  high: number
+  /** Whether the band is meaningful (enough income variance to warrant showing) */
+  isSignificant: boolean
+}
+
+// ============================================================================
+// Rhythm Model Types (Task 164.1)
+// ============================================================================
+
+/**
+ * Day-of-week spending rhythm weights derived from transaction history.
+ * Used to adjust the flat daily allowance based on observed weekly patterns
+ * (e.g., higher weekend spending, quieter weekdays).
+ *
+ * Weights average to 1.0 (sum = 7.0) and are capped to [0.5, 2.0] to prevent
+ * wild swings in the daily number.
+ */
+export interface RhythmWeights {
+  /** Day-of-week weights [Sun, Mon, Tue, Wed, Thu, Fri, Sat], averaging 1.0, each capped to [0.5, 2.0] */
+  weights: [number, number, number, number, number, number, number]
+  /** Number of weeks of data used to compute the model */
+  weeksOfData: number
+  /** Whether the model has enough data to be reliable (>= 4 weeks) */
+  isReliable: boolean
 }
 
 // ============================================================================

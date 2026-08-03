@@ -7,7 +7,7 @@ import {
   useMotionValue,
   useSpring,
 } from "framer-motion"
-import type { AllowanceStatus, HeroMeaning, HeroDisplay } from "@/types/folio"
+import type { AllowanceStatus, HeroMeaning, HeroDisplay, ConfidenceBand } from "@/types/folio"
 import { getStatus, generateEncouragingMessage } from "@/lib/dailyAllowanceUtils"
 import { GlassCard, AmbientGlow } from "@/components/ui"
 import { useReducedMotion, springs, timings } from "@/lib/animations"
@@ -28,6 +28,8 @@ interface DailyAllowanceHeroProps {
   upcomingBillCount?: number
   reservedForScheduled?: number
   scheduledCount?: number
+  /** Confidence band for variable income — "usually $X–$Y/day" (Task 164.2) */
+  confidenceBand?: ConfidenceBand
   onTapForDetails: () => void
   /** Controls whether the hero shows "Safe to spend" (guided/structured) or "Spent today" (tracker) framing */
   spendingMode?: SpendingMode
@@ -151,6 +153,16 @@ function getStatusGradient(status: AllowanceStatus): { from: string; to: string 
 function formatCurrency(amount: number): string {
   const rounded = Math.round(Math.abs(amount))
   return amount < 0 ? `-$${rounded}` : `$${rounded}`
+}
+
+/**
+ * Formats a confidence band amount — no decimals if >= $10, one decimal if < $10.
+ */
+function formatBandAmount(amount: number): string {
+  if (amount >= 10) {
+    return `$${Math.round(amount)}`
+  }
+  return `$${amount.toFixed(1)}`
 }
 
 /**
@@ -347,6 +359,7 @@ export function DailyAllowanceHero({
   upcomingBillCount,
   reservedForScheduled,
   scheduledCount,
+  confidenceBand,
   onTapForDetails,
   spendingMode = 'guided',
   heroMeaning,
@@ -646,6 +659,33 @@ export function DailyAllowanceHero({
         >
           {message}
         </motion.p>
+
+        {/* Confidence band pill (Task 164.2) — subtle "usually $X–$Y/day" range
+            for users with variable income. Only shown in guided/structured mode
+            when the band is significant enough to warrant display. */}
+        {confidenceBand && confidenceBand.isSignificant && !isTrackerMode && (
+          <motion.div
+            className="flex items-center gap-1.5"
+            style={{
+              padding: "6px 12px",
+              background: "rgba(255, 255, 255, 0.04)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "var(--radius-full)",
+              marginTop: 4,
+            }}
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={timings.normal}
+            aria-label={`Usually ${formatBandAmount(confidenceBand.low)} to ${formatBandAmount(confidenceBand.high)} per day`}
+          >
+            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.7 }}>
+              📊
+            </span>
+            <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.85 }}>
+              Usually {formatBandAmount(confidenceBand.low)}–{formatBandAmount(confidenceBand.high)}/day
+            </span>
+          </motion.div>
+        )}
 
         {/* Combined "total reserved" pill (Task 90.2) — shows a unified total when
             BOTH recurring bills and scheduled items exist, giving users a single at-a-glance

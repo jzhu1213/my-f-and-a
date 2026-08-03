@@ -32,7 +32,7 @@
  */
 
 import type { ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { GradientMesh, type GradientMeshVariant } from './GradientMesh'
 import { useReducedMotion, springs, timings } from '@/lib/animations'
 
@@ -206,21 +206,27 @@ export function AppShell({
       </main>
 
       {/* ── Quick-log FAB (always visible, centered above dock) ──── */}
-      {onQuickLog && (
-        <motion.button
-          type="button"
-          className="app-dock-fab"
-          onClick={onQuickLog}
-          aria-label="Log expense"
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.88 }}
-          transition={springs.snappy}
-        >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
-          </svg>
-        </motion.button>
-      )}
+      <AnimatePresence>
+        {onQuickLog && (
+          <motion.button
+            key="quick-log-fab"
+            type="button"
+            className="app-dock-fab"
+            onClick={onQuickLog}
+            aria-label="Log expense"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.88 }}
+            transition={springs.snappy}
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14" />
+              <path d="M5 12h14" />
+            </svg>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* ── Floating dock navigation ───────────────────────────── */}
       {!hideDock && (
