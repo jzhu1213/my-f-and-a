@@ -17,6 +17,12 @@ const FIRST_GOAL_LESSON_KEY = 'folio-first-goal-lesson-seen'
 /** Whether the "first over-budget week" micro-lesson has been shown. */
 const OVER_BUDGET_WEEK_LESSON_KEY = 'folio-over-budget-week-lesson-seen'
 
+/** Whether the "first savings account" micro-lesson has been shown. */
+const FIRST_SAVINGS_ACCOUNT_LESSON_KEY = 'folio-first-savings-account-lesson-seen'
+
+/** Whether the "first savings contribution" micro-lesson has been shown. */
+const FIRST_CONTRIBUTION_LESSON_KEY = 'folio-first-contribution-lesson-seen'
+
 // ============================================================================
 // First Goal Lesson
 // ============================================================================
@@ -68,6 +74,62 @@ export function markOverBudgetWeekLessonSeen(): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(OVER_BUDGET_WEEK_LESSON_KEY, 'true')
+  } catch {
+    // best-effort
+  }
+}
+
+// ============================================================================
+// First Savings Account Lesson
+// ============================================================================
+
+/**
+ * Returns true if the user has already been shown the first-savings-account micro-lesson.
+ */
+export function hasSeenFirstSavingsAccountLesson(): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    return localStorage.getItem(FIRST_SAVINGS_ACCOUNT_LESSON_KEY) === 'true'
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Marks that the first-savings-account micro-lesson has been shown.
+ */
+export function markFirstSavingsAccountLessonSeen(): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(FIRST_SAVINGS_ACCOUNT_LESSON_KEY, 'true')
+  } catch {
+    // best-effort
+  }
+}
+
+// ============================================================================
+// First Savings Contribution Lesson
+// ============================================================================
+
+/**
+ * Returns true if the user has already been shown the first-contribution micro-lesson.
+ */
+export function hasSeenFirstContributionLesson(): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    return localStorage.getItem(FIRST_CONTRIBUTION_LESSON_KEY) === 'true'
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Marks that the first-contribution micro-lesson has been shown.
+ */
+export function markFirstContributionLessonSeen(): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(FIRST_CONTRIBUTION_LESSON_KEY, 'true')
   } catch {
     // best-effort
   }

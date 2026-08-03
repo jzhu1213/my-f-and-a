@@ -7,6 +7,7 @@
  */
 
 export * from '../savingsAccountUtils'
+export * from '../savingsTrajectory'
 export * from '../compoundGrowthUtils'
 export * from '../goalUtils'
 export * from '../goalDeadlineUtils'

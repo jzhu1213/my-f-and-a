@@ -173,6 +173,9 @@ export type TipTrigger =
   | { type: 'source_breakdown'; creditPercent: number; creditTotal: number; monthlyIncome: number }
   | { type: 'weekly_auto_save_recap'; weeklyAmount: number }
   | { type: 'money_confidence_checkin' }
+  | { type: 'contribution_gap'; accountName: string; target: number; remaining: number }
+  | { type: 'first_savings_account_lesson' }
+  | { type: 'first_contribution_lesson' }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)

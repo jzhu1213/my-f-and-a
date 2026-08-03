@@ -31,6 +31,7 @@ import {
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 import { NotificationCenter } from "./NotificationCenter"
 import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
+import { getSavingsRateBadgeEnabled, setSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
 import { useFeatureFlags } from "@/hooks/useFeatureFlags"
 import type { FeatureFlags } from "@/lib/featureFlags"
 import type { CategorizationRule } from "@/lib/categorizationRules"
@@ -405,6 +406,7 @@ export function SettingsScreen({
   const { flags, setFlag, resetFlags } = useFeatureFlags()
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [insightsEnabled, setInsightsEnabledState] = useState(() => getInsightsEnabled())
+  const [savingsRateBadgeEnabled, setSavingsRateBadgeEnabledState] = useState(() => getSavingsRateBadgeEnabled())
   const [countCreditImmediately, setCountCreditImmediatelyState] = useState(countCreditImmediatelyProp ?? true)
 
   // ── Smart categorization rule form state (task 113.3) ─────────────────
@@ -891,6 +893,64 @@ export function SettingsScreen({
             >
               Reset to defaults →
             </motion.button>
+          </GlassCard>
+
+          {/* ── Home screen extras (task 159.2) ─────────────────────────── */}
+          <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
+            <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+              Home screen extras
+            </p>
+            <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 8, lineHeight: 1.5 }}>
+              Small optional touches below your daily allowance. Off by default
+              to keep the home screen calm.
+            </p>
+
+            {/* Savings-rate badge toggle */}
+            <div
+              style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "12px 0",
+              }}
+            >
+              <div style={{ flex: 1, marginRight: 12 }}>
+                <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
+                  Show savings-rate badge
+                </span>
+                <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
+                  A gentle reminder of how much of your income you&apos;re saving this month
+                </span>
+              </div>
+              <motion.button
+                type="button"
+                role="switch"
+                aria-checked={savingsRateBadgeEnabled}
+                aria-label="Show savings-rate badge on home screen"
+                onClick={() => {
+                  const next = !savingsRateBadgeEnabled
+                  setSavingsRateBadgeEnabledState(next)
+                  setSavingsRateBadgeEnabled(next)
+                }}
+                whileTap={{ scale: 0.92 }}
+                transition={springs.snappy}
+                style={{
+                  flexShrink: 0, width: 44, height: 26, borderRadius: 13,
+                  border: "none", cursor: "pointer",
+                  background: savingsRateBadgeEnabled ? "rgba(167, 139, 250, 0.6)" : "rgba(255, 255, 255, 0.1)",
+                  position: "relative", transition: "background 0.2s ease",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute", top: 3,
+                    left: savingsRateBadgeEnabled ? 21 : 3,
+                    width: 20, height: 20, borderRadius: "50%",
+                    background: savingsRateBadgeEnabled ? "#fff" : "rgba(255,255,255,0.4)",
+                    transition: "left 0.2s ease, background 0.2s ease",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  }}
+                />
+              </motion.button>
+            </div>
           </GlassCard>
         </CollapsibleSection>
       )}

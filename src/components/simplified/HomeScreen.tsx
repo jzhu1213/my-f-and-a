@@ -6,6 +6,7 @@ import { BUDGET_CATEGORIES } from "@/types"
 import type { CelebrationEvent } from "@/types/folio"
 import type { DailyAllowance } from "@/types/folio"
 import type { HeroMeaning, HeroDisplay } from "@/types/folio"
+import type { SavingsAccount } from "@/types/folio"
 import type { TransactionRepeat } from "@/lib/transactionUtils"
 import { getRecentRepeats } from "@/lib/transactionUtils"
 import { computeCategoryBudgets } from "@/lib/budgetUtils"
@@ -23,6 +24,7 @@ import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEng
 import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/vocabulary"
 import { recordLastActive } from "@/lib/reminderPreferences"
 import { getInsightsEnabled } from "@/lib/insightPreferences"
+import { getSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, STAGGER_STEP, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -297,6 +299,20 @@ export interface HomeScreenProps {
   overLimitResponse?: import('@/lib/spendingModes').OverLimitResponse
   /** Active spend-down plan result (for compact indicator below the hero) */
   activeSpendDown?: import('@/lib/spendDown').SpendDownResult | null
+  /**
+   * Monthly savings rate (0-100). Used by the opt-in savings-rate badge shown
+   * below the hero. Only rendered when the user has enabled the badge in
+   * Settings → Hero & display (off by default).
+   */
+  savingsRate?: number
+
+  // ── Savings contribution reminder (task 160.2) ─────────────────────────────
+  /**
+   * Savings/investment accounts — used for the end-of-month contribution gap
+   * reminder that surfaces in the contextual tip slot when a monthly
+   * contribution target hasn't been met near month-end.
+   */
+  savingsAccounts?: SavingsAccount[]
 }
 
 // ============================================================================
@@ -361,6 +377,8 @@ export function HomeScreen({
   heroDisplay,
   overLimitResponse = 'gentle',
   activeSpendDown,
+  savingsRate,
+  savingsAccounts,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -412,6 +430,11 @@ export function HomeScreen({
 
   // ── Insights opt-in preference ──────────────────────────────────────────
   const [insightsEnabled] = useState(() => getInsightsEnabled())
+
+  // ── Savings-rate badge opt-in preference (task 159.2) ─────────────────────
+  // Off by default to keep the home screen minimal; opt in via
+  // Settings → Hero & display.
+  const [savingsRateBadgeEnabled] = useState(() => getSavingsRateBadgeEnabled())
 
   // ── Derived data ──────────────────────────────────────────────────────────
   // Compute the current month + today's date once per mount rather than on
@@ -470,8 +493,9 @@ export function HomeScreen({
         today: todayStr,
         spendingMode,
         goals,
+        savingsAccounts,
       }),
-    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals]
+    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals, savingsAccounts]
   )
 
   const activeTip = useMemo(
@@ -808,6 +832,50 @@ export function HomeScreen({
             heroMeaning={heroMeaning}
             heroDisplay={heroDisplay}
           />
+
+          {/* ── Savings-rate badge (task 159.2) — opt-in, off by default ──
+              A small, unobtrusive indicator of the monthly savings rate.
+              Only rendered when enabled in Settings → Hero & display AND when
+              there's a positive rate to show (avoids a discouraging "0%"). */}
+          {savingsRateBadgeEnabled && !isLoading && typeof savingsRate === "number" && savingsRate > 0 && (
+            <motion.div
+              role="status"
+              aria-label={`You're saving ${savingsRate}% of your income this month`}
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={timings.normal}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                marginTop: 10,
+                padding: "6px 14px",
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "var(--radius-full)",
+                width: "fit-content",
+                marginLeft: "auto",
+                marginRight: "auto",
+              }}
+            >
+              <span style={{ fontSize: 13 }} aria-hidden="true">💪</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "var(--sub)",
+                  fontFamily: FONT_FAMILY,
+                  opacity: 0.85,
+                }}
+              >
+                Saving{" "}
+                <span style={{ color: "var(--success, #4ade80)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                  {savingsRate}%
+                </span>{" "}
+                this month
+              </span>
+            </motion.div>
+          )}
 
           {/* "New day" micro-celebration (task 74) — warm, brief indicator */}
           <AnimatePresence>

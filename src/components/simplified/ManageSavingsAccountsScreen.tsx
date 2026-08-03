@@ -133,6 +133,30 @@ export function ManageSavingsAccountsScreen({
   // ── Per-account contribution history expansion (task 158.2) ───────────────
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null)
 
+  // ── Per-account "Update Balance" action (task 163.1) ──────────────────────
+  // Which account currently has its inline balance-update form open.
+  const [balanceUpdateId, setBalanceUpdateId] = useState<string | null>(null)
+  // Bumped after a balance update so the history panel re-mounts and reflects
+  // the freshly-logged change (the panel reads localStorage once on mount).
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
+
+  /**
+   * Apply a manual balance update. Reuses the existing savings update mutation,
+   * which records the net change into the per-account contribution history
+   * (task 158.2) so it flows into the same growth-over-time display.
+   */
+  async function handleUpdateBalance(account: SavingsAccount, newBalance: number) {
+    if (newBalance === account.balance) {
+      setBalanceUpdateId(null)
+      return
+    }
+    await onUpdateAccount(account.id, { balance: newBalance })
+    // Reveal the updated history so the change is immediately visible.
+    setBalanceUpdateId(null)
+    setHistoryRefreshKey(k => k + 1)
+    setExpandedHistoryId(account.id)
+  }
+
   // ── Render Callbacks ───────────────────────────────────────────────────────
   function renderSummary(items: SavingsAccount[]) {
     if (items.length === 0) return null
@@ -163,6 +187,7 @@ export function ManageSavingsAccountsScreen({
     const { item: account, requestDelete, isConfirmingDelete, confirmDelete, cancelDelete } = context
     const meta = getAccountTypeMetadata(account.type)
     const isHistoryOpen = expandedHistoryId === account.id
+    const isBalanceUpdateOpen = balanceUpdateId === account.id
     return (
       <div>
       <div
@@ -170,7 +195,7 @@ export function ManageSavingsAccountsScreen({
           ...listRow,
           cursor: "pointer",
           padding: "10px 0",
-          borderBottom: isHistoryOpen ? "none" : "1px solid var(--border)",
+          borderBottom: isHistoryOpen || isBalanceUpdateOpen ? "none" : "1px solid var(--border)",
         }}
       >
         <div
@@ -206,9 +231,40 @@ export function ManageSavingsAccountsScreen({
             {formatDollars(account.balance)}
           </span>
         </div>
+        {/* Update Balance — opens an inline balance-update form (task 163.1) */}
+        <motion.button
+          onClick={() =>
+            setBalanceUpdateId(prev => {
+              const next = prev === account.id ? null : account.id
+              if (next) setExpandedHistoryId(null) // keep one panel open at a time
+              return next
+            })
+          }
+          whileTap={{ scale: 0.9 }}
+          transition={springs.snappy}
+          style={{
+            background: "none",
+            border: "none",
+            padding: "4px 8px",
+            cursor: "pointer",
+            fontSize: 15,
+            color: isBalanceUpdateOpen ? "var(--text)" : "var(--sub)",
+            marginLeft: 4,
+          }}
+          aria-label={`Update balance for ${account.name}`}
+          aria-expanded={isBalanceUpdateOpen}
+        >
+          💰
+        </motion.button>
         {/* History toggle — expands the per-account contribution history */}
         <motion.button
-          onClick={() => setExpandedHistoryId(prev => (prev === account.id ? null : account.id))}
+          onClick={() =>
+            setExpandedHistoryId(prev => {
+              const next = prev === account.id ? null : account.id
+              if (next) setBalanceUpdateId(null) // keep one panel open at a time
+              return next
+            })
+          }
           whileTap={{ scale: 0.9 }}
           transition={springs.snappy}
           style={{
@@ -284,8 +340,19 @@ export function ManageSavingsAccountsScreen({
         )}
       </div>
         <AnimatePresence initial={false}>
+          {isBalanceUpdateOpen && (
+            <UpdateBalancePanel
+              key={`balance-${account.id}`}
+              account={account}
+              onSubmit={newBalance => handleUpdateBalance(account, newBalance)}
+              onCancel={() => setBalanceUpdateId(null)}
+            />
+          )}
           {isHistoryOpen && (
-            <ContributionHistoryPanel key={`history-${account.id}`} accountId={account.id} />
+            <ContributionHistoryPanel
+              key={`history-${account.id}-${historyRefreshKey}`}
+              accountId={account.id}
+            />
           )}
         </AnimatePresence>
       </div>
@@ -441,6 +508,161 @@ function ContributionHistoryPanel({ accountId }: ContributionHistoryPanelProps) 
             })}
           </div>
         )}
+      </div>
+    </motion.div>
+  )
+}
+
+// ============================================================================
+// UpdateBalancePanel — inline "Update Balance" action (task 163.1)
+// ============================================================================
+
+interface UpdateBalancePanelProps {
+  account: SavingsAccount
+  /** Called with the new total balance the user entered. */
+  onSubmit: (newBalance: number) => void | Promise<void>
+  onCancel: () => void
+}
+
+/**
+ * Inline form to manually update an account's current balance. Since Folio
+ * doesn't connect to banks, this is how balances move over time. The net change
+ * is logged to the per-account contribution history (task 158.2) via the
+ * savings update mutation, so it flows straight into the growth-over-time view.
+ *
+ * Shows a live preview of the change (up / down) with warm, non-judgmental copy
+ * so a dip (e.g. a market wobble or a withdrawal) never reads as a failure.
+ */
+function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelProps) {
+  const { prefersReducedMotion } = useReducedMotion()
+  const [value, setValue] = useState<string>(String(account.balance))
+  const [saving, setSaving] = useState(false)
+
+  const parsed = parseFloat(value)
+  const hasValidNumber = value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0
+  const delta = hasValidNumber ? parsed - account.balance : 0
+  const isUnchanged = hasValidNumber && delta === 0
+  const canSave = hasValidNumber && !isUnchanged && !saving
+
+  async function handleSave() {
+    if (!canSave) return
+    setSaving(true)
+    try {
+      await onSubmit(parsed)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <motion.div
+      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+      animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: "auto" }}
+      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+      transition={springs.gentle}
+      style={{ overflow: "hidden" }}
+    >
+      <div style={{ padding: "12px 0 14px", borderBottom: "1px solid var(--border)" }}>
+        <p
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--muted)",
+            letterSpacing: "0.02em",
+            textTransform: "uppercase",
+            margin: "0 0 8px",
+          }}
+        >
+          Update balance
+        </p>
+
+        <p style={{ fontSize: 12, color: "var(--sub)", margin: "0 0 8px", lineHeight: 1.5 }}>
+          Current balance: {formatDollars(account.balance)}. Enter the latest
+          total — we'll log the change so you can watch it grow over time.
+        </p>
+
+        <label style={labelStyle} htmlFor={`balance-input-${account.id}`}>
+          New balance ($)
+        </label>
+        <input
+          id={`balance-input-${account.id}`}
+          type="number"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          placeholder={String(account.balance)}
+          min={0}
+          step={100}
+          autoFocus
+          onKeyDown={e => {
+            if (e.key === "Enter" && canSave) handleSave()
+          }}
+          style={{ ...inputStyle, fontVariantNumeric: "tabular-nums" }}
+          aria-label={`New balance for ${account.name}`}
+        />
+
+        {/* Live change preview */}
+        {hasValidNumber && !isUnchanged && (
+          <p
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              margin: "8px 0 0",
+              color: delta >= 0 ? "var(--success)" : "var(--muted)",
+              fontVariantNumeric: "tabular-nums",
+            }}
+            aria-live="polite"
+          >
+            {delta >= 0
+              ? `↑ ${formatSignedDollars(delta)} since last update — nice growth`
+              : `${formatSignedDollars(delta)} since last update — that's okay, balances move`}
+          </p>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <motion.button
+            onClick={onCancel}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            style={{
+              flex: 1,
+              padding: "10px 16px",
+              fontSize: 14,
+              fontWeight: 500,
+              fontFamily: FONT_FAMILY,
+              color: "var(--text)",
+              background: "rgba(255, 255, 255, 0.06)",
+              border: "1px solid var(--border)",
+              borderRadius: borderRadius.full,
+              cursor: "pointer",
+            }}
+            aria-label="Cancel balance update"
+          >
+            Cancel
+          </motion.button>
+          <motion.button
+            onClick={handleSave}
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            disabled={!canSave}
+            style={{
+              flex: 1,
+              padding: "10px 16px",
+              fontSize: 14,
+              fontWeight: 600,
+              fontFamily: FONT_FAMILY,
+              color: "#fff",
+              background: canSave ? "var(--success)" : "rgba(255,255,255,0.06)",
+              border: "none",
+              borderRadius: borderRadius.full,
+              cursor: canSave ? "pointer" : "not-allowed",
+              opacity: canSave ? 1 : 0.5,
+            }}
+            aria-label={`Save new balance for ${account.name}`}
+          >
+            {saving ? "Saving…" : "Save balance"}
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   )

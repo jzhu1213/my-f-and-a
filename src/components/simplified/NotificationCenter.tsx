@@ -257,6 +257,22 @@ export function NotificationCenter() {
     updateSmartPrefs({ ...smartPrefs, weeklyRecapEnabled: !smartPrefs.weeklyRecapEnabled })
   }, [smartPrefs, updateSmartPrefs])
 
+  // Savings contribution reminder (task 160.1)
+  const handleToggleSavingsContribution = useCallback(() => {
+    updateSmartPrefs({
+      ...smartPrefs,
+      savingsContributionEnabled: !smartPrefs.savingsContributionEnabled,
+    })
+  }, [smartPrefs, updateSmartPrefs])
+
+  // Monthly balance-update reminder (task 163.1)
+  const handleToggleBalanceUpdate = useCallback(() => {
+    updateSmartPrefs({
+      ...smartPrefs,
+      balanceUpdateEnabled: !smartPrefs.balanceUpdateEnabled,
+    })
+  }, [smartPrefs, updateSmartPrefs])
+
   // Permission
   const handleRequestPermission = useCallback(async () => {
     const result = await requestNotificationPermission()
@@ -269,7 +285,9 @@ export function NotificationCenter() {
     reminderPrefs.enabled ||
     smartPrefs.lowAllowanceEnabled ||
     smartPrefs.billDueEnabled ||
-    smartPrefs.weeklyRecapEnabled
+    smartPrefs.weeklyRecapEnabled ||
+    smartPrefs.savingsContributionEnabled ||
+    smartPrefs.balanceUpdateEnabled
 
   const needsPermission = anyEnabled && permissionStatus === "default"
   const permissionDenied = anyEnabled && permissionStatus === "denied"
@@ -496,6 +514,32 @@ export function NotificationCenter() {
           smartPrefs.weeklyRecapEnabled
             ? "Disable weekly recap"
             : "Enable weekly recap"
+        }
+      />
+
+      {/* ── 5. Savings Contribution Reminder (task 160.1) ──────────────── */}
+      <NudgeToggle
+        label="Payday savings reminder"
+        description="On payday, a gentle nudge to fund your savings goals if there's still room this month"
+        enabled={smartPrefs.savingsContributionEnabled}
+        onToggle={handleToggleSavingsContribution}
+        ariaLabel={
+          smartPrefs.savingsContributionEnabled
+            ? "Disable payday savings reminder"
+            : "Enable payday savings reminder"
+        }
+      />
+
+      {/* ── 6. Monthly Balance Check-in (task 163.1) ───────────────────── */}
+      <NudgeToggle
+        label="Monthly balance check-in"
+        description="Once a month, a gentle nudge to update your savings balances so your growth over time stays accurate"
+        enabled={smartPrefs.balanceUpdateEnabled}
+        onToggle={handleToggleBalanceUpdate}
+        ariaLabel={
+          smartPrefs.balanceUpdateEnabled
+            ? "Disable monthly balance check-in"
+            : "Enable monthly balance check-in"
         }
       />
 

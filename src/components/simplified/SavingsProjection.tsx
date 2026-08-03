@@ -4,6 +4,10 @@ import { useMemo } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { FONT_FAMILY } from '@/styles/typography'
 import { computeProjectionHorizons } from '@/lib/compoundGrowthUtils'
+import {
+  computeRothIraContributionProgress,
+  type RothIraContributionProgress,
+} from '@/lib/savingsAccountUtils'
 import type { SavingsAccount } from '@/types/folio'
 
 // ============================================================================
@@ -54,6 +58,15 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
   )
 
   const hasContributions = account.monthlyContribution > 0
+
+  // Roth IRA annual contribution progress (159.1) — only relevant for Roth IRAs.
+  const rothProgress = useMemo<RothIraContributionProgress | null>(
+    () =>
+      account.type === 'roth_ira'
+        ? computeRothIraContributionProgress(account)
+        : null,
+    [account]
+  )
 
   return (
     <GlassCard elevation="low" style={{ padding: '16px 18px' }}>
@@ -152,6 +165,119 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
           </span>
         </p>
       )}
+
+      {/* Roth IRA annual contribution tracker (159.1) */}
+      {rothProgress && (
+        <RothContributionTracker progress={rothProgress} isFirst={!hasContributions} />
+      )}
     </GlassCard>
+  )
+}
+
+// ============================================================================
+// RothContributionTracker (internal, 159.1)
+// ============================================================================
+
+function formatWholeDollars(amount: number): string {
+  return '$' + Math.round(amount).toLocaleString('en-US')
+}
+
+/**
+ * A compact progress bar toward the annual Roth IRA limit with a warm,
+ * non-judgmental line of copy. Rendered only for Roth IRA accounts.
+ */
+function RothContributionTracker({
+  progress,
+  isFirst,
+}: {
+  progress: RothIraContributionProgress
+  isFirst: boolean
+}) {
+  const { contributed, limit, fractionOfLimit, onTrack, message } = progress
+
+  // Green when on pace / maxed; warm amber as a gentle (never alarming) nudge.
+  const fillColor = onTrack ? 'var(--success)' : 'var(--warning)'
+  const percentLabel = Math.round(fractionOfLimit * 100)
+
+  return (
+    <div
+      style={{
+        marginTop: isFirst ? 0 : 12,
+        paddingTop: 12,
+        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+      }}
+    >
+      {/* Label row: title + contributed / limit */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          marginBottom: 8,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: 'var(--muted)',
+            fontFamily: FONT_FAMILY,
+          }}
+        >
+          {new Date().getFullYear()} contributions
+        </span>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--sub)',
+            fontFamily: FONT_FAMILY,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {formatWholeDollars(contributed)} / {formatWholeDollars(limit)}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div
+        role="progressbar"
+        aria-valuenow={percentLabel}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Roth IRA contributions: ${formatWholeDollars(
+          contributed
+        )} of ${formatWholeDollars(limit)} annual limit, ${percentLabel}%`}
+        style={{
+          height: 6,
+          borderRadius: 999,
+          background: 'rgba(255, 255, 255, 0.06)',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${fractionOfLimit * 100}%`,
+            height: '100%',
+            borderRadius: 999,
+            background: fillColor,
+            transition: 'width 0.4s ease',
+          }}
+        />
+      </div>
+
+      {/* Warm encouragement / gentle nudge */}
+      <p
+        style={{
+          fontSize: 12,
+          color: 'var(--sub)',
+          fontFamily: FONT_FAMILY,
+          lineHeight: 1.4,
+          marginTop: 8,
+        }}
+      >
+        {message}
+      </p>
+    </div>
   )
 }

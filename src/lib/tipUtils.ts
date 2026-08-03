@@ -5,12 +5,15 @@ import { TIP_EMOJI, TIP_TITLES } from '@/lib/vocabulary'
 import type { SpendingMode } from '@/lib/spendingModes'
 import type { DetectedSubscription, SubscriptionAlert } from '@/lib/subscriptionDetector'
 import { getSubscriptionAlerts } from '@/lib/subscriptionDetector'
-import { getUnreadMicroLessons } from '@/lib/microLessons'
+import { getUnreadMicroLessons, getMicroLessonById } from '@/lib/microLessons'
 import { computeWeeklyAutoSaved, getAutoEarmarkConfig } from '@/lib/autoEarmarkSavings'
 import { hasSeenFirstCreditSpend, markFirstCreditSpendSeen, getNextCreditLesson } from '@/lib/creditEducationPath'
 import { shouldRemindCreditScoreCheckin, canShowCreditScoreReminder, markCreditScoreReminderShown } from '@/lib/creditScoreCheckin'
-import { hasSeenFirstGoalLesson, markFirstGoalLessonSeen, hasSeenOverBudgetWeekLesson, markOverBudgetWeekLessonSeen, countOverBudgetDaysLast7 } from '@/lib/contextualLessonTriggers'
+import { hasSeenFirstGoalLesson, markFirstGoalLessonSeen, hasSeenOverBudgetWeekLesson, markOverBudgetWeekLessonSeen, countOverBudgetDaysLast7, hasSeenFirstSavingsAccountLesson, markFirstSavingsAccountLessonSeen, hasSeenFirstContributionLesson, markFirstContributionLessonSeen } from '@/lib/contextualLessonTriggers'
 import { shouldShowMoneyConfidenceCheckin, markMoneyConfidenceCheckinShown, getMoneyConfidenceCycle, buildMoneyConfidenceCheckin } from '@/lib/moneyConfidenceCheckin'
+import type { SavingsAccount } from '@/types/folio'
+import { findLargestContributionGap, isNearEndOfMonth } from '@/lib/savingsAccountUtils'
+import { computeMonthToDateContributed, hasAnyRecordedContribution } from '@/lib/savingsContributionHistory'
 
 // ============================================================================
 // Tip Cooldown & Throttle (Task 75)
@@ -224,6 +227,12 @@ export interface UserContext {
   hasGoals?: boolean
   /** Number of over-budget days in the last 7 days (for first over-budget week trigger). */
   overBudgetDaysLast7?: number
+  /**
+   * Savings/investment accounts — drives the end-of-month contribution gap
+   * reminder. Passed through so the (localStorage-backed) month-to-date
+   * contribution lookup happens at selection time, like other date-sensitive tips.
+   */
+  savingsAccounts?: SavingsAccount[]
 }
 
 /** Inputs required to derive a {@link UserContext} for tip selection. */
@@ -253,6 +262,8 @@ export interface BuildUserContextParams {
   detectedSubscriptions?: DetectedSubscription[]
   /** User savings goals (used to detect first-goal milestone). */
   goals?: { id: string; currentAmount: number; targetAmount: number }[]
+  /** User savings/investment accounts (used for the end-of-month contribution gap reminder). */
+  savingsAccounts?: SavingsAccount[]
 }
 
 /**
@@ -268,7 +279,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -343,6 +354,7 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     subscriptionAlerts,
     hasGoals: goals != null && goals.length > 0,
     overBudgetDaysLast7: countOverBudgetDaysLast7(transactions, dailyBudget, today),
+    savingsAccounts,
   }
 }
 
@@ -733,6 +745,61 @@ export function selectContextualTip(
     })
   }
 
+  // Step 2j-savings: First savings account micro-lesson — fires once after the
+  // user opens their first savings/investment account. Surfaces the "Why a Roth
+  // IRA matters in your 20s" micro-lesson so the encouragement lands right when
+  // they've taken the first step. Medium priority, guarded so it never nags.
+  if (
+    context.savingsAccounts &&
+    context.savingsAccounts.length > 0 &&
+    !hasSeenFirstSavingsAccountLesson()
+  ) {
+    const micro = getMicroLessonById('micro-roth-ira-20s')
+    if (micro) {
+      markFirstSavingsAccountLessonSeen()
+      candidates.push({
+        id: 'first-savings-account-lesson',
+        type: 'did_you_know',
+        title: micro.title,
+        message: micro.content,
+        emoji: micro.emoji,
+        priority: 'medium',
+        actionLabel: 'Learn more',
+        actionType: 'learn_more',
+        triggerCondition: { type: 'first_savings_account_lesson' },
+        relatedLessonId: micro.relatedLessonId,
+      })
+    }
+  }
+
+  // Step 2j-contribution: First contribution micro-lesson — fires once after the
+  // user records their first contribution to a savings/investment account.
+  // Surfaces "The power of starting early" (compound growth) to reinforce the
+  // habit. Medium priority, guarded so it fires at most once.
+  if (
+    context.savingsAccounts &&
+    context.savingsAccounts.length > 0 &&
+    !hasSeenFirstContributionLesson() &&
+    hasAnyRecordedContribution(context.savingsAccounts.map(a => a.id))
+  ) {
+    const micro = getMicroLessonById('micro-start-early')
+    if (micro) {
+      markFirstContributionLessonSeen()
+      candidates.push({
+        id: 'first-contribution-lesson',
+        type: 'celebration',
+        title: micro.title,
+        message: micro.content,
+        emoji: micro.emoji,
+        priority: 'medium',
+        actionLabel: 'Learn more',
+        actionType: 'learn_more',
+        triggerCondition: { type: 'first_contribution_lesson' },
+        relatedLessonId: micro.relatedLessonId,
+      })
+    }
+  }
+
   // Step 2k: First over-budget week micro-lesson — fires once when the user
   // has 5+ over-budget days in the last 7. Warm and encouraging, never shaming.
   // Links to the budgeting-101 lesson for deeper learning.
@@ -806,6 +873,45 @@ export function selectContextualTip(
       triggerCondition: { type: 'money_confidence_checkin' },
       relatedLessonId: content.relatedLessonId,
     })
+  }
+
+  // Step 2m: End-of-month contribution gap — a gentle reminder that a savings/
+  // investment account fell short of the user's OWN monthly target, surfaced
+  // only in the last few days of the month. Warm and never shaming — framed as
+  // a helpful heads-up before the month closes, not a failure.
+  //
+  // Pushed after every celebration candidate and given medium priority so it
+  // never crowds out a celebration (which sorts first at high, or first-in at
+  // equal priority). The month-prefix tip ID means the dismissed-tips mechanism
+  // shows it at most once per account per month.
+  if (context.savingsAccounts && context.savingsAccounts.length > 0) {
+    const now = new Date()
+    if (isNearEndOfMonth(now)) {
+      const gap = findLargestContributionGap(context.savingsAccounts, (accountId) =>
+        computeMonthToDateContributed(accountId, now)
+      )
+      if (gap) {
+        const monthPrefix = now.toISOString().slice(0, 7)
+        const target = Math.round(gap.target)
+        const remaining = Math.round(gap.remaining)
+        candidates.push({
+          id: `contribution-gap-${gap.account.id}-${monthPrefix}`,
+          type: 'gentle_nudge',
+          title: 'Before the month closes',
+          message: `You planned $${target} for ${gap.account.name} this month — $${remaining} to go. No pressure, just a friendly reminder.`,
+          emoji: '🌱',
+          priority: 'medium',
+          actionLabel: 'Add contribution',
+          actionType: 'view_insight',
+          triggerCondition: {
+            type: 'contribution_gap',
+            accountName: gap.account.name,
+            target: gap.target,
+            remaining: gap.remaining,
+          },
+        })
+      }
+    }
   }
 
   // Step 3: Educational trigger — fewer than 10 total transactions (low priority)

@@ -120,7 +120,39 @@ export const MICRO_LESSONS: MicroLesson[] = [
     topic: 'investing',
     relatedLessonId: 'investing-basics',
   },
+  {
+    id: 'micro-roth-ira-20s',
+    title: 'Why a Roth IRA Matters in Your 20s',
+    content: 'A Roth IRA grows your money tax-free for retirement, and your 20s are the perfect time to open one. Even $25 a month now has decades to grow — future you will be grateful.',
+    emoji: '🌱',
+    topic: 'saving',
+    relatedLessonId: 'savings-accounts',
+  },
+  {
+    id: 'micro-start-early',
+    title: 'The Power of Starting Early',
+    content: 'Compound growth means your earnings start earning too, so the earliest dollars grow the most. Starting even a few years sooner can add up to far more by retirement.',
+    emoji: '📈',
+    topic: 'investing',
+    relatedLessonId: 'investing-basics',
+  },
+  {
+    id: 'micro-hysa-vs-checking',
+    title: 'HYSA vs. Checking — Free Money',
+    content: 'A high-yield savings account can pay far more interest than a regular checking account on the same balance. Moving your savings over is basically free money for doing nothing.',
+    emoji: '🏦',
+    topic: 'saving',
+    relatedLessonId: 'savings-accounts',
+  },
 ]
+
+/**
+ * Looks up a micro-lesson by id. Returns undefined when no match is found.
+ * Used by contextual triggers that surface a specific micro-lesson.
+ */
+export function getMicroLessonById(id: string): MicroLesson | undefined {
+  return MICRO_LESSONS.find(m => m.id === id)
+}
 
 // ============================================================================
 // Read/unread tracking (localStorage)

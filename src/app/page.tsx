@@ -332,8 +332,9 @@ export default function FolioApp() {
   // ── Service Worker registration (task 77 — PWA notifications) ──
   useServiceWorker()
 
-  // ── Smart Notifications (task 114.2 — low balance & bill-due alerts) ──
-  useSmartNotifications(allowance, recurringBills)
+  // ── Smart Notifications (task 114.2 — low balance & bill-due alerts;
+  //    task 160.1 — payday-triggered savings contribution reminder) ──
+  useSmartNotifications(allowance, recurringBills, savingsAccounts, paySchedule, transactions)
 
   // ── Subscription Detection ─────────────────────────────────────
   const [dismissedSubscriptions, setDismissedSubscriptions] = useState<Set<string>>(new Set())
@@ -1433,6 +1434,8 @@ export default function FolioApp() {
                 heroMeaning={heroMeaning}
                 heroDisplay={heroDisplay}
                 overLimitResponse={overLimitResponse}
+                savingsRate={savingsRate}
+                savingsAccounts={savingsAccounts}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => overlay.openSheet('income')}

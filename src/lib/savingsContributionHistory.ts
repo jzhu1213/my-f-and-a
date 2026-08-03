@@ -125,6 +125,78 @@ export function recordContribution(
 }
 
 /**
+ * Sum the positive contributions recorded for a single account within the
+ * current calendar month. Withdrawals/corrections (negative deltas) are
+ * ignored so the figure reflects money moved *toward* the account this month.
+ *
+ * Pure read given `now` (aside from the localStorage lookup, which is empty
+ * during SSR). Used by the payday contribution reminder to know how much of a
+ * user's `monthlyContribution` target has already been met (task 160.1).
+ */
+export function getMonthToDateContribution(
+  accountId: string,
+  now: Date = new Date()
+): number {
+  const monthKey = now.toISOString().slice(0, 7) // YYYY-MM
+  return getContributionHistory(accountId)
+    .filter(entry => entry.amount > 0 && entry.timestamp.slice(0, 7) === monthKey)
+    .reduce((sum, entry) => sum + entry.amount, 0)
+}
+
+/**
+ * Build a map of accountId → month-to-date contribution total for the given
+ * accounts. Convenience wrapper over {@link getMonthToDateContribution} so
+ * callers can look up every account in one pass (task 160.1).
+ */
+export function getMonthToDateContributionsByAccount(
+  accountIds: string[],
+  now: Date = new Date()
+): Record<string, number> {
+  const result: Record<string, number> = {}
+  for (const id of accountIds) {
+    result[id] = getMonthToDateContribution(id, now)
+  }
+  return result
+}
+
+/**
+ * Sum the positive contributions recorded for an account within the calendar
+ * month of `now` (month-to-date). Withdrawals / negative corrections are
+ * ignored so this reflects money actually put in this month.
+ *
+ * Timestamps are stored as UTC ISO strings; we compare on the `YYYY-MM` prefix
+ * so this stays consistent with how entries are recorded.
+ *
+ * Used by the end-of-month contribution gap reminder (task 160.2).
+ */
+export function computeMonthToDateContributed(
+  accountId: string,
+  now: Date = new Date()
+): number {
+  const monthPrefix = now.toISOString().slice(0, 7) // "YYYY-MM"
+  return getContributionHistory(accountId).reduce((sum, entry) => {
+    if (entry.amount > 0 && entry.timestamp.slice(0, 7) === monthPrefix) {
+      return sum + entry.amount
+    }
+    return sum
+  }, 0)
+}
+
+/**
+ * Returns true when at least one positive contribution has been recorded across
+ * the given accounts. Used to detect the "first contribution" milestone that
+ * surfaces a contextual savings micro-lesson (task 162.1).
+ *
+ * Only positive deltas count — a withdrawal or downward correction is not a
+ * contribution.
+ */
+export function hasAnyRecordedContribution(accountIds: string[]): boolean {
+  return accountIds.some(id =>
+    getContributionHistory(id).some(entry => entry.amount > 0)
+  )
+}
+
+/**
  * Remove all recorded history for an account. Useful when an account is deleted
  * so orphaned entries don't accumulate.
  */
