@@ -237,6 +237,8 @@ export interface UserContext {
   savingsAccounts?: SavingsAccount[]
   /** Anomaly detected on the most recent transaction (Task 165.1) */
   spendAnomaly?: { category: TransactionCategory; amount: number; typicalAmount: number; message: string }
+  /** The user's primary financial goal — drives tip tone/priority boosting (Task 222.3) */
+  userGoal?: import('@/types').UserGoal
 }
 
 /** Inputs required to derive a {@link UserContext} for tip selection. */
@@ -272,6 +274,8 @@ export interface BuildUserContextParams {
   completedLessonIds?: Set<string>
   /** The most recently logged transaction (used for anomaly detection, Task 165.1) */
   lastLoggedTransaction?: { amount: number; category: TransactionCategory } | null
+  /** The user's primary financial goal — passed through to UserContext for tone (Task 222.3) */
+  userGoal?: import('@/types').UserGoal
 }
 
 /**
@@ -287,7 +291,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds, lastLoggedTransaction } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds, lastLoggedTransaction, userGoal } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -398,6 +402,7 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     hasCreditTransactions,
     completedLessonIds,
     spendAnomaly,
+    userGoal,
   }
 }
 
@@ -1023,6 +1028,36 @@ export function selectContextualTip(
   // Step 4b: Adaptive engagement filter — suppress tips the user consistently
   // ignores (Task 167.1). Only ever reduces volume, never increases it.
   const available = notDismissed.filter((t) => !shouldSuppressTip(t.id, t.type))
+
+  // Step 4c: Goal-aware priority boosting (Task 222.3)
+  // If the user has a primary goal, boost relevant tips from 'low' → 'medium'
+  // or 'medium' → 'high' so the app "works around that goal" beyond onboarding.
+  if (context.userGoal) {
+    for (const tip of available) {
+      const isDebtRelated = tip.id.includes('debt') || tip.id.includes('credit') || tip.id.includes('payoff')
+      const isSavingsRelated = tip.id.includes('savings') || tip.id.includes('streak') || tip.id.includes('goal') || tip.id.includes('earmark')
+      const isSpendRelated = tip.id.includes('spending') || tip.id.includes('over-budget') || tip.id.includes('budget') || tip.id.includes('high')
+
+      let shouldBoost = false
+      switch (context.userGoal) {
+        case 'pay_debt':
+          shouldBoost = isDebtRelated
+          break
+        case 'save':
+          shouldBoost = isSavingsRelated
+          break
+        case 'reduce_spending':
+        case 'avoid_overdraft':
+          shouldBoost = isSpendRelated
+          break
+      }
+
+      if (shouldBoost) {
+        if (tip.priority === 'low') tip.priority = 'medium'
+        else if (tip.priority === 'medium') tip.priority = 'high'
+      }
+    }
+  }
 
   // Step 5: Sort by priority (high first, then medium, then low)
   const priorityOrder: Record<ContextualTip['priority'], number> = { high: 0, medium: 1, low: 2 }

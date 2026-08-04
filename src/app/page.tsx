@@ -21,6 +21,7 @@ import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, build
 import type { PayCadence } from '@/lib/paySchedule'
 import { detectSubscriptions } from '@/lib/subscriptionDetector'
 import { mapGoalToPriority } from '@/lib/goalMapping'
+import { getGoalDefaults } from '@/lib/goalDefaults'
 import { getCategorizationRules, saveCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
 import { getActiveShareLinks } from '@/lib/sharingUtils'
 import type { CategorizationRule } from '@/lib/categorizationRules'
@@ -179,6 +180,33 @@ export default function FolioApp() {
 
   // ── Per-transaction alert state (task 102.2) ───────────────────
   const [perTxAlertMessage, setPerTxAlertMessage] = useState<string | null>(null)
+
+  // ── User goal state (task 222.3) ────────────────────────────────
+  // Persisted to localStorage (for tip tone) and Supabase profile (for durability).
+  const [userGoal, setUserGoalState] = useState<UserGoal | undefined>(() => {
+    if (typeof window === 'undefined') return undefined
+    try {
+      const stored = localStorage.getItem('folio-user-goal')
+      return (stored as UserGoal) || undefined
+    } catch {
+      return undefined
+    }
+  })
+
+  const handleGoalChange = useCallback(async (goal: UserGoal) => {
+    setUserGoalState(goal)
+    // Persist to localStorage for tip tone
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('folio-user-goal', goal)
+      const goalDefaults = getGoalDefaults(goal)
+      localStorage.setItem('folio-tip-tone', goalDefaults.tipTone)
+    }
+    // Persist to Supabase profile
+    if (user) {
+      const mappedPriority = mapGoalToPriority(goal)
+      await updateProfilePreferences(user.id, { priority: mappedPriority })
+    }
+  }, [user])
 
   // ── Categorization rules state (task 113.3) ────────────────────
   const [categorizationRules, setCategorizationRules] = useState<CategorizationRule[]>([])
@@ -686,9 +714,20 @@ export default function FolioApp() {
     // ── Persist optional goal selection (task 221) ──────────────────────────
     // If the user picked a primary goal in the cascade tail, map it to a
     // UserPriority and persist it on the profile so tip tone adapts.
+    // Task 222.2: Also apply goal-driven defaults (budget preset override,
+    // tip tone) so the daily number and tip selection work around that goal.
     if (tutorialSetupState.primaryGoal && user) {
       const mappedPriority = mapGoalToPriority(tutorialSetupState.primaryGoal)
+      const goalDefaults = getGoalDefaults(tutorialSetupState.primaryGoal)
+
+      // Persist priority + tip tone on the profile
       await updateProfilePreferences(user.id, { priority: mappedPriority })
+
+      // Store the tip tone in localStorage so tipUtils can read it
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('folio-tip-tone', goalDefaults.tipTone)
+        localStorage.setItem('folio-user-goal', tutorialSetupState.primaryGoal)
+      }
     }
 
     // Persist tutorial completion flag (structured state + Supabase sync)
@@ -1304,7 +1343,7 @@ export default function FolioApp() {
   }
 
   if (onboardingStep === 'tutorial') {
-    const allSteps = buildStepsForPath(activeOnboardingPath, tutorialSetupState.budgetPreset, tutorialSetupState.paycheckMode)
+    const allSteps = buildStepsForPath(activeOnboardingPath, tutorialSetupState.budgetPreset, tutorialSetupState.paycheckMode, !!tutorialSetupState.primaryGoal)
 
     return (
       <OnboardingTutorial
@@ -1838,6 +1877,8 @@ export default function FolioApp() {
                 onAddSpendDownPlan={addSpendDownPlan}
                 onRemoveSpendDownPlan={removeSpendDownPlan}
                 disbursements={disbursements}
+                userGoal={userGoal}
+                onGoalChange={handleGoalChange}
               />
             )}
           </motion.div>

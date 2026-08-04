@@ -39,6 +39,8 @@ import { getCategoryEmoji } from "@/lib/vocabulary"
 import type { TermSchedule } from "@/lib/termSchedule"
 import { TERM_PRESETS, isTermActive, getDaysRemainingInTerm, getTermProgress } from "@/lib/termSchedule"
 import { formatDateLocal, addDaysLocal } from "@/lib/dateUtils"
+import type { UserGoal } from "@/types"
+import { getGoalDescription } from "@/lib/goalDefaults"
 
 // ============================================================================
 // Types
@@ -96,6 +98,10 @@ export interface SettingsScreenProps {
   onRemoveSpendDownPlan?: (id: string) => void
   /** Existing disbursements (for "from a disbursement" quick preset) */
   disbursements?: import('@/lib/disbursements').Disbursement[]
+  /** User's primary financial goal — editable in settings (task 222.3) */
+  userGoal?: import('@/types').UserGoal
+  /** Callback to update the user's primary goal (task 222.3) */
+  onGoalChange?: (goal: import('@/types').UserGoal) => void
 }
 
 // ============================================================================
@@ -210,6 +216,21 @@ const OVER_LIMIT_RESPONSE_OPTIONS: OverLimitResponseOption[] = [
 ]
 
 // ============================================================================
+// Goal options (task 222.3 — editable goal picker in settings)
+// ============================================================================
+
+type GoalOption = { key: UserGoal; label: string; emoji: string }
+
+const GOAL_OPTIONS_SETTINGS: GoalOption[] = [
+  { key: 'save', label: 'Build my savings', emoji: '🏦' },
+  { key: 'track_spending', label: 'Know where my money goes', emoji: '🔍' },
+  { key: 'reduce_spending', label: 'Spend less', emoji: '✂️' },
+  { key: 'avoid_overdraft', label: 'Stop overdrafting', emoji: '🛡️' },
+  { key: 'pay_debt', label: 'Pay off debt', emoji: '💳' },
+  { key: 'learn_investing', label: 'Learn investing', emoji: '📈' },
+]
+
+// ============================================================================
 // Section definition (for collapsible groups)
 // ============================================================================
 
@@ -233,7 +254,7 @@ const SECTIONS: SectionDef[] = [
   {
     id: 'spending-style',
     title: 'Spending style',
-    keywords: ['spending', 'mode', 'tracker', 'guided', 'structured', 'over-limit', 'over limit', 'limit', 'response', 'quiet', 'gentle', 'heads-up'],
+    keywords: ['spending', 'mode', 'tracker', 'guided', 'structured', 'over-limit', 'over limit', 'limit', 'response', 'quiet', 'gentle', 'heads-up', 'goal', 'priority', 'focus'],
   },
   {
     id: 'hero-display',
@@ -400,6 +421,8 @@ export function SettingsScreen({
   onAddSpendDownPlan,
   onRemoveSpendDownPlan,
   disbursements = [],
+  userGoal,
+  onGoalChange,
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -691,6 +714,91 @@ export function SettingsScreen({
                         >
                           {opt.desc}
                         </span>
+                      </span>
+                    </motion.button>
+                  )
+                })}
+              </div>
+            </GlassCard>
+          )}
+
+          {/* ── My goal (task 222.3) ────────────────────────────────────────── */}
+          {onGoalChange && (
+            <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
+              <p style={{ ...sectionHeadingStrong, marginBottom: 4 }}>
+                My focus
+              </p>
+              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
+                {userGoal
+                  ? getGoalDescription(userGoal)
+                  : "Pick what matters most — this shapes tips and priorities."}
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                {GOAL_OPTIONS_SETTINGS.map((opt, idx) => {
+                  const isActive = userGoal === opt.key
+                  return (
+                    <motion.button
+                      key={opt.key}
+                      onClick={() => onGoalChange(opt.key)}
+                      whileTap={{ scale: 0.98 }}
+                      transition={springs.snappy}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "11px 0",
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: idx < GOAL_OPTIONS_SETTINGS.length - 1 ? "1px solid var(--border)" : "none",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        width: "100%",
+                      }}
+                      aria-pressed={isActive}
+                      aria-label={`Set goal to ${opt.label}`}
+                    >
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          width: 18,
+                          height: 18,
+                          borderRadius: "50%",
+                          border: `2px solid ${isActive ? "rgba(167, 139, 250, 0.9)" : "rgba(255, 255, 255, 0.2)"}`,
+                          background: isActive ? "rgba(167, 139, 250, 0.9)" : "transparent",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "border-color 0.15s ease, background 0.15s ease",
+                        }}
+                        aria-hidden="true"
+                      >
+                        {isActive && (
+                          <span
+                            style={{
+                              width: 7,
+                              height: 7,
+                              borderRadius: "50%",
+                              background: "#fff",
+                            }}
+                          />
+                        )}
+                      </span>
+
+                      <span style={{ fontSize: 16, flexShrink: 0 }} aria-hidden="true">
+                        {opt.emoji}
+                      </span>
+
+                      <span
+                        style={{
+                          fontSize: 14,
+                          fontWeight: isActive ? 600 : 400,
+                          color: isActive ? "var(--text)" : "var(--sub)",
+                          lineHeight: 1.4,
+                          transition: "color 0.15s ease, font-weight 0.15s ease",
+                        }}
+                      >
+                        {opt.label}
                       </span>
                     </motion.button>
                   )

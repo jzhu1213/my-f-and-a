@@ -116,7 +116,7 @@ export const PATH_ROUTER_STEP: TutorialStep = {
  *
  * Validates: Requirements 7.1
  */
-export function buildStepsForPath(path: OnboardingPath, budgetPreset?: BudgetPreset, paycheckMode?: 'full' | 'simple'): TutorialStep[] {
+export function buildStepsForPath(path: OnboardingPath, budgetPreset?: BudgetPreset, paycheckMode?: 'full' | 'simple', hasGoalAlready?: boolean): TutorialStep[] {
   if (path === null) {
     // No path chosen yet — full intro sequence
     return [WELCOME_STEP, ...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
@@ -152,7 +152,15 @@ export function buildStepsForPath(path: OnboardingPath, budgetPreset?: BudgetPre
   }
 
   // Append optional cascade tail (Group 36, task 219+)
-  return [...coreSteps, OPTIONAL_RECENT_INCOME_STEP, OPTIONAL_RECENT_EXPENSE_STEP, OPTIONAL_GOAL_STEP]
+  const steps = [...coreSteps, OPTIONAL_RECENT_INCOME_STEP, OPTIONAL_RECENT_EXPENSE_STEP, OPTIONAL_GOAL_STEP]
+
+  // Task 222.1: Append non-skippable terminal goal step only if the user
+  // hasn't already selected a goal in the optional cascade.
+  if (!hasGoalAlready) {
+    steps.push(TERMINAL_GOAL_STEP)
+  }
+
+  return steps
 }
 
 /**
@@ -804,6 +812,22 @@ export const OPTIONAL_GOAL_STEP: TutorialStep = {
   type: 'setup',
   id: 'optional-goal',
   setupType: 'income',
+}
+
+/**
+ * Terminal (non-skippable) goal step — fires ONLY when no goal was captured
+ * earlier in the optional tail. Presented as a single warm choice, not a wall.
+ * Uses the `terminal` step type so the Skip button is hidden.
+ *
+ * Validates: Task 222.1
+ */
+export const TERMINAL_GOAL_STEP: TutorialStep = {
+  type: 'terminal',
+  id: 'terminal-goal',
+  title: 'One last thing — what matters most?',
+  subtitle: "This helps Folio focus on what\u2019s important to you. You can always change it later.",
+  emoji: '\uD83C\uDFAF',
+  nonSkippable: true,
 }
 
 /**
@@ -4069,6 +4093,21 @@ export function TutorialSetupStepRenderer({
 
   // Branch steps are rendered by the parent (path selection UI) — skip here
   if (step.type === 'branch') return null
+
+  // Terminal goal step (task 222.1): Render goal selection UI with warm copy.
+  // The terminal type prevents skipping, ensuring a goal is captured.
+  if (step.type === 'terminal' && step.id === 'terminal-goal') {
+    return (
+      <OptionalGoalStep
+        value={setupState.primaryGoal}
+        onChange={(goal) => {
+          onGoalChange?.(goal)
+          // Auto-advance after selection — the user made their choice
+          completeInteraction()
+        }}
+      />
+    )
+  }
 
   // Fall through to the original info/interactive rendering
   return (

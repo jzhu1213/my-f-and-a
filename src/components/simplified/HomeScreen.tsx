@@ -472,6 +472,18 @@ export function HomeScreen({
   // Settings → Hero & display.
   const [savingsRateBadgeEnabled] = useState(() => getSavingsRateBadgeEnabled())
 
+  // ── User goal (task 222.3) ─────────────────────────────────────────────────
+  // Read the persisted goal so tip selection can boost relevant content.
+  const [userGoal] = useState<import('@/types').UserGoal | undefined>(() => {
+    if (typeof window === 'undefined') return undefined
+    try {
+      const stored = localStorage.getItem('folio-user-goal')
+      return (stored as import('@/types').UserGoal) || undefined
+    } catch {
+      return undefined
+    }
+  })
+
   // ── Derived data ──────────────────────────────────────────────────────────
   // Compute the current month + today's date once per mount rather than on
   // every render (these are stable for the duration of a session). Deriving
@@ -553,8 +565,9 @@ export function HomeScreen({
         fundingSources,
         completedLessonIds,
         lastLoggedTransaction,
+        userGoal,
       }),
-    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals, savingsAccounts, fundingSources, completedLessonIds, lastLoggedTransaction]
+    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals, savingsAccounts, fundingSources, completedLessonIds, lastLoggedTransaction, userGoal]
   )
 
   const activeTip = useMemo(
