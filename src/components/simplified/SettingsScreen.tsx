@@ -70,6 +70,8 @@ export interface SettingsScreenProps {
   onOpenBackfill?: () => void
   onSignOut: () => void
   onResetOnboarding?: () => void
+  /** Replay the interactive feature demos without resetting onboarding (task 224.2) */
+  onReplayDemos?: () => void
   onExportData?: () => void
   onExportCSV?: () => void
   onDeleteAccount?: () => void
@@ -410,6 +412,7 @@ export function SettingsScreen({
   onOpenBackfill,
   onSignOut,
   onResetOnboarding,
+  onReplayDemos,
   onExportData,
   onExportCSV,
   onDeleteAccount,
@@ -1948,6 +1951,19 @@ export function SettingsScreen({
                 aria-label="Reset onboarding tutorial"
               >
                 Reset tutorial →
+              </motion.button>
+            )}
+
+            {/* Show me around again — replay demos without resetting (task 224.2) */}
+            {onReplayDemos && (
+              <motion.button
+                onClick={onReplayDemos}
+                whileTap={{ scale: 0.97 }}
+                transition={springs.snappy}
+                style={{ ...linkButton, marginTop: 10 }}
+                aria-label="Show me around again"
+              >
+                🎓 Show me around again →
               </motion.button>
             )}
 

@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useCallback, type ReactNode } from 'react'
+import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { springs } from '@/lib/animations'
+import { springs, useReducedMotion } from '@/lib/animations'
 import { FONT_FAMILY } from '@/styles/typography'
 import type { OnboardingPath } from '@/types'
 
@@ -108,6 +108,57 @@ const slideVariants = {
   }),
 }
 
+/** Opacity-only fade variants for prefers-reduced-motion users */
+const fadeOnlyVariants = {
+  enter: () => ({
+    x: 0,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: () => ({
+    x: 0,
+    opacity: 0,
+  }),
+}
+
+/** Helper to get a step title for screen-reader announcements */
+function getStepTitle(step: TutorialStep): string {
+  if (step.type === 'setup') {
+    const titles: Record<string, string> = {
+      'income': 'Monthly income',
+      'budget-style': 'Budget style',
+      'category-limits': 'Category limits',
+      'confirmation': 'Confirmation',
+    }
+    // Use the step id for more descriptive titles where possible
+    const idTitles: Record<string, string> = {
+      'express-income': 'Monthly income',
+      'express-fixed-expenses': 'Fixed expenses',
+      'express-category-limits': 'Category limits',
+      'express-confirmation': 'Confirmation',
+      'setup-income': 'Monthly income',
+      'setup-budget-style': 'Budget style',
+      'setup-category-limits': 'Category limits',
+      'setup-confirmation': 'Confirmation',
+      'paycheck-mode': 'Paycheck mode',
+      'paycheck-schedule': 'Pay schedule',
+      'paycheck-allocation': 'Paycheck split',
+      'paycheck-confirmation': 'Confirmation',
+      'simple-split': 'Simple paycheck split',
+      'simple-confirmation': 'Confirmation',
+      'minimal-estimate': 'Quick estimate',
+      'optional-recent-income': 'Recent income',
+      'optional-recent-expense': 'Recent expense',
+      'optional-goal': 'Your goal',
+    }
+    return idTitles[step.id] ?? titles[step.setupType] ?? 'Setup'
+  }
+  return step.title
+}
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -137,6 +188,14 @@ export function OnboardingTutorial({
   const [direction, setDirection] = useState(1)
   const [interactionDone, setInteractionDone] = useState(false)
 
+  // Accessibility: focus management on step change
+  const stepContentRef = useRef<HTMLDivElement>(null)
+  const [announcement, setAnnouncement] = useState('')
+
+  // Reduced motion support (task 226.2)
+  const { prefersReducedMotion } = useReducedMotion()
+  const activeVariants = prefersReducedMotion ? fadeOnlyVariants : slideVariants
+
   const currentStep = steps[currentIndex]
   const isLastStep = currentIndex === steps.length - 1
   const isInteractive = currentStep?.type === 'interactive'
@@ -149,6 +208,21 @@ export function OnboardingTutorial({
 
   // Find the branch step index (to enable "back to router")
   const branchIndex = steps.findIndex(s => s.type === 'branch')
+
+  // Focus management: move focus to new step content on step change (task 226.1)
+  useEffect(() => {
+    if (currentStep) {
+      // Announce step change to screen readers
+      const title = getStepTitle(currentStep)
+      setAnnouncement(`Step ${currentIndex + 1} of ${steps.length}: ${title}`)
+
+      // Focus the step content area after a short delay for animation
+      const timer = setTimeout(() => {
+        stepContentRef.current?.focus()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [currentIndex, currentStep, steps.length])
 
   // ---- Navigation ----
 
@@ -185,6 +259,12 @@ export function OnboardingTutorial({
       setDirection(1)
       setCurrentIndex(prev => prev + 1)
       setInteractionDone(false)
+    } else if (branchIndex >= 0 && currentIndex < branchIndex) {
+      // Task 224.1: Before the branch step (demo intro / feature steps),
+      // Skip jumps to the branch step instead of exiting the tutorial entirely.
+      setDirection(1)
+      setCurrentIndex(branchIndex)
+      setInteractionDone(false)
     } else {
       onSkip()
     }
@@ -206,8 +286,17 @@ export function OnboardingTutorial({
       className="min-h-screen flex flex-col items-center justify-center px-6"
       style={{ background: 'var(--bg)', fontFamily: FONT_FAMILY }}
       role="region"
-      aria-label="Onboarding tutorial"
+      aria-label="Getting started"
     >
+      {/* Live region for screen-reader step announcements (task 226.1) */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </div>
+
       <div className="w-full max-w-sm relative">
         {/* Progress dots */}
         <nav
@@ -230,25 +319,31 @@ export function OnboardingTutorial({
         </nav>
 
         {/* Step content with directional slide animation */}
-        <div className="relative min-h-[380px] flex flex-col">
+        <div
+          className="relative min-h-[380px] flex flex-col"
+          ref={stepContentRef}
+          tabIndex={-1}
+          style={{ outline: 'none' }}
+          aria-label={getStepTitle(currentStep)}
+        >
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={currentStep.id}
               custom={direction}
-              variants={slideVariants}
+              variants={activeVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              transition={springs.gentle}
+              transition={prefersReducedMotion ? { duration: 0.15, ease: 'easeOut' } : springs.gentle}
               className="flex flex-col flex-1"
             >
               {isBranch ? (
                 <div className="flex flex-col items-center text-center flex-1">
                   <motion.span
                     style={{ fontSize: 48, marginBottom: 16 }}
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={springs.bouncy}
+                    initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+                    transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
                     aria-hidden="true"
                   >
                     {currentStep.emoji}
@@ -276,7 +371,7 @@ export function OnboardingTutorial({
                   >
                     {currentStep.subtitle}
                   </p>
-                  <div className="flex flex-col gap-2.5 w-full">
+                  <div className="flex flex-col gap-2.5 w-full" role="group" aria-label="Choose a setup path">
                     {currentStep.options.map((opt) => (
                       <button
                         key={opt.value ?? opt.label}
@@ -287,14 +382,14 @@ export function OnboardingTutorial({
                           setCurrentIndex(prev => prev + 1)
                           setInteractionDone(false)
                         }}
-                        className="flex items-center gap-3 p-3.5 rounded-xl text-left transition-all"
+                        className="flex items-center gap-3 p-3.5 rounded-xl text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
                         style={{
                           background: 'var(--surface)',
                           border: '1.5px solid var(--border)',
                         }}
-                        aria-label={opt.label}
+                        aria-label={`${opt.label}: ${opt.description}`}
                       >
-                        <span className="text-xl flex-shrink-0">{opt.emoji}</span>
+                        <span className="text-xl flex-shrink-0" aria-hidden="true">{opt.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div
                             className="text-sm font-medium"
@@ -327,14 +422,14 @@ export function OnboardingTutorial({
             <button
               onClick={goNext}
               disabled={!canAdvance}
-              className="w-full py-3.5 rounded-xl font-medium text-base transition-colors"
+              className="w-full py-3.5 rounded-xl font-medium text-base transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
               style={{
                 background: canAdvance ? 'var(--accent)' : 'var(--muted)',
                 color: '#fff',
                 opacity: canAdvance ? 1 : 0.5,
                 cursor: canAdvance ? 'pointer' : 'not-allowed',
               }}
-              aria-label={isLastStep ? 'Finish tutorial' : currentStep.id === 'welcome' ? "Let's go" : 'Next step'}
+              aria-label={isLastStep ? 'Finish setup' : currentStep.id === 'welcome' ? "Let's go" : 'Next step'}
             >
               {isLastStep
                 ? (currentStep.type === 'setup' && currentStep.setupType === 'confirmation'
@@ -351,7 +446,7 @@ export function OnboardingTutorial({
             {currentIndex > 0 ? (
               <button
                 onClick={goBack}
-                className="text-sm py-2 px-3 rounded-lg transition-colors"
+                className="text-sm py-2 px-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 style={{ color: 'var(--sub)' }}
                 aria-label="Go back"
               >
@@ -364,11 +459,11 @@ export function OnboardingTutorial({
             {!hideSkip && (
               <button
                 onClick={handleSkip}
-                className="text-sm py-2 px-3 rounded-lg transition-colors"
+                className="text-sm py-2 px-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 style={{ color: 'var(--muted)' }}
-                aria-label={currentStep.id === 'welcome' ? 'Skip for now' : 'Skip'}
+                aria-label={currentStep.id === 'welcome' ? 'Skip for now' : branchIndex >= 0 && currentIndex < branchIndex ? 'Skip demos' : 'Skip'}
               >
-                {currentStep.id === 'welcome' ? 'Skip for now' : 'Skip'}
+                {currentStep.id === 'welcome' ? 'Skip for now' : branchIndex >= 0 && currentIndex < branchIndex ? 'Skip demos' : 'Skip'}
               </button>
             )}
           </div>

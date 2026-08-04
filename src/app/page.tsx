@@ -17,7 +17,7 @@ import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
 import { EditTransactionSheet } from '@/components/simplified/EditTransactionSheet'
 import { RefundSheet } from '@/components/simplified/RefundSheet'
-import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath } from '@/components/simplified/TutorialSteps'
+import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath, buildDemoOnlySteps } from '@/components/simplified/TutorialSteps'
 import type { PayCadence } from '@/lib/paySchedule'
 import { detectSubscriptions } from '@/lib/subscriptionDetector'
 import { mapGoalToPriority } from '@/lib/goalMapping'
@@ -147,7 +147,7 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 import { useOverlayRouter } from '@/hooks/useOverlayRouter'
 import { SyncIndicator } from '@/components/simplified/SyncIndicator'
 
-type OnboardingStep = 'loading' | 'tutorial' | 'done'
+type OnboardingStep = 'loading' | 'tutorial' | 'demo_replay' | 'done'
 
 export default function FolioApp() {
   const { user, loading: authLoading, refreshUser } = useAuth()
@@ -1258,6 +1258,11 @@ export default function FolioApp() {
     showToast('Tutorial reset - starting fresh')
   }
 
+  // ── Replay Feature Demos (task 224.2) ──────────────────────────
+  const handleReplayDemos = () => {
+    setOnboardingStep('demo_replay')
+  }
+
   // ── Setup Checklist: deep-link resume (task 223.3) ─────────────
   // Maps a skipped step ID to the relevant sheet/overlay action, completes
   // the step on return, and optionally celebrates when all steps are done.
@@ -1479,6 +1484,39 @@ export default function FolioApp() {
             onGoalChange={(goal: UserGoal) =>
               setTutorialSetupState(prev => ({ ...prev, primaryGoal: goal }))
             }
+          />
+        )}
+      />
+    )
+  }
+
+  // ── Demo Replay Mode (task 224.2) ─────────────────────────────
+  if (onboardingStep === 'demo_replay') {
+    const demoSteps = buildDemoOnlySteps()
+
+    return (
+      <OnboardingTutorial
+        steps={demoSteps}
+        onComplete={() => setOnboardingStep('done')}
+        onSkip={() => setOnboardingStep('done')}
+        renderStep={(step, completeInteraction) => (
+          <TutorialSetupStepRenderer
+            step={step}
+            completeInteraction={completeInteraction}
+            setupState={tutorialSetupState}
+            onIncomeChange={() => {}}
+            onPresetChange={() => {}}
+            onLimitChange={() => {}}
+            onAddFixedExpense={() => {}}
+            onRemoveFixedExpense={() => {}}
+            onPeriodChange={() => {}}
+            onPayScheduleChange={() => {}}
+            onAllocationSplitChange={() => {}}
+            onPaycheckModeChange={() => {}}
+            onSimpleCadenceChange={() => {}}
+            onRecentIncomeChange={() => {}}
+            onRecentExpenseChange={() => {}}
+            onGoalChange={() => {}}
           />
         )}
       />
@@ -1930,6 +1968,7 @@ export default function FolioApp() {
                 onOpenBackfill={() => overlay.openSheet('backfill')}
                 onSignOut={handleSignOut}
                 onResetOnboarding={handleResetOnboarding}
+                onReplayDemos={handleReplayDemos}
                 onExportData={handleExportData}
                 onExportCSV={handleExportCSV}
                 onDeleteAccount={handleDeleteAccount}

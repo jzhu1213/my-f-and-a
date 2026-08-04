@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { springs } from '@/lib/animations'
+import { springs, useReducedMotion } from '@/lib/animations'
 import type { TutorialStep } from './OnboardingTutorial'
 import type { BudgetPreset, OnboardingResult } from '@/types/folio'
 import type { TransactionCategory, OnboardingPath, UserGoal } from '@/types'
@@ -27,6 +27,25 @@ export const WELCOME_STEP: TutorialStep = {
   title: 'One question every day:',
   subtitle: 'Can I afford this? Folio gives you a single daily number — no spreadsheets, no stress. Just a gentle guide for your spending.',
   emoji: '✨',
+}
+
+// ============================================================================
+// Demo Intro Step (Task 224.1)
+// ============================================================================
+
+/**
+ * Optional intro step before the 3 interactive demos. Gives setup-ready
+ * users a way to skip the demos and jump straight to the path router.
+ * The existing Skip button on this info step lets users bypass the demos.
+ *
+ * Validates: Requirements 7.1, 7.5
+ */
+export const DEMO_INTRO_STEP: TutorialStep = {
+  type: 'info',
+  id: 'demo-intro',
+  title: 'See how it works',
+  subtitle: 'Log an expense, peek at your daily number, and browse categories — takes 30 seconds. Or skip ahead whenever you\u2019re ready.',
+  emoji: '👋',
 }
 
 // ============================================================================
@@ -118,8 +137,8 @@ export const PATH_ROUTER_STEP: TutorialStep = {
  */
 export function buildStepsForPath(path: OnboardingPath, budgetPreset?: BudgetPreset, paycheckMode?: 'full' | 'simple', hasGoalAlready?: boolean): TutorialStep[] {
   if (path === null) {
-    // No path chosen yet — full intro sequence
-    return [WELCOME_STEP, ...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+    // No path chosen yet — full intro sequence with optional demo skip (task 224.1)
+    return [WELCOME_STEP, DEMO_INTRO_STEP, ...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
   }
 
   // Once a path is selected, skip the feature demos (already seen) and jump
@@ -161,6 +180,17 @@ export function buildStepsForPath(path: OnboardingPath, budgetPreset?: BudgetPre
   }
 
   return steps
+}
+
+/**
+ * Builds a demo-only step list for the "Show me around again" replay mode.
+ * Returns just the welcome + 3 interactive feature demos. No path router,
+ * no setup steps — the user is already configured.
+ *
+ * Task 224.2: Replay mode from Settings/Help.
+ */
+export function buildDemoOnlySteps(): TutorialStep[] {
+  return [WELCOME_STEP, ...TUTORIAL_FEATURE_STEPS]
 }
 
 /**
@@ -571,14 +601,17 @@ export function TutorialStepRenderer({
   // Branch steps are handled by the parent (path selection UI)
   if (step.type === 'branch') return null
 
+  // Reduced motion support (task 226.2)
+  const { prefersReducedMotion } = useReducedMotion()
+
   return (
     <div className="flex flex-col items-center text-center flex-1">
       {/* Emoji */}
       <motion.span
         style={{ fontSize: 48, marginBottom: 16 }}
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={springs.bouncy}
+        initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+        animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+        transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
         aria-hidden="true"
       >
         {step.emoji}
@@ -648,7 +681,7 @@ export function TutorialStepRenderer({
               fontFamily: 'Inter, sans-serif',
             }}
           >
-            Tap Next to continue
+            Tap Next when you&apos;re ready
           </p>
         </div>
       )}
@@ -1055,6 +1088,10 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
           background: `linear-gradient(to right, var(--accent) ${((value - 500) / 9500) * 100}%, var(--line) ${((value - 500) / 9500) * 100}%)`,
         }}
         aria-label="Monthly income slider"
+        aria-valuemin={500}
+        aria-valuemax={10000}
+        aria-valuenow={value}
+        aria-valuetext={`$${value.toLocaleString()} per month`}
       />
       <div
         className="flex justify-between w-full mt-2 text-xs"
@@ -1401,7 +1438,7 @@ function SetupCategoryLimitsStep({ values, onChange }: SetupCategoryLimitsProps)
         <p
           style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', lineHeight: 1.5 }}
         >
-          Optional — leave blank to skip any category.
+          Totally optional — leave any blank and move on.
         </p>
       </div>
 
@@ -1842,7 +1879,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
           role="status"
           aria-live="polite"
         >
-          Tap Next to save, or Skip to move on
+          Looks good — tap Next to save, or skip for now
         </motion.p>
       )}
     </div>
@@ -1956,7 +1993,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           maxWidth: 300,
         }}
       >
-        This seeds your history and shows how quick logging works. Skip if you'd rather start fresh.
+        This logs a quick expense and shows how fast logging works. Skip if you'd rather start fresh.
       </p>
 
       {/* Category quick-pick chips */}
@@ -2163,7 +2200,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           role="status"
           aria-live="polite"
         >
-          Tap Next to save, or Skip to move on
+          Looks good — tap Next to save, or skip for now
         </motion.p>
       )}
     </div>
@@ -2514,6 +2551,10 @@ function ExpressIncomeStep({ value, onChange, dailyAllowance }: ExpressIncomeSte
           background: `linear-gradient(to right, var(--accent) ${(Math.min(value, 15000) / 15000) * 100}%, var(--line) ${(Math.min(value, 15000) / 15000) * 100}%)`,
         }}
         aria-label="Monthly income slider"
+        aria-valuemin={0}
+        aria-valuemax={15000}
+        aria-valuenow={Math.min(value, 15000)}
+        aria-valuetext={`$${value.toLocaleString()} per month`}
       />
       <div
         className="flex justify-between w-full mt-2 text-xs"
@@ -2580,7 +2621,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
       <p
         style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
       >
-        Rent, subscriptions, utilities — these get subtracted before your daily number is calculated.
+        Rent, subscriptions, utilities — these come out first so your daily number stays honest.
       </p>
 
       {/* Expense list */}
@@ -2748,7 +2789,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
         <p
           style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', lineHeight: 1.5 }}
         >
-          Optional — leave blank to skip any category.
+          Totally optional — leave any blank and move on.
         </p>
       </div>
 
@@ -2865,7 +2906,7 @@ function ExpressConfirmationStep({ setupState, dailyAllowance }: ExpressConfirma
       <p
         style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 24 }}
       >
-        This is how much you can safely spend each day.
+        This is your easy daily spending number — no math needed.
       </p>
 
       {/* Hero daily allowance */}
@@ -3204,7 +3245,7 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
       <p
         style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
       >
-        Your &quot;Spend&quot; bucket becomes your daily number. The rest is set aside automatically.
+        Your &quot;Spend&quot; bucket becomes your daily number. The rest is tucked away for you automatically.
       </p>
 
       {/* Preset chips */}
@@ -3259,6 +3300,10 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
                   background: `linear-gradient(to right, ${bucket.color} ${pct}%, var(--line) ${pct}%)`,
                 }}
                 aria-label={`${bucket.label} percentage`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={pct}
+                aria-valuetext={`${bucket.label}: ${pct}%${paycheckAmount > 0 ? `, $${dollars}` : ''}`}
               />
             </div>
           )
@@ -3707,6 +3752,10 @@ function SimpleSplitStep({
                   background: `linear-gradient(to right, ${bucket.color} ${pct}%, var(--line) ${pct}%)`,
                 }}
                 aria-label={`${bucket.label} percentage`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={pct}
+                aria-valuetext={`${bucket.label}: ${pct}%${amount > 0 ? `, $${dollars}` : ''}`}
               />
             </div>
           )
@@ -3789,7 +3838,7 @@ function SimpleConfirmationStep({ amount, allocation, cadence }: SimpleConfirmat
       <p
         style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
       >
-        Your spending money, divided into a simple daily number.
+        Your spending money, turned into one simple daily number. Nice and easy.
       </p>
 
       {/* Hero daily number */}
@@ -3913,6 +3962,9 @@ export function TutorialSetupStepRenderer({
   onRecentExpenseChange,
   onGoalChange,
 }: TutorialSetupStepRendererProps) {
+  // Reduced motion support (task 226.2)
+  const { prefersReducedMotion } = useReducedMotion()
+
   // Setup steps — render the appropriate form
   if (step.type === 'setup') {
     const dailyAllowance = computeDailyAllowance(setupState)
@@ -4115,9 +4167,9 @@ export function TutorialSetupStepRenderer({
       {/* Emoji */}
       <motion.span
         style={{ fontSize: 48, marginBottom: 16 }}
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={springs.bouncy}
+        initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+        animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+        transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
         aria-hidden="true"
       >
         {step.emoji}
@@ -4185,7 +4237,7 @@ export function TutorialSetupStepRenderer({
               fontFamily: 'Inter, sans-serif',
             }}
           >
-            Tap Next to continue
+            Tap Next when you&apos;re ready
           </p>
         </div>
       )}

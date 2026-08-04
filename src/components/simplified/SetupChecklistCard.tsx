@@ -11,15 +11,15 @@ import { borderRadius } from '@/styles/shared'
 
 /** Maps internal step IDs to user-friendly labels and emoji */
 const STEP_META: Record<string, { label: string; emoji: string }> = {
-  'setup-income': { label: 'Set your income', emoji: '💰' },
-  'express-income': { label: 'Set your income', emoji: '💰' },
-  'optional-recent-income': { label: 'Set your income', emoji: '💰' },
-  'setup-budget-style': { label: 'Choose budget limits', emoji: '📊' },
-  'paycheck-mode': { label: 'Set up paycheck', emoji: '📅' },
-  'paycheck-schedule': { label: 'Set up paycheck', emoji: '📅' },
-  'paycheck-allocation': { label: 'Set up paycheck', emoji: '📅' },
-  'paycheck-confirmation': { label: 'Set up paycheck', emoji: '📅' },
-  'optional-goal': { label: 'Set a savings goal', emoji: '🎯' },
+  'setup-income': { label: 'Add your income', emoji: '💰' },
+  'express-income': { label: 'Add your income', emoji: '💰' },
+  'optional-recent-income': { label: 'Add your income', emoji: '💰' },
+  'setup-budget-style': { label: 'Pick budget limits', emoji: '📊' },
+  'paycheck-mode': { label: 'Connect your paycheck', emoji: '📅' },
+  'paycheck-schedule': { label: 'Connect your paycheck', emoji: '📅' },
+  'paycheck-allocation': { label: 'Connect your paycheck', emoji: '📅' },
+  'paycheck-confirmation': { label: 'Connect your paycheck', emoji: '📅' },
+  'optional-goal': { label: 'Pick a savings goal', emoji: '🎯' },
   'terminal-goal': { label: 'Pick your focus', emoji: '🎯' },
 }
 
@@ -87,7 +87,7 @@ export function SetupChecklistCard({
         exit={{ opacity: 0, y: -4 }}
         transition={timings.normal}
         role="region"
-        aria-label="Setup checklist — finish setting up your account"
+        aria-label="Finish setting up — whenever you're ready"
         style={{
           position: 'relative',
           padding: isHome ? '12px 14px' : '14px 16px',
