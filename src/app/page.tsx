@@ -20,6 +20,7 @@ import { RefundSheet } from '@/components/simplified/RefundSheet'
 import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath } from '@/components/simplified/TutorialSteps'
 import type { PayCadence } from '@/lib/paySchedule'
 import { detectSubscriptions } from '@/lib/subscriptionDetector'
+import { mapGoalToPriority } from '@/lib/goalMapping'
 import { getCategorizationRules, saveCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
 import { getActiveShareLinks } from '@/lib/sharingUtils'
 import type { CategorizationRule } from '@/lib/categorizationRules'
@@ -128,7 +129,7 @@ import { useCustomCategories } from '@/hooks/useCustomCategories'
 import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement, upsertPaySchedule, upsertBudget } from '@/lib/supabaseData'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
 import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, setOnboardingPath } from '@/lib/storage'
-import type { TransactionCategory, Transaction, OnboardingPath } from '@/types'
+import type { TransactionCategory, Transaction, OnboardingPath, UserGoal } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
 import { heroMeaningStatus } from '@/lib/dailyAllowanceUtils'
 import type { Reimbursement } from '@/lib/reimbursements'
@@ -654,6 +655,42 @@ export default function FolioApp() {
       }
     }
     
+    // ── Persist optional recent income (task 219) ───────────────────────────
+    // If the user logged a recent deposit in the cascade tail, persist it as
+    // a real income transaction so it contributes to smoothing accuracy.
+    if (tutorialSetupState.recentIncome && tutorialSetupState.recentIncome.amount > 0) {
+      const incomeDate = tutorialSetupState.recentIncome.date || new Date().toISOString().slice(0, 10)
+      await addTransaction({
+        amount: tutorialSetupState.recentIncome.amount,
+        category: 'other',
+        type: 'income',
+        date: incomeDate,
+        note: tutorialSetupState.recentIncome.note || 'Recent deposit (from setup)',
+      })
+    }
+
+    // ── Persist optional recent expense (task 220) ──────────────────────────
+    // If the user logged a recent purchase in the cascade tail, persist it as
+    // a real expense transaction so it seeds their history.
+    if (tutorialSetupState.recentExpense && tutorialSetupState.recentExpense.amount > 0) {
+      const expenseDate = tutorialSetupState.recentExpense.date || new Date().toISOString().slice(0, 10)
+      await addTransaction({
+        amount: tutorialSetupState.recentExpense.amount,
+        category: tutorialSetupState.recentExpense.category,
+        type: 'expense',
+        date: expenseDate,
+        note: tutorialSetupState.recentExpense.note || 'Recent purchase (from setup)',
+      })
+    }
+
+    // ── Persist optional goal selection (task 221) ──────────────────────────
+    // If the user picked a primary goal in the cascade tail, map it to a
+    // UserPriority and persist it on the profile so tip tone adapts.
+    if (tutorialSetupState.primaryGoal && user) {
+      const mappedPriority = mapGoalToPriority(tutorialSetupState.primaryGoal)
+      await updateProfilePreferences(user.id, { priority: mappedPriority })
+    }
+
     // Persist tutorial completion flag (structured state + Supabase sync)
     const completionProgress = getOnboardingProgress()
     completionProgress.isComplete = true
@@ -680,6 +717,13 @@ export default function FolioApp() {
 
   const handleTutorialSkip = () => {
     const progress = getOnboardingProgress()
+    // Task 218.2: When minimal path user skips the estimate step,
+    // record it so home can show the "make this yours" nudge.
+    if (activeOnboardingPath === 'minimal' && tutorialSetupState.monthlyIncome === 0) {
+      if (!progress.skippedSteps.includes('minimal-estimate')) {
+        progress.skippedSteps.push('minimal-estimate')
+      }
+    }
     progress.isComplete = true
     setOnboardingProgress(progress)
     setOnboardingStep('done')
@@ -1270,6 +1314,11 @@ export default function FolioApp() {
         onPathSelect={(path) => {
           setActiveOnboardingPath(path)
           setOnboardingPath(path)
+          // Task 218: Minimal path asks "how much do you spend" (post-savings),
+          // so use 'custom' preset (0% savings) to avoid double-deducting savings.
+          if (path === 'minimal') {
+            setTutorialSetupState(prev => ({ ...prev, budgetPreset: 'custom' as BudgetPreset, monthlyIncome: 0 }))
+          }
         }}
         renderStep={(step, completeInteraction) => (
           <TutorialSetupStepRenderer
@@ -1317,6 +1366,15 @@ export default function FolioApp() {
             }
             onSimpleCadenceChange={(cadence: 'weekly' | 'biweekly' | 'monthly') =>
               setTutorialSetupState(prev => ({ ...prev, simpleCadence: cadence }))
+            }
+            onRecentIncomeChange={(data: { amount: number; note?: string; date?: string }) =>
+              setTutorialSetupState(prev => ({ ...prev, recentIncome: data }))
+            }
+            onRecentExpenseChange={(data: { amount: number; category: TransactionCategory; note?: string; date?: string }) =>
+              setTutorialSetupState(prev => ({ ...prev, recentExpense: data }))
+            }
+            onGoalChange={(goal: UserGoal) =>
+              setTutorialSetupState(prev => ({ ...prev, primaryGoal: goal }))
             }
           />
         )}
@@ -1669,6 +1727,8 @@ export default function FolioApp() {
                 savingsAccounts={savingsAccounts}
                 fundingSources={fundingSources}
                 completedLessonIds={completedLessonIds}
+                hasSkippedSetupSteps={getOnboardingProgress().skippedSteps.length > 0}
+                onOpenSetupChecklist={() => overlay.openSheet('income')}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => overlay.openSheet('income')}

@@ -321,6 +321,12 @@ export interface HomeScreenProps {
   fundingSources?: FundingSource[]
   /** Set of lesson IDs the user has completed (for credit education path tips). */
   completedLessonIds?: Set<string>
+
+  // ── Minimal path nudge (task 218.3) ────────────────────────────────────────
+  /** True when the user skipped setup steps during onboarding (minimal path). */
+  hasSkippedSetupSteps?: boolean
+  /** Called when the user taps the "make this yours" nudge — opens setup/resume checklist. */
+  onOpenSetupChecklist?: () => void
 }
 
 // ============================================================================
@@ -389,6 +395,8 @@ export function HomeScreen({
   savingsAccounts,
   fundingSources,
   completedLessonIds,
+  hasSkippedSetupSteps,
+  onOpenSetupChecklist,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -410,6 +418,16 @@ export function HomeScreen({
   // ── "New day" micro-celebration (task 74) ────────────────────────────────
   // Shows a brief warm indicator when the user opens the app on a new calendar day.
   const [showNewDayRefresh, setShowNewDayRefresh] = useState(false)
+
+  // ── Minimal path "make this yours" nudge dismissal (task 218.3) ─────────
+  const [estimateNudgeDismissed, setEstimateNudgeDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('folio-estimate-nudge-dismissed') === 'true'
+  })
+  const handleDismissEstimateNudge = useCallback(() => {
+    setEstimateNudgeDismissed(true)
+    localStorage.setItem('folio-estimate-nudge-dismissed', 'true')
+  }, [])
   const { prefersReducedMotion } = useAppReducedMotion()
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -952,30 +970,86 @@ export function HomeScreen({
             )}
           </AnimatePresence>
           {!isLoading && allowance && allowance.isEstimated && (
-            <motion.button
-              type="button"
-              onClick={onLogIncome}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={timings.slow}
-              style={{
-                fontSize: 12,
-                color: "var(--sub)",
-                textAlign: "center",
-                fontFamily: FONT_FAMILY,
-                marginTop: 10,
-                padding: "8px 14px",
-                background: "rgba(167, 139, 250, 0.08)",
-                borderRadius: borderRadius.md,
-                lineHeight: 1.5,
-                border: "none",
-                cursor: "pointer",
-                width: "100%",
-              }}
-              aria-label="Estimated budget — tap to log income for a more accurate daily budget"
-            >
-              ✨ Estimated — tap to log income for accuracy →
-            </motion.button>
+            <>
+              {/* Task 218.3: Enhanced "make this yours" nudge for minimal-path users */}
+              {hasSkippedSetupSteps && !estimateNudgeDismissed && onOpenSetupChecklist ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={timings.slow}
+                  style={{
+                    marginTop: 10,
+                    position: 'relative',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={onOpenSetupChecklist}
+                    style={{
+                      fontSize: 12,
+                      color: "var(--sub)",
+                      textAlign: "center",
+                      fontFamily: FONT_FAMILY,
+                      padding: "8px 14px",
+                      background: "rgba(167, 139, 250, 0.08)",
+                      borderRadius: borderRadius.md,
+                      lineHeight: 1.5,
+                      border: "none",
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                    aria-label="This is an estimate — tap to make it yours when you're ready"
+                  >
+                    ✨ This is a rough estimate — make it yours when you&apos;re ready →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDismissEstimateNudge}
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      color: 'var(--muted)',
+                      padding: '2px 6px',
+                      lineHeight: 1,
+                      borderRadius: 4,
+                    }}
+                    aria-label="Dismiss estimate nudge"
+                  >
+                    ×
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.button
+                  type="button"
+                  onClick={onLogIncome}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={timings.slow}
+                  style={{
+                    fontSize: 12,
+                    color: "var(--sub)",
+                    textAlign: "center",
+                    fontFamily: FONT_FAMILY,
+                    marginTop: 10,
+                    padding: "8px 14px",
+                    background: "rgba(167, 139, 250, 0.08)",
+                    borderRadius: borderRadius.md,
+                    lineHeight: 1.5,
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                  }}
+                  aria-label="Estimated budget — tap to log income for a more accurate daily budget"
+                >
+                  ✨ Estimated — tap to log income for accuracy →
+                </motion.button>
+              )}
+            </>
           )}
           {/* ── Over-budget strip (task 70.3) — inside hero section ───── */}
           {/* In tracker mode, there is no "over budget" concept — suppress this entirely */}

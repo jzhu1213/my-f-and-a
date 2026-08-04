@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs } from '@/lib/animations'
 import type { TutorialStep } from './OnboardingTutorial'
 import type { BudgetPreset, OnboardingResult } from '@/types/folio'
-import type { TransactionCategory, OnboardingPath } from '@/types'
+import type { TransactionCategory, OnboardingPath, UserGoal } from '@/types'
 import { getCategoryEmoji, PRESET_EMOJI } from '@/lib/vocabulary'
 import { borderRadius } from '@/styles/shared'
 import type { PayCadence } from '@/lib/paySchedule'
@@ -125,25 +125,34 @@ export function buildStepsForPath(path: OnboardingPath, budgetPreset?: BudgetPre
   // Once a path is selected, skip the feature demos (already seen) and jump
   // from welcome → router → path-specific setup. Groups 32-35 will inject
   // distinct steps between the router and setup tail per path.
+  // Group 36 (task 219): Append optional cascade tail after core steps.
+  let coreSteps: TutorialStep[]
   switch (path) {
     case 'express':
       // Path A: "I know my numbers" — real numeric inputs (Group 32, task 214)
-      return [WELCOME_STEP, PATH_ROUTER_STEP, ...EXPRESS_SETUP_STEPS]
+      coreSteps = [WELCOME_STEP, PATH_ROUTER_STEP, ...EXPRESS_SETUP_STEPS]
+      break
     case 'preset':
       // Path B: "Help me figure it out" — guided preset (Group 33, task 215)
       // Category-limits step only shows for 'custom' preset; other presets
       // derive spending limits automatically from their savings percentage.
-      return [WELCOME_STEP, PATH_ROUTER_STEP, ...buildPresetSetupSteps(budgetPreset)]
+      coreSteps = [WELCOME_STEP, PATH_ROUTER_STEP, ...buildPresetSetupSteps(budgetPreset)]
+      break
     case 'paycheck':
       // Path C: "I get paychecks" — pay schedule + allocation (Group 34, task 216)
       // Task 217: Now supports full and simple modes
-      return [WELCOME_STEP, PATH_ROUTER_STEP, ...buildPaycheckSteps(paycheckMode)]
+      coreSteps = [WELCOME_STEP, PATH_ROUTER_STEP, ...buildPaycheckSteps(paycheckMode)]
+      break
     case 'minimal':
-      // Path D: "Just let me try it" — minimal setup (Group 35)
-      return [WELCOME_STEP, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+      // Path D: "Just let me try it" — single low-friction step (Group 35, task 218)
+      coreSteps = [WELCOME_STEP, PATH_ROUTER_STEP, MINIMAL_ESTIMATE_STEP]
+      break
     default:
-      return [WELCOME_STEP, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+      coreSteps = [WELCOME_STEP, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
   }
+
+  // Append optional cascade tail (Group 36, task 219+)
+  return [...coreSteps, OPTIONAL_RECENT_INCOME_STEP, OPTIONAL_RECENT_EXPENSE_STEP, OPTIONAL_GOAL_STEP]
 }
 
 /**
@@ -739,6 +748,64 @@ export function buildPaycheckSteps(paycheckMode?: 'full' | 'simple'): TutorialSt
   return PAYCHECK_SETUP_STEPS
 }
 
+// ============================================================================
+// Minimal Path Step (Task 218 — Group 35)
+// ============================================================================
+
+/**
+ * Single low-friction step for Path D "Just let me try it".
+ * Asks one rough spending question via tappable chips.
+ * Skippable — falls back to the $50 estimate.
+ *
+ * Validates: Requirements 7.6
+ */
+export const MINIMAL_ESTIMATE_STEP: TutorialStep = {
+  type: 'setup',
+  id: 'minimal-estimate',
+  setupType: 'income',
+}
+
+// ============================================================================
+// Optional Cascade Tail Steps (Task 219 — Group 36)
+// ============================================================================
+
+/**
+ * Optional recent income step — the first step in the cascading optional tail.
+ * One-tap skippable. Logging a recent deposit improves income smoothing accuracy.
+ *
+ * Validates: Task 219
+ */
+export const OPTIONAL_RECENT_INCOME_STEP: TutorialStep = {
+  type: 'setup',
+  id: 'optional-recent-income',
+  setupType: 'income',
+}
+
+/**
+ * Optional recent expense step — follows the recent income step in the
+ * cascading optional tail (Group 36). Doubles as a live demo of one-tap logging.
+ *
+ * Validates: Task 220
+ */
+export const OPTIONAL_RECENT_EXPENSE_STEP: TutorialStep = {
+  type: 'setup',
+  id: 'optional-recent-expense',
+  setupType: 'income',
+}
+
+/**
+ * Optional goal step — the LAST step in the cascading optional tail (Group 36).
+ * Lets the user pick their primary financial goal from the canonical UserGoal type.
+ * One-tap skippable. Sets default tip tone and profile priority.
+ *
+ * Validates: Task 221
+ */
+export const OPTIONAL_GOAL_STEP: TutorialStep = {
+  type: 'setup',
+  id: 'optional-goal',
+  setupType: 'income',
+}
+
 /**
  * Setup steps that form the "tutorial tail" — income, budget style,
  * category limits, and confirmation. These are appended after the
@@ -838,6 +905,12 @@ export interface TutorialSetupState {
   paycheckMode?: 'full' | 'simple'
   /** Simple split path: cadence assumption for daily number calculation (task 217.2) */
   simpleCadence?: 'weekly' | 'biweekly' | 'monthly'
+  /** Optional recent income deposit captured during cascade tail (task 219) */
+  recentIncome?: { amount: number; note?: string; date?: string }
+  /** Optional recent expense captured during cascade tail (task 220) */
+  recentExpense?: { amount: number; category: TransactionCategory; note?: string; date?: string }
+  /** Optional primary goal selected during cascade tail (task 221) */
+  primaryGoal?: UserGoal
 }
 
 /**
@@ -877,6 +950,7 @@ export function buildOnboardingResult(state: TutorialSetupState): OnboardingResu
     customLimits: Object.keys(customLimits).length > 0
       ? customLimits as Record<TransactionCategory, number>
       : undefined,
+    primaryGoal: state.primaryGoal,
   }
 }
 
@@ -1446,6 +1520,741 @@ function SetupConfirmationStep({ monthlyIncome, budgetPreset, dailyAllowance, ca
 }
 
 // ============================================================================
+// Optional Cascade Tail — Recent Income Step (Task 219)
+// ============================================================================
+
+interface OptionalRecentIncomeStepProps {
+  value?: { amount: number; note?: string; date?: string }
+  onChange: (data: { amount: number; note?: string; date?: string }) => void
+}
+
+/**
+ * Helper to get last Friday's date (or today if it's Friday).
+ */
+function getLastFriday(): string {
+  const now = new Date()
+  const day = now.getDay() // 0=Sun, 5=Fri
+  const diff = day >= 5 ? day - 5 : day + 2
+  const lastFri = new Date(now)
+  lastFri.setDate(now.getDate() - diff)
+  return lastFri.toISOString().slice(0, 10)
+}
+
+/**
+ * Optional recent income capture step — part of the cascading optional tail (Group 36).
+ * Offers a warm, low-friction way to log a recent paycheck/deposit.
+ * Skipping advances to the next optional step in the cascade.
+ *
+ * Validates: Task 219
+ */
+function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepProps) {
+  const [amount, setAmount] = useState(value?.amount?.toString() ?? '')
+  const [note, setNote] = useState(value?.note ?? '')
+  const [selectedDate, setSelectedDate] = useState<string>(value?.date ?? getLastFriday())
+  const [showCustomDate, setShowCustomDate] = useState(false)
+
+  const today = new Date().toISOString().slice(0, 10)
+  const lastFriday = getLastFriday()
+
+  const dateOptions = [
+    { label: 'Today', value: today },
+    { label: 'Last Friday', value: lastFriday },
+    { label: 'Custom', value: 'custom' },
+  ]
+
+  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9.]/g, '')
+    const parts = raw.split('.')
+    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw
+    setAmount(sanitized)
+    const num = parseFloat(sanitized) || 0
+    if (num > 0) {
+      onChange({ amount: num, note: note || undefined, date: selectedDate })
+    }
+  }, [note, selectedDate, onChange])
+
+  const handleNoteChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setNote(val)
+    const num = parseFloat(amount) || 0
+    if (num > 0) {
+      onChange({ amount: num, note: val || undefined, date: selectedDate })
+    }
+  }, [amount, selectedDate, onChange])
+
+  const handleDateSelect = useCallback((dateValue: string) => {
+    if (dateValue === 'custom') {
+      setShowCustomDate(true)
+      return
+    }
+    setShowCustomDate(false)
+    setSelectedDate(dateValue)
+    const num = parseFloat(amount) || 0
+    if (num > 0) {
+      onChange({ amount: num, note: note || undefined, date: dateValue })
+    }
+  }, [amount, note, onChange])
+
+  const handleCustomDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setSelectedDate(val)
+    const num = parseFloat(amount) || 0
+    if (num > 0) {
+      onChange({ amount: num, note: note || undefined, date: val })
+    }
+  }, [amount, note, onChange])
+
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="text-4xl mb-4" role="img" aria-label="money">
+        💰
+      </div>
+      <h2
+        style={{
+          fontSize: 22,
+          fontWeight: 700,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--text)',
+          marginBottom: 8,
+          lineHeight: 1.3,
+        }}
+      >
+        Log a recent deposit
+      </h2>
+      <p
+        style={{
+          fontSize: 14,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--sub)',
+          marginBottom: 24,
+          lineHeight: 1.5,
+          maxWidth: 300,
+        }}
+      >
+        Did you recently get paid? Adding it helps Folio give you a better number. Skip if you're not sure.
+      </p>
+
+      {/* Amount input */}
+      <div className="w-full mb-4">
+        <label
+          htmlFor="recent-income-amount"
+          style={{
+            display: 'block',
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--sub)',
+            marginBottom: 6,
+            textAlign: 'left',
+          }}
+        >
+          Amount
+        </label>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'var(--surface)',
+            border: '1.5px solid var(--border)',
+            borderRadius: 12,
+            padding: '12px 14px',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 18,
+              fontFamily: 'Inter, sans-serif',
+              color: 'var(--sub)',
+              marginRight: 4,
+            }}
+          >
+            $
+          </span>
+          <input
+            id="recent-income-amount"
+            type="text"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={amount}
+            onChange={handleAmountChange}
+            autoComplete="off"
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontSize: 18,
+              fontFamily: 'Inter, sans-serif',
+              fontVariantNumeric: 'tabular-nums',
+              color: 'var(--text)',
+            }}
+            aria-label="Income amount in dollars"
+          />
+        </div>
+      </div>
+
+      {/* Date quick-picks */}
+      <div className="w-full mb-4">
+        <label
+          style={{
+            display: 'block',
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--sub)',
+            marginBottom: 6,
+            textAlign: 'left',
+          }}
+        >
+          When did you get it?
+        </label>
+        <div className="flex gap-2">
+          {dateOptions.map((opt) => {
+            const isSelected = !showCustomDate && selectedDate === opt.value && opt.value !== 'custom'
+            const isCustomSelected = showCustomDate && opt.value === 'custom'
+            return (
+              <button
+                key={opt.value}
+                onClick={() => handleDateSelect(opt.value)}
+                type="button"
+                className="flex-1 py-2.5 rounded-lg transition-all"
+                style={{
+                  background: (isSelected || isCustomSelected)
+                    ? 'rgba(167, 139, 250, 0.12)'
+                    : 'var(--surface)',
+                  border: (isSelected || isCustomSelected)
+                    ? '1.5px solid var(--accent)'
+                    : '1.5px solid var(--border)',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 500,
+                  color: (isSelected || isCustomSelected) ? 'var(--text)' : 'var(--sub)',
+                }}
+                aria-pressed={isSelected || isCustomSelected}
+                aria-label={`Date: ${opt.label}`}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+        {showCustomDate && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            transition={springs.gentle}
+            style={{ marginTop: 8 }}
+          >
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={handleCustomDateChange}
+              max={today}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                background: 'var(--surface)',
+                border: '1.5px solid var(--border)',
+                color: 'var(--text)',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 14,
+              }}
+              aria-label="Custom date"
+            />
+          </motion.div>
+        )}
+      </div>
+
+      {/* Note field (optional) */}
+      <div className="w-full mb-4">
+        <label
+          htmlFor="recent-income-note"
+          style={{
+            display: 'block',
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--sub)',
+            marginBottom: 6,
+            textAlign: 'left',
+          }}
+        >
+          Note (optional)
+        </label>
+        <input
+          id="recent-income-note"
+          type="text"
+          placeholder="e.g. Paycheck, freelance gig"
+          value={note}
+          onChange={handleNoteChange}
+          autoComplete="off"
+          style={{
+            width: '100%',
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: 'var(--surface)',
+            border: '1.5px solid var(--border)',
+            color: 'var(--text)',
+            fontFamily: 'Inter, sans-serif',
+            fontSize: 14,
+            outline: 'none',
+          }}
+          aria-label="Optional note for this income"
+        />
+      </div>
+
+      {/* Confirmation hint */}
+      {parseFloat(amount) > 0 && (
+        <motion.p
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={springs.gentle}
+          style={{
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--accent)',
+            marginTop: 4,
+            lineHeight: 1.4,
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          Tap Next to save, or Skip to move on
+        </motion.p>
+      )}
+    </div>
+  )
+}
+
+// ============================================================================
+// Optional Recent Expense Step (Task 220)
+// ============================================================================
+
+interface OptionalRecentExpenseStepProps {
+  value?: { amount: number; category: TransactionCategory; note?: string; date?: string }
+  onChange: (data: { amount: number; category: TransactionCategory; note?: string; date?: string }) => void
+}
+
+/** Common expense categories displayed as quick-pick chips */
+const EXPENSE_CATEGORY_CHIPS: { category: TransactionCategory; emoji: string; label: string }[] = [
+  { category: 'food', emoji: '🍕', label: 'Food' },
+  { category: 'fun', emoji: '🎶', label: 'Fun' },
+  { category: 'transport', emoji: '🚲', label: 'Transport' },
+  { category: 'subscriptions', emoji: '☕', label: 'Coffee' },
+  { category: 'other', emoji: '🛍️', label: 'Shopping' },
+]
+
+/**
+ * Optional recent expense capture step — part of the cascading optional tail (Group 36).
+ * Offers a warm, low-friction way to log a recent purchase. Also doubles as a
+ * live demo of how quick expense logging works.
+ * Skipping advances to the next optional step in the cascade.
+ *
+ * Validates: Task 220
+ */
+function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseStepProps) {
+  const [amount, setAmount] = useState(value?.amount?.toString() ?? '')
+  const [note, setNote] = useState(value?.note ?? '')
+  const [selectedCategory, setSelectedCategory] = useState<TransactionCategory>(value?.category ?? 'food')
+  const [selectedDate, setSelectedDate] = useState<string>(value?.date ?? new Date().toISOString().slice(0, 10))
+
+  const today = new Date().toISOString().slice(0, 10)
+  const yesterday = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    return d.toISOString().slice(0, 10)
+  })()
+
+  const dateOptions = [
+    { label: 'Today', value: today },
+    { label: 'Yesterday', value: yesterday },
+  ]
+
+  const emitChange = useCallback((
+    newAmount: string,
+    newCategory: TransactionCategory,
+    newNote: string,
+    newDate: string,
+  ) => {
+    const num = parseFloat(newAmount) || 0
+    if (num > 0) {
+      onChange({ amount: num, category: newCategory, note: newNote || undefined, date: newDate })
+    }
+  }, [onChange])
+
+  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9.]/g, '')
+    const parts = raw.split('.')
+    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw
+    setAmount(sanitized)
+    emitChange(sanitized, selectedCategory, note, selectedDate)
+  }, [selectedCategory, note, selectedDate, emitChange])
+
+  const handleCategorySelect = useCallback((category: TransactionCategory) => {
+    setSelectedCategory(category)
+    emitChange(amount, category, note, selectedDate)
+  }, [amount, note, selectedDate, emitChange])
+
+  const handleNoteChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setNote(val)
+    emitChange(amount, selectedCategory, val, selectedDate)
+  }, [amount, selectedCategory, selectedDate, emitChange])
+
+  const handleDateSelect = useCallback((dateValue: string) => {
+    setSelectedDate(dateValue)
+    emitChange(amount, selectedCategory, note, dateValue)
+  }, [amount, selectedCategory, note, emitChange])
+
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="text-4xl mb-4" role="img" aria-label="receipt">
+        🧾
+      </div>
+      <h2
+        style={{
+          fontSize: 22,
+          fontWeight: 700,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--text)',
+          marginBottom: 8,
+          lineHeight: 1.3,
+        }}
+      >
+        Log a recent purchase
+      </h2>
+      <p
+        style={{
+          fontSize: 14,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--sub)',
+          marginBottom: 24,
+          lineHeight: 1.5,
+          maxWidth: 300,
+        }}
+      >
+        This seeds your history and shows how quick logging works. Skip if you'd rather start fresh.
+      </p>
+
+      {/* Category quick-pick chips */}
+      <div className="w-full mb-4">
+        <label
+          style={{
+            display: 'block',
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--sub)',
+            marginBottom: 6,
+            textAlign: 'left',
+          }}
+        >
+          Category
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {EXPENSE_CATEGORY_CHIPS.map((chip) => {
+            const isSelected = selectedCategory === chip.category
+            return (
+              <button
+                key={chip.category}
+                onClick={() => handleCategorySelect(chip.category)}
+                type="button"
+                className="py-2 px-3 transition-all"
+                style={{
+                  background: isSelected
+                    ? 'rgba(167, 139, 250, 0.12)'
+                    : 'var(--surface)',
+                  border: isSelected
+                    ? '1.5px solid var(--accent)'
+                    : '1.5px solid var(--border)',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 500,
+                  color: isSelected ? 'var(--text)' : 'var(--sub)',
+                }}
+                aria-pressed={isSelected}
+                aria-label={`Category: ${chip.label}`}
+              >
+                {chip.emoji} {chip.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Amount input */}
+      <div className="w-full mb-4">
+        <label
+          htmlFor="recent-expense-amount"
+          style={{
+            display: 'block',
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--sub)',
+            marginBottom: 6,
+            textAlign: 'left',
+          }}
+        >
+          Amount
+        </label>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'var(--surface)',
+            border: '1.5px solid var(--border)',
+            borderRadius: 12,
+            padding: '12px 14px',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 18,
+              fontFamily: 'Inter, sans-serif',
+              color: 'var(--sub)',
+              marginRight: 4,
+            }}
+          >
+            $
+          </span>
+          <input
+            id="recent-expense-amount"
+            type="text"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={amount}
+            onChange={handleAmountChange}
+            autoComplete="off"
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontSize: 18,
+              fontFamily: 'Inter, sans-serif',
+              fontVariantNumeric: 'tabular-nums',
+              color: 'var(--text)',
+            }}
+            aria-label="Expense amount in dollars"
+          />
+        </div>
+      </div>
+
+      {/* Date quick-picks */}
+      <div className="w-full mb-4">
+        <label
+          style={{
+            display: 'block',
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--sub)',
+            marginBottom: 6,
+            textAlign: 'left',
+          }}
+        >
+          When?
+        </label>
+        <div className="flex gap-2">
+          {dateOptions.map((opt) => {
+            const isSelected = selectedDate === opt.value
+            return (
+              <button
+                key={opt.value}
+                onClick={() => handleDateSelect(opt.value)}
+                type="button"
+                className="flex-1 py-2.5 rounded-lg transition-all"
+                style={{
+                  background: isSelected
+                    ? 'rgba(167, 139, 250, 0.12)'
+                    : 'var(--surface)',
+                  border: isSelected
+                    ? '1.5px solid var(--accent)'
+                    : '1.5px solid var(--border)',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 500,
+                  color: isSelected ? 'var(--text)' : 'var(--sub)',
+                }}
+                aria-pressed={isSelected}
+                aria-label={`Date: ${opt.label}`}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Note field (optional) */}
+      <div className="w-full mb-4">
+        <label
+          htmlFor="recent-expense-note"
+          style={{
+            display: 'block',
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--sub)',
+            marginBottom: 6,
+            textAlign: 'left',
+          }}
+        >
+          Note (optional)
+        </label>
+        <input
+          id="recent-expense-note"
+          type="text"
+          placeholder="e.g. Lunch, Uber, Spotify"
+          value={note}
+          onChange={handleNoteChange}
+          autoComplete="off"
+          style={{
+            width: '100%',
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: 'var(--surface)',
+            border: '1.5px solid var(--border)',
+            color: 'var(--text)',
+            fontFamily: 'Inter, sans-serif',
+            fontSize: 14,
+            outline: 'none',
+          }}
+          aria-label="Optional note for this expense"
+        />
+      </div>
+
+      {/* Confirmation hint */}
+      {parseFloat(amount) > 0 && (
+        <motion.p
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={springs.gentle}
+          style={{
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--accent)',
+            marginTop: 4,
+            lineHeight: 1.4,
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          Tap Next to save, or Skip to move on
+        </motion.p>
+      )}
+    </div>
+  )
+}
+
+// ============================================================================
+// Optional Goal Step Component (Task 221)
+// ============================================================================
+
+/**
+ * Goal options presented during the optional cascade tail.
+ * Warm, jargon-free labels with emojis — one-tap selection.
+ */
+const GOAL_OPTIONS: Array<{ value: UserGoal; label: string; emoji: string; description: string }> = [
+  { value: 'save', label: 'Build my savings', emoji: '🏦', description: 'Grow a cushion for the future' },
+  { value: 'track_spending', label: 'Know where my money goes', emoji: '🔍', description: 'See the full picture' },
+  { value: 'reduce_spending', label: 'Spend less', emoji: '✂️', description: 'Cut back without the guilt' },
+  { value: 'avoid_overdraft', label: 'Stop overdrafting', emoji: '🛡️', description: 'Stay safely in the green' },
+  { value: 'pay_debt', label: 'Pay off debt', emoji: '💳', description: 'Chip away, one step at a time' },
+  { value: 'learn_investing', label: 'Learn investing', emoji: '📈', description: 'Start making money work for you' },
+]
+
+interface OptionalGoalStepProps {
+  value?: UserGoal
+  onChange: (goal: UserGoal) => void
+}
+
+/**
+ * Optional goal selection step — the LAST step in the cascading optional tail
+ * (Group 36). Presents warm, jargon-free goal choices with emojis.
+ * One-tap skippable; selecting a goal sets tip tone and profile priority.
+ *
+ * Validates: Task 221
+ */
+function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="text-4xl mb-4" role="img" aria-label="target">
+        🎯
+      </div>
+      <h2
+        style={{
+          fontSize: 22,
+          fontWeight: 700,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--text)',
+          marginBottom: 8,
+          lineHeight: 1.3,
+        }}
+      >
+        What matters most to you?
+      </h2>
+      <p
+        style={{
+          fontSize: 14,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--sub)',
+          marginBottom: 24,
+          lineHeight: 1.5,
+          maxWidth: 300,
+        }}
+      >
+        This helps Folio tailor tips and focus to your priorities. No wrong answers — skip if you're not sure yet.
+      </p>
+
+      <div className="flex flex-col gap-2.5 w-full">
+        {GOAL_OPTIONS.map((opt) => {
+          const isSelected = value === opt.value
+          return (
+            <button
+              key={opt.value}
+              onClick={() => onChange(opt.value)}
+              type="button"
+              className="flex items-center gap-3 p-3.5 text-left transition-all"
+              style={{
+                background: isSelected
+                  ? 'rgba(167, 139, 250, 0.12)'
+                  : 'var(--surface)',
+                border: isSelected
+                  ? '1.5px solid var(--accent)'
+                  : '1.5px solid var(--border)',
+                borderRadius: 12,
+                cursor: 'pointer',
+              }}
+              aria-pressed={isSelected}
+              aria-label={opt.label}
+            >
+              <span className="text-xl flex-shrink-0">{opt.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div
+                  className="text-sm font-medium"
+                  style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}
+                >
+                  {opt.label}
+                </div>
+                <div
+                  className="text-xs"
+                  style={{ color: 'var(--sub)', fontFamily: 'Inter, sans-serif' }}
+                >
+                  {opt.description}
+                </div>
+              </div>
+              {isSelected && (
+                <span style={{ color: 'var(--accent)', fontSize: 16 }} aria-hidden="true">✓</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
 // Express Path Components (Task 214)
 // ============================================================================
 
@@ -1475,6 +2284,118 @@ function DailyNumberPreview({ dailyAllowance }: { dailyAllowance: number }) {
       >
         ${dailyAllowance}/day
       </span>
+    </div>
+  )
+}
+
+interface MinimalEstimateStepProps {
+  onChange: (value: number) => void
+}
+
+/**
+ * Minimal path: a single low-friction "roughly how much do you spend per month?"
+ * question with tappable chip options. Selecting a chip seeds monthlyIncome from
+ * the band midpoint. Skippable — falls through to the $50 daily estimate.
+ *
+ * Validates: Requirements 7.6 (task 218.1)
+ */
+function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
+  const [selected, setSelected] = useState<string | null>(null)
+
+  const bands = [
+    { label: '$500–$1,000', midpoint: 750, daily: 25 },
+    { label: '$1,000–$2,000', midpoint: 1500, daily: 50 },
+    { label: '$2,000–$3,000', midpoint: 2500, daily: 83 },
+    { label: '$3,000+', midpoint: 3500, daily: 117 },
+  ]
+
+  const handleSelect = (band: typeof bands[number]) => {
+    setSelected(band.label)
+    onChange(band.midpoint)
+  }
+
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="text-4xl mb-5" role="img" aria-label="sparkles">
+        ✨
+      </div>
+      <h2
+        style={{
+          fontSize: 22,
+          fontWeight: 700,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--text)',
+          marginBottom: 8,
+          lineHeight: 1.3,
+        }}
+      >
+        Roughly, how much do you spend each month?
+      </h2>
+      <p
+        style={{
+          fontSize: 14,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--sub)',
+          marginBottom: 24,
+          lineHeight: 1.5,
+          maxWidth: 280,
+        }}
+      >
+        A rough number is fine — you can change it anytime
+      </p>
+      <div className="flex flex-col gap-2.5 w-full">
+        {bands.map((band) => (
+          <button
+            key={band.label}
+            onClick={() => handleSelect(band)}
+            className="flex items-center justify-between p-3.5 rounded-xl transition-all"
+            style={{
+              background: selected === band.label ? 'rgba(167, 139, 250, 0.12)' : 'var(--surface)',
+              border: selected === band.label
+                ? '1.5px solid var(--accent)'
+                : '1.5px solid var(--border)',
+              cursor: 'pointer',
+            }}
+            aria-label={`${band.label} per month, about $${band.daily} per day`}
+            aria-pressed={selected === band.label}
+          >
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                fontFamily: 'Inter, sans-serif',
+                color: 'var(--text)',
+              }}
+            >
+              {band.label}
+            </span>
+            <span
+              style={{
+                fontSize: 13,
+                fontFamily: 'Inter, sans-serif',
+                color: 'var(--sub)',
+              }}
+            >
+              ~${band.daily}/day
+            </span>
+          </button>
+        ))}
+      </div>
+      {selected && (
+        <p
+          style={{
+            fontSize: 13,
+            fontFamily: 'Inter, sans-serif',
+            color: 'var(--accent)',
+            marginTop: 16,
+            lineHeight: 1.4,
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          Tap Next to continue with this estimate
+        </p>
+      )}
     </div>
   )
 }
@@ -2935,6 +3856,12 @@ export interface TutorialSetupStepRendererProps {
   onPaycheckModeChange?: (mode: 'full' | 'simple') => void
   /** Paycheck path: update simple cadence assumption (task 217.2) */
   onSimpleCadenceChange?: (cadence: 'weekly' | 'biweekly' | 'monthly') => void
+  /** Optional cascade: update recent income data (task 219) */
+  onRecentIncomeChange?: (data: { amount: number; note?: string; date?: string }) => void
+  /** Optional cascade: update recent expense data (task 220) */
+  onRecentExpenseChange?: (data: { amount: number; category: TransactionCategory; note?: string; date?: string }) => void
+  /** Optional cascade: update primary goal (task 221) */
+  onGoalChange?: (goal: UserGoal) => void
 }
 
 /**
@@ -2958,10 +3885,52 @@ export function TutorialSetupStepRenderer({
   onAllocationSplitChange,
   onPaycheckModeChange,
   onSimpleCadenceChange,
+  onRecentIncomeChange,
+  onRecentExpenseChange,
+  onGoalChange,
 }: TutorialSetupStepRendererProps) {
   // Setup steps — render the appropriate form
   if (step.type === 'setup') {
     const dailyAllowance = computeDailyAllowance(setupState)
+
+    // Optional cascade: recent income step (task 219)
+    if (step.id === 'optional-recent-income') {
+      return (
+        <OptionalRecentIncomeStep
+          value={setupState.recentIncome}
+          onChange={(data) => onRecentIncomeChange?.(data)}
+        />
+      )
+    }
+
+    // Optional cascade: recent expense step (task 220)
+    if (step.id === 'optional-recent-expense') {
+      return (
+        <OptionalRecentExpenseStep
+          value={setupState.recentExpense}
+          onChange={(data) => onRecentExpenseChange?.(data)}
+        />
+      )
+    }
+
+    // Optional cascade: goal selection step (task 221)
+    if (step.id === 'optional-goal') {
+      return (
+        <OptionalGoalStep
+          value={setupState.primaryGoal}
+          onChange={(goal) => onGoalChange?.(goal)}
+        />
+      )
+    }
+
+    // Minimal path step (task 218.1 — single low-friction estimate question)
+    if (step.id === 'minimal-estimate') {
+      return (
+        <MinimalEstimateStep
+          onChange={onIncomeChange}
+        />
+      )
+    }
 
     // Express path steps (identified by step id prefix)
     if (step.id === 'express-income') {

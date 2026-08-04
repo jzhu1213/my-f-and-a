@@ -14,7 +14,7 @@ import type { IncomeAllocation } from '@/types/folio'
 import type { SinkingFund } from './sinkingFunds'
 import type { PaySchedule, PayCadence } from './paySchedule'
 
-import type { OnboardingPath } from '@/types'
+import type { OnboardingPath, UserPriority } from '@/types'
 
 // ============================================
 // DATABASE TYPES (matching Supabase schema)
@@ -831,6 +831,7 @@ export async function updateProfilePreferences(
     onboardingCompletedSteps?: string[]
     onboardingSkippedSteps?: string[]
     hasCompletedOnboarding?: boolean
+    priority?: UserPriority
   }
 ): Promise<UserProfile | null> {
   const updates: Record<string, any> = {}
@@ -857,6 +858,9 @@ export async function updateProfilePreferences(
   }
   if (preferences.hasCompletedOnboarding !== undefined) {
     updates.has_completed_onboarding = preferences.hasCompletedOnboarding
+  }
+  if (preferences.priority !== undefined) {
+    updates.priority = preferences.priority
   }
 
   const { data, error } = await supabase
