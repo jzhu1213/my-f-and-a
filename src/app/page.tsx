@@ -17,7 +17,8 @@ import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
 import { EditTransactionSheet } from '@/components/simplified/EditTransactionSheet'
 import { RefundSheet } from '@/components/simplified/RefundSheet'
-import { TutorialSetupStepRenderer, TutorialSetupState, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath } from '@/components/simplified/TutorialSteps'
+import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath } from '@/components/simplified/TutorialSteps'
+import type { PayCadence } from '@/lib/paySchedule'
 import { detectSubscriptions } from '@/lib/subscriptionDetector'
 import { getCategorizationRules, saveCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
 import { getActiveShareLinks } from '@/lib/sharingUtils'
@@ -124,7 +125,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
-import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement } from '@/lib/supabaseData'
+import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement, upsertPaySchedule, upsertBudget } from '@/lib/supabaseData'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
 import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, setOnboardingPath } from '@/lib/storage'
 import type { TransactionCategory, Transaction, OnboardingPath } from '@/types'
@@ -163,6 +164,8 @@ export default function FolioApp() {
     monthlyIncome: 2000,
     budgetPreset: 'student_moderate' as BudgetPreset,
     categoryLimits: {},
+    fixedExpenses: [],
+    categoryPeriods: {},
   })
 
   // ── Active onboarding path (task 212.1) ────────────────────────
@@ -492,6 +495,22 @@ export default function FolioApp() {
       }
     }
 
+    // ── Persist fixed expenses as recurring bills (task 214.2) ──────
+    // Express path users may have added fixed monthly bills (rent, subscriptions).
+    // Write each one through addBill so they participate in allowance calculation.
+    if (tutorialSetupState.fixedExpenses && tutorialSetupState.fixedExpenses.length > 0) {
+      for (const expense of tutorialSetupState.fixedExpenses) {
+        await addBill({
+          category: expense.category,
+          label: expense.label,
+          amount: expense.amount,
+          dueDay: expense.dueDay,
+          recurringId: '',
+          isActive: true,
+        })
+      }
+    }
+
     // ── Persist monthly income so the first render uses a real number (task 210.1) ──
     // STORAGE DECISION: seed an actual income *transaction* for the current month
     // rather than writing a standalone "monthly income" profile field.
@@ -533,6 +552,105 @@ export default function FolioApp() {
           date: new Date().toISOString().slice(0, 10),
           note: 'Monthly spending budget (from setup)',
         })
+      }
+    }
+
+    // ── Paycheck path persistence (task 216 + task 217) ────────────────────────
+    // When the user chose the paycheck path, persist the pay schedule, write
+    // budgets with payday_aligned period, and seed income from the spend bucket.
+    // Task 217: Simple mode skips schedule modeling but still seeds a real daily number.
+    if (activeOnboardingPath === 'paycheck' && tutorialSetupState.paySchedule && user) {
+      const schedule = tutorialSetupState.paySchedule
+      const allocation = tutorialSetupState.allocationSplit ?? { spend: 80, save: 10, invest: 5, setAside: 5 }
+      const isSimpleMode = tutorialSetupState.paycheckMode === 'simple'
+
+      if (isSimpleMode) {
+        // ── Simple mode persistence (task 217.2) ─────────────────────────────
+        // No pay schedule to persist — just derive monthly income from the
+        // paycheck amount × cadence multiplier and seed an income transaction
+        // so computeDailyAllowance produces a real number, not the $50 fallback.
+        const simpleCadence = tutorialSetupState.simpleCadence ?? 'biweekly'
+        const spendPool = Math.round(schedule.amount * allocation.spend / 100)
+
+        if (spendPool > 0) {
+          // Convert per-paycheck spend pool to monthly equivalent
+          let monthlySpend: number
+          switch (simpleCadence) {
+            case 'weekly': monthlySpend = Math.round(spendPool * 4.33); break
+            case 'biweekly': monthlySpend = Math.round(spendPool * 2.17); break
+            case 'monthly': monthlySpend = spendPool; break
+            default: monthlySpend = Math.round(spendPool * 2.17)
+          }
+
+          // Write a budget so the allowance calculation has a real pool
+          await upsertBudget(user.id, 'other', monthlySpend, undefined, { period: 'monthly' })
+
+          // Seed income transaction so the first daily number is real
+          const currentMonthPrefix = new Date().toISOString().slice(0, 7)
+          const hasIncomeThisMonth = transactions.some(
+            t => t.type === 'income' && t.date.startsWith(currentMonthPrefix)
+          )
+          if (!hasIncomeThisMonth) {
+            await addTransaction({
+              amount: monthlySpend,
+              category: 'other',
+              type: 'income',
+              date: new Date().toISOString().slice(0, 10),
+              note: 'Paycheck spending budget (simple split)',
+            })
+          }
+        }
+      } else {
+        // ── Full mode persistence (task 216) ──────────────────────────────────
+
+        // 216.1: Persist the pay schedule
+        const anchorDate = schedule.anchorDate || new Date().toISOString().slice(0, 10)
+        await upsertPaySchedule(user.id, {
+          cadence: schedule.cadence,
+          anchorDate,
+          amount: schedule.amount,
+        })
+
+        // 216.2: Write a budget with period: 'payday_aligned' so computeDailyAllowance
+        // uses getLastPayday/getNextPayday and divides the pool by days in the pay cycle.
+        // We write a catch-all "other" category budget representing the full spend pool.
+        const spendPool = Math.round(schedule.amount * allocation.spend / 100)
+        if (spendPool > 0) {
+          await upsertBudget(user.id, 'other', spendPool, undefined, { period: 'payday_aligned' })
+        }
+
+        // 216.3: Seed the income transaction using paycheck amount × spend%
+        // so the first daily number is correct immediately.
+        const currentMonthPrefix = new Date().toISOString().slice(0, 7)
+        const hasIncomeThisMonth = transactions.some(
+          t => t.type === 'income' && t.date.startsWith(currentMonthPrefix)
+        )
+        if (!hasIncomeThisMonth && spendPool > 0) {
+          // Convert the per-paycheck spend pool to a monthly equivalent for income seeding.
+          // computeDailyAllowance will then divide by the pay cycle days (not 30).
+          let monthlySpend: number
+          switch (schedule.cadence) {
+            case 'weekly': monthlySpend = Math.round(spendPool * 4.33); break
+            case 'biweekly': monthlySpend = Math.round(spendPool * 2.17); break
+            case 'semimonthly': monthlySpend = Math.round(spendPool * 2); break
+            case 'monthly': monthlySpend = spendPool; break
+            case 'irregular': monthlySpend = Math.round(spendPool * 2.17); break
+            default: monthlySpend = spendPool
+          }
+
+          await addTransaction({
+            amount: monthlySpend,
+            category: 'other',
+            type: 'income',
+            date: new Date().toISOString().slice(0, 10),
+            note: 'Paycheck spending budget (from setup)',
+          })
+        }
+
+        // 216.4: For irregular cadence, enable income smoothing (trailing_average)
+        if (schedule.cadence === 'irregular') {
+          setIncomeSmoothing({ strategy: 'trailing_average', windowMonths: 3 })
+        }
       }
     }
     
@@ -1142,7 +1260,7 @@ export default function FolioApp() {
   }
 
   if (onboardingStep === 'tutorial') {
-    const allSteps = buildStepsForPath(activeOnboardingPath)
+    const allSteps = buildStepsForPath(activeOnboardingPath, tutorialSetupState.budgetPreset, tutorialSetupState.paycheckMode)
 
     return (
       <OnboardingTutorial
@@ -1169,6 +1287,36 @@ export default function FolioApp() {
                 ...prev,
                 categoryLimits: { ...prev.categoryLimits, [key]: value },
               }))
+            }
+            onAddFixedExpense={(expense: SetupFixedExpense) =>
+              setTutorialSetupState(prev => ({
+                ...prev,
+                fixedExpenses: [...prev.fixedExpenses, expense],
+              }))
+            }
+            onRemoveFixedExpense={(id: string) =>
+              setTutorialSetupState(prev => ({
+                ...prev,
+                fixedExpenses: prev.fixedExpenses.filter(e => e.id !== id),
+              }))
+            }
+            onPeriodChange={(key: string, period: 'weekly' | 'monthly') =>
+              setTutorialSetupState(prev => ({
+                ...prev,
+                categoryPeriods: { ...prev.categoryPeriods, [key]: period },
+              }))
+            }
+            onPayScheduleChange={(schedule: { cadence: PayCadence; anchorDate: string; amount: number }) =>
+              setTutorialSetupState(prev => ({ ...prev, paySchedule: schedule }))
+            }
+            onAllocationSplitChange={(split: { spend: number; save: number; invest: number; setAside: number }) =>
+              setTutorialSetupState(prev => ({ ...prev, allocationSplit: split }))
+            }
+            onPaycheckModeChange={(mode: 'full' | 'simple') =>
+              setTutorialSetupState(prev => ({ ...prev, paycheckMode: mode }))
+            }
+            onSimpleCadenceChange={(cadence: 'weekly' | 'biweekly' | 'monthly') =>
+              setTutorialSetupState(prev => ({ ...prev, simpleCadence: cadence }))
             }
           />
         )}

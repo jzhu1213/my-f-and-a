@@ -334,13 +334,15 @@ export function OnboardingTutorial({
                 opacity: canAdvance ? 1 : 0.5,
                 cursor: canAdvance ? 'pointer' : 'not-allowed',
               }}
-              aria-label={isLastStep ? 'Finish tutorial' : 'Next step'}
+              aria-label={isLastStep ? 'Finish tutorial' : currentStep.id === 'welcome' ? "Let's go" : 'Next step'}
             >
               {isLastStep
                 ? (currentStep.type === 'setup' && currentStep.setupType === 'confirmation'
                   ? 'Start using Folio'
                   : 'Done')
-                : 'Next'}
+                : currentStep.id === 'welcome'
+                  ? "Let's go"
+                  : 'Next'}
             </button>
           )}
 
@@ -364,9 +366,9 @@ export function OnboardingTutorial({
                 onClick={handleSkip}
                 className="text-sm py-2 px-3 rounded-lg transition-colors"
                 style={{ color: 'var(--muted)' }}
-                aria-label="Skip"
+                aria-label={currentStep.id === 'welcome' ? 'Skip for now' : 'Skip'}
               >
-                Skip
+                {currentStep.id === 'welcome' ? 'Skip for now' : 'Skip'}
               </button>
             )}
           </div>
