@@ -92,6 +92,10 @@ export const TUTORIAL_FEATURE_STEPS: TutorialStep[] = [
 /**
  * The branch/router step that asks "how do you want to start?" and sets
  * the active onboarding path. Placed before path-specific steps.
+ *
+ * Task 229.1: Includes a secondary "Show me how it works" link below
+ * the path options. Tapping it shows the condensed preview (229.2)
+ * instead of setting a path.
  */
 export const PATH_ROUTER_STEP: TutorialStep = {
   type: 'branch',
@@ -135,10 +139,12 @@ export const PATH_ROUTER_STEP: TutorialStep = {
  *
  * Validates: Requirements 7.1
  */
-export function buildStepsForPath(path: OnboardingPath, budgetPreset?: BudgetPreset, paycheckMode?: 'full' | 'simple', hasGoalAlready?: boolean): TutorialStep[] {
+export function buildStepsForPath(path: OnboardingPath, budgetPreset?: BudgetPreset, paycheckMode?: 'full' | 'simple'): TutorialStep[] {
   if (path === null) {
-    // No path chosen yet — full intro sequence with optional demo skip (task 224.1)
-    return [WELCOME_STEP, DEMO_INTRO_STEP, ...TUTORIAL_FEATURE_STEPS, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
+    // No path chosen yet — Welcome → Router immediately (task 229.1)
+    // Demos are accessible via a "Show me how it works" link on the router,
+    // not as mandatory prerequisite steps.
+    return [WELCOME_STEP, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
   }
 
   // Once a path is selected, skip the feature demos (already seen) and jump
@@ -170,13 +176,34 @@ export function buildStepsForPath(path: OnboardingPath, budgetPreset?: BudgetPre
       coreSteps = [WELCOME_STEP, PATH_ROUTER_STEP, ...TUTORIAL_SETUP_STEPS]
   }
 
-  // Append optional cascade tail (Group 36, task 219+)
-  const steps = [...coreSteps, OPTIONAL_RECENT_INCOME_STEP, OPTIONAL_RECENT_EXPENSE_STEP, OPTIONAL_GOAL_STEP]
+  // Append optional cascade tail (Group 36) — trimmed per task 230
+  // Task 230.1: Remove optional expense step (redundant with live app)
+  // Task 230.3: Only show recent income for minimal path (others already collected income)
+  const tail: TutorialStep[] = []
+  if (path === 'minimal') {
+    tail.push(OPTIONAL_RECENT_INCOME_STEP)
+  }
+  tail.push(OPTIONAL_GOAL_STEP)
+  const steps = [...coreSteps, ...tail]
 
-  // Task 222.1: Append non-skippable terminal goal step only if the user
-  // hasn't already selected a goal in the optional cascade.
-  if (!hasGoalAlready) {
-    steps.push(TERMINAL_GOAL_STEP)
+  // ─── Step-count contract (task 233.1) ────────────────────────────────
+  // Core steps (welcome + router + path-specific) must be ≤ 6.
+  // Total steps (core + optional tail) must be ≤ 8.
+  // If this assertion fires, trim steps elsewhere before adding new ones.
+  // ─────────────────────────────────────────────────────────────────────
+  if (process.env.NODE_ENV !== 'production') {
+    const MAX_CORE_STEPS = 6
+    const MAX_TOTAL_STEPS = 8
+    if (coreSteps.length > MAX_CORE_STEPS) {
+      console.error(
+        `[buildStepsForPath] Core step count (${coreSteps.length}) exceeds cap of ${MAX_CORE_STEPS} for path "${path}". Trim steps before adding new ones.`
+      )
+    }
+    if (steps.length > MAX_TOTAL_STEPS) {
+      console.error(
+        `[buildStepsForPath] Total step count (${steps.length}) exceeds cap of ${MAX_TOTAL_STEPS} for path "${path}". Trim steps before adding new ones.`
+      )
+    }
   }
 
   return steps
@@ -577,6 +604,254 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
 }
 
 // ============================================================================
+// Condensed Preview (Task 229.2)
+// ============================================================================
+
+/**
+ * A single scrollable preview that combines all 3 demo interactions into one
+ * view: the daily allowance card, a mini expense log, and a category budget
+ * peek. One "Got it" tap dismisses. Replaces the 4-step Demo Intro + 3
+ * interactive exercises sequence.
+ *
+ * Validates: Requirements 7.5 (demos preserved, just condensed)
+ */
+export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
+  const { prefersReducedMotion } = useReducedMotion()
+
+  return (
+    <div className="flex flex-col items-center text-center flex-1">
+      <motion.span
+        style={{ fontSize: 40, marginBottom: 12 }}
+        initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+        animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+        transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
+        aria-hidden="true"
+      >
+        👋
+      </motion.span>
+      <h2
+        style={{
+          fontSize: 20,
+          fontWeight: 700,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--text)',
+          marginBottom: 6,
+        }}
+      >
+        Here&apos;s how Folio works
+      </h2>
+      <p
+        style={{
+          fontSize: 13,
+          fontFamily: 'Inter, sans-serif',
+          color: 'var(--sub)',
+          maxWidth: 280,
+          lineHeight: 1.5,
+          marginBottom: 20,
+        }}
+      >
+        Three things that make budgeting feel easy.
+      </p>
+
+      {/* Scrollable preview cards */}
+      <div
+        className="flex flex-col gap-3 w-full overflow-y-auto"
+        style={{ maxHeight: 320, paddingBottom: 8 }}
+        role="group"
+        aria-label="Feature preview"
+      >
+        {/* 1. Daily allowance card */}
+        <div
+          style={{
+            padding: '16px',
+            borderRadius: 'var(--radius-md)',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <span style={{ fontSize: 20 }} aria-hidden="true">✨</span>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: 'Inter, sans-serif',
+                color: 'var(--text)',
+              }}
+            >
+              Your daily number
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span
+              style={{
+                fontSize: 28,
+                fontWeight: 700,
+                fontFamily: 'Inter, sans-serif',
+                color: 'var(--success)',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              $42
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                fontFamily: 'Inter, sans-serif',
+                color: 'var(--sub)',
+              }}
+            >
+              left to spend today
+            </span>
+          </div>
+        </div>
+
+        {/* 2. Quick log mini */}
+        <div
+          style={{
+            padding: '16px',
+            borderRadius: 'var(--radius-md)',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <span style={{ fontSize: 20 }} aria-hidden="true">💸</span>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: 'Inter, sans-serif',
+                color: 'var(--text)',
+              }}
+            >
+              One-tap logging
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {[
+              { emoji: getCategoryEmoji('food'), label: 'Food' },
+              { emoji: getCategoryEmoji('transport'), label: 'Transport' },
+              { emoji: getCategoryEmoji('fun'), label: 'Fun' },
+            ].map((cat) => (
+              <div
+                key={cat.label}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: borderRadius.full,
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  fontSize: 12,
+                  fontFamily: 'Inter, sans-serif',
+                  color: 'var(--sub)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <span aria-hidden="true">{cat.emoji}</span>
+                {cat.label}
+              </div>
+            ))}
+          </div>
+          <p
+            style={{
+              marginTop: 8,
+              fontSize: 11,
+              fontFamily: 'Inter, sans-serif',
+              color: 'var(--muted)',
+            }}
+          >
+            Pick a category, tap an amount — done
+          </p>
+        </div>
+
+        {/* 3. Category budget peek */}
+        <div
+          style={{
+            padding: '16px',
+            borderRadius: 'var(--radius-md)',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <span style={{ fontSize: 20 }} aria-hidden="true">📊</span>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: 'Inter, sans-serif',
+                color: 'var(--text)',
+              }}
+            >
+              Category budgets
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span style={{ fontSize: 22 }}>🍕</span>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    fontFamily: 'Inter, sans-serif',
+                    color: 'var(--text)',
+                  }}
+                >
+                  Food
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontFamily: 'Inter, sans-serif',
+                    color: 'var(--sub)',
+                  }}
+                >
+                  $28 / $60
+                </span>
+              </div>
+              <div
+                style={{
+                  width: '100%',
+                  height: 5,
+                  borderRadius: 3,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: '47%',
+                    height: '100%',
+                    borderRadius: 3,
+                    background: '#4ade80',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Got it button */}
+      <button
+        onClick={onDismiss}
+        className="w-full mt-5 py-3 rounded-xl font-medium text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
+        style={{
+          background: 'var(--accent)',
+          color: '#fff',
+        }}
+        aria-label="Got it, back to setup options"
+      >
+        Got it — let&apos;s set up
+      </button>
+    </div>
+  )
+}
+
+// ============================================================================
 // TutorialStepRenderer
 // ============================================================================
 
@@ -847,21 +1122,9 @@ export const OPTIONAL_GOAL_STEP: TutorialStep = {
   setupType: 'income',
 }
 
-/**
- * Terminal (non-skippable) goal step — fires ONLY when no goal was captured
- * earlier in the optional tail. Presented as a single warm choice, not a wall.
- * Uses the `terminal` step type so the Skip button is hidden.
- *
- * Validates: Task 222.1
- */
-export const TERMINAL_GOAL_STEP: TutorialStep = {
-  type: 'terminal',
-  id: 'terminal-goal',
-  title: 'One last thing — what matters most?',
-  subtitle: "This helps Folio focus on what\u2019s important to you. You can always change it later.",
-  emoji: '\uD83C\uDFAF',
-  nonSkippable: true,
-}
+// Task 231: TERMINAL_GOAL_STEP removed — merged into OPTIONAL_GOAL_STEP.
+// The goal step is now shown exactly once at the end of the cascade (skippable,
+// warmly nudged). If skipped, 'track_spending' is applied as a silent default.
 
 /**
  * Setup steps that form the "tutorial tail" — income, budget style,
@@ -1603,25 +1866,14 @@ function getLastFriday(): string {
 
 /**
  * Optional recent income capture step — part of the cascading optional tail (Group 36).
- * Offers a warm, low-friction way to log a recent paycheck/deposit.
- * Skipping advances to the next optional step in the cascade.
+ * Simplified to a single-field quick capture (task 230.2): amount only.
+ * Date defaults to last Friday silently; note defaults to "Paycheck".
+ * Only shown for the minimal path (task 230.3).
  *
- * Validates: Task 219
+ * Validates: Task 219, Task 230.2
  */
 function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepProps) {
   const [amount, setAmount] = useState(value?.amount?.toString() ?? '')
-  const [note, setNote] = useState(value?.note ?? '')
-  const [selectedDate, setSelectedDate] = useState<string>(value?.date ?? getLastFriday())
-  const [showCustomDate, setShowCustomDate] = useState(false)
-
-  const today = new Date().toISOString().slice(0, 10)
-  const lastFriday = getLastFriday()
-
-  const dateOptions = [
-    { label: 'Today', value: today },
-    { label: 'Last Friday', value: lastFriday },
-    { label: 'Custom', value: 'custom' },
-  ]
 
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '')
@@ -1630,40 +1882,9 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
     setAmount(sanitized)
     const num = parseFloat(sanitized) || 0
     if (num > 0) {
-      onChange({ amount: num, note: note || undefined, date: selectedDate })
+      onChange({ amount: num, note: 'Paycheck', date: getLastFriday() })
     }
-  }, [note, selectedDate, onChange])
-
-  const handleNoteChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setNote(val)
-    const num = parseFloat(amount) || 0
-    if (num > 0) {
-      onChange({ amount: num, note: val || undefined, date: selectedDate })
-    }
-  }, [amount, selectedDate, onChange])
-
-  const handleDateSelect = useCallback((dateValue: string) => {
-    if (dateValue === 'custom') {
-      setShowCustomDate(true)
-      return
-    }
-    setShowCustomDate(false)
-    setSelectedDate(dateValue)
-    const num = parseFloat(amount) || 0
-    if (num > 0) {
-      onChange({ amount: num, note: note || undefined, date: dateValue })
-    }
-  }, [amount, note, onChange])
-
-  const handleCustomDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setSelectedDate(val)
-    const num = parseFloat(amount) || 0
-    if (num > 0) {
-      onChange({ amount: num, note: note || undefined, date: val })
-    }
-  }, [amount, note, onChange])
+  }, [onChange])
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -1680,7 +1901,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
           lineHeight: 1.3,
         }}
       >
-        Log a recent deposit
+        Roughly how much was your last paycheck?
       </h2>
       <p
         style={{
@@ -1692,24 +1913,11 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
           maxWidth: 300,
         }}
       >
-        Did you recently get paid? Adding it helps Folio give you a better number. Skip if you're not sure.
+        A rough number is fine — you can change it anytime
       </p>
 
       {/* Amount input */}
       <div className="w-full mb-4">
-        <label
-          htmlFor="recent-income-amount"
-          style={{
-            display: 'block',
-            fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
-            color: 'var(--sub)',
-            marginBottom: 6,
-            textAlign: 'left',
-          }}
-        >
-          Amount
-        </label>
         <div
           style={{
             display: 'flex',
@@ -1751,116 +1959,6 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
             aria-label="Income amount in dollars"
           />
         </div>
-      </div>
-
-      {/* Date quick-picks */}
-      <div className="w-full mb-4">
-        <label
-          style={{
-            display: 'block',
-            fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
-            color: 'var(--sub)',
-            marginBottom: 6,
-            textAlign: 'left',
-          }}
-        >
-          When did you get it?
-        </label>
-        <div className="flex gap-2">
-          {dateOptions.map((opt) => {
-            const isSelected = !showCustomDate && selectedDate === opt.value && opt.value !== 'custom'
-            const isCustomSelected = showCustomDate && opt.value === 'custom'
-            return (
-              <button
-                key={opt.value}
-                onClick={() => handleDateSelect(opt.value)}
-                type="button"
-                className="flex-1 py-2.5 rounded-lg transition-all"
-                style={{
-                  background: (isSelected || isCustomSelected)
-                    ? 'rgba(167, 139, 250, 0.12)'
-                    : 'var(--surface)',
-                  border: (isSelected || isCustomSelected)
-                    ? '1.5px solid var(--accent)'
-                    : '1.5px solid var(--border)',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 500,
-                  color: (isSelected || isCustomSelected) ? 'var(--text)' : 'var(--sub)',
-                }}
-                aria-pressed={isSelected || isCustomSelected}
-                aria-label={`Date: ${opt.label}`}
-              >
-                {opt.label}
-              </button>
-            )
-          })}
-        </div>
-        {showCustomDate && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            transition={springs.gentle}
-            style={{ marginTop: 8 }}
-          >
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={handleCustomDateChange}
-              max={today}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                background: 'var(--surface)',
-                border: '1.5px solid var(--border)',
-                color: 'var(--text)',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: 14,
-              }}
-              aria-label="Custom date"
-            />
-          </motion.div>
-        )}
-      </div>
-
-      {/* Note field (optional) */}
-      <div className="w-full mb-4">
-        <label
-          htmlFor="recent-income-note"
-          style={{
-            display: 'block',
-            fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
-            color: 'var(--sub)',
-            marginBottom: 6,
-            textAlign: 'left',
-          }}
-        >
-          Note (optional)
-        </label>
-        <input
-          id="recent-income-note"
-          type="text"
-          placeholder="e.g. Paycheck, freelance gig"
-          value={note}
-          onChange={handleNoteChange}
-          autoComplete="off"
-          style={{
-            width: '100%',
-            padding: '12px 14px',
-            borderRadius: 12,
-            background: 'var(--surface)',
-            border: '1.5px solid var(--border)',
-            color: 'var(--text)',
-            fontFamily: 'Inter, sans-serif',
-            fontSize: 14,
-            outline: 'none',
-          }}
-          aria-label="Optional note for this income"
-        />
       </div>
 
       {/* Confirmation hint */}
@@ -2233,8 +2331,9 @@ interface OptionalGoalStepProps {
  * Optional goal selection step — the LAST step in the cascading optional tail
  * (Group 36). Presents warm, jargon-free goal choices with emojis.
  * One-tap skippable; selecting a goal sets tip tone and profile priority.
+ * Task 231: Strongly-nudged copy encourages selection while respecting autonomy.
  *
- * Validates: Task 221
+ * Validates: Task 221, Task 231
  */
 function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
   return (
@@ -2252,7 +2351,7 @@ function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
           lineHeight: 1.3,
         }}
       >
-        What matters most to you?
+        Pick one — it takes a second and makes your tips way better
       </h2>
       <p
         style={{
@@ -2264,7 +2363,7 @@ function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
           maxWidth: 300,
         }}
       >
-        This helps Folio tailor tips and focus to your priorities. No wrong answers — skip if you're not sure yet.
+        Folio tailors everything to your goal. You can always change it later.
       </p>
 
       <div className="flex flex-col gap-2.5 w-full">
@@ -4145,21 +4244,6 @@ export function TutorialSetupStepRenderer({
 
   // Branch steps are rendered by the parent (path selection UI) — skip here
   if (step.type === 'branch') return null
-
-  // Terminal goal step (task 222.1): Render goal selection UI with warm copy.
-  // The terminal type prevents skipping, ensuring a goal is captured.
-  if (step.type === 'terminal' && step.id === 'terminal-goal') {
-    return (
-      <OptionalGoalStep
-        value={setupState.primaryGoal}
-        onChange={(goal) => {
-          onGoalChange?.(goal)
-          // Auto-advance after selection — the user made their choice
-          completeInteraction()
-        }}
-      />
-    )
-  }
 
   // Fall through to the original info/interactive rendering
   return (
