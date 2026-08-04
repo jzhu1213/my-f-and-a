@@ -41,6 +41,7 @@ import { TERM_PRESETS, isTermActive, getDaysRemainingInTerm, getTermProgress } f
 import { formatDateLocal, addDaysLocal } from "@/lib/dateUtils"
 import type { UserGoal } from "@/types"
 import { getGoalDescription } from "@/lib/goalDefaults"
+import { SetupChecklistCard } from "./SetupChecklistCard"
 
 // ============================================================================
 // Types
@@ -102,6 +103,10 @@ export interface SettingsScreenProps {
   userGoal?: import('@/types').UserGoal
   /** Callback to update the user's primary goal (task 222.3) */
   onGoalChange?: (goal: import('@/types').UserGoal) => void
+  /** Skipped onboarding step IDs — used for the setup checklist mirror (task 223.2) */
+  skippedSetupSteps?: string[]
+  /** Called when the user resumes a specific setup step from Settings (task 223.2) */
+  onResumeSetupStep?: (stepId: string) => void
 }
 
 // ============================================================================
@@ -423,6 +428,8 @@ export function SettingsScreen({
   disbursements = [],
   userGoal,
   onGoalChange,
+  skippedSetupSteps,
+  onResumeSetupStep,
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -572,6 +579,18 @@ export function SettingsScreen({
         <p style={{ fontSize: 14, color: "var(--sub)", textAlign: "center", padding: "20px 0" }}>
           No settings match &ldquo;{searchText.trim()}&rdquo;
         </p>
+      )}
+
+      {/* ── Setup Checklist Mirror (task 223.2) ────────────────────────────── */}
+      {skippedSetupSteps && skippedSetupSteps.length > 0 && onResumeSetupStep && !debouncedSearch && (
+        <div style={{ marginBottom: 20 }}>
+          <SetupChecklistCard
+            skippedSteps={skippedSetupSteps}
+            onResumeStep={onResumeSetupStep}
+            onDismiss={() => {/* Settings variant is non-dismissible — always visible */}}
+            variant="settings"
+          />
+        </div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}

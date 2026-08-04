@@ -129,7 +129,7 @@ import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
 import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement, upsertPaySchedule, upsertBudget } from '@/lib/supabaseData'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
-import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, setOnboardingPath } from '@/lib/storage'
+import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, setOnboardingPath, markOnboardingStepCompleted } from '@/lib/storage'
 import type { TransactionCategory, Transaction, OnboardingPath, UserGoal } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
 import { heroMeaningStatus } from '@/lib/dailyAllowanceUtils'
@@ -1258,6 +1258,70 @@ export default function FolioApp() {
     showToast('Tutorial reset - starting fresh')
   }
 
+  // ── Setup Checklist: deep-link resume (task 223.3) ─────────────
+  // Maps a skipped step ID to the relevant sheet/overlay action, completes
+  // the step on return, and optionally celebrates when all steps are done.
+  const handleResumeSetupStep = useCallback((stepId: string) => {
+    // Map step IDs to their appropriate sheet/overlay targets
+    const incomeSteps = ['setup-income', 'express-income', 'optional-recent-income']
+    const budgetSteps = ['setup-budget-style']
+    const paycheckSteps = ['paycheck-mode', 'paycheck-schedule', 'paycheck-allocation', 'paycheck-confirmation']
+    const goalSteps = ['optional-goal', 'terminal-goal']
+
+    if (incomeSteps.includes(stepId)) {
+      overlay.openSheet('income')
+    } else if (budgetSteps.includes(stepId)) {
+      overlay.openOverlay('budgetSettings')
+    } else if (paycheckSteps.includes(stepId)) {
+      // Paycheck setup: open income sheet (paycheck sheet requires amount context)
+      overlay.openSheet('income')
+    } else if (goalSteps.includes(stepId)) {
+      overlay.openOverlay('goals')
+    } else {
+      // Fallback: open income sheet for unknown step IDs
+      overlay.openSheet('income')
+    }
+
+    // Mark this step as completed and remove from skipped
+    markOnboardingStepCompleted(stepId)
+    const progress = getOnboardingProgress()
+    const updatedSkipped = progress.skippedSteps.filter(s => s !== stepId)
+    setOnboardingProgress({ ...progress, skippedSteps: updatedSkipped })
+
+    // Check if all steps are now complete → celebrate (task 223.4)
+    if (updatedSkipped.length === 0) {
+      setOnboardingProgress({ ...progress, skippedSteps: [], isComplete: true })
+      // Persist to Supabase
+      if (user?.id) {
+        updateProfilePreferences(user.id, {
+          hasCompletedOnboarding: true,
+          onboardingSkippedSteps: [],
+        }).catch(() => {})
+      }
+      // Fire a small celebration (reusing celebration engine pattern)
+      setCelebrationEvent({
+        id: `setup-complete-${Date.now()}`,
+        type: 'first_transaction',
+        title: 'All set!',
+        message: "Nice — you're all set 🎉",
+        emoji: '🎉',
+        animation: 'confetti',
+        duration: 3500,
+        sound: 'cheerful',
+      })
+    } else {
+      // Persist updated skipped steps to Supabase
+      if (user?.id) {
+        updateProfilePreferences(user.id, {
+          onboardingSkippedSteps: updatedSkipped,
+        }).catch(() => {})
+      }
+    }
+
+    // Return to home after opening the relevant step
+    setActiveNav('home')
+  }, [overlay, user?.id, setCelebrationEvent, setActiveNav])
+
   // ── Update Count Credit Immediately ────────────────────────────
   const handleUpdateCountCreditImmediately = async (value: boolean) => {
     if (!user?.id) return
@@ -1768,6 +1832,8 @@ export default function FolioApp() {
                 completedLessonIds={completedLessonIds}
                 hasSkippedSetupSteps={getOnboardingProgress().skippedSteps.length > 0}
                 onOpenSetupChecklist={() => overlay.openSheet('income')}
+                skippedSetupSteps={getOnboardingProgress().skippedSteps}
+                onResumeSetupStep={handleResumeSetupStep}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => overlay.openSheet('income')}
@@ -1879,6 +1945,8 @@ export default function FolioApp() {
                 disbursements={disbursements}
                 userGoal={userGoal}
                 onGoalChange={handleGoalChange}
+                skippedSetupSteps={getOnboardingProgress().skippedSteps}
+                onResumeSetupStep={handleResumeSetupStep}
               />
             )}
           </motion.div>

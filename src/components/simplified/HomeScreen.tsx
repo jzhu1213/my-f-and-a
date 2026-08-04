@@ -57,6 +57,7 @@ import type { TimeHorizonStats } from "@/lib/timeHorizonStats"
 import { AffordabilitySheet } from "./AffordabilitySheet"
 import { WelcomeBackBadge } from "./WelcomeBackBadge"
 import { IncomeAnchorBanner } from "./IncomeAnchorBanner"
+import { SetupChecklistCard } from "./SetupChecklistCard"
 import dynamic from "next/dynamic"
 
 // Code-split: celebration animations are heavy (canvas-confetti + framer-motion
@@ -327,6 +328,10 @@ export interface HomeScreenProps {
   hasSkippedSetupSteps?: boolean
   /** Called when the user taps the "make this yours" nudge — opens setup/resume checklist. */
   onOpenSetupChecklist?: () => void
+  /** Skipped step IDs — used by the setup checklist card (task 223) */
+  skippedSetupSteps?: string[]
+  /** Called when the user taps a specific step to deep-link resume (task 223.3) */
+  onResumeSetupStep?: (stepId: string) => void
 }
 
 // ============================================================================
@@ -397,6 +402,8 @@ export function HomeScreen({
   completedLessonIds,
   hasSkippedSetupSteps,
   onOpenSetupChecklist,
+  skippedSetupSteps,
+  onResumeSetupStep,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -1412,7 +1419,17 @@ export function HomeScreen({
         {/* ── 2.6. Welcome-back badge (task 77) — below fold ───── */}
         <WelcomeBackBadge />
 
-        {/* ── 2.7. Contextual Insight (opt-in, at most one) ─────── */}
+        {/* ── 2.7. Setup Checklist (task 223 — lives in tip slot) ──── */}
+        {skippedSetupSteps && skippedSetupSteps.length > 0 && !estimateNudgeDismissed && onResumeSetupStep && (
+          <SetupChecklistCard
+            skippedSteps={skippedSetupSteps}
+            onResumeStep={onResumeSetupStep}
+            onDismiss={handleDismissEstimateNudge}
+            variant="home"
+          />
+        )}
+
+        {/* ── 2.8. Contextual Insight (opt-in, at most one) ─────── */}
         <AnimatePresence>
           {insightsEnabled && activeTip && (
             <ContextualTipCard
