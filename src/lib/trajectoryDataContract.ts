@@ -14,6 +14,10 @@
 import type { Debt, SavingsAccount } from '@/types/folio'
 import { computeCombinedSavingsInputs } from '@/lib/savingsAccountUtils'
 
+// Re-export the unified progress curve utility for consumers
+export { computeProgressCurve } from '@/lib/progressCurveUtils'
+export type { ProgressCurveData, ProgressDataPoint } from '@/lib/progressCurveUtils'
+
 // ============================================================================
 // Types — the contract Group 19 renders against
 // ============================================================================

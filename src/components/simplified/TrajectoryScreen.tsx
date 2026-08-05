@@ -16,9 +16,9 @@ import {
   type TrajectoryInsight,
 } from "@/lib/trajectoryUtils"
 import {
-  computeFinancialHealthTimelines,
-  type FinancialHealthSnapshot,
-} from "@/lib/trajectoryDataContract"
+  computeProgressCurve,
+  type ProgressCurveData,
+} from "@/lib/progressCurveUtils"
 import type { Transaction, Goal } from "@/types"
 import type { Debt, SavingsAccount, SavingsAccountType } from "@/types/folio"
 import { SAVINGS_ACCOUNT_TYPES, DEBT_TYPES } from "@/types/folio"
@@ -188,11 +188,11 @@ export function TrajectoryScreen({
   )
 
   // ── Growth projection (12-month horizon) ───────────────────────
-  const projection = useMemo<FinancialHealthSnapshot | null>(() => {
+  const progressCurve = useMemo<ProgressCurveData | null>(() => {
     if ((!savingsAccounts || savingsAccounts.length === 0) && (!debts || debts.length === 0)) {
       return null
     }
-    return computeFinancialHealthTimelines(
+    return computeProgressCurve(
       savingsAccounts ?? [],
       debts ?? [],
       12
@@ -206,7 +206,7 @@ export function TrajectoryScreen({
   const showDebt = debts && debts.length > 0 && totalDebt > 0
   const showSetAside = totalMonthlySetAside > 0
   const showGoals = activeGoals.length > 0
-  const showProjection = projection !== null
+  const showProjection = progressCurve !== null
   const showProgressSection = showSavings || showDebt || showSetAside || showGoals
 
   return (
@@ -379,7 +379,7 @@ export function TrajectoryScreen({
         </motion.div>
       )}
 
-      {/* ── Growth Projection Section ──────────────────────────────── */}
+      {/* ── Progress Curve Section ─────────────────────────────────── */}
       {showProjection && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -396,10 +396,10 @@ export function TrajectoryScreen({
               marginBottom: 10,
             }}
           >
-            Where you&apos;re heading (12-month projection)
+            Your momentum (12-month projection)
           </p>
 
-          <GrowthProjectionCard projection={projection!} />
+          <ProgressCurveCard curve={progressCurve!} />
         </motion.div>
       )}
 
@@ -844,127 +844,157 @@ function GoalsProgressCard({ goals }: { goals: Goal[] }) {
 }
 
 // ============================================================================
-// Growth Projection Card — simple inline bar chart using styled divs
+// Progress Curve Card — smooth SVG area chart showing unified progress
 // ============================================================================
 
-function GrowthProjectionCard({ projection }: { projection: FinancialHealthSnapshot }) {
-  // Show every other month for 12-month projection (0, 2, 4, 6, 8, 10, 12)
-  const savingsPoints = projection.savingsTimeline.dataPoints.filter((_, i) => i % 2 === 0)
-  const debtPoints = projection.debtTimeline.dataPoints.filter((_, i) => i % 2 === 0)
+function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
+  const { dataPoints, projectedSavings, projectedDebt, startingSavings, startingDebt, hasSavingsSignal, hasDebtSignal } = curve
 
-  // Determine max balance for scaling bars
-  const allBalances = [
-    ...savingsPoints.map(p => p.balance),
-    ...debtPoints.map(p => p.balance),
-  ]
-  const maxBalance = Math.max(...allBalances, 1)
+  // Chart dimensions
+  const chartWidth = 320
+  const chartHeight = 100
+  const padding = { top: 8, right: 12, bottom: 4, left: 12 }
+  const innerWidth = chartWidth - padding.left - padding.right
+  const innerHeight = chartHeight - padding.top - padding.bottom
 
-  const hasSavingsData = savingsPoints.some(p => p.balance > 0)
-  const hasDebtData = debtPoints.some(p => p.balance > 0)
+  // Compute SVG path for the progress curve
+  const maxScore = Math.max(...dataPoints.map(p => p.score), 1)
+  const points = dataPoints.map((p, i) => ({
+    x: padding.left + (i / (dataPoints.length - 1)) * innerWidth,
+    y: padding.top + innerHeight - (p.score / maxScore) * innerHeight,
+  }))
 
-  const monthLabels = ["Now", "2mo", "4mo", "6mo", "8mo", "10mo", "12mo"]
+  // Build smooth curve path using cardinal spline approximation
+  const linePath = buildSmoothPath(points)
+  const areaPath = `${linePath} L ${points[points.length - 1].x},${chartHeight - padding.bottom} L ${points[0].x},${chartHeight - padding.bottom} Z`
+
+  // Current score (month 0) and projected score (last month)
+  const currentScore = dataPoints[0].score
+  const projectedScore = dataPoints[dataPoints.length - 1].score
+  const progressGain = Math.round(projectedScore - currentScore)
+
+  // Month labels for x-axis
+  const monthLabels = ["Now", "3mo", "6mo", "9mo", "12mo"]
 
   return (
     <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
-      {/* Legend */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 14, flexWrap: "wrap" }}>
-        {hasSavingsData && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 2, background: "var(--success)" }} />
-            <span style={{ fontSize: 11, color: "var(--sub)" }}>Savings growth</span>
-          </div>
-        )}
-        {hasDebtData && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 2, background: "var(--accent, #818cf8)" }} />
-            <span style={{ fontSize: 11, color: "var(--sub)" }}>Debt declining</span>
-          </div>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 18 }} aria-hidden="true">📈</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+            Progress Score
+          </span>
+        </div>
+        {progressGain > 0 && (
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--success)",
+              background: "rgba(74, 222, 128, 0.1)",
+              padding: "3px 8px",
+              borderRadius: 10,
+            }}
+          >
+            +{progressGain} pts projected
+          </span>
         )}
       </div>
 
-      {/* Bar chart */}
+      {/* SVG Area Chart */}
       <div
         style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: 4,
-          height: 100,
-          marginBottom: 8,
+          width: "100%",
+          marginBottom: 6,
         }}
         role="img"
-        aria-label="12-month financial projection chart showing savings growth and debt decline"
+        aria-label={`Progress curve showing your combined savings and debt progress trending upward from ${Math.round(currentScore)} to ${Math.round(projectedScore)} over 12 months`}
       >
-        {savingsPoints.map((sp, idx) => {
-          const dp = debtPoints[idx]
-          const savingsHeight = maxBalance > 0 ? (sp.balance / maxBalance) * 100 : 0
-          const debtHeight = dp && maxBalance > 0 ? (dp.balance / maxBalance) * 100 : 0
+        <svg
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+          width="100%"
+          height={chartHeight}
+          preserveAspectRatio="none"
+          style={{ display: "block" }}
+        >
+          {/* Gradient fill */}
+          <defs>
+            <linearGradient id="progressGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--success)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="var(--success)" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
 
-          return (
-            <div
-              key={sp.month}
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 2,
-                height: "100%",
-                justifyContent: "flex-end",
-              }}
-            >
-              {/* Stacked bars */}
-              <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: "100%" }}>
-                {hasSavingsData && (
-                  <div
-                    style={{
-                      width: hasDebtData ? 8 : 14,
-                      height: `${Math.max(2, savingsHeight)}%`,
-                      borderRadius: 2,
-                      background: "var(--success)",
-                      opacity: 0.85,
-                      transition: "height 0.3s ease",
-                    }}
-                  />
-                )}
-                {hasDebtData && (
-                  <div
-                    style={{
-                      width: hasSavingsData ? 8 : 14,
-                      height: `${Math.max(2, debtHeight)}%`,
-                      borderRadius: 2,
-                      background: "var(--accent, #818cf8)",
-                      opacity: 0.7,
-                      transition: "height 0.3s ease",
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          )
-        })}
+          {/* Area fill */}
+          <path
+            d={areaPath}
+            fill="url(#progressGradient)"
+          />
+
+          {/* Line */}
+          <path
+            d={linePath}
+            fill="none"
+            stroke="var(--success)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ filter: "drop-shadow(0 1px 3px rgba(74, 222, 128, 0.3))" }}
+          />
+
+          {/* Current position dot */}
+          <circle
+            cx={points[0].x}
+            cy={points[0].y}
+            r="4"
+            fill="var(--surface)"
+            stroke="var(--success)"
+            strokeWidth="2"
+          />
+
+          {/* Projected position dot */}
+          <circle
+            cx={points[points.length - 1].x}
+            cy={points[points.length - 1].y}
+            r="4"
+            fill="var(--success)"
+            stroke="var(--surface)"
+            strokeWidth="1.5"
+          />
+        </svg>
       </div>
 
       {/* Month labels */}
-      <div style={{ display: "flex", gap: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
         {monthLabels.map((ml) => (
-          <div
+          <span
             key={ml}
             style={{
-              flex: 1,
-              textAlign: "center",
               fontSize: 9,
               color: "var(--muted)",
             }}
           >
             {ml}
-          </div>
+          </span>
         ))}
       </div>
 
-      {/* Summary text */}
+      {/* Warm copy */}
+      <p
+        style={{
+          fontSize: 12,
+          color: "var(--sub)",
+          lineHeight: 1.5,
+          marginBottom: 10,
+        }}
+      >
+        Your combined savings + debt progress over the next year
+      </p>
+
+      {/* Breakdown text */}
       <div
         style={{
-          marginTop: 12,
           padding: "8px 0 0",
           borderTop: "1px solid var(--border, rgba(255,255,255,0.04))",
           display: "flex",
@@ -972,29 +1002,58 @@ function GrowthProjectionCard({ projection }: { projection: FinancialHealthSnaps
           gap: 4,
         }}
       >
-        {hasSavingsData && (
+        {hasSavingsSignal && (
           <p style={{ fontSize: 12, color: "var(--sub)" }}>
             <span style={{ color: "var(--success)", fontWeight: 600 }}>Savings</span>{" "}
             projected to reach{" "}
             <span style={{ color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-              {formatDollars(savingsPoints[savingsPoints.length - 1]?.balance ?? 0)}
-            </span>{" "}
-            in 12 months
+              {formatDollars(projectedSavings)}
+            </span>
           </p>
         )}
-        {hasDebtData && (
+        {hasDebtSignal && (
           <p style={{ fontSize: 12, color: "var(--sub)" }}>
             <span style={{ color: "var(--accent, #818cf8)", fontWeight: 600 }}>Debt</span>{" "}
             projected to drop to{" "}
             <span style={{ color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-              {formatDollars(debtPoints[debtPoints.length - 1]?.balance ?? 0)}
-            </span>{" "}
-            in 12 months
+              {formatDollars(projectedDebt)}
+            </span>
           </p>
         )}
       </div>
     </GlassCard>
   )
+}
+
+/**
+ * Build a smooth SVG path string from an array of points using
+ * monotone cubic interpolation for a natural-looking curve.
+ */
+function buildSmoothPath(points: { x: number; y: number }[]): string {
+  if (points.length < 2) return ""
+  if (points.length === 2) {
+    return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`
+  }
+
+  let path = `M ${points[0].x},${points[0].y}`
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = points[Math.min(points.length - 1, i + 2)]
+
+    // Control points using Catmull-Rom to cubic Bezier conversion
+    const tension = 0.3
+    const cp1x = p1.x + (p2.x - p0.x) * tension
+    const cp1y = p1.y + (p2.y - p0.y) * tension
+    const cp2x = p2.x - (p3.x - p1.x) * tension
+    const cp2y = p2.y - (p3.y - p1.y) * tension
+
+    path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`
+  }
+
+  return path
 }
 
 // ============================================================================
