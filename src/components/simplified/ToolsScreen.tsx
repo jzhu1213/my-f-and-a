@@ -42,6 +42,8 @@ export interface ToolsScreenProps {
   onOpenTrajectory?: () => void
   onOpenCashFlowForecast?: () => void
   onOpenHouseholdPool?: () => void
+  onOpenPortfolioAllocation?: () => void
+  onOpenInvestmentExplorer?: () => void
   /** Display-only: total set-aside amount this month */
   totalSetAside?: number
   /** Display-only: savings rate percentage */
@@ -98,7 +100,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "planning",
     label: "Planning",
-    toolIds: ["sinking-funds", "savings-projections", "manage-savings", "cash-flow-forecast", "compound-growth", "credit-payoff"],
+    toolIds: ["sinking-funds", "savings-projections", "manage-savings", "portfolio-allocation", "investment-explorer", "cash-flow-forecast", "compound-growth", "credit-payoff"],
   },
   {
     id: "learn",
@@ -134,6 +136,8 @@ export function ToolsScreen({
   onOpenTrajectory,
   onOpenCashFlowForecast,
   onOpenHouseholdPool,
+  onOpenPortfolioAllocation,
+  onOpenInvestmentExplorer,
   totalSetAside,
   savingsRate,
   fundingSources,
@@ -157,6 +161,8 @@ export function ToolsScreen({
     "cancel-negotiate": "subscriptionAudit",
     "savings-projections": "savingsProjections",
     "manage-savings": "savingsProjections",
+    "portfolio-allocation": "savingsProjections",
+    "investment-explorer": "savingsProjections",
     "cash-flow-forecast": "cashFlowForecast",
     "compound-growth": "compoundGrowthCalculator",
     "credit-payoff": "creditPayoffCalculator",
@@ -245,6 +251,20 @@ export function ToolsScreen({
       title: "Manage Savings Accounts",
       description: "Add, edit, or remove your savings and investment accounts.",
       onOpen: onOpenManageSavings,
+    },
+    {
+      id: "portfolio-allocation",
+      emoji: "🥧",
+      title: "Portfolio Allocation",
+      description: "See your savings broken down by account type — where your money lives and grows.",
+      onOpen: onOpenPortfolioAllocation,
+    },
+    {
+      id: "investment-explorer",
+      emoji: "🔮",
+      title: "What If I Invest?",
+      description: "Model how different contributions and returns could grow over time.",
+      onOpen: onOpenInvestmentExplorer,
     },
     {
       id: "cash-flow-forecast",

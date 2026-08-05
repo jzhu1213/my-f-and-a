@@ -16,7 +16,9 @@ import {
   type AutoContributeRule,
 } from "@/lib/autoContributeUtils"
 import type { Goal } from "@/types"
+import type { SavingsAccount } from "@/types/folio"
 import { goalProgress, isGoalComplete } from "@/lib/goalUtils"
+import { getLinkedAccountForGoal } from "@/lib/goalInvestingUtils"
 import { isGoalShared, getParticipantBreakdown } from "@/lib/sharedGoalUtils"
 import { SharedGoalSheet } from "./SharedGoalSheet"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -36,6 +38,8 @@ export interface GoalFormData {
   emoji: string
   /** Optional ISO date string for the goal deadline */
   targetDate?: string
+  /** Optional linked savings/investment account ID */
+  linkedAccountId?: string
 }
 
 export interface GoalsScreenProps {
@@ -43,6 +47,8 @@ export interface GoalsScreenProps {
   goals: Goal[]
   /** Monthly income used for deadline feasibility checks. */
   monthlyIncome?: number
+  /** Available savings/investment accounts (for linking to goals). */
+  savingsAccounts?: SavingsAccount[]
   /** Create a new savings goal (backed by useHomeData.createGoal). */
   onCreateGoal: (data: GoalFormData) => Promise<Goal | null> | void
   /** Update an existing goal (backed by useHomeData.updateGoal). */
@@ -71,16 +77,21 @@ interface GoalCardProps {
   goal: Goal
   reducedMotion: boolean
   monthlyIncome: number
+  /** Linked savings account (if goal has linkedAccountId), for real balance display */
+  linkedAccount?: SavingsAccount
   onContribute: (goal: Goal) => void
   onEdit: (goal: Goal) => void
   onDelete: (goal: Goal) => void
   onShare: (goal: Goal) => void
 }
 
-function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, onDelete, onShare }: GoalCardProps) {
-  const pct = goalProgress(goal)
-  const complete = isGoalComplete(goal)
-  const remaining = Math.max(0, goal.targetAmount - goal.currentAmount)
+function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContribute, onEdit, onDelete, onShare }: GoalCardProps) {
+  // When backed by a savings account, use the account balance for progress
+  const effectiveCurrentAmount = linkedAccount ? linkedAccount.balance : goal.currentAmount
+  const effectiveGoal = linkedAccount ? { ...goal, currentAmount: effectiveCurrentAmount } : goal
+  const pct = goalProgress(effectiveGoal)
+  const complete = isGoalComplete(effectiveGoal)
+  const remaining = Math.max(0, goal.targetAmount - effectiveCurrentAmount)
   const fillColor = complete ? "var(--success)" : "var(--accent)"
   const shared = isGoalShared(goal.id)
   const participants = shared ? getParticipantBreakdown(goal.id) : []
@@ -236,7 +247,25 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
         }}
       >
         <span style={{ color: complete ? "var(--success)" : "var(--sub)" }}>
-          ${formatAmount(goal.currentAmount)} saved
+          ${formatAmount(effectiveCurrentAmount)} saved
+          {linkedAccount && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 3,
+                marginLeft: 6,
+                fontSize: 11,
+                color: "var(--accent)",
+                background: "var(--accent-muted)",
+                padding: "1px 6px",
+                borderRadius: 6,
+                verticalAlign: "middle",
+              }}
+            >
+              📊 {linkedAccount.name}
+            </span>
+          )}
         </span>
         <span style={{ color: "var(--muted)" }}>
           {complete ? `$${formatAmount(goal.targetAmount)} goal` : `$${formatAmount(remaining)} left`}
@@ -408,6 +437,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, onContribute, onEdit, on
 export function GoalsScreen({
   goals,
   monthlyIncome = 0,
+  savingsAccounts,
   onCreateGoal,
   onUpdateGoal,
   onContributeToGoal,
@@ -573,6 +603,7 @@ export function GoalsScreen({
                   goal={goal}
                   reducedMotion={prefersReducedMotion}
                   monthlyIncome={monthlyIncome}
+                  linkedAccount={getLinkedAccountForGoal(goal, savingsAccounts ?? [])}
                   onContribute={handleContribute}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
@@ -612,6 +643,7 @@ export function GoalsScreen({
                   goal={goal}
                   reducedMotion={prefersReducedMotion}
                   monthlyIncome={monthlyIncome}
+                  linkedAccount={getLinkedAccountForGoal(goal, savingsAccounts ?? [])}
                   onContribute={handleContribute}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
@@ -915,6 +947,7 @@ export function GoalsScreen({
         isOpen={goalSheet !== null}
         mode={goalSheet?.mode ?? "create"}
         goal={goalSheet?.goal ?? null}
+        savingsAccounts={savingsAccounts}
         onClose={closeGoalSheet}
         onCreate={onCreateGoal}
         onUpdate={onUpdateGoal}

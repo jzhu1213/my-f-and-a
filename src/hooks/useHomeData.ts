@@ -65,6 +65,8 @@ import type { HeroMeaning } from '@/types/folio'
 import { syncWidgetData } from '@/lib/widgetSync'
 import { recordContribution, clearContributionHistory } from '@/lib/savingsContributionHistory'
 import { computeRhythmWeights } from '@/lib/rhythmModel'
+import type { IncomeStream } from '@/types/folio'
+import { loadIncomeStreams, saveIncomeStreams, generateIncomeStreamId } from '@/lib/incomeStreams'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
 // Stored in localStorage as a fallback (no dedicated Supabase table yet).
@@ -295,6 +297,11 @@ export interface UseHomeDataReturn {
    */
   incomeSmoothing: IncomeSmoothing | null
   /**
+   * The user's configured income streams (multiple named sources).
+   * Empty array when none are set. Feeds the combined daily number.
+   */
+  incomeStreams: IncomeStream[]
+  /**
    * The user's spending mode preference.
    * Controls how budget signals are communicated — never blocks logging.
    * Defaults to `'guided'`.
@@ -410,6 +417,7 @@ export interface UseHomeDataReturn {
     targetAmount: number
     emoji: string
     targetDate?: string
+    linkedAccountId?: string
   }) => Promise<Goal | null>
   
   /** Update an existing goal */
@@ -420,6 +428,7 @@ export interface UseHomeDataReturn {
       targetAmount: number
       emoji: string
       targetDate?: string
+      linkedAccountId?: string
     }
   ) => Promise<Goal | null>
   
@@ -529,6 +538,18 @@ export interface UseHomeDataReturn {
    * Pass `null` to clear the term schedule.
    */
   setTermSchedule: (schedule: TermSchedule | null) => void
+  /**
+   * Add a new income stream (persisted to localStorage).
+   */
+  addIncomeStream: (data: Omit<IncomeStream, 'id'>) => IncomeStream
+  /**
+   * Update an existing income stream by ID (persisted to localStorage).
+   */
+  updateIncomeStream: (id: string, updates: Partial<IncomeStream>) => void
+  /**
+   * Remove an income stream by ID (persisted to localStorage).
+   */
+  removeIncomeStream: (id: string) => void
 }
 
 /**
@@ -566,6 +587,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   const [disbursements, setDisbursements] = useState<Disbursement[]>(() => loadDisbursements())
   const [spendDownPlans, setSpendDownPlans] = useState<SpendDownPlan[]>(() => loadSpendDownPlans())
   const [termSchedule, setTermScheduleState] = useState<TermSchedule | null>(() => loadTermSchedule())
+  const [incomeStreams, setIncomeStreams] = useState<IncomeStream[]>(() => loadIncomeStreams())
   const [disbursementBonus, setDisbursementBonus] = useState(0)
   const [incomeSmoothing, setIncomeSmoothingState] = useState<IncomeSmoothing | null>(
     () => loadIncomeSmoothingPreference()
@@ -963,6 +985,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     targetAmount: number
     emoji: string
     targetDate?: string
+    linkedAccountId?: string
   }) => {
     if (!userId) return null
     
@@ -990,6 +1013,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       targetAmount: number
       emoji: string
       targetDate?: string
+      linkedAccountId?: string
     }
   ) => {
     if (!userId) return null
@@ -1527,9 +1551,10 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       paySchedule,   // Task 103.1: pass pay schedule for payday-aligned budget periods
       transactions,  // Task 103.1: income history for irregular cadence estimation
       termSchedule,  // Task 121.1: term schedule for semester-based budget periods
-      rhythmWeights  // Task 164.1: weekly spending rhythm weights
+      rhythmWeights, // Task 164.1: weekly spending rhythm weights
+      incomeStreams.length > 0 ? incomeStreams : null  // Task 176.1: multiple income streams
     )
-  }, [budgets, transactions, debts, sinkingFunds, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights])
+  }, [budgets, transactions, debts, sinkingFunds, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights, incomeStreams])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
@@ -1725,6 +1750,42 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       return next
     })
   }, [])
+
+  // ── Income Stream Mutations (Task 176.1) ─────────────────────────────────
+  /**
+   * Add a new income stream (persisted to localStorage).
+   */
+  const addIncomeStream = useCallback((data: Omit<IncomeStream, 'id'>): IncomeStream => {
+    const stream: IncomeStream = { ...data, id: generateIncomeStreamId() }
+    setIncomeStreams(prev => {
+      const next = [...prev, stream]
+      saveIncomeStreams(next)
+      return next
+    })
+    return stream
+  }, [])
+
+  /**
+   * Update an existing income stream by ID (persisted to localStorage).
+   */
+  const updateIncomeStream = useCallback((id: string, updates: Partial<IncomeStream>): void => {
+    setIncomeStreams(prev => {
+      const next = prev.map(s => s.id === id ? { ...s, ...updates } : s)
+      saveIncomeStreams(next)
+      return next
+    })
+  }, [])
+
+  /**
+   * Remove an income stream by ID (persisted to localStorage).
+   */
+  const removeIncomeStream = useCallback((id: string): void => {
+    setIncomeStreams(prev => {
+      const next = prev.filter(s => s.id !== id)
+      saveIncomeStreams(next)
+      return next
+    })
+  }, [])
   
   // ── Return Hook Interface ──────────────────────────────────────
   return {
@@ -1736,6 +1797,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     savingsAccounts,
     paySchedule,
     incomeSmoothing,
+    incomeStreams,
     spendingMode,
     heroMeaning,
     fundingSources,
@@ -1815,5 +1877,9 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     addSpendDownPlan,
     removeSpendDownPlan,
     updateSpendDownPlan,
+    // Income stream mutations (Task 176.1)
+    addIncomeStream,
+    updateIncomeStream,
+    removeIncomeStream,
   }
 }

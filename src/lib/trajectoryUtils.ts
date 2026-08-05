@@ -17,7 +17,7 @@ import type { Goal } from "@/types"
 import type { Debt, SavingsAccount } from "@/types/folio"
 import type { SinkingFund } from "@/lib/sinkingFunds"
 import { computeTotalSavingsBalance, computeMonthlyContributions } from "@/lib/savingsAccountUtils"
-import { computeGigTaxTrajectory } from "@/lib/taxSetAside"
+import { computeGigTaxTrajectory, computeQuarterlyTaxEstimates } from "@/lib/taxSetAside"
 
 // ============================================================================
 // Types
@@ -354,6 +354,61 @@ export function computeTrajectory(input: TrajectoryInput): TrajectoryResult {
     }
   }
 
+  // ── Quarterly tax deadline (Task 177.1) ────────────────────────
+  // Surface a gentle reminder when a quarterly estimated tax deadline is
+  // approaching (within 30 days). Never shaming, never professional advice.
+  {
+    const today = new Date()
+    const referenceDate = today.toISOString().slice(0, 10)
+    const taxYear = today.getFullYear()
+
+    // Sum gig income per month for the tax year so far
+    const monthlyIncome: number[] = []
+    for (let m = 1; m <= 12; m++) {
+      const monthKey = `${taxYear}-${String(m).padStart(2, "0")}`
+      monthlyIncome.push(sumGigIncomeForMonth(transactions, monthKey))
+    }
+
+    const hasAnyGigIncome = monthlyIncome.some((v) => v > 0)
+
+    if (hasAnyGigIncome) {
+      const estimates = computeQuarterlyTaxEstimates({
+        taxYear,
+        monthlyIncome,
+        totalReserved: totalSetAside ?? 0,
+        referenceDate,
+        taxRate: gigTaxRate,
+      })
+
+      if (estimates.nextDeadline && estimates.nextDeadline.daysUntil <= 30) {
+        const { quarter, daysUntil } = estimates.nextDeadline
+        const qEstimate = estimates.quarters.find((q) => q.quarter === quarter)
+
+        const alreadyCovered = qEstimate?.covered ?? false
+        const daysLabel =
+          daysUntil === 1 ? "tomorrow" : `in ${daysUntil} days`
+
+        const headline = alreadyCovered
+          ? `${quarter} estimate deadline ${daysLabel} — you're set`
+          : `${quarter} estimate deadline ${daysLabel}`
+
+        const detail = alreadyCovered
+          ? `Your quarterly set-aside looks covered. One less thing to think about.`
+          : qEstimate && qEstimate.suggestedReserve > 0
+            ? `Consider setting aside ~$${Math.round(qEstimate.suggestedReserve).toLocaleString()} before the deadline. ${estimates.disclaimer}`
+            : `A quarterly estimated tax date is coming up. ${estimates.disclaimer}`
+
+        insights.push({
+          id: "quarterly-tax-deadline",
+          emoji: alreadyCovered ? "✅" : "📅",
+          headline,
+          detail,
+          direction: alreadyCovered ? "improving" : "steady",
+        })
+      }
+    }
+  }
+
   // ── Financial cushion (combined directional indicator) ──────────
   {
     const hasSavings = savingsAccounts && savingsAccounts.length > 0 && computeTotalSavingsBalance(savingsAccounts) > 0
@@ -395,13 +450,17 @@ export function computeTrajectory(input: TrajectoryInput): TrajectoryResult {
   }
 
   // Limit to 6 insights max (trim lowest-priority ones), but always keep the
-  // gig tax set-aside insight when present so it surfaces clearly (task 154.1).
+  // gig tax set-aside insight and quarterly deadline when present so they surface
+  // clearly (tasks 154.1 & 177.1).
   const MAX_INSIGHTS = 6
   let trimmedInsights = insights.slice(0, MAX_INSIGHTS)
   const gigTaxInsight = insights.find((i) => i.id === "gig-tax")
   if (gigTaxInsight && !trimmedInsights.some((i) => i.id === "gig-tax")) {
-    // Drop the last kept insight to make room, then append gig-tax.
     trimmedInsights = [...trimmedInsights.slice(0, MAX_INSIGHTS - 1), gigTaxInsight]
+  }
+  const deadlineInsight = insights.find((i) => i.id === "quarterly-tax-deadline")
+  if (deadlineInsight && !trimmedInsights.some((i) => i.id === "quarterly-tax-deadline")) {
+    trimmedInsights = [...trimmedInsights.slice(0, MAX_INSIGHTS - 1), deadlineInsight]
   }
 
   return {

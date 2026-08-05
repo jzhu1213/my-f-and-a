@@ -21,6 +21,7 @@ const STEP_META: Record<string, { label: string; emoji: string }> = {
   'paycheck-confirmation': { label: 'Connect your paycheck', emoji: '📅' },
   'optional-goal': { label: 'Pick a savings goal', emoji: '🎯' },
   'terminal-goal': { label: 'Pick your focus', emoji: '🎯' },
+  'income-anchor': { label: 'Set your last payday', emoji: '📅' },
 }
 
 /**

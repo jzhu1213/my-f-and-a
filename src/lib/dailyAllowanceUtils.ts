@@ -1,5 +1,6 @@
 import type { Budget, Transaction } from '@/types'
 import type { DailyAllowance, AllowanceStatus, IncomeSmoothing, MonthBoundaryCarryover, HeroMeaning, HeroDisplay, RhythmWeights, ConfidenceBand } from '@/types/folio'
+import type { IncomeStream } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { FundingSource } from '@/lib/fundingSources'
 import type { PaySchedule } from '@/lib/paySchedule'
@@ -9,6 +10,7 @@ import { isBorrowedTransaction } from '@/lib/fundingSources'
 import { getStatusMessage } from '@/lib/vocabulary'
 import { getNextPayday, getLastPayday, AVG_DAYS_PER_MONTH } from '@/lib/paySchedule'
 import { isTermActive, getDaysInTerm, getDaysRemainingInTerm } from '@/lib/termSchedule'
+import { computeMonthlyIncomeFromStreams } from '@/lib/incomeStreams'
 import { 
   formatDateLocal, 
   getMonthStartLocal, 
@@ -437,7 +439,8 @@ export function computeDailyAllowance(
   paySchedule?: PaySchedule | null,
   incomeHistory?: Transaction[],
   termSchedule?: TermSchedule | null,
-  rhythmWeights?: RhythmWeights | null
+  rhythmWeights?: RhythmWeights | null,
+  incomeStreams?: IncomeStream[] | null
 ): DailyAllowance {
   // Step 1: Calculate total monthly budget from all category limits.
   //
@@ -500,15 +503,22 @@ export function computeDailyAllowance(
   
   // Determine income source priority:
   // 1. Budget limits (if configured)
-  // 2. Actual logged income transactions (if any exist this month)
-  // 3. monthlyIncome parameter estimate (fallback)
+  // 2. Income streams (if provided with active streams — Task 176.1)
+  // 3. Actual logged income transactions (if any exist this month)
+  // 4. monthlyIncome parameter estimate (fallback)
   const hasBudgets = totalMonthlyBudget > 0
+  const streamsMonthly = (incomeStreams && incomeStreams.length > 0)
+    ? computeMonthlyIncomeFromStreams(incomeStreams, currentDate)
+    : 0
+  const hasIncomeStreams = streamsMonthly > 0
   const hasActualIncome = actualMonthlyIncome > 0
   const hasEstimate = typeof monthlyIncome === 'number' && monthlyIncome > 0
   
   let incomeSource: 'budget' | 'transactions' | 'estimate'
   if (hasBudgets) {
     incomeSource = 'budget'
+  } else if (hasIncomeStreams) {
+    incomeSource = 'transactions'
   } else if (hasActualIncome) {
     incomeSource = 'transactions'
   } else {
@@ -517,9 +527,13 @@ export function computeDailyAllowance(
 
   // Step 1a-ii: When income smoothing is provided and source is transactions,
   // use smoothed income to stabilize the pool for gig workers with variable income.
-  const smoothedIncome = (incomeSource === 'transactions' && incomeSmoothing)
-    ? computeSmoothedIncome(transactions, currentDate, incomeSmoothing)
-    : actualMonthlyIncome
+  // When income streams are configured (Task 176.1), they take priority over
+  // individual transaction sums — the combined stream monthly figure is the pool.
+  const smoothedIncome = hasIncomeStreams
+    ? streamsMonthly
+    : (incomeSource === 'transactions' && incomeSmoothing)
+      ? computeSmoothedIncome(transactions, currentDate, incomeSmoothing)
+      : actualMonthlyIncome
 
   const isEstimated = incomeSource === 'estimate'
   

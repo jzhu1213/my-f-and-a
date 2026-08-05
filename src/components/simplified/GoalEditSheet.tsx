@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { BottomSheet } from "@/components/ui/BottomSheet"
 import type { Goal } from "@/types"
+import type { SavingsAccount } from "@/types/folio"
 import type { GoalFormData } from "./GoalsScreen"
 import { FONT_FAMILY } from "@/styles/typography"
 import { borderRadius } from "@/styles/shared"
@@ -26,6 +27,8 @@ interface GoalEditSheetProps {
   mode: "create" | "edit"
   /** The goal being edited (ignored in create mode). */
   goal: Goal | null
+  /** Available savings/investment accounts to link (optional). */
+  savingsAccounts?: SavingsAccount[]
   /** Close the sheet without saving. */
   onClose: () => void
   /** Create a new goal. Resolves to the created goal, or null on failure. */
@@ -62,7 +65,7 @@ function sanitizeName(raw: string): string {
  *
  * Validates: Requirements 12.4
  */
-export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate }: GoalEditSheetProps) {
+export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, onCreate, onUpdate }: GoalEditSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const nameRef = useRef<HTMLInputElement>(null)
 
@@ -70,6 +73,7 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
   const [targetAmount, setTargetAmount] = useState("")
   const [selectedEmoji, setSelectedEmoji] = useState(EMOJI_OPTIONS[0])
   const [targetDate, setTargetDate] = useState("")
+  const [linkedAccountId, setLinkedAccountId] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -88,11 +92,13 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
       setTargetAmount(goal.targetAmount > 0 ? String(goal.targetAmount) : "")
       setSelectedEmoji(goal.emoji || EMOJI_OPTIONS[0])
       setTargetDate(goal.targetDate || "")
+      setLinkedAccountId(goal.linkedAccountId || "")
     } else {
       setName("")
       setTargetAmount("")
       setSelectedEmoji(EMOJI_OPTIONS[0])
       setTargetDate("")
+      setLinkedAccountId("")
     }
     // Focus the name field once the sheet has settled.
     const t = setTimeout(() => nameRef.current?.focus(), 140)
@@ -128,7 +134,7 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
       return
     }
 
-    const payload: GoalFormData = { name: cleanName, targetAmount: target, emoji: selectedEmoji, targetDate: targetDate || undefined }
+    const payload: GoalFormData = { name: cleanName, targetAmount: target, emoji: selectedEmoji, targetDate: targetDate || undefined, linkedAccountId: linkedAccountId || undefined }
 
     setSubmitting(true)
     setError(null)
@@ -357,6 +363,48 @@ export function GoalEditSheet({ isOpen, mode, goal, onClose, onCreate, onUpdate 
                   </button>
                 )}
               </div>
+
+              {/* ── Link to investment account (optional, progressive disclosure) ── */}
+              {savingsAccounts && savingsAccounts.length > 0 && (
+                <>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>
+                    Back with an account <span style={{ fontWeight: 400 }}>(optional)</span>
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 10, lineHeight: 1.4 }}>
+                    Link an investment account so progress grows automatically.
+                  </p>
+                  <select
+                    value={linkedAccountId}
+                    onChange={e => { setLinkedAccountId(e.target.value); setError(null) }}
+                    aria-label="Linked investment account"
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      fontSize: 14,
+                      fontFamily: FONT_FAMILY,
+                      color: linkedAccountId ? "var(--text)" : "var(--muted)",
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 8,
+                      outline: "none",
+                      marginBottom: 28,
+                      cursor: "pointer",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' fill='none' stroke='%23888' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                    }}
+                  >
+                    <option value="">None</option>
+                    {savingsAccounts.map(acct => (
+                      <option key={acct.id} value={acct.id}>
+                        {acct.name} — ${acct.balance.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
 
               {/* ── Inline error (persistence failure / validation) ── */}
               {error && (

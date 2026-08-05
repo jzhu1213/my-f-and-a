@@ -69,6 +69,7 @@ interface DbGoal {
   emoji: string
   created_at: string
   target_date?: string | null
+  linked_account_id?: string | null
 }
 
 interface DbLessonProgress {
@@ -201,6 +202,7 @@ function dbGoalToApp(db: DbGoal): Goal {
     emoji: db.emoji,
     createdAt: db.created_at,
     ...(db.target_date ? { targetDate: db.target_date } : {}),
+    ...(db.linked_account_id ? { linkedAccountId: db.linked_account_id } : {}),
   }
 }
 
@@ -683,7 +685,7 @@ export async function getGoals(userId: string): Promise<Goal[]> {
 
 export async function createGoal(
   userId: string,
-  goal: { name: string; targetAmount: number; emoji: string; targetDate?: string }
+  goal: { name: string; targetAmount: number; emoji: string; targetDate?: string; linkedAccountId?: string }
 ): Promise<Goal | null> {
   const { data, error } = await supabase
     .from('goals')
@@ -694,6 +696,7 @@ export async function createGoal(
       current_amount: 0,
       emoji: goal.emoji,
       ...(goal.targetDate ? { target_date: goal.targetDate } : {}),
+      ...(goal.linkedAccountId ? { linked_account_id: goal.linkedAccountId } : {}),
     })
     .select()
     .single()
@@ -730,7 +733,7 @@ export async function updateGoalProgress(
 export async function updateGoal(
   userId: string,
   goalId: string,
-  updates: { name: string; targetAmount: number; emoji: string; targetDate?: string }
+  updates: { name: string; targetAmount: number; emoji: string; targetDate?: string; linkedAccountId?: string }
 ): Promise<Goal | null> {
   const { data, error } = await supabase
     .from('goals')
@@ -739,6 +742,7 @@ export async function updateGoal(
       target_amount: updates.targetAmount,
       emoji: updates.emoji,
       target_date: updates.targetDate || null,
+      linked_account_id: updates.linkedAccountId || null,
     })
     .eq('id', goalId)
     .eq('user_id', userId)

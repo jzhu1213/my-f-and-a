@@ -163,6 +163,246 @@ function getStepTitle(step: TutorialStep): string {
 // Component
 // ============================================================================
 
+// ---- Condensed Preview (Task 229.2) ----
+// Inline version to avoid circular dependency with TutorialSteps.tsx.
+// Shows all 3 demo features in a single scrollable view.
+
+function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
+  const { prefersReducedMotion } = useReducedMotion()
+
+  return (
+    <div className="flex flex-col items-center text-center flex-1">
+      <motion.span
+        style={{ fontSize: 40, marginBottom: 12 }}
+        initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+        animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+        transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
+        aria-hidden="true"
+      >
+        👋
+      </motion.span>
+      <h2
+        style={{
+          fontSize: 20,
+          fontWeight: 700,
+          fontFamily: FONT_FAMILY,
+          color: 'var(--text)',
+          marginBottom: 6,
+        }}
+      >
+        Here&apos;s how Folio works
+      </h2>
+      <p
+        style={{
+          fontSize: 13,
+          fontFamily: FONT_FAMILY,
+          color: 'var(--sub)',
+          maxWidth: 280,
+          lineHeight: 1.5,
+          marginBottom: 20,
+        }}
+      >
+        Three things that make budgeting feel easy.
+      </p>
+
+      {/* Scrollable preview cards */}
+      <div
+        className="flex flex-col gap-3 w-full overflow-y-auto"
+        style={{ maxHeight: 320, paddingBottom: 8 }}
+        role="group"
+        aria-label="Feature preview"
+      >
+        {/* 1. Daily allowance card */}
+        <div
+          style={{
+            padding: '16px',
+            borderRadius: 12,
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <span style={{ fontSize: 20 }} aria-hidden="true">✨</span>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: FONT_FAMILY,
+                color: 'var(--text)',
+              }}
+            >
+              Your daily number
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span
+              style={{
+                fontSize: 28,
+                fontWeight: 700,
+                fontFamily: FONT_FAMILY,
+                color: 'var(--success)',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              $42
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                fontFamily: FONT_FAMILY,
+                color: 'var(--sub)',
+              }}
+            >
+              left to spend today
+            </span>
+          </div>
+        </div>
+
+        {/* 2. Quick log mini */}
+        <div
+          style={{
+            padding: '16px',
+            borderRadius: 12,
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <span style={{ fontSize: 20 }} aria-hidden="true">💸</span>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: FONT_FAMILY,
+                color: 'var(--text)',
+              }}
+            >
+              One-tap logging
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {[
+              { emoji: '🍕', label: 'Food' },
+              { emoji: '🚌', label: 'Transport' },
+              { emoji: '🎮', label: 'Fun' },
+            ].map((cat) => (
+              <div
+                key={cat.label}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 20,
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  fontSize: 12,
+                  fontFamily: FONT_FAMILY,
+                  color: 'var(--sub)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <span aria-hidden="true">{cat.emoji}</span>
+                {cat.label}
+              </div>
+            ))}
+          </div>
+          <p
+            style={{
+              marginTop: 8,
+              fontSize: 11,
+              fontFamily: FONT_FAMILY,
+              color: 'var(--muted)',
+            }}
+          >
+            Pick a category, tap an amount — done
+          </p>
+        </div>
+
+        {/* 3. Category budget peek */}
+        <div
+          style={{
+            padding: '16px',
+            borderRadius: 12,
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <span style={{ fontSize: 20 }} aria-hidden="true">📊</span>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: FONT_FAMILY,
+                color: 'var(--text)',
+              }}
+            >
+              Category budgets
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span style={{ fontSize: 22 }}>🍕</span>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    fontFamily: FONT_FAMILY,
+                    color: 'var(--text)',
+                  }}
+                >
+                  Food
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontFamily: FONT_FAMILY,
+                    color: 'var(--sub)',
+                  }}
+                >
+                  $28 / $60
+                </span>
+              </div>
+              <div
+                style={{
+                  width: '100%',
+                  height: 5,
+                  borderRadius: 3,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: '47%',
+                    height: '100%',
+                    borderRadius: 3,
+                    background: '#4ade80',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Got it button */}
+      <button
+        onClick={onDismiss}
+        className="w-full mt-5 py-3 rounded-xl font-medium text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
+        style={{
+          background: 'var(--accent)',
+          color: '#fff',
+        }}
+        aria-label="Got it, back to setup options"
+      >
+        Got it — let&apos;s set up
+      </button>
+    </div>
+  )
+}
+
 /**
  * A reusable tutorial step engine with progress dots, directional slide
  * animations, and Next/Back/Skip navigation. Supports informational,
@@ -187,6 +427,8 @@ export function OnboardingTutorial({
   const [currentIndex, setCurrentIndex] = useState(0)
   const [direction, setDirection] = useState(1)
   const [interactionDone, setInteractionDone] = useState(false)
+  // Task 229.1: Condensed preview overlay shown from the router
+  const [showPreview, setShowPreview] = useState(false)
 
   // Accessibility: focus management on step change
   const stepContentRef = useRef<HTMLDivElement>(null)
@@ -259,13 +501,9 @@ export function OnboardingTutorial({
       setDirection(1)
       setCurrentIndex(prev => prev + 1)
       setInteractionDone(false)
-    } else if (branchIndex >= 0 && currentIndex < branchIndex) {
-      // Task 224.1: Before the branch step (demo intro / feature steps),
-      // Skip jumps to the branch step instead of exiting the tutorial entirely.
-      setDirection(1)
-      setCurrentIndex(branchIndex)
-      setInteractionDone(false)
     } else {
+      // Task 229.1: No demos before the branch anymore, so skip on welcome
+      // or any pre-branch step exits the tutorial entirely.
       onSkip()
     }
   }, [branchIndex, currentIndex, isLastStep, onSkip])
@@ -339,74 +577,90 @@ export function OnboardingTutorial({
             >
               {isBranch ? (
                 <div className="flex flex-col items-center text-center flex-1">
-                  <motion.span
-                    style={{ fontSize: 48, marginBottom: 16 }}
-                    initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
-                    animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
-                    transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
-                    aria-hidden="true"
-                  >
-                    {currentStep.emoji}
-                  </motion.span>
-                  <h2
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 700,
-                      fontFamily: FONT_FAMILY,
-                      color: 'var(--text)',
-                      marginBottom: 8,
-                    }}
-                  >
-                    {currentStep.title}
-                  </h2>
-                  <p
-                    style={{
-                      fontSize: 14,
-                      fontFamily: FONT_FAMILY,
-                      color: 'var(--sub)',
-                      maxWidth: 280,
-                      lineHeight: 1.5,
-                      marginBottom: 24,
-                    }}
-                  >
-                    {currentStep.subtitle}
-                  </p>
-                  <div className="flex flex-col gap-2.5 w-full" role="group" aria-label="Choose a setup path">
-                    {currentStep.options.map((opt) => (
-                      <button
-                        key={opt.value ?? opt.label}
-                        onClick={() => {
-                          onPathSelect?.(opt.value)
-                          // Advance past the branch step
-                          setDirection(1)
-                          setCurrentIndex(prev => prev + 1)
-                          setInteractionDone(false)
-                        }}
-                        className="flex items-center gap-3 p-3.5 rounded-xl text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
-                        style={{
-                          background: 'var(--surface)',
-                          border: '1.5px solid var(--border)',
-                        }}
-                        aria-label={`${opt.label}: ${opt.description}`}
+                  {/* Task 229.2: Show condensed preview overlay when requested */}
+                  {showPreview ? (
+                    <CondensedPreviewInline onDismiss={() => setShowPreview(false)} />
+                  ) : (
+                    <>
+                      <motion.span
+                        style={{ fontSize: 48, marginBottom: 16 }}
+                        initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+                        animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+                        transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
+                        aria-hidden="true"
                       >
-                        <span className="text-xl flex-shrink-0" aria-hidden="true">{opt.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <div
-                            className="text-sm font-medium"
-                            style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}
+                        {currentStep.emoji}
+                      </motion.span>
+                      <h2
+                        style={{
+                          fontSize: 22,
+                          fontWeight: 700,
+                          fontFamily: FONT_FAMILY,
+                          color: 'var(--text)',
+                          marginBottom: 8,
+                        }}
+                      >
+                        {currentStep.title}
+                      </h2>
+                      <p
+                        style={{
+                          fontSize: 14,
+                          fontFamily: FONT_FAMILY,
+                          color: 'var(--sub)',
+                          maxWidth: 280,
+                          lineHeight: 1.5,
+                          marginBottom: 24,
+                        }}
+                      >
+                        {currentStep.subtitle}
+                      </p>
+                      <div className="flex flex-col gap-2.5 w-full" role="group" aria-label="Choose a setup path">
+                        {currentStep.options.map((opt) => (
+                          <button
+                            key={opt.value ?? opt.label}
+                            onClick={() => {
+                              onPathSelect?.(opt.value)
+                              // Advance past the branch step
+                              setDirection(1)
+                              setCurrentIndex(prev => prev + 1)
+                              setInteractionDone(false)
+                            }}
+                            className="flex items-center gap-3 p-3.5 rounded-xl text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
+                            style={{
+                              background: 'var(--surface)',
+                              border: '1.5px solid var(--border)',
+                            }}
+                            aria-label={`${opt.label}: ${opt.description}`}
                           >
-                            {opt.label}
-                          </div>
-                          <div
-                            className="text-xs"
-                            style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}
-                          >
-                            {opt.description}
-                          </div>
-                        </div>
+                            <span className="text-xl flex-shrink-0" aria-hidden="true">{opt.emoji}</span>
+                            <div className="flex-1 min-w-0">
+                              <div
+                                className="text-sm font-medium"
+                                style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}
+                              >
+                                {opt.label}
+                              </div>
+                              <div
+                                className="text-xs"
+                                style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}
+                              >
+                                {opt.description}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      {/* Task 229.1: "Show me how it works" secondary link */}
+                      <button
+                        onClick={() => setShowPreview(true)}
+                        className="mt-4 text-sm py-2 px-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                        style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}
+                        aria-label="Show me how Folio works first"
+                      >
+                        👋 Show me how it works first
                       </button>
-                    ))}
-                  </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 renderStep(currentStep, completeInteraction)
@@ -461,9 +715,9 @@ export function OnboardingTutorial({
                 onClick={handleSkip}
                 className="text-sm py-2 px-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 style={{ color: 'var(--muted)' }}
-                aria-label={currentStep.id === 'welcome' ? 'Skip for now' : branchIndex >= 0 && currentIndex < branchIndex ? 'Skip demos' : 'Skip'}
+                aria-label={currentStep.id === 'welcome' ? 'Skip for now' : 'Skip'}
               >
-                {currentStep.id === 'welcome' ? 'Skip for now' : branchIndex >= 0 && currentIndex < branchIndex ? 'Skip demos' : 'Skip'}
+                {currentStep.id === 'welcome' ? 'Skip for now' : 'Skip'}
               </button>
             )}
           </div>

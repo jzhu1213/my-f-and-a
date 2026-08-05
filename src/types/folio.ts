@@ -572,6 +572,40 @@ export interface LinkedAccount {
 }
 
 // ============================================================================
+// Income Stream Types (Task 176.1)
+// ============================================================================
+
+/** Classification of income source — for display/grouping purposes. */
+export type IncomeStreamType = 'job' | 'gig' | 'aid' | 'parental' | 'other'
+
+/**
+ * A named income stream with its own cadence and expected amount.
+ * Multiple streams feed a single combined daily number (the daily allowance).
+ *
+ * Examples: "Campus Job", "Freelance Design", "Financial Aid", "Dad"
+ */
+export interface IncomeStream {
+  /** Unique identifier */
+  id: string
+  /** User-chosen name (e.g., "Campus Job", "Freelance", "Dad") */
+  name: string
+  /** Classification for display/grouping */
+  type: IncomeStreamType
+  /** Expected amount per pay period (in dollars) */
+  amount: number
+  /** How often this stream pays — reuses existing PayCadence type */
+  cadence: import('@/lib/paySchedule').PayCadence
+  /** ISO date string (YYYY-MM-DD) of a known payment for this stream */
+  anchorDate: string
+  /** Whether this stream is currently active (toggle without deleting) */
+  isActive: boolean
+  /** Optional emoji icon for display */
+  emoji?: string
+  /** Optional description/note */
+  note?: string
+}
+
+// ============================================================================
 // Reimbursement / IOU Types (Requirements 12.3, 13.7)
 // ============================================================================
 

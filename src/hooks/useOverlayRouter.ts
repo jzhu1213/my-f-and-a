@@ -24,6 +24,8 @@ export type OverlayId =
   | 'categoryHub'
   | 'savingsProjections'
   | 'manageSavings'
+  | 'portfolioAllocation'
+  | 'investmentExplorer'
 
 // ── Sheet IDs (bottom sheets — can be open alongside main content) ───────────
 
@@ -59,6 +61,8 @@ export interface OverlayPayloads {
   categoryHub: undefined
   savingsProjections: undefined
   manageSavings: undefined
+  portfolioAllocation: undefined
+  investmentExplorer: undefined
 }
 
 export interface SheetPayloads {
