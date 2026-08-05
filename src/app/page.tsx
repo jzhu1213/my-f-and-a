@@ -122,6 +122,14 @@ const CashFlowForecastScreen = dynamic(
   () => import('@/components/simplified/CashFlowForecastScreen').then(m => ({ default: m.CashFlowForecastScreen })),
   { ssr: false }
 )
+const PortfolioAllocationScreen = dynamic(
+  () => import('@/components/simplified/PortfolioAllocationScreen').then(m => ({ default: m.PortfolioAllocationScreen })),
+  { ssr: false }
+)
+const InvestmentExplorerScreen = dynamic(
+  () => import('@/components/simplified/InvestmentExplorerScreen').then(m => ({ default: m.InvestmentExplorerScreen })),
+  { ssr: false }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -215,11 +223,6 @@ export default function FolioApp() {
   }, [])
 
   // ── Income Anchor Banner (task 95.1) ───────────────────────────
-  // A first-run nudge shown once after onboarding to encourage the user to
-  // anchor their timeline by setting their last payday. Gated by
-  // folio-income-anchor-offered so it only ever shows once.
-  const [incomeAnchorBannerVisible, setIncomeAnchorBannerVisible] = useState(false)
-
   // ── Derived: any bottom sheet open (hides FAB + dock to prevent z-index overlap) ──
   const anySheetOpen = overlay.anySheetOpen
 
@@ -487,21 +490,6 @@ export default function FolioApp() {
   }, [dataLoading, transactions.length, overlay])
 
   // ── Income anchor banner (task 95.1) ──────────────────────────
-  // After the user has their daily number and the backfill sheet hasn't
-  // auto-opened, show the income anchor banner as a gentler prompt.
-  // Delayed ~1.2s so the hero renders and settles first.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (dataLoading) return
-    if (localStorage.getItem('folio-income-anchor-offered') === 'true') return
-    // Don't show the banner if the full BackfillSheet is already open
-    if (overlay.isSheetOpen('backfill')) return
-
-    localStorage.setItem('folio-income-anchor-offered', 'true')
-    const timer = setTimeout(() => setIncomeAnchorBannerVisible(true), 1200)
-    return () => clearTimeout(timer)
-  }, [dataLoading, overlay])
-
   // ── Budget limit carry-forward on mount ────────────────────────
   useEffect(() => {
     if (user?.id && !authLoading) {
@@ -716,9 +704,11 @@ export default function FolioApp() {
     // UserPriority and persist it on the profile so tip tone adapts.
     // Task 222.2: Also apply goal-driven defaults (budget preset override,
     // tip tone) so the daily number and tip selection work around that goal.
-    if (tutorialSetupState.primaryGoal && user) {
-      const mappedPriority = mapGoalToPriority(tutorialSetupState.primaryGoal)
-      const goalDefaults = getGoalDefaults(tutorialSetupState.primaryGoal)
+    // Task 231: If goal was skipped, silently default to 'track_spending'.
+    const effectiveGoal = tutorialSetupState.primaryGoal || 'track_spending'
+    if (user) {
+      const mappedPriority = mapGoalToPriority(effectiveGoal)
+      const goalDefaults = getGoalDefaults(effectiveGoal)
 
       // Persist priority + tip tone on the profile
       await updateProfilePreferences(user.id, { priority: mappedPriority })
@@ -726,7 +716,7 @@ export default function FolioApp() {
       // Store the tip tone in localStorage so tipUtils can read it
       if (typeof window !== 'undefined') {
         localStorage.setItem('folio-tip-tone', goalDefaults.tipTone)
-        localStorage.setItem('folio-user-goal', tutorialSetupState.primaryGoal)
+        localStorage.setItem('folio-user-goal', effectiveGoal)
       }
     }
 
@@ -766,6 +756,13 @@ export default function FolioApp() {
     progress.isComplete = true
     setOnboardingProgress(progress)
     setOnboardingStep('done')
+
+    // Task 231: If no goal was selected before skipping, silently default to 'track_spending'
+    if (!tutorialSetupState.primaryGoal && typeof window !== 'undefined') {
+      const goalDefaults = getGoalDefaults('track_spending')
+      localStorage.setItem('folio-tip-tone', goalDefaults.tipTone)
+      localStorage.setItem('folio-user-goal', 'track_spending')
+    }
   }
 
   // ── Categorization Rules Handlers (task 113.3) ──────────────────
@@ -1210,14 +1207,14 @@ export default function FolioApp() {
   }, [user?.id, addTransaction, deleteTransaction, transactions, performWithUndo])
 
   // ── Goal Handlers (delegated to useHomeData) ───────────────────
-  const handleCreateGoal = async (data: { name: string; targetAmount: number; emoji: string; targetDate?: string }) => {
+  const handleCreateGoal = async (data: { name: string; targetAmount: number; emoji: string; targetDate?: string; linkedAccountId?: string }) => {
     const result = await createGoal(data)
     if (result) showToast('Goal created')
     else showToast('Failed to create goal', 'error')
     return result
   }
 
-  const handleUpdateGoal = async (goalId: string, data: { name: string; targetAmount: number; emoji: string; targetDate?: string }) => {
+  const handleUpdateGoal = async (goalId: string, data: { name: string; targetAmount: number; emoji: string; targetDate?: string; linkedAccountId?: string }) => {
     const result = await updateGoal(goalId, data)
     if (result) showToast('Goal updated')
     else showToast('Failed to update goal', 'error')
@@ -1271,9 +1268,14 @@ export default function FolioApp() {
     const incomeSteps = ['setup-income', 'express-income', 'optional-recent-income']
     const budgetSteps = ['setup-budget-style']
     const paycheckSteps = ['paycheck-mode', 'paycheck-schedule', 'paycheck-allocation', 'paycheck-confirmation']
-    const goalSteps = ['optional-goal', 'terminal-goal']
+    const goalSteps = ['optional-goal']
 
-    if (incomeSteps.includes(stepId)) {
+    if (stepId === 'income-anchor') {
+      // Income anchor: open BackfillSheet to set last payday
+      // Mark as offered so it won't reappear in the checklist
+      localStorage.setItem('folio-income-anchor-offered', 'true')
+      overlay.openSheet('backfill')
+    } else if (incomeSteps.includes(stepId)) {
       overlay.openSheet('income')
     } else if (budgetSteps.includes(stepId)) {
       overlay.openOverlay('budgetSettings')
@@ -1412,7 +1414,7 @@ export default function FolioApp() {
   }
 
   if (onboardingStep === 'tutorial') {
-    const allSteps = buildStepsForPath(activeOnboardingPath, tutorialSetupState.budgetPreset, tutorialSetupState.paycheckMode, !!tutorialSetupState.primaryGoal)
+    const allSteps = buildStepsForPath(activeOnboardingPath, tutorialSetupState.budgetPreset, tutorialSetupState.paycheckMode)
 
     return (
       <OnboardingTutorial
@@ -1544,6 +1546,7 @@ export default function FolioApp() {
         <GoalsScreen
           goals={goals}
           monthlyIncome={monthlyIncome}
+          savingsAccounts={savingsAccounts}
           onCreateGoal={handleCreateGoal}
           onUpdateGoal={handleUpdateGoal}
           onContributeToGoal={handleContributeToGoal}
@@ -1817,6 +1820,29 @@ export default function FolioApp() {
     )
   }
 
+  // ── Portfolio Allocation (full-screen overlay, task 172.1) ─────
+  if (flags.savingsProjections && overlay.activeOverlay === 'portfolioAllocation') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <PortfolioAllocationScreen
+          savingsAccounts={savingsAccounts}
+          onBack={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
+  // ── Investment Explorer (full-screen overlay, task 173.1) ──────
+  if (flags.savingsProjections && overlay.activeOverlay === 'investmentExplorer') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <InvestmentExplorerScreen
+          onBack={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
   // ── Main App Shell ─────────────────────────────────────────────
   return (
     <>
@@ -1868,9 +1894,11 @@ export default function FolioApp() {
                 savingsAccounts={savingsAccounts}
                 fundingSources={fundingSources}
                 completedLessonIds={completedLessonIds}
-                hasSkippedSetupSteps={getOnboardingProgress().skippedSteps.length > 0}
-                onOpenSetupChecklist={() => overlay.openSheet('income')}
-                skippedSetupSteps={getOnboardingProgress().skippedSteps}
+                hasSkippedSetupSteps={getOnboardingProgress().skippedSteps.length > 0 || localStorage.getItem('folio-income-anchor-offered') !== 'true'}
+                skippedSetupSteps={[
+                  ...getOnboardingProgress().skippedSteps,
+                  ...(typeof window !== 'undefined' && localStorage.getItem('folio-income-anchor-offered') !== 'true' ? ['income-anchor'] : []),
+                ]}
                 onResumeSetupStep={handleResumeSetupStep}
                 onHeroTapDetails={() => setActiveNav('history')}
                 onLogExpense={handleOpenExpenseSheet}
@@ -1890,12 +1918,6 @@ export default function FolioApp() {
                 onOpenReimbursements={() => overlay.openOverlay('reimbursements')}
                 onSettleSplit={handleSettleSplit}
                 splitTransactionIds={splitTransactionIds}
-                showIncomeAnchorBanner={incomeAnchorBannerVisible}
-                onIncomeAnchorSetItNow={() => {
-                  setIncomeAnchorBannerVisible(false)
-                  overlay.openSheet('backfill')
-                }}
-                onIncomeAnchorSkip={() => setIncomeAnchorBannerVisible(false)}
                 onOpenLesson={(lessonId) => {
                   overlay.openOverlay('learn', { initialLessonId: lessonId })
                 }}
@@ -1933,6 +1955,8 @@ export default function FolioApp() {
                 onOpenReimbursements={() => overlay.openOverlay('reimbursements')}
                 onOpenTrajectory={() => overlay.openOverlay('trajectory')}
                 onOpenCashFlowForecast={() => overlay.openOverlay('cashFlowForecast')}
+                onOpenPortfolioAllocation={() => overlay.openOverlay('portfolioAllocation')}
+                onOpenInvestmentExplorer={() => overlay.openOverlay('investmentExplorer')}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}
