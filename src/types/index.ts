@@ -138,6 +138,12 @@ export interface Transaction {
    * this holds the public/signed URL. Falls back to localStorage blob URL offline.
    */
   receiptUrl?: string
+  /**
+   * Optional link to an income stream (side hustle). When set on an expense,
+   * it attributes that cost to the stream so users can see true profit per hustle.
+   * References an `IncomeStream.id` from `src/types/folio.ts`.
+   */
+  incomeStreamId?: string
 }
 
 // Account Types (3 buckets)
@@ -267,6 +273,8 @@ export interface Goal {
   participants?: GoalParticipant[]
   /** Token for sharing this goal via link (reuses the existing token flow) */
   shareToken?: string
+  /** Optional linked savings/investment account — progress reflects account balance */
+  linkedAccountId?: string
 }
 
 // Finance Lesson Types
