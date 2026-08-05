@@ -37,6 +37,27 @@ function formatCurrency(amount: number): string {
 }
 
 /**
+ * Computes the percentage of daily budget remaining (0–100).
+ * Returns 100 when nothing has been spent, 0 when the full budget is consumed.
+ */
+function computeProgressPercent(allowance: DailyAllowance): number {
+  const budget = allowance.dailyBudget
+  if (budget <= 0) return 0
+  const remaining = Math.max(0, allowance.amount)
+  return Math.min(100, Math.round((remaining / budget) * 100))
+}
+
+/**
+ * Detects whether the user prefers reduced motion.
+ * Safe to call in any environment — returns false on the server or
+ * when matchMedia is unavailable.
+ */
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+/**
  * Sends the latest daily allowance data to the service worker for widget caching.
  *
  * Call this whenever the daily allowance recalculates (from useHomeData).
@@ -54,6 +75,9 @@ export function syncWidgetData(allowance: DailyAllowance): void {
     status: statusToAdaptiveCardColor(allowance.status),
     message: allowance.message,
     lastUpdated: new Date().toISOString(),
+    progressPercent: computeProgressPercent(allowance),
+    reducedMotion: prefersReducedMotion(),
+    offlineStale: false,
   }
 
   navigator.serviceWorker.controller.postMessage({

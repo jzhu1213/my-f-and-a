@@ -30,8 +30,10 @@ import {
 } from "@/styles/shared"
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 import { NotificationCenter } from "./NotificationCenter"
+import { AppLockSetting } from "./AppLockSetting"
 import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
 import { getSavingsRateBadgeEnabled, setSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
+import { getPeerContextEnabled, setPeerContextEnabled } from "@/lib/peerContextPreferences"
 import { useFeatureFlags } from "@/hooks/useFeatureFlags"
 import type { FeatureFlags } from "@/lib/featureFlags"
 import type { CategorizationRule } from "@/lib/categorizationRules"
@@ -74,6 +76,8 @@ export interface SettingsScreenProps {
   onReplayDemos?: () => void
   onExportData?: () => void
   onExportCSV?: () => void
+  /** Callback to open the filtered Reports overlay (task 185.1) */
+  onOpenReports?: () => void
   onDeleteAccount?: () => void
   /** User-defined categorization rules (task 113.3) */
   categorizationRules?: CategorizationRule[]
@@ -248,6 +252,7 @@ type SectionId =
   | 'payment-methods'
   | 'appearance'
   | 'notifications'
+  | 'privacy-security'
   | 'data-account'
 
 interface SectionDef {
@@ -281,12 +286,17 @@ const SECTIONS: SectionDef[] = [
   {
     id: 'appearance',
     title: 'Appearance',
-    keywords: ['appearance', 'theme', 'warm', 'dark', 'system', 'currency', 'insight', 'credit', 'tutorial', 'onboarding', 'backfill', 'preferences'],
+    keywords: ['appearance', 'theme', 'warm', 'dark', 'system', 'currency', 'insight', 'credit', 'tutorial', 'onboarding', 'backfill', 'preferences', 'peer', 'compare', 'typical', 'students', 'benchmark'],
   },
   {
     id: 'notifications',
     title: 'Notifications',
     keywords: ['notification', 'notifications', 'nudge', 'buffer', 'balance', 'minimum', 'alert'],
+  },
+  {
+    id: 'privacy-security',
+    title: 'Privacy & security',
+    keywords: ['privacy', 'security', 'lock', 'app lock', 'pin', 'biometric', 'biometrics', 'face id', 'touch id', 'passcode', 'protect'],
   },
   {
     id: 'data-account',
@@ -415,6 +425,7 @@ export function SettingsScreen({
   onReplayDemos,
   onExportData,
   onExportCSV,
+  onOpenReports,
   onDeleteAccount,
   categorizationRules = [],
   onAddCategorizationRule,
@@ -440,6 +451,7 @@ export function SettingsScreen({
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [insightsEnabled, setInsightsEnabledState] = useState(() => getInsightsEnabled())
   const [savingsRateBadgeEnabled, setSavingsRateBadgeEnabledState] = useState(() => getSavingsRateBadgeEnabled())
+  const [peerContextEnabled, setPeerContextEnabledState] = useState(() => getPeerContextEnabled())
   const [countCreditImmediately, setCountCreditImmediatelyState] = useState(countCreditImmediatelyProp ?? true)
 
   // ── Smart categorization rule form state (task 113.3) ─────────────────
@@ -468,6 +480,7 @@ export function SettingsScreen({
     'payment-methods': false,
     'appearance': false,
     'notifications': false,
+    'privacy-security': false,
     'data-account': false,
   })
 
@@ -1892,6 +1905,53 @@ export function SettingsScreen({
               </motion.button>
             </div>
 
+            {/* Encouraging peer context toggle (task 186.1) — opt-in, OFF by default */}
+            <div
+              style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "12px 0", borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <div style={{ flex: 1, marginRight: 12 }}>
+                <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
+                  Show &ldquo;typical for a student&rdquo; context
+                </span>
+                <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
+                  Optional, anonymized, encouraging ranges in Tools — never a ranking or a scoreboard
+                </span>
+              </div>
+              <motion.button
+                type="button"
+                role="switch"
+                aria-checked={peerContextEnabled}
+                aria-label="Show typical-for-a-student context in Tools"
+                onClick={() => {
+                  const next = !peerContextEnabled
+                  setPeerContextEnabledState(next)
+                  setPeerContextEnabled(next)
+                }}
+                whileTap={{ scale: 0.92 }}
+                transition={springs.snappy}
+                style={{
+                  flexShrink: 0, width: 44, height: 26, borderRadius: 13,
+                  border: "none", cursor: "pointer",
+                  background: peerContextEnabled ? "rgba(167, 139, 250, 0.6)" : "rgba(255, 255, 255, 0.1)",
+                  position: "relative", transition: "background 0.2s ease",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute", top: 3,
+                    left: peerContextEnabled ? 21 : 3,
+                    width: 20, height: 20, borderRadius: "50%",
+                    background: peerContextEnabled ? "#fff" : "rgba(255,255,255,0.4)",
+                    transition: "left 0.2s ease, background 0.2s ease",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  }}
+                />
+              </motion.button>
+            </div>
+
             {/* Count credit-card spending against today toggle */}
             {onUpdateCountCreditImmediately && (
               <div
@@ -2000,6 +2060,19 @@ export function SettingsScreen({
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION: Privacy & security                                         */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {isSectionVisible('privacy-security') && (
+        <CollapsibleSection
+          title="Privacy & security"
+          isOpen={isSectionOpen('privacy-security')}
+          onToggle={() => toggleSection('privacy-security')}
+        >
+          <AppLockSetting />
+        </CollapsibleSection>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION: Data & account                                             */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       {isSectionVisible('data-account') && (
@@ -2044,9 +2117,20 @@ export function SettingsScreen({
           )}
 
           {/* Export options */}
-          {(onExportData || onExportCSV) && (
+          {(onExportData || onExportCSV || onOpenReports) && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
               <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>Export</p>
+              {onOpenReports && (
+                <motion.button
+                  onClick={onOpenReports}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={{ ...linkButton, marginBottom: 12, display: "block" }}
+                  aria-label="Open reports to filter and export by tag, merchant, or category"
+                >
+                  Reports (filter &amp; PDF) →
+                </motion.button>
+              )}
               {onExportData && (
                 <motion.button
                   onClick={onExportData}

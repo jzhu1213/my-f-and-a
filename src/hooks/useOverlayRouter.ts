@@ -26,6 +26,10 @@ export type OverlayId =
   | 'manageSavings'
   | 'portfolioAllocation'
   | 'investmentExplorer'
+  | 'yearInReview'
+  | 'termReview'
+  | 'reports'
+  | 'peerContext'
 
 // ── Sheet IDs (bottom sheets — can be open alongside main content) ───────────
 
@@ -38,6 +42,7 @@ export type SheetId =
   | 'backfill'
   | 'bulkRepeat'
   | 'profile'
+  | 'quickLog'
 
 // ── Payloads — some overlays/sheets carry associated data ────────────────────
 
@@ -63,6 +68,10 @@ export interface OverlayPayloads {
   manageSavings: undefined
   portfolioAllocation: undefined
   investmentExplorer: undefined
+  yearInReview: undefined
+  termReview: undefined
+  reports: undefined
+  peerContext: undefined
 }
 
 export interface SheetPayloads {
@@ -74,6 +83,8 @@ export interface SheetPayloads {
   backfill: undefined
   bulkRepeat: { transaction: { amount: number; category: TransactionCategory; note?: string } }
   profile: undefined
+  /** Quick-log confirm sheet for captures from the OS share sheet / assistant (task 180.1) */
+  quickLog: { rawText: string; source: 'share' | 'assistant' }
 }
 
 // ── State ────────────────────────────────────────────────────────────────────

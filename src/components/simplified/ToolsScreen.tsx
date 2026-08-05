@@ -1,8 +1,9 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
+import { getPeerContextEnabled } from "@/lib/peerContextPreferences"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
@@ -44,6 +45,10 @@ export interface ToolsScreenProps {
   onOpenHouseholdPool?: () => void
   onOpenPortfolioAllocation?: () => void
   onOpenInvestmentExplorer?: () => void
+  onOpenYearInReview?: () => void
+  onOpenTermReview?: () => void
+  /** Open the opt-in "typical for a student" peer context (task 186.1) */
+  onOpenPeerContext?: () => void
   /** Display-only: total set-aside amount this month */
   totalSetAside?: number
   /** Display-only: savings rate percentage */
@@ -103,6 +108,11 @@ const SECTIONS: ToolSection[] = [
     toolIds: ["sinking-funds", "savings-projections", "manage-savings", "portfolio-allocation", "investment-explorer", "cash-flow-forecast", "compound-growth", "credit-payoff"],
   },
   {
+    id: "reviews",
+    label: "Reviews",
+    toolIds: ["term-review", "year-in-review", "peer-context"],
+  },
+  {
     id: "learn",
     label: "Learn",
     toolIds: ["learn"],
@@ -138,6 +148,9 @@ export function ToolsScreen({
   onOpenHouseholdPool,
   onOpenPortfolioAllocation,
   onOpenInvestmentExplorer,
+  onOpenYearInReview,
+  onOpenTermReview,
+  onOpenPeerContext,
   totalSetAside,
   savingsRate,
   fundingSources,
@@ -149,6 +162,14 @@ export function ToolsScreen({
   contributeToGoal,
 }: ToolsScreenProps) {
   const { flags } = useFeatureFlags()
+
+  // Peer context (task 186.1) is opt-in and OFF by default — gate its tool card
+  // on the user's Settings preference rather than a feature flag. Re-read on
+  // mount so toggling it in Settings takes effect when returning to Tools.
+  const [peerContextEnabled, setPeerContextEnabled] = useState(false)
+  useEffect(() => {
+    setPeerContextEnabled(getPeerContextEnabled())
+  }, [])
 
   // Map tool IDs to feature flag keys
   const toolFlagMap: Record<string, keyof FeatureFlags> = {
@@ -288,6 +309,27 @@ export function ToolsScreen({
       onOpen: onOpenCreditPayoff,
     },
     {
+      id: "term-review",
+      emoji: "📖",
+      title: "Term in Review",
+      description: "A warm end-of-term (or end-of-month) recap of your savings, streaks, and wins.",
+      onOpen: onOpenTermReview,
+    },
+    {
+      id: "year-in-review",
+      emoji: "🎉",
+      title: "Year in Review",
+      description: "A warm, once-a-year look back at your streaks, savings, and wins.",
+      onOpen: onOpenYearInReview,
+    },
+    {
+      id: "peer-context",
+      emoji: "💜",
+      title: "How you compare",
+      description: "Optional, anonymized context against rough student ranges — reassuring, never a scoreboard.",
+      onOpen: onOpenPeerContext,
+    },
+    {
       id: "learn",
       emoji: "📚",
       title: "Learn",
@@ -298,6 +340,8 @@ export function ToolsScreen({
 
   // Helper: check if a tool is visible based on feature flags
   const isToolVisible = (toolId: string): boolean => {
+    // Peer context is opt-in (task 186.1) — hidden unless enabled in Settings.
+    if (toolId === "peer-context") return peerContextEnabled
     const flagKey = toolFlagMap[toolId]
     if (!flagKey) return true // no flag = always show
     return flags[flagKey]

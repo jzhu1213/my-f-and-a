@@ -17,6 +17,9 @@ import { IncomeSheet } from '@/components/simplified/IncomeSheet'
 import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
 import { EditTransactionSheet } from '@/components/simplified/EditTransactionSheet'
 import { RefundSheet } from '@/components/simplified/RefundSheet'
+import { QuickLogConfirmSheet } from '@/components/simplified/QuickLogConfirmSheet'
+import { AppLockScreen } from '@/components/simplified/AppLockScreen'
+import { readQuickCaptureIntent } from '@/lib/quickCapture'
 import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath, buildDemoOnlySteps } from '@/components/simplified/TutorialSteps'
 import type { PayCadence } from '@/lib/paySchedule'
 import { detectSubscriptions } from '@/lib/subscriptionDetector'
@@ -98,6 +101,22 @@ const BulkRepeatSheet = dynamic(
   () => import('@/components/simplified/BulkRepeatSheet').then(m => ({ default: m.BulkRepeatSheet })),
   { ssr: false }
 )
+const TermReviewScreen = dynamic(
+  () => import('@/components/simplified/TermReviewScreen').then(m => ({ default: m.TermReviewScreen })),
+  { ssr: false }
+)
+const YearInReviewScreen = dynamic(
+  () => import('@/components/simplified/YearInReviewScreen').then(m => ({ default: m.YearInReviewScreen })),
+  { ssr: false }
+)
+const ReportsScreen = dynamic(
+  () => import('@/components/simplified/ReportsScreen').then(m => ({ default: m.ReportsScreen })),
+  { ssr: false }
+)
+const PeerContextScreen = dynamic(
+  () => import('@/components/simplified/PeerContextScreen').then(m => ({ default: m.PeerContextScreen })),
+  { ssr: false }
+)
 const TrajectoryScreen = dynamic(
   () => import('@/components/simplified/TrajectoryScreen').then(m => ({ default: m.TrajectoryScreen })),
   { ssr: false }
@@ -150,6 +169,7 @@ import { useUndo } from '@/hooks/useUndo'
 import { useRecurringBills } from '@/hooks/useRecurringBills'
 import { useSmartNotifications } from '@/hooks/useSmartNotifications'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
+import { useAppLock } from '@/hooks/useAppLock'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 import { useOverlayRouter } from '@/hooks/useOverlayRouter'
@@ -243,6 +263,7 @@ export default function FolioApp() {
     totalSetAside,
     savingsRate,
     paySchedule,
+    termSchedule,
     isLoading: dataLoading,
     isSyncing,
     isStale,
@@ -382,6 +403,11 @@ export default function FolioApp() {
   // ── Service Worker registration (task 77 — PWA notifications) ──
   useServiceWorker()
 
+  // ── Optional cold-open app lock (task 182.1 — biometric/PIN gate) ──
+  // Device-local privacy convenience, OFF by default. Gates a fresh cold open
+  // behind the lock screen when enabled; in-app navigation never re-prompts.
+  const appLock = useAppLock()
+
   // ── Smart Notifications (task 114.2 — low balance & bill-due alerts;
   //    task 160.1 — payday-triggered savings contribution reminder) ──
   useSmartNotifications(allowance, recurringBills, savingsAccounts, paySchedule, transactions)
@@ -488,6 +514,39 @@ export default function FolioApp() {
     const timer = setTimeout(() => overlay.openSheet('backfill'), 600)
     return () => clearTimeout(timer)
   }, [dataLoading, transactions.length, overlay])
+
+  // ── Capture from anywhere (task 180.1 — share sheet & assistant quick log) ──
+  // The OS share sheet (Web Share Target) and PWA/assistant shortcuts both land
+  // on "/" with query params (see public/manifest.json + lib/quickCapture.ts).
+  // We detect that launch here, route any shared/dictated text through the SAME
+  // naturalLogParser the in-app quick log uses (task 166.1), and open a
+  // confirm-before-save sheet. Nothing is ever persisted automatically.
+  // Runs once on mount; we strip the params so a refresh/back never re-triggers.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const intent = readQuickCaptureIntent(window.location.search)
+    if (!intent) return
+
+    // Clean the URL immediately so this capture fires exactly once.
+    window.history.replaceState({}, document.title, window.location.pathname)
+
+    // No text to parse (e.g. a bare "Log expense" shortcut) or an income
+    // capture — the natural-language parser is expense/category oriented, so we
+    // just open the appropriate sheet directly rather than guess.
+    if (!intent.rawText.trim() || intent.type === 'income') {
+      if (intent.type === 'income') {
+        overlay.openSheet('income')
+      } else {
+        overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: false })
+      }
+      return
+    }
+
+    // Text present → confirm-before-save flow. The sheet parses internally so a
+    // late-loading funding-source list still gets a chance to match.
+    overlay.openSheet('quickLog', { rawText: intent.rawText, source: intent.source })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Income anchor banner (task 95.1) ──────────────────────────
   // ── Budget limit carry-forward on mount ────────────────────────
@@ -895,6 +954,36 @@ export default function FolioApp() {
     setLastLoggedId(null)
     showToast('Expense removed')
   }, [lastLoggedId, deleteTransaction, showToast])
+
+  // ── Quick-log capture handlers (task 180.1) ────────────────────
+  // Confirm reuses handleExpenseSubmit so a captured expense flows through the
+  // exact same persistence path (optimistic write, offline queue, round-up,
+  // IOU/split hooks) as any other logged expense — no duplicate mutation logic.
+  const handleQuickLogConfirm = useCallback(async (data: {
+    amount: number
+    category: TransactionCategory
+    note?: string
+    fundingSourceId?: string
+  }) => {
+    overlay.closeSheet('quickLog')
+    await handleExpenseSubmit(data)
+    showToast('Logged it ✓')
+  }, [overlay, handleExpenseSubmit, showToast])
+
+  // Ambiguous parse or user tapped "Edit details" → fall back to the normal
+  // ExpenseSheet. ExpenseSheet takes a default category; any extracted amount/
+  // note can't be pre-filled there, so we surface them as a gentle hint instead.
+  const handleQuickLogEdit = useCallback((partial?: { amount?: number; note?: string }) => {
+    overlay.closeSheet('quickLog')
+    overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: false })
+    if (partial?.amount || partial?.note) {
+      const bits = [
+        partial.amount ? `$${partial.amount}` : null,
+        partial.note || null,
+      ].filter(Boolean).join(' · ')
+      setPerTxAlertMessage(`From your capture: ${bits}`)
+    }
+  }, [overlay])
 
   // ── Income Logging ─────────────────────────────────────────────
   const handleIncomeSubmit = useCallback(async (data: {
@@ -1398,6 +1487,14 @@ export default function FolioApp() {
     showToast('Profile updated')
   }
 
+  // ── App lock gate (task 182.1) ─────────────────────────────────
+  // A cold open with the lock enabled shows the unlock screen before anything
+  // else. Unlocking marks the session unlocked so the rest of the session (and
+  // in-app navigation) never re-prompts.
+  if (appLock.locked) {
+    return <AppLockScreen onUnlock={appLock.unlock} />
+  }
+
   // ── Auth & Onboarding Gating ───────────────────────────────────
   if (authLoading || onboardingStep === 'loading') {
     return (
@@ -1641,6 +1738,60 @@ export default function FolioApp() {
       <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <LinkedAccountsScreen
           onBack={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
+  // ── Term / Month in Review (full-screen overlay, task 184.1) ───
+  if (overlay.activeOverlay === 'termReview') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <TermReviewScreen
+          transactions={transactions}
+          budgets={budgets}
+          termSchedule={termSchedule}
+          onBack={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
+  // ── Year in Review (full-screen overlay, task 183.1) ───────────
+  if (overlay.activeOverlay === 'yearInReview') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <YearInReviewScreen
+          transactions={transactions}
+          budgets={budgets}
+          onBack={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
+  // ── Peer Context — "typical for a student" (full-screen, task 186.1) ───
+  // Opt-in, OFF by default. Only reachable when the user enabled it in
+  // Settings; never surfaced on the home screen.
+  if (overlay.activeOverlay === 'peerContext') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <PeerContextScreen
+          transactions={transactions}
+          onBack={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
+  // ── Exportable Reports (full-screen overlay, task 185.1) ───────
+  if (overlay.activeOverlay === 'reports') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <ReportsScreen
+          transactions={transactions}
+          onBack={() => overlay.closeOverlay()}
+          onNotify={showToast}
         />
       </div>
     )
@@ -1957,6 +2108,9 @@ export default function FolioApp() {
                 onOpenCashFlowForecast={() => overlay.openOverlay('cashFlowForecast')}
                 onOpenPortfolioAllocation={() => overlay.openOverlay('portfolioAllocation')}
                 onOpenInvestmentExplorer={() => overlay.openOverlay('investmentExplorer')}
+                onOpenYearInReview={() => overlay.openOverlay('yearInReview')}
+                onOpenTermReview={() => overlay.openOverlay('termReview')}
+                onOpenPeerContext={() => overlay.openOverlay('peerContext')}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}
@@ -1995,6 +2149,7 @@ export default function FolioApp() {
                 onReplayDemos={handleReplayDemos}
                 onExportData={handleExportData}
                 onExportCSV={handleExportCSV}
+                onOpenReports={() => overlay.openOverlay('reports')}
                 onDeleteAccount={handleDeleteAccount}
                 categorizationRules={categorizationRules}
                 onAddCategorizationRule={handleAddCategorizationRule}
@@ -2035,6 +2190,18 @@ export default function FolioApp() {
         categorizationRules={categorizationRules}
         onAddCategorizationRule={handleAddCategorizationRule}
         dailyAllowanceAmount={allowance?.amount}
+      />
+
+      {/* ── Quick-log confirm sheet (task 180.1 — share sheet & assistant) ── */}
+      <QuickLogConfirmSheet
+        isOpen={overlay.isSheetOpen('quickLog')}
+        rawText={overlay.getSheetPayload('quickLog')?.rawText ?? ''}
+        source={overlay.getSheetPayload('quickLog')?.source ?? 'share'}
+        fundingSources={fundingSources}
+        categorizationRules={categorizationRules}
+        onConfirm={handleQuickLogConfirm}
+        onEditInSheet={handleQuickLogEdit}
+        onClose={() => overlay.closeSheet('quickLog')}
       />
 
       {/* ── Per-transaction alert notice (task 102.2) ──────────── */}

@@ -26,6 +26,46 @@ import { shouldSuppressNotification } from "./engagementTracker"
 export type NotificationPermissionStatus = "granted" | "denied" | "default" | "unsupported"
 
 // ============================================================================
+// Actionable notifications (task 182.1)
+// ============================================================================
+
+/**
+ * A single quick action attached to a notification. Mirrors the web
+ * `NotificationAction` shape, declared locally because the DOM lib bundled here
+ * doesn't type the notification `actions` field.
+ */
+export interface FolioNotificationAction {
+  action: string
+  title: string
+  icon?: string
+}
+
+/**
+ * Notification options extended with the fields the notifications spec supports
+ * for persistent (service-worker) notifications but that the bundled DOM lib
+ * doesn't type — `actions` and `data`.
+ */
+export type ActionableNotificationOptions = NotificationOptions & {
+  actions?: FolioNotificationAction[]
+  data?: unknown
+}
+
+/**
+ * Quick actions attached to Folio notifications so the daily loop can start
+ * straight from the notification shade. The service worker's `notificationclick`
+ * handler (see public/sw.js) routes each action:
+ *   • "log-expense"    → the confirm-before-save quick log (reuses quickCapture)
+ *   • "view-allowance" → Home, with the daily number front and centre
+ *
+ * Actions are only rendered by browsers that support persistent
+ * (service-worker) notifications; the plain `Notification` fallback ignores them.
+ */
+export const FOLIO_NOTIFICATION_ACTIONS: FolioNotificationAction[] = [
+  { action: "log-expense", title: "Log expense" },
+  { action: "view-allowance", title: "View allowance" },
+]
+
+// ============================================================================
 // Warm message pool — never guilt-based, always encouraging
 // ============================================================================
 
@@ -134,12 +174,16 @@ async function fireLocalNotification(): Promise<boolean> {
     // Try service worker notification first (works when PWA is in background)
     if ("serviceWorker" in navigator) {
       const registration = await navigator.serviceWorker.ready
-      await registration.showNotification("Folio", {
+      const options: ActionableNotificationOptions = {
         body,
         icon: "/icon-192.png",
         badge: "/icon-192.png",
         tag: "folio-daily-reminder",
-      })
+        // Quick actions so the reminder is actionable (task 182.1).
+        actions: FOLIO_NOTIFICATION_ACTIONS,
+        data: { defaultUrl: "/" },
+      }
+      await registration.showNotification("Folio", options)
       return true
     }
 

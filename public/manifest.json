@@ -18,12 +18,95 @@
       "type": "image/png"
     }
   ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "shortcuts": [
+    {
+      "name": "Log an expense",
+      "short_name": "Log expense",
+      "description": "Quickly jot down a purchase",
+      "url": "/?folioAction=quick-log&type=expense",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Log income",
+      "short_name": "Log income",
+      "description": "Record money coming in",
+      "url": "/?folioAction=quick-log&type=income",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "widgets": [
     {
-      "name": "Daily Allowance",
-      "description": "See how much you can spend today",
-      "tag": "daily-allowance",
-      "template": "daily-allowance-template",
+      "name": "Daily Allowance (Small)",
+      "short_name": "Allowance",
+      "description": "Glanceable daily spending allowance",
+      "tag": "daily-allowance-small",
+      "template": "daily-allowance-small-template",
+      "ms_ac_template": "/widgets/daily-allowance-small.json",
+      "data": "/api/widget/daily-allowance",
+      "type": "application/vnd.microsoft.card.adaptive",
+      "auth": false,
+      "update": 3600,
+      "icons": [
+        {
+          "src": "/icon-512.png",
+          "sizes": "512x512"
+        }
+      ],
+      "screenshots": [],
+      "sizes": [
+        { "width": 312, "height": 188, "label": "Small" }
+      ]
+    },
+    {
+      "name": "Daily Allowance (Medium)",
+      "short_name": "Allowance",
+      "description": "Daily allowance with spending details",
+      "tag": "daily-allowance-medium",
+      "template": "daily-allowance-medium-template",
+      "ms_ac_template": "/widgets/daily-allowance-medium.json",
+      "data": "/api/widget/daily-allowance",
+      "type": "application/vnd.microsoft.card.adaptive",
+      "auth": false,
+      "update": 3600,
+      "icons": [
+        {
+          "src": "/icon-512.png",
+          "sizes": "512x512"
+        }
+      ],
+      "screenshots": [],
+      "sizes": [
+        { "width": 472, "height": 188, "label": "Medium" }
+      ]
+    },
+    {
+      "name": "Daily Allowance (Large)",
+      "short_name": "Allowance",
+      "description": "Full daily allowance with details and actions",
+      "tag": "daily-allowance-large",
+      "template": "daily-allowance-large-template",
       "ms_ac_template": "/widgets/daily-allowance-card.json",
       "data": "/api/widget/daily-allowance",
       "type": "application/vnd.microsoft.card.adaptive",
@@ -37,8 +120,6 @@
       ],
       "screenshots": [],
       "sizes": [
-        { "width": 312, "height": 188, "label": "Small" },
-        { "width": 472, "height": 188, "label": "Medium" },
         { "width": 472, "height": 380, "label": "Large" }
       ]
     }

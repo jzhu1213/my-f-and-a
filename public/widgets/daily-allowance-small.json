@@ -1,0 +1,41 @@
+﻿{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "fallbackText": "Daily Allowance: ${amount}",
+  "body": [
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "bleed": true,
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "Folio",
+          "size": "Small",
+          "isSubtle": true,
+          "fontType": "Default",
+          "spacing": "None"
+        },
+        {
+          "type": "TextBlock",
+          "text": "${amount}",
+          "size": "ExtraLarge",
+          "weight": "Bolder",
+          "color": "${status}",
+          "fontType": "Default",
+          "spacing": "Small"
+        },
+        {
+          "type": "TextBlock",
+          "text": "${if(offlineStale, 'Last updated: ' + lastUpdated, '')}",
+          "size": "Small",
+          "isSubtle": true,
+          "fontType": "Default",
+          "spacing": "None",
+          "$when": "${offlineStale == true}"
+        }
+      ]
+    }
+  ]
+}

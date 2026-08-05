@@ -1,0 +1,82 @@
+﻿{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "fallbackText": "Daily Allowance: ${amount} | Spent: ${spentToday}",
+  "body": [
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "bleed": true,
+      "items": [
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "Folio \u2014 Today's Allowance",
+                  "size": "Small",
+                  "isSubtle": true,
+                  "fontType": "Default",
+                  "spacing": "None"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "${amount}",
+                  "size": "ExtraLarge",
+                  "weight": "Bolder",
+                  "color": "${status}",
+                  "fontType": "Default",
+                  "spacing": "Small"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "Spent today: ${spentToday}",
+                  "size": "Small",
+                  "isSubtle": true,
+                  "fontType": "Default",
+                  "spacing": "Small"
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "verticalContentAlignment": "Center",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "${message}",
+                  "size": "Small",
+                  "isSubtle": true,
+                  "wrap": true,
+                  "fontType": "Default"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "TextBlock",
+          "text": "\u26a0\ufe0f Data may be stale",
+          "size": "Small",
+          "isSubtle": true,
+          "fontType": "Default",
+          "spacing": "Small",
+          "$when": "${offlineStale == true}"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open Folio",
+      "url": "/"
+    }
+  ]
+}

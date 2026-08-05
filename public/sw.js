@@ -26,6 +26,7 @@ sw.addEventListener("push", (event) => {
   let title = defaultTitle
   let body = defaultBody
   let icon = "/icon-192.png"
+  let tag = "folio-daily-reminder"
 
   if (event.data) {
     try {
@@ -33,6 +34,7 @@ sw.addEventListener("push", (event) => {
       title = data.title || defaultTitle
       body = data.body || defaultBody
       if (data.icon) icon = data.icon
+      if (data.tag) tag = data.tag
     } catch {
       // If data isn't JSON, use text as body
       body = event.data.text() || defaultBody
@@ -43,30 +45,60 @@ sw.addEventListener("push", (event) => {
     body,
     icon,
     badge: "/icon-192.png",
-    tag: "folio-daily-reminder",
+    tag,
     renotify: false,
     // Warm, non-intrusive — no vibration pattern
     silent: false,
+    // Quick actions so students can act straight from the notification
+    // (task 182.1). The click handler below routes each action.
+    actions: FOLIO_NOTIFICATION_ACTIONS,
+    data: { defaultUrl: "/" },
   }
 
   event.waitUntil(sw.registration.showNotification(title, options))
 })
 
+// ─── Actionable notifications (task 182.1) ────────────────────────────────────
+// Quick actions attached to Folio notifications and where each one routes. The
+// "log-expense" deep link reuses the SAME quick-capture entry point the manifest
+// shortcuts and share-sheet use (see lib/quickCapture.ts), so it opens the
+// confirm-before-save quick log. "view-allowance" just brings the daily number
+// forward on Home.
+const FOLIO_NOTIFICATION_ACTIONS = [
+  { action: "log-expense", title: "Log expense" },
+  { action: "view-allowance", title: "View allowance" },
+]
+
+const FOLIO_ACTION_URLS = {
+  "log-expense": "/?folioAction=quick-log&type=expense",
+  "view-allowance": "/",
+}
+
 // ─── Notification click handler ──────────────────────────────────────────────
-// Focuses the app window if already open, or opens it.
+// Routes based on which action (if any) the user tapped, then focuses an open
+// app window (navigating it to the target) or opens a fresh one.
 sw.addEventListener("notificationclick", (event) => {
   event.notification.close()
 
+  const data = event.notification.data || {}
+  const targetUrl =
+    FOLIO_ACTION_URLS[event.action] || data.defaultUrl || "/"
+
   event.waitUntil(
     sw.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      // Focus existing window if available
+      // Focus (and, when possible, navigate) an existing window.
       for (const client of clientList) {
         if (client.url.includes(sw.location.origin) && "focus" in client) {
+          if ("navigate" in client && targetUrl !== "/") {
+            return client.focus().then((focused) =>
+              focused && focused.navigate ? focused.navigate(targetUrl) : focused
+            )
+          }
           return client.focus()
         }
       }
-      // Otherwise open a new window
-      return sw.clients.openWindow("/")
+      // Otherwise open a new window at the target surface.
+      return sw.clients.openWindow(targetUrl)
     })
   )
 })
@@ -86,11 +118,13 @@ sw.addEventListener("activate", (event) => {
 // endpoint, which the SW intercepts and responds to from cache.
 
 let cachedWidgetData = null
+let lastFreshTimestamp = null
 
 // Listen for messages from the main app thread to update widget data
 sw.addEventListener("message", (event) => {
   if (event.data && event.data.type === "widgetDataUpdate") {
     cachedWidgetData = event.data.payload
+    lastFreshTimestamp = Date.now()
   }
 })
 
@@ -98,8 +132,19 @@ sw.addEventListener("message", (event) => {
 sw.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url)
   if (url.pathname === "/api/widget/daily-allowance" && cachedWidgetData) {
+    // Mark data as stale if cached data is older than 2 hours
+    const TWO_HOURS_MS = 2 * 60 * 60 * 1000
+    const isStale = lastFreshTimestamp
+      ? Date.now() - lastFreshTimestamp > TWO_HOURS_MS
+      : false
+
+    const responseData = {
+      ...cachedWidgetData,
+      offlineStale: isStale,
+    }
+
     event.respondWith(
-      new Response(JSON.stringify(cachedWidgetData), {
+      new Response(JSON.stringify(responseData), {
         status: 200,
         headers: {
           "Content-Type": "application/json",

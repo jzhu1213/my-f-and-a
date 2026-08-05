@@ -610,3 +610,203 @@ export interface IncomeStream {
 // ============================================================================
 
 export type { Reimbursement, ReimbursementDirection } from '@/lib/reimbursements'
+
+// ============================================================================
+// Year in Review Types (Task 183.1)
+// ============================================================================
+//
+// The shape of the warm, once-a-year recap computed by `lib/yearInReview.ts`.
+// Extends the celebratory month/weekly-review pattern into an annual moment.
+// Never a leaderboard or a comparison to other people — every field is a
+// personal, shame-free highlight.
+
+/** The month a user came out furthest ahead (income − expense). */
+export interface YearInReviewMonth {
+  /** 0-indexed month (0 = January). */
+  month: number
+  /** Friendly month name, e.g. "March". */
+  monthLabel: string
+  /** Net amount saved that month (always > 0 when present). */
+  saved: number
+}
+
+/** The expense category with the most spend across the year. */
+export interface YearInReviewCategory {
+  category: TransactionCategory
+  /** Friendly label, e.g. "Food & Drinks". */
+  label: string
+  /** Category emoji. */
+  emoji: string
+  /** Total spent in this category over the year. */
+  total: number
+}
+
+/** How the standout "biggest win" was chosen. */
+export type YearInReviewWinKind = 'streak' | 'saved' | 'month' | 'showed_up'
+
+/** The single standout achievement of the year, framed warmly. */
+export interface YearInReviewWin {
+  kind: YearInReviewWinKind
+  /** Short celebratory headline. */
+  headline: string
+  /** One warm supporting sentence. */
+  detail: string
+}
+
+/** The full annual recap. */
+export interface YearInReviewData {
+  /** The calendar year summarized. */
+  year: number
+  /** Number of in-year transactions considered. */
+  transactionCount: number
+  /** Whether there is enough data for the recap to feel earned. */
+  hasEnoughData: boolean
+  /** Longest run of consecutive days within the daily number (or no-spend). */
+  bestStreak: number
+  /** The month the user saved the most, or null if never net-positive. */
+  mostSavedMonth: YearInReviewMonth | null
+  /** The category with the most spend, or null if no expenses. */
+  topCategory: YearInReviewCategory | null
+  /** Net income − expense across the whole year (can be negative). */
+  totalSaved: number
+  /** The single standout highlight of the year. */
+  biggestWin: YearInReviewWin
+}
+
+// ============================================================================
+// Term / Monthly Review Types (Task 184.1)
+// ============================================================================
+//
+// The shape of the richer, end-of-period recap computed by `lib/termReview.ts`.
+// Extends the celebratory month-in-review pattern (improvement 5.4) into a
+// term-aware moment that ties to the academic term model (Phase 2 task 121.1).
+//
+// When a term schedule exists, the recap spans the whole academic term (e.g.
+// "Fall 2024") with term-level stats. When no term is configured, it degrades
+// gracefully to a single-month recap so nothing breaks. Like every recap in
+// Folio: personal, shame-free, never a leaderboard or comparison to others.
+
+/** Which period a term review summarizes. */
+export type TermReviewMode = 'term' | 'month'
+
+/** A calendar month inside the summarized period, and how much was set aside. */
+export interface TermReviewMonth {
+  /** Year-month key, e.g. "2024-09". */
+  monthKey: string
+  /** Friendly label including the year, e.g. "September 2024". */
+  monthLabel: string
+  /** Net amount saved that month (income − expense; always > 0 when present). */
+  saved: number
+}
+
+/** An expense category and its total across the summarized period. */
+export interface TermReviewCategory {
+  category: TransactionCategory
+  /** Friendly label, e.g. "Food & Drinks". */
+  label: string
+  /** Category emoji. */
+  emoji: string
+  /** Total spent in this category over the period. */
+  total: number
+}
+
+/** How the standout "biggest win" was chosen for the period. */
+export type TermReviewWinKind =
+  | 'streak'
+  | 'saved'
+  | 'best_month'
+  | 'consistency'
+  | 'showed_up'
+
+/** The single standout highlight of the period, framed warmly. */
+export interface TermReviewWin {
+  kind: TermReviewWinKind
+  /** Short celebratory headline. */
+  headline: string
+  /** One warm supporting sentence. */
+  detail: string
+}
+
+/** The full term / monthly recap. */
+export interface TermReviewData {
+  /** Whether this recap spans an academic term or a single month. */
+  mode: TermReviewMode
+  /** Friendly title for the period, e.g. "Fall 2024" or "September 2024". */
+  periodLabel: string
+  /** Start of the summarized window (ISO YYYY-MM-DD, inclusive). */
+  startDate: string
+  /** End of the summarized window (ISO YYYY-MM-DD, inclusive). */
+  endDate: string
+  /** Total days in the summarized window (inclusive of both ends). */
+  daysInPeriod: number
+  /** Number of transactions considered within the window. */
+  transactionCount: number
+  /** Whether there is enough data for the recap to feel earned. */
+  hasEnoughData: boolean
+  /** Total income logged in the window. */
+  totalIncome: number
+  /** Total expense logged in the window. */
+  totalExpense: number
+  /** Net income − expense across the window (can be negative). */
+  totalSaved: number
+  /**
+   * The strongest single month within the period, or null if no month was
+   * net-positive. For a month-mode recap this is simply that month when saved.
+   */
+  bestMonth: TermReviewMonth | null
+  /** Top expense categories across the period (highest spend first, up to 3). */
+  topCategories: TermReviewCategory[]
+  /** Longest run of consecutive days within the daily number (or no-spend). */
+  bestStreak: number
+  /** The single standout highlight of the period. */
+  biggestWin: TermReviewWin
+}
+
+// ============================================================================
+// Peer Context — encouraging "typical for a student" framing (Task 186.1)
+// ============================================================================
+//
+// Optional, anonymized, encouraging context that compares a user's monthly
+// spending against rough, static student ranges. It is OFF by default and only
+// surfaces behind Tools when enabled. It is deliberately NOT a ranking, a
+// leaderboard, or a pass/fail — every band is framed warmly and shame-free.
+
+/**
+ * Where a user's spend for a category sits relative to the typical student
+ * range. All three bands are framed positively — `above` is never a scolding.
+ */
+export type PeerBand = 'lighter' | 'typical' | 'above'
+
+/** Encouraging peer context for a single spending category. */
+export interface PeerCategoryContext {
+  /** The spending category this context describes. */
+  category: TransactionCategory
+  /** Friendly display label, e.g. "Food & Drinks". */
+  label: string
+  /** Emoji for the category. */
+  emoji: string
+  /** The user's total spend in this category for the month. */
+  monthlySpend: number
+  /** Low end of the typical monthly student range for this category. */
+  typicalLow: number
+  /** High end of the typical monthly student range for this category. */
+  typicalHigh: number
+  /** Which band the user's spend falls into (all framed warmly). */
+  band: PeerBand
+  /** A warm, shame-free one-liner describing the comparison. */
+  message: string
+}
+
+/** The full opt-in peer-context summary for a month. */
+export interface PeerContextData {
+  /** Friendly month label, e.g. "September 2024". */
+  monthLabel: string
+  /** Whether there is enough logged spending for context to feel meaningful. */
+  hasEnoughData: boolean
+  /** A warm intro line setting expectations (context, not competition). */
+  intro: string
+  /** Per-category encouraging comparisons (only categories with spend). */
+  categories: PeerCategoryContext[]
+  /** A gentle closing reminder that these are ballpark ranges, not targets. */
+  disclaimer: string
+}

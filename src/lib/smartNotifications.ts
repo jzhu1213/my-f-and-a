@@ -10,7 +10,11 @@
 
 import type { DailyAllowance, SavingsAccount } from "@/types/folio"
 import type { FixedExpense } from "@/lib/fixedExpenses"
-import { getNotificationPermissionStatus } from "./notificationScheduler"
+import {
+  getNotificationPermissionStatus,
+  FOLIO_NOTIFICATION_ACTIONS,
+  type ActionableNotificationOptions,
+} from "./notificationScheduler"
 import { shouldSuppressNotification } from "./engagementTracker"
 
 // ============================================================================
@@ -369,12 +373,16 @@ export async function fireSmartNotification(payload: NotificationPayload): Promi
     // Try service worker notification first (works in background for PWA)
     if ("serviceWorker" in navigator) {
       const registration = await navigator.serviceWorker.ready
-      await registration.showNotification(payload.title, {
+      const options: ActionableNotificationOptions = {
         body: payload.body,
         icon: "/icon-192.png",
         badge: "/icon-192.png",
         tag: payload.tag,
-      })
+        // Quick actions so smart alerts are actionable (task 182.1).
+        actions: FOLIO_NOTIFICATION_ACTIONS,
+        data: { defaultUrl: "/" },
+      }
+      await registration.showNotification(payload.title, options)
       return true
     }
 

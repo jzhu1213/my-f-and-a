@@ -26,6 +26,10 @@ export interface WidgetDailyAllowanceData {
   message: string
   /** ISO 8601 timestamp of last computation */
   lastUpdated: string
+  /** Percentage of daily budget remaining (0–100) */
+  progressPercent: number
+  /** Whether the data is stale/offline (for widget degradation display) */
+  offlineStale: boolean
 }
 
 export async function GET() {
@@ -37,6 +41,8 @@ export async function GET() {
     status: 'Default',
     message: 'Open Folio to see your allowance',
     lastUpdated: new Date().toISOString(),
+    progressPercent: 100,
+    offlineStale: false,
   }
 
   return NextResponse.json(data, {
