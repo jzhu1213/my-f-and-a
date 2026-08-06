@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { GoalEditSheet } from "./GoalEditSheet"
 import { GoalContributeSheet } from "./GoalContributeSheet"
 import { SaveUpPlanSheet } from "./SaveUpPlanSheet"
@@ -22,7 +23,7 @@ import { getLinkedAccountForGoal } from "@/lib/goalInvestingUtils"
 import { isGoalShared, getParticipantBreakdown } from "@/lib/sharedGoalUtils"
 import { SharedGoalSheet } from "./SharedGoalSheet"
 import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { borderRadius, fills, colorRamp, shadows } from "@/styles/shared"
 
 // ============================================================================
 // Types
@@ -116,7 +117,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
       style={{
         padding: "18px 20px",
         marginBottom: 14,
-        ...(complete ? { border: "1px solid rgba(74, 222, 128, 0.25)" } : {}),
+        ...(complete ? { border: `1px solid ${colorRamp.success[300]}` } : {}),
       }}
     >
       {/* ── Header: emoji + name + progress badge ─────────────────────────── */}
@@ -226,12 +227,12 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
             marginBottom: 12,
             padding: "6px 10px",
             background: deadlineInfo.feasible
-              ? "rgba(255,255,255,0.02)"
-              : "rgba(251, 191, 36, 0.06)",
+              ? fills[2]
+              : colorRamp.warning[100],
             borderRadius: 8,
             border: deadlineInfo.feasible
-              ? "1px solid rgba(255,255,255,0.04)"
-              : "1px solid rgba(251, 191, 36, 0.15)",
+              ? `1px solid ${fills[4]}`
+              : `1px solid ${colorRamp.warning[200]}`,
           }}
         >
           {deadlineInfo.message}
@@ -289,7 +290,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
               fontFamily: FONT_FAMILY,
               color: "var(--accent)",
               background: "var(--accent-muted)",
-              border: "1px solid rgba(129, 140, 248, 0.25)",
+              border: `1px solid ${colorRamp.accent[300]}`,
               borderRadius: 10,
               cursor: "pointer",
             }}
@@ -312,8 +313,8 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
               fontWeight: 500,
               fontFamily: FONT_FAMILY,
               color: shared ? "var(--accent)" : "var(--sub)",
-              background: shared ? "var(--accent-muted)" : "rgba(255,255,255,0.04)",
-              border: shared ? "1px solid rgba(129, 140, 248, 0.25)" : "1px solid var(--border)",
+              background: shared ? "var(--accent-muted)" : fills[4],
+              border: shared ? `1px solid ${colorRamp.accent[300]}` : "1px solid var(--border)",
               borderRadius: 10,
               cursor: "pointer",
             }}
@@ -657,14 +658,12 @@ export function GoalsScreen({
 
       {/* ── Empty state ────────────────────────────────────────────────────── */}
       {goals.length === 0 && (
-        <Card style={{ padding: "32px 20px", textAlign: "center", marginBottom: 16 }}>
-          <p style={{ fontSize: 28, marginBottom: 10 }} aria-hidden="true">🎯</p>
-          <p style={{ fontSize: 15, color: "var(--text)", marginBottom: 6, fontWeight: 500 }}>
-            What are you saving for?
-          </p>
-          <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.5 }}>
-            Set a goal and Folio will help you get there — one day at a time.
-          </p>
+        <Card style={{ padding: "4px 0", textAlign: "center", marginBottom: 16 }}>
+          <EmptyState
+            illustration="goals"
+            title="What are you saving for?"
+            subtitle="Set a goal and Folio will help you get there — one day at a time."
+          />
         </Card>
       )}
 
@@ -699,7 +698,7 @@ export function GoalsScreen({
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
             background: "var(--accent-muted)",
-            border: "1px solid rgba(129, 140, 248, 0.25)",
+            border: `1px solid ${colorRamp.accent[300]}`,
             borderRadius: 12,
             cursor: "pointer",
           }}
@@ -808,8 +807,8 @@ export function GoalsScreen({
                             cursor: "pointer",
                             position: "relative",
                             background: rule.enabled
-                              ? "rgba(74, 222, 128, 0.4)"
-                              : "rgba(255,255,255,0.1)",
+                              ? colorRamp.success[400]
+                              : fills[10],
                             transition: "background 0.2s",
                           }}
                         >
@@ -926,7 +925,7 @@ export function GoalsScreen({
                           fontFamily: FONT_FAMILY,
                           color: "var(--accent)",
                           background: "var(--accent-muted)",
-                          border: "1px solid rgba(129, 140, 248, 0.2)",
+                          border: `1px solid ${colorRamp.accent[200]}`,
                           borderRadius: 8,
                           cursor: "pointer",
                         }}

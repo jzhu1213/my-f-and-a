@@ -34,6 +34,8 @@ import { RegionSettings } from "./RegionSettings"
 import { NotificationCenter } from "./NotificationCenter"
 import { AppLockSetting } from "./AppLockSetting"
 import { SessionsSetting } from "./SessionsSetting"
+import { SettingsToggle } from "@/components/ui/SettingsToggle"
+import { SettingsRow } from "@/components/ui/SettingsRow"
 import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
 import { getSavingsRateBadgeEnabled, setSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
 import { getPaceIndicatorEnabled, setPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
@@ -388,7 +390,14 @@ function CollapsibleSection({
             transition={springs.gentle}
             style={{ overflow: "hidden" }}
           >
-            <div style={{ paddingTop: 16 }}>
+            <div style={{
+              paddingTop: 16,
+              // Phase 6 (task 267.1): subtle left accent bar when expanded for
+              // stronger visual grouping without adding clutter.
+              borderLeft: "2px solid rgba(167, 139, 250, 0.3)",
+              paddingLeft: 16,
+              marginLeft: 2,
+            }}>
               {children}
             </div>
           </motion.div>
@@ -990,57 +999,19 @@ export function SettingsScreen({
                 { key: "financialTrajectory" as keyof FeatureFlags, emoji: "📊", label: "Financial Trajectory" },
               ] as const
             ).map((item, idx, arr) => (
-              <div
+              <SettingsRow
                 key={item.key}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "10px 0",
-                  borderBottom: idx < arr.length - 1 ? "1px solid var(--border)" : "none",
-                }}
-              >
-                <span style={{ fontSize: 14, color: "var(--text)" }}>
-                  <span aria-hidden="true">{item.emoji}</span>{" "}
-                  {item.label}
-                </span>
-                <motion.button
-                  type="button"
-                  role="switch"
-                  aria-checked={flags[item.key]}
-                  aria-label={`Toggle ${item.label}`}
-                  onClick={() => setFlag(item.key, !flags[item.key])}
-                  whileTap={{ scale: 0.92 }}
-                  transition={springs.snappy}
-                  style={{
-                    flexShrink: 0,
-                    width: 44,
-                    height: 26,
-                    borderRadius: 13,
-                    border: "none",
-                    cursor: "pointer",
-                    background: flags[item.key]
-                      ? "rgba(167, 139, 250, 0.6)"
-                      : "rgba(255, 255, 255, 0.1)",
-                    position: "relative",
-                    transition: "background 0.2s ease",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: 3,
-                      left: flags[item.key] ? 21 : 3,
-                      width: 20,
-                      height: 20,
-                      borderRadius: "50%",
-                      background: flags[item.key] ? "#fff" : "rgba(255,255,255,0.4)",
-                      transition: "left 0.2s ease, background 0.2s ease",
-                      boxShadow: shadows.sm,
-                    }}
+                label={<span style={{ fontSize: 14, color: "var(--text)" }}><span aria-hidden="true">{item.emoji}</span>{" "}{item.label}</span>}
+                separator={idx < arr.length - 1}
+                style={{ padding: "10px 0" }}
+                action={
+                  <SettingsToggle
+                    checked={flags[item.key]}
+                    onChange={() => setFlag(item.key, !flags[item.key])}
+                    ariaLabel={`Toggle ${item.label}`}
                   />
-                </motion.button>
-              </div>
+                }
+              />
             ))}
 
             <motion.button
@@ -1068,99 +1039,38 @@ export function SettingsScreen({
             </p>
 
             {/* Savings-rate badge toggle */}
-            <div
-              style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "12px 0",
-              }}
-            >
-              <div style={{ flex: 1, marginRight: 12 }}>
-                <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
-                  Show savings-rate badge
-                </span>
-                <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
-                  A gentle reminder of how much of your income you&apos;re saving this month
-                </span>
-              </div>
-              <motion.button
-                type="button"
-                role="switch"
-                aria-checked={savingsRateBadgeEnabled}
-                aria-label="Show savings-rate badge on home screen"
-                onClick={() => {
-                  const next = !savingsRateBadgeEnabled
-                  setSavingsRateBadgeEnabledState(next)
-                  setSavingsRateBadgeEnabled(next)
-                }}
-                whileTap={{ scale: 0.92 }}
-                transition={springs.snappy}
-                style={{
-                  flexShrink: 0, width: 44, height: 26, borderRadius: 13,
-                  border: "none", cursor: "pointer",
-                  background: savingsRateBadgeEnabled ? "rgba(167, 139, 250, 0.6)" : "rgba(255, 255, 255, 0.1)",
-                  position: "relative", transition: "background 0.2s ease",
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute", top: 3,
-                    left: savingsRateBadgeEnabled ? 21 : 3,
-                    width: 20, height: 20, borderRadius: "50%",
-                    background: savingsRateBadgeEnabled ? "#fff" : "rgba(255,255,255,0.4)",
-                    transition: "left 0.2s ease, background 0.2s ease",
-                    boxShadow: shadows.sm,
+            <SettingsRow
+              label="Show savings-rate badge"
+              description="A gentle reminder of how much of your income you're saving this month"
+              separator={false}
+              action={
+                <SettingsToggle
+                  checked={savingsRateBadgeEnabled}
+                  onChange={(next) => {
+                    setSavingsRateBadgeEnabledState(next)
+                    setSavingsRateBadgeEnabled(next)
                   }}
+                  ariaLabel="Show savings-rate badge on home screen"
                 />
-              </motion.button>
-            </div>
+              }
+            />
 
             {/* Spending-pace indicator toggle (task 250) */}
-            <div
-              style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "12px 0",
-                borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-              }}
-            >
-              <div style={{ flex: 1, marginRight: 12 }}>
-                <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
-                  Show spending-pace indicator
-                </span>
-                <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
-                  A subtle sparkline showing today&apos;s spend pace vs. your typical day
-                </span>
-              </div>
-              <motion.button
-                type="button"
-                role="switch"
-                aria-checked={paceIndicatorEnabled}
-                aria-label="Show spending-pace indicator on home screen"
-                onClick={() => {
-                  const next = !paceIndicatorEnabled
-                  setPaceIndicatorEnabledState(next)
-                  setPaceIndicatorEnabled(next)
-                }}
-                whileTap={{ scale: 0.92 }}
-                transition={springs.snappy}
-                style={{
-                  flexShrink: 0, width: 44, height: 26, borderRadius: 13,
-                  border: "none", cursor: "pointer",
-                  background: paceIndicatorEnabled ? "rgba(167, 139, 250, 0.6)" : "rgba(255, 255, 255, 0.1)",
-                  position: "relative", transition: "background 0.2s ease",
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute", top: 3,
-                    left: paceIndicatorEnabled ? 21 : 3,
-                    width: 20, height: 20, borderRadius: "50%",
-                    background: paceIndicatorEnabled ? "#fff" : "rgba(255,255,255,0.4)",
-                    transition: "left 0.2s ease, background 0.2s ease",
-                    boxShadow: shadows.sm,
+            <SettingsRow
+              label="Show spending-pace indicator"
+              description="A subtle sparkline showing today's spend pace vs. your typical day"
+              separator={false}
+              action={
+                <SettingsToggle
+                  checked={paceIndicatorEnabled}
+                  onChange={(next) => {
+                    setPaceIndicatorEnabledState(next)
+                    setPaceIndicatorEnabled(next)
                   }}
+                  ariaLabel="Show spending-pace indicator on home screen"
                 />
-              </motion.button>
-            </div>
+              }
+            />
           </GlassCard>
         </CollapsibleSection>
         </motion.div>
@@ -1936,146 +1846,53 @@ export function SettingsScreen({
             <p style={{ ...sectionHeader, marginBottom: 14 }}>Preferences</p>
 
             {/* Show daily insights toggle */}
-            <div
-              style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "12px 0", borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <div style={{ flex: 1, marginRight: 12 }}>
-                <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
-                  Show daily insight
-                </span>
-                <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
-                  A brief, rotating tip or celebration on your home screen
-                </span>
-              </div>
-              <motion.button
-                type="button"
-                role="switch"
-                aria-checked={insightsEnabled}
-                aria-label="Show daily insight on home screen"
-                onClick={() => {
-                  const next = !insightsEnabled
-                  setInsightsEnabledState(next)
-                  setInsightsEnabled(next)
-                }}
-                whileTap={{ scale: 0.92 }}
-                transition={springs.snappy}
-                style={{
-                  flexShrink: 0, width: 44, height: 26, borderRadius: 13,
-                  border: "none", cursor: "pointer",
-                  background: insightsEnabled ? "rgba(167, 139, 250, 0.6)" : "rgba(255, 255, 255, 0.1)",
-                  position: "relative", transition: "background 0.2s ease",
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute", top: 3,
-                    left: insightsEnabled ? 21 : 3,
-                    width: 20, height: 20, borderRadius: "50%",
-                    background: insightsEnabled ? "#fff" : "rgba(255,255,255,0.4)",
-                    transition: "left 0.2s ease, background 0.2s ease",
-                    boxShadow: shadows.sm,
+            <SettingsRow
+              label="Show daily insight"
+              description="A brief, rotating tip or celebration on your home screen"
+              action={
+                <SettingsToggle
+                  checked={insightsEnabled}
+                  onChange={(next) => {
+                    setInsightsEnabledState(next)
+                    setInsightsEnabled(next)
                   }}
+                  ariaLabel="Show daily insight on home screen"
                 />
-              </motion.button>
-            </div>
+              }
+            />
 
             {/* Encouraging peer context toggle (task 186.1) — opt-in, OFF by default */}
-            <div
-              style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "12px 0", borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <div style={{ flex: 1, marginRight: 12 }}>
-                <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
-                  Show &ldquo;typical for a student&rdquo; context
-                </span>
-                <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
-                  Optional, anonymized, encouraging ranges in Tools — never a ranking or a scoreboard
-                </span>
-              </div>
-              <motion.button
-                type="button"
-                role="switch"
-                aria-checked={peerContextEnabled}
-                aria-label="Show typical-for-a-student context in Tools"
-                onClick={() => {
-                  const next = !peerContextEnabled
-                  setPeerContextEnabledState(next)
-                  setPeerContextEnabled(next)
-                }}
-                whileTap={{ scale: 0.92 }}
-                transition={springs.snappy}
-                style={{
-                  flexShrink: 0, width: 44, height: 26, borderRadius: 13,
-                  border: "none", cursor: "pointer",
-                  background: peerContextEnabled ? "rgba(167, 139, 250, 0.6)" : "rgba(255, 255, 255, 0.1)",
-                  position: "relative", transition: "background 0.2s ease",
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute", top: 3,
-                    left: peerContextEnabled ? 21 : 3,
-                    width: 20, height: 20, borderRadius: "50%",
-                    background: peerContextEnabled ? "#fff" : "rgba(255,255,255,0.4)",
-                    transition: "left 0.2s ease, background 0.2s ease",
-                    boxShadow: shadows.sm,
+            <SettingsRow
+              label={<span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>Show &ldquo;typical for a student&rdquo; context</span>}
+              description="Optional, anonymized, encouraging ranges in Tools — never a ranking or a scoreboard"
+              action={
+                <SettingsToggle
+                  checked={peerContextEnabled}
+                  onChange={(next) => {
+                    setPeerContextEnabledState(next)
+                    setPeerContextEnabled(next)
                   }}
+                  ariaLabel="Show typical-for-a-student context in Tools"
                 />
-              </motion.button>
-            </div>
+              }
+            />
 
             {/* Count credit-card spending against today toggle */}
             {onUpdateCountCreditImmediately && (
-              <div
-                style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "12px 0", borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <div style={{ flex: 1, marginRight: 12 }}>
-                  <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
-                    Count credit-card spending against today?
-                  </span>
-                  <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
-                    When off, credit purchases won&apos;t reduce your daily allowance until you pay the bill
-                  </span>
-                </div>
-                <motion.button
-                  type="button"
-                  role="switch"
-                  aria-checked={countCreditImmediately}
-                  aria-label="Count credit-card spending against today"
-                  onClick={() => {
-                    const next = !countCreditImmediately
-                    setCountCreditImmediatelyState(next)
-                    onUpdateCountCreditImmediately(next)
-                  }}
-                  whileTap={{ scale: 0.92 }}
-                  transition={springs.snappy}
-                  style={{
-                    flexShrink: 0, width: 44, height: 26, borderRadius: 13,
-                    border: "none", cursor: "pointer",
-                    background: countCreditImmediately ? "rgba(167, 139, 250, 0.6)" : "rgba(255, 255, 255, 0.1)",
-                    position: "relative", transition: "background 0.2s ease",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute", top: 3,
-                      left: countCreditImmediately ? 21 : 3,
-                      width: 20, height: 20, borderRadius: "50%",
-                      background: countCreditImmediately ? "#fff" : "rgba(255,255,255,0.4)",
-                      transition: "left 0.2s ease, background 0.2s ease",
-                      boxShadow: shadows.sm,
+              <SettingsRow
+                label="Count credit-card spending against today?"
+                description="When off, credit purchases won't reduce your daily allowance until you pay the bill"
+                action={
+                  <SettingsToggle
+                    checked={countCreditImmediately}
+                    onChange={(next) => {
+                      setCountCreditImmediatelyState(next)
+                      onUpdateCountCreditImmediately(next)
                     }}
+                    ariaLabel="Count credit-card spending against today"
                   />
-                </motion.button>
-              </div>
+                }
+              />
             )}
 
             {/* Reset Tutorial/Onboarding */}
@@ -2344,8 +2161,12 @@ export function SettingsScreen({
               <div style={dangerZone}>
                 <p
                   style={{
-                    fontSize: 14, fontWeight: 600,
-                    color: "var(--error)", marginBottom: 8,
+                    ...sectionHeader,
+                    fontSize: 14,
+                    textTransform: "none",
+                    letterSpacing: "0.01em",
+                    color: "var(--error)",
+                    marginBottom: 8,
                   }}
                 >
                   ⚠️ Delete Account
@@ -2354,11 +2175,12 @@ export function SettingsScreen({
                   style={{
                     fontSize: 13, color: "var(--text)",
                     marginBottom: 12, lineHeight: 1.5,
+                    fontFamily: FONT_FAMILY,
                   }}
                 >
                   This will permanently delete all your data including transactions, budgets, and goals. This cannot be undone.
                 </p>
-                <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 12 }}>
+                <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 12, fontFamily: FONT_FAMILY }}>
                   Type <strong>DELETE</strong> to confirm:
                 </p>
                 <input
@@ -2371,7 +2193,7 @@ export function SettingsScreen({
                     fontSize: 14, fontFamily: FONT_FAMILY,
                     color: "var(--text)",
                     background: "rgba(0, 0, 0, 0.2)",
-                    border: "1px solid var(--border)",
+                    border: "1px solid rgba(248, 113, 113, 0.2)",
                     borderRadius: borderRadius.sm, outline: "none",
                   }}
                   aria-label="Type DELETE to confirm account deletion"
@@ -2386,7 +2208,7 @@ export function SettingsScreen({
                       fontWeight: 500, fontFamily: FONT_FAMILY,
                       color: "var(--text)",
                       background: "rgba(255, 255, 255, 0.06)",
-                      border: "1px solid var(--border)",
+                      border: "1px solid rgba(255, 255, 255, 0.06)",
                       borderRadius: borderRadius.sm, cursor: "pointer",
                     }}
                     aria-label="Cancel account deletion"

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useToast } from '@/contexts/ToastContext'
 import { FONT_FAMILY, spacing, pxToRem } from '@/styles/typography'
-import { borderRadius, shadows } from '@/styles/shared'
+import { borderRadius, shadows, fills, colorRamp } from '@/styles/shared'
 import type { FundingSource } from '@/lib/fundingSources'
 import { predictFundingSource } from '@/lib/fundingSources'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -307,8 +307,8 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                         gap: 10,
                         width: '100%',
                         padding: '14px 16px',
-                        background: 'rgba(74, 222, 128, 0.10)',
-                        border: '1px solid rgba(74, 222, 128, 0.35)',
+                        background: colorRamp.success[200],
+                        border: `1px solid ${colorRamp.success[300]}`,
                         borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
                         fontFamily: FONT_FAMILY,
@@ -375,11 +375,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                         padding: '10px 16px',
                         minHeight: 44,
                         background: amount === String(preset)
-                          ? 'rgba(74, 222, 128, 0.12)'
-                          : 'rgba(255, 255, 255, 0.04)',
+                          ? colorRamp.success[200]
+                          : fills[4],
                         border: amount === String(preset)
-                          ? '1px solid rgba(74, 222, 128, 0.4)'
-                          : '1px solid rgba(255, 255, 255, 0.1)',
+                          ? `1px solid ${colorRamp.success[400]}`
+                          : `1px solid ${fills[10]}`,
                         borderRadius: borderRadius.full,
                         cursor: 'pointer',
                         fontSize: pxToRem(14),
@@ -532,10 +532,10 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                                 gap: 4,
                                 padding: '10px 8px',
                                 background: selectedSourceId === source.id
-                                  ? 'rgba(74, 222, 128, 0.12)'
+                                  ? colorRamp.success[200]
                                   : 'transparent',
                                 border: selectedSourceId === source.id
-                                  ? '1px solid rgba(74, 222, 128, 0.4)'
+                                  ? `1px solid ${colorRamp.success[400]}`
                                   : '1px solid transparent',
                                 borderRadius: 'var(--radius-sm)',
                                 cursor: 'pointer',
@@ -641,11 +641,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                   aria-pressed={isGigIncome}
                   style={{
                     background: isGigIncome
-                      ? 'rgba(251, 191, 36, 0.15)'
+                      ? colorRamp.warning[200]
                       : 'transparent',
                     border: isGigIncome
-                      ? '1px solid rgba(251, 191, 36, 0.4)'
-                      : '1px dashed rgba(255, 255, 255, 0.15)',
+                      ? `1px solid ${colorRamp.warning[400]}`
+                      : `1px dashed ${fills[15]}`,
                     borderRadius: 'var(--radius-md)',
                     padding: `${spacing.sm}px ${spacing.md}px`,
                     minHeight: 44,
@@ -679,11 +679,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                     aria-pressed={isFinancialAid}
                     style={{
                       background: isFinancialAid
-                        ? 'rgba(129, 140, 248, 0.15)'
+                        ? colorRamp.accent[200]
                         : 'transparent',
                       border: isFinancialAid
-                        ? '1px solid rgba(129, 140, 248, 0.4)'
-                        : '1px dashed rgba(255, 255, 255, 0.15)',
+                        ? `1px solid ${colorRamp.accent[400]}`
+                        : `1px dashed ${fills[15]}`,
                       borderRadius: 'var(--radius-md)',
                       padding: '10px 16px',
                       fontSize: 13,
@@ -713,8 +713,8 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                         style={{
                           marginTop: 12,
                           padding: '12px 16px',
-                          background: 'rgba(129, 140, 248, 0.08)',
-                          border: '1px solid rgba(129, 140, 248, 0.2)',
+                          background: colorRamp.accent[100],
+                          border: `1px solid ${colorRamp.accent[200]}`,
                           borderRadius: 'var(--radius-md)',
                           textAlign: 'center',
                         }}
@@ -733,11 +733,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                               style={{
                                 padding: '6px 12px',
                                 background: spreadMonths === m
-                                  ? 'rgba(129, 140, 248, 0.2)'
-                                  : 'rgba(255, 255, 255, 0.04)',
+                                  ? colorRamp.accent[200]
+                                  : fills[4],
                                 border: spreadMonths === m
-                                  ? '1px solid rgba(129, 140, 248, 0.5)'
-                                  : '1px solid rgba(255, 255, 255, 0.1)',
+                                  ? `1px solid ${colorRamp.accent[400]}`
+                                  : `1px solid ${fills[10]}`,
                                 borderRadius: borderRadius.full,
                                 cursor: 'pointer',
                                 fontSize: 13,
@@ -774,11 +774,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                     gap: 6,
                     padding: '6px 12px',
                     background: selectedDate !== new Date().toISOString().slice(0, 10)
-                      ? 'rgba(129, 140, 248, 0.12)'
-                      : 'rgba(255, 255, 255, 0.04)',
+                      ? colorRamp.accent[200]
+                      : fills[4],
                     border: selectedDate !== new Date().toISOString().slice(0, 10)
-                      ? '1px solid rgba(129, 140, 248, 0.4)'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
+                      ? `1px solid ${colorRamp.accent[400]}`
+                      : `1px solid ${fills[10]}`,
                     borderRadius: borderRadius.full,
                     cursor: 'pointer',
                     fontSize: 13,
@@ -821,11 +821,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                         style={{
                           padding: '8px 14px',
                           background: selectedDate === new Date().toISOString().slice(0, 10)
-                            ? 'rgba(129, 140, 248, 0.12)'
-                            : 'rgba(255, 255, 255, 0.04)',
+                            ? colorRamp.accent[200]
+                            : fills[4],
                           border: selectedDate === new Date().toISOString().slice(0, 10)
-                            ? '1px solid rgba(129, 140, 248, 0.4)'
-                            : '1px solid rgba(255, 255, 255, 0.1)',
+                            ? `1px solid ${colorRamp.accent[400]}`
+                            : `1px solid ${fills[10]}`,
                           borderRadius: borderRadius.full,
                           cursor: 'pointer',
                           fontSize: 13,
@@ -854,11 +854,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                             style={{
                               padding: '8px 14px',
                               background: selectedDate === yesterday
-                                ? 'rgba(129, 140, 248, 0.12)'
-                                : 'rgba(255, 255, 255, 0.04)',
+                                ? colorRamp.accent[200]
+                                : fills[4],
                               border: selectedDate === yesterday
-                                ? '1px solid rgba(129, 140, 248, 0.4)'
-                                : '1px solid rgba(255, 255, 255, 0.1)',
+                                ? `1px solid ${colorRamp.accent[400]}`
+                                : `1px solid ${fills[10]}`,
                               borderRadius: borderRadius.full,
                               cursor: 'pointer',
                               fontSize: 13,
@@ -889,11 +889,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                             style={{
                               padding: '8px 14px',
                               background: selectedDate === lastFri
-                                ? 'rgba(129, 140, 248, 0.12)'
-                                : 'rgba(255, 255, 255, 0.04)',
+                                ? colorRamp.accent[200]
+                                : fills[4],
                               border: selectedDate === lastFri
-                                ? '1px solid rgba(129, 140, 248, 0.4)'
-                                : '1px solid rgba(255, 255, 255, 0.1)',
+                                ? `1px solid ${colorRamp.accent[400]}`
+                                : `1px solid ${fills[10]}`,
                               borderRadius: borderRadius.full,
                               cursor: 'pointer',
                               fontSize: 13,
@@ -919,11 +919,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                         style={{
                           padding: '8px 14px',
                           background: showCustomDateInput
-                            ? 'rgba(129, 140, 248, 0.12)'
-                            : 'rgba(255, 255, 255, 0.04)',
+                            ? colorRamp.accent[200]
+                            : fills[4],
                           border: showCustomDateInput
-                            ? '1px solid rgba(129, 140, 248, 0.4)'
-                            : '1px solid rgba(255, 255, 255, 0.1)',
+                            ? `1px solid ${colorRamp.accent[400]}`
+                            : `1px solid ${fills[10]}`,
                           borderRadius: borderRadius.full,
                           cursor: 'pointer',
                           fontSize: 13,

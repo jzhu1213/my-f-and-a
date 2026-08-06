@@ -57,4 +57,8 @@ export type {
   ManagedItem,
   ItemRenderContext,
 } from './ManagedListScreen'
+export { SettingsToggle } from './SettingsToggle'
+export type { SettingsToggleProps } from './SettingsToggle'
+export { SettingsRow } from './SettingsRow'
+export type { SettingsRowProps } from './SettingsRow'
 

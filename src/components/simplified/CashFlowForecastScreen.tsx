@@ -10,6 +10,14 @@ import {
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
 } from "@/styles/shared"
+import {
+  chartColors,
+  chartDimensions,
+  chartStrokes,
+  chartLabel,
+  chartValueLabel,
+  CHART_GRADIENT_PREFIX,
+} from "@/styles/chartTokens"
 import { generateCashFlowForecast, validateForecastIncome } from "@/lib/cashFlowForecast"
 import type { ForecastInput, ForecastDay } from "@/lib/cashFlowForecast"
 import type { Transaction } from "@/types"
@@ -43,9 +51,9 @@ export interface CashFlowForecastScreenProps {
 // Chart constants
 // ============================================================================
 
-const CHART_HEIGHT = 160
-const CHART_PADDING_TOP = 20
-const CHART_PADDING_BOTTOM = 24
+const CHART_HEIGHT = chartDimensions.height
+const CHART_PADDING_TOP = chartDimensions.paddingTop
+const CHART_PADDING_BOTTOM = chartDimensions.paddingBottom
 
 // ============================================================================
 // Component
@@ -270,8 +278,8 @@ export function CashFlowForecastScreen({
       >
         <GlassCard elevation="low" style={{ padding: "20px 16px", marginBottom: 16 }}>
           <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 12, color: "var(--sub)" }}>Today</span>
-            <span style={{ fontSize: 12, color: "var(--sub)" }}>{forecast.summary.endDateLabel}</span>
+            <span style={chartLabel}>Today</span>
+            <span style={chartLabel}>{forecast.summary.endDateLabel}</span>
           </div>
 
           {forecast.days.length >= 2 ? (
@@ -282,19 +290,28 @@ export function CashFlowForecastScreen({
               aria-label={`Balance projection chart from $${Math.round(currentBalance)} today to $${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0)} on ${forecast.summary.endDateLabel}`}
               role="img"
             >
+              {/* Gradient fill */}
+              <defs>
+                <linearGradient id={`${CHART_GRADIENT_PREFIX}-cashflow`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={chartColors.secondary} stopOpacity="0.18" />
+                  <stop offset="100%" stopColor={chartColors.secondary} stopOpacity="0.02" />
+                </linearGradient>
+              </defs>
+
               {/* Area fill */}
               <path
                 d={areaPath}
-                fill="rgba(139, 92, 246, 0.12)"
+                fill={`url(#${CHART_GRADIENT_PREFIX}-cashflow)`}
                 stroke="none"
               />
               {/* Line */}
               <path
                 d={chartPath}
                 fill="none"
-                stroke="rgba(139, 92, 246, 0.8)"
-                strokeWidth="1.5"
+                stroke={chartColors.secondary}
+                strokeWidth={chartStrokes.lineWidthLight}
                 vectorEffect="non-scaling-stroke"
+                strokeLinecap="round"
               />
               {/* Zero line if balance dips negative */}
               {forecast.summary.willGoNegative && (
@@ -309,19 +326,18 @@ export function CashFlowForecastScreen({
 
           {/* Start/end balance labels */}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ ...chartValueLabel, fontWeight: 600, color: "var(--text)" }}>
               ${Math.round(currentBalance).toLocaleString("en-US")}
             </span>
             <span
               style={{
-                fontSize: 13,
+                ...chartValueLabel,
                 fontWeight: 600,
                 color: forecast.days.length > 0
                   ? forecast.days[forecast.days.length - 1].projectedBalance < 0
                     ? "var(--error)"
                     : "var(--text)"
                   : "var(--text)",
-                fontVariantNumeric: "tabular-nums",
               }}
             >
               ${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0).toLocaleString("en-US")}
@@ -399,9 +415,9 @@ function ZeroLine({ days, chartHeight }: { days: ForecastDay[]; chartHeight: num
       y1={zeroY}
       x2={100}
       y2={zeroY}
-      stroke="rgba(239, 68, 68, 0.4)"
-      strokeWidth="0.8"
-      strokeDasharray="3 2"
+      stroke={chartColors.danger}
+      strokeWidth={chartStrokes.dangerWidth}
+      strokeDasharray={chartStrokes.dashPattern}
       vectorEffect="non-scaling-stroke"
     />
   )

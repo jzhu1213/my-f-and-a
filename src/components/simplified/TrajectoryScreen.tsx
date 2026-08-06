@@ -11,6 +11,15 @@ import {
   DOCK_PADDING_BOTTOM,
 } from "@/styles/shared"
 import {
+  chartColors,
+  chartDimensions,
+  chartStrokes,
+  chartLabel,
+  progressBar,
+  chartMotion,
+  CHART_GRADIENT_PREFIX,
+} from "@/styles/chartTokens"
+import {
   computeTrajectory,
   type TrajectoryDirection,
   type TrajectoryInsight,
@@ -652,9 +661,9 @@ function DebtProgressCard({
                 <div
                   style={{
                     flex: 1,
-                    height: 4,
-                    borderRadius: 2,
-                    background: "rgba(255,255,255,0.06)",
+                    height: progressBar.height,
+                    borderRadius: progressBar.borderRadius,
+                    background: progressBar.track,
                     overflow: "hidden",
                   }}
                   role="progressbar"
@@ -666,12 +675,12 @@ function DebtProgressCard({
                   <div
                     style={{
                       height: "100%",
-                      borderRadius: 2,
-                      background: "var(--success)",
+                      borderRadius: progressBar.borderRadius,
+                      background: progressBar.fill,
                       width: principalReduction > 0
                         ? `${Math.min(100, Math.round((principalReduction / debt.minimumPayment) * 100))}%`
                         : "0%",
-                      transition: "width 0.3s ease",
+                      transition: chartMotion.barGrow,
                     }}
                   />
                 </div>
@@ -811,9 +820,9 @@ function GoalsProgressCard({ goals }: { goals: Goal[] }) {
               {/* Progress bar */}
               <div
                 style={{
-                  height: 6,
-                  borderRadius: 3,
-                  background: "rgba(255,255,255,0.06)",
+                  height: progressBar.height + 2,
+                  borderRadius: progressBar.borderRadius,
+                  background: progressBar.track,
                   overflow: "hidden",
                 }}
                 role="progressbar"
@@ -825,10 +834,10 @@ function GoalsProgressCard({ goals }: { goals: Goal[] }) {
                 <div
                   style={{
                     height: "100%",
-                    borderRadius: 3,
-                    background: progress >= 75 ? "var(--success)" : "var(--accent, #818cf8)",
+                    borderRadius: progressBar.borderRadius,
+                    background: progress >= 75 ? progressBar.fill : progressBar.fillAccent,
                     width: `${progress}%`,
-                    transition: "width 0.3s ease",
+                    transition: chartMotion.barGrow,
                   }}
                 />
               </div>
@@ -850,9 +859,9 @@ function GoalsProgressCard({ goals }: { goals: Goal[] }) {
 function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
   const { dataPoints, projectedSavings, projectedDebt, startingSavings, startingDebt, hasSavingsSignal, hasDebtSignal } = curve
 
-  // Chart dimensions
+  // Chart dimensions — use shared tokens for consistency
   const chartWidth = 320
-  const chartHeight = 100
+  const chartHeight = chartDimensions.heightCompact
   const padding = { top: 8, right: 12, bottom: 4, left: 12 }
   const innerWidth = chartWidth - padding.left - padding.right
   const innerHeight = chartHeight - padding.top - padding.bottom
@@ -920,24 +929,24 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
         >
           {/* Gradient fill */}
           <defs>
-            <linearGradient id="progressGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--success)" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="var(--success)" stopOpacity="0.02" />
+            <linearGradient id={`${CHART_GRADIENT_PREFIX}-progress`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={chartColors.primary} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={chartColors.primary} stopOpacity="0.02" />
             </linearGradient>
           </defs>
 
           {/* Area fill */}
           <path
             d={areaPath}
-            fill="url(#progressGradient)"
+            fill={`url(#${CHART_GRADIENT_PREFIX}-progress)`}
           />
 
           {/* Line */}
           <path
             d={linePath}
             fill="none"
-            stroke="var(--success)"
-            strokeWidth="2.5"
+            stroke={chartColors.primary}
+            strokeWidth={chartStrokes.lineWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{ filter: "drop-shadow(0 1px 3px rgba(74, 222, 128, 0.3))" }}
@@ -947,20 +956,20 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
           <circle
             cx={points[0].x}
             cy={points[0].y}
-            r="4"
-            fill="var(--surface)"
-            stroke="var(--success)"
-            strokeWidth="2"
+            r={chartStrokes.dotRadius}
+            fill={chartColors.dot}
+            stroke={chartColors.dotStroke}
+            strokeWidth={chartStrokes.dotStrokeWidth}
           />
 
           {/* Projected position dot */}
           <circle
             cx={points[points.length - 1].x}
             cy={points[points.length - 1].y}
-            r="4"
-            fill="var(--success)"
-            stroke="var(--surface)"
-            strokeWidth="1.5"
+            r={chartStrokes.dotRadius}
+            fill={chartColors.primary}
+            stroke={chartColors.dot}
+            strokeWidth={chartStrokes.dotStrokeWidth * 0.75}
           />
         </svg>
       </div>
@@ -970,10 +979,7 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
         {monthLabels.map((ml) => (
           <span
             key={ml}
-            style={{
-              fontSize: 9,
-              color: "var(--muted)",
-            }}
+            style={chartLabel}
           >
             {ml}
           </span>

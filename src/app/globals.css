@@ -62,6 +62,71 @@
   --accent:      #818cf8;     /* indigo/purple */
   --accent-muted: rgba(129, 140, 248, 0.15);
 
+  /* ── Accent ramp (indigo #818cf8) ──────────────────────────────── */
+  /* Derived tint/shade steps so hover/active/disabled/glow states use
+   * named tokens instead of scattered ad-hoc rgba() values.
+   * 50–200 = translucent fills, 300–400 = borders/rings,
+   * 500 = base, 600–900 = interactive/prominent states.
+   * WCAG: 500+ all exceed 4.5:1 on --bg (#12121f). */
+  --accent-50:  rgba(129, 140, 248, 0.04);
+  --accent-100: rgba(129, 140, 248, 0.08);
+  --accent-200: rgba(129, 140, 248, 0.14);
+  --accent-300: rgba(129, 140, 248, 0.25);
+  --accent-400: rgba(129, 140, 248, 0.40);
+  --accent-500: #818cf8;
+  --accent-600: #6366f1;
+  --accent-700: #4f46e5;
+  --accent-800: #4338ca;
+  --accent-900: #3730a3;
+
+  /* ── Success ramp (green #4ade80) ──────────────────────────────── */
+  --success-50:  rgba(74, 222, 128, 0.04);
+  --success-100: rgba(74, 222, 128, 0.08);
+  --success-200: rgba(74, 222, 128, 0.14);
+  --success-300: rgba(74, 222, 128, 0.25);
+  --success-400: rgba(74, 222, 128, 0.40);
+  --success-500: #4ade80;
+  --success-600: #22c55e;
+  --success-700: #16a34a;
+  --success-800: #15803d;
+  --success-900: #166534;
+
+  /* ── Warning ramp (amber #fbbf24) ──────────────────────────────── */
+  --warning-50:  rgba(251, 191, 36, 0.04);
+  --warning-100: rgba(251, 191, 36, 0.08);
+  --warning-200: rgba(251, 191, 36, 0.14);
+  --warning-300: rgba(251, 191, 36, 0.25);
+  --warning-400: rgba(251, 191, 36, 0.40);
+  --warning-500: #fbbf24;
+  --warning-600: #eab308;
+  --warning-700: #ca8a04;
+  --warning-800: #a16207;
+  --warning-900: #854d0e;
+
+  /* ── Error ramp (red #f87171) ──────────────────────────────────── */
+  --error-50:  rgba(248, 113, 113, 0.04);
+  --error-100: rgba(248, 113, 113, 0.08);
+  --error-200: rgba(248, 113, 113, 0.14);
+  --error-300: rgba(248, 113, 113, 0.25);
+  --error-400: rgba(248, 113, 113, 0.40);
+  --error-500: #f87171;
+  --error-600: #ef4444;
+  --error-700: #dc2626;
+  --error-800: #b91c1c;
+  --error-900: #991b1b;
+
+  /* ── Blue ramp (#60a5fa) ───────────────────────────────────────── */
+  --blue-50:  rgba(96, 165, 250, 0.04);
+  --blue-100: rgba(96, 165, 250, 0.08);
+  --blue-200: rgba(96, 165, 250, 0.14);
+  --blue-300: rgba(96, 165, 250, 0.25);
+  --blue-400: rgba(96, 165, 250, 0.40);
+  --blue-500: #60a5fa;
+  --blue-600: #3b82f6;
+  --blue-700: #2563eb;
+  --blue-800: #1d4ed8;
+  --blue-900: #1e40af;
+
   /* Legacy shorthand aliases (used in inline styles) */
   --green:     #4ade80;
   --green-glow: rgba(74, 222, 128, 0.10);
@@ -75,6 +140,19 @@
   --radius-md: 12px;   /* cards, inputs */
   --radius-lg: 16px;   /* modals, sheets */
   --radius:    8px;
+
+  /* ── White alpha fills (surface overlays, borders, separators) ──── */
+  /* Used across all glass/translucent UI elements instead of scattered
+   * inline rgba(255,255,255,...) values. */
+  --fill-02: rgba(255, 255, 255, 0.02);
+  --fill-03: rgba(255, 255, 255, 0.03);
+  --fill-04: rgba(255, 255, 255, 0.04);
+  --fill-05: rgba(255, 255, 255, 0.05);
+  --fill-06: rgba(255, 255, 255, 0.06);
+  --fill-08: rgba(255, 255, 255, 0.08);
+  --fill-10: rgba(255, 255, 255, 0.10);
+  --fill-12: rgba(255, 255, 255, 0.12);
+  --fill-15: rgba(255, 255, 255, 0.15);
 
   /* Elevation shadows — tokenized scale */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
@@ -106,12 +184,83 @@
   --accent:      #818cf8;
   --accent-muted: rgba(129, 140, 248, 0.12);
 
+  /* ── Dark theme accent ramp ────────────────────────────────────── */
+  --accent-50:  rgba(129, 140, 248, 0.03);
+  --accent-100: rgba(129, 140, 248, 0.07);
+  --accent-200: rgba(129, 140, 248, 0.12);
+  --accent-300: rgba(129, 140, 248, 0.22);
+  --accent-400: rgba(129, 140, 248, 0.38);
+  --accent-500: #818cf8;
+  --accent-600: #6366f1;
+  --accent-700: #4f46e5;
+  --accent-800: #4338ca;
+  --accent-900: #3730a3;
+
+  /* ── Dark theme success ramp ───────────────────────────────────── */
+  --success-50:  rgba(74, 222, 128, 0.03);
+  --success-100: rgba(74, 222, 128, 0.07);
+  --success-200: rgba(74, 222, 128, 0.12);
+  --success-300: rgba(74, 222, 128, 0.22);
+  --success-400: rgba(74, 222, 128, 0.38);
+  --success-500: #4ade80;
+  --success-600: #22c55e;
+  --success-700: #16a34a;
+  --success-800: #15803d;
+  --success-900: #166534;
+
+  /* ── Dark theme warning ramp ───────────────────────────────────── */
+  --warning-50:  rgba(251, 191, 36, 0.03);
+  --warning-100: rgba(251, 191, 36, 0.07);
+  --warning-200: rgba(251, 191, 36, 0.12);
+  --warning-300: rgba(251, 191, 36, 0.22);
+  --warning-400: rgba(251, 191, 36, 0.38);
+  --warning-500: #fbbf24;
+  --warning-600: #eab308;
+  --warning-700: #ca8a04;
+  --warning-800: #a16207;
+  --warning-900: #854d0e;
+
+  /* ── Dark theme error ramp ─────────────────────────────────────── */
+  --error-50:  rgba(248, 113, 113, 0.03);
+  --error-100: rgba(248, 113, 113, 0.07);
+  --error-200: rgba(248, 113, 113, 0.12);
+  --error-300: rgba(248, 113, 113, 0.22);
+  --error-400: rgba(248, 113, 113, 0.38);
+  --error-500: #f87171;
+  --error-600: #ef4444;
+  --error-700: #dc2626;
+  --error-800: #b91c1c;
+  --error-900: #991b1b;
+
+  /* ── Dark theme blue ramp ──────────────────────────────────────── */
+  --blue-50:  rgba(96, 165, 250, 0.03);
+  --blue-100: rgba(96, 165, 250, 0.07);
+  --blue-200: rgba(96, 165, 250, 0.12);
+  --blue-300: rgba(96, 165, 250, 0.22);
+  --blue-400: rgba(96, 165, 250, 0.38);
+  --blue-500: #60a5fa;
+  --blue-600: #3b82f6;
+  --blue-700: #2563eb;
+  --blue-800: #1d4ed8;
+  --blue-900: #1e40af;
+
   --green:     #4ade80;
   --green-glow: rgba(74, 222, 128, 0.10);
   --red:       #f87171;
   --red-glow:  rgba(248, 113, 113, 0.10);
   --amber:     #fbbf24;
   --blue-glow: rgba(96, 165, 250, 0.08);
+
+  /* ── Dark theme white alpha fills ──────────────────────────────── */
+  --fill-02: rgba(255, 255, 255, 0.02);
+  --fill-03: rgba(255, 255, 255, 0.03);
+  --fill-04: rgba(255, 255, 255, 0.04);
+  --fill-05: rgba(255, 255, 255, 0.05);
+  --fill-06: rgba(255, 255, 255, 0.06);
+  --fill-08: rgba(255, 255, 255, 0.08);
+  --fill-10: rgba(255, 255, 255, 0.10);
+  --fill-12: rgba(255, 255, 255, 0.12);
+  --fill-15: rgba(255, 255, 255, 0.15);
 
   /* Smaller radius for brutalist aesthetic */
   --radius-sm: 4px;
@@ -415,23 +564,46 @@ input[type="date"] {
 }
 
 /* ── Toggle ──────────────────────────────────────────────────────── */
+/* Phase 6 (task 267.1): refined to match the 44×26 inline pattern used across
+ * SettingsScreen. Knob is 20×20 with shadow, accent fill when active. */
 .t-toggle {
   position: relative;
   flex-shrink: 0;
   width: 44px;
-  height: 24px;
-  border-radius: 12px;
-  transition: background 0.2s;
+  height: 26px;
+  border-radius: 13px;
+  border: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.2s ease;
+}
+
+.t-toggle[aria-checked="true"] {
+  background: rgba(167, 139, 250, 0.6);
 }
 
 .t-toggle-knob {
   position: absolute;
-  top: 4px;
-  width: 16px;
-  height: 16px;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: #000;
-  transition: transform 0.2s;
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-sm);
+  transition: left 0.2s ease, background 0.2s ease;
+}
+
+.t-toggle[aria-checked="true"] .t-toggle-knob {
+  left: 21px;
+  background: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-toggle,
+  .t-toggle-knob {
+    transition: none;
+  }
 }
 
 /* ── List rows ───────────────────────────────────────────────────── */
@@ -452,12 +624,6 @@ input[type="date"] {
 ::-webkit-scrollbar-thumb  { background: var(--dim); border-radius: 2px; }
 
 /* ── Animations ──────────────────────────────────────────────────── */
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(40px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.animate-slide-in-right { animation: slideInRight 0.18s ease-out forwards; }
-
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -478,7 +644,6 @@ input[type="date"] {
 /* Reduced motion — collapse utility slide/spin animations to simple fades.
  * fadeIn is opacity-only and calm enough to keep. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-slide-in-right,
   .animate-slide-up {
     animation: fadeIn 0.18s ease-out forwards;
   }
@@ -531,6 +696,7 @@ input[type="date"] {
   right: -12vmax;
   background: radial-gradient(circle at center, rgba(167, 139, 250, 0.24), transparent 65%);
   /* warm purple — reduced from 0.3 */
+  opacity: 0.18;
   animation: mesh-drift-2 40s ease-in-out infinite;
 }
 
@@ -540,7 +706,8 @@ input[type="date"] {
   top: 30vmax;
   left: 25vmax;
   background: radial-gradient(circle at center, rgba(67, 56, 202, 0.36), transparent 65%);
-  /* deep violet — reduced from 0.45 */
+  /* deep violet — reduced further; hero AmbientGlow is the ONE focal glow */
+  opacity: 0.18;
   animation: mesh-drift-3 48s ease-in-out infinite;
 }
 
@@ -1246,7 +1413,8 @@ input[type="date"] {
 /* ── Contextual tip card ─────────────────────────────────────────── */
 
 /* Gradient accent bar pinned to the card's left edge. Colored per tip type
- * via --tip-accent-from / --tip-accent-to, with a slow vertical shimmer. */
+ * via --tip-accent-from / --tip-accent-to, with a slow vertical shimmer
+ * and a subtle hue-rotation cycle (~24s). */
 .tip-accent-bar {
   position: absolute;
   top: 0;
@@ -1261,8 +1429,11 @@ input[type="date"] {
     var(--tip-accent-from, var(--blue))
   );
   background-size: 100% 200%;
-  animation: tip-accent-shimmer 6s ease-in-out infinite;
+  animation:
+    tip-accent-shimmer 6s ease-in-out infinite,
+    tip-accent-hue 24s linear infinite;
   pointer-events: none;
+  will-change: background-position, filter;
 }
 
 @keyframes tip-accent-shimmer {
@@ -1270,7 +1441,24 @@ input[type="date"] {
   50%      { background-position: center 100%; }
 }
 
-/* Emoji float — gentle Y-axis oscillation, ~3s period */
+@keyframes tip-accent-hue {
+  0%   { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+/* Frosted-noise texture overlay for tip cards — reuses the mesh grain pattern */
+.tip-noise-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  border-radius: inherit;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Emoji float — organic Y-axis oscillation + subtle scale pulse, ~3s period */
 .tip-emoji-float {
   display: inline-block;
   animation: tip-emoji-float 3s ease-in-out infinite;
@@ -1278,12 +1466,16 @@ input[type="date"] {
 }
 
 @keyframes tip-emoji-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
+  0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
+  25%      { transform: translateY(-2px) scale(1.03) rotate(0.5deg); }
+  50%      { transform: translateY(-4px) scale(1) rotate(0deg); }
+  75%      { transform: translateY(-2px) scale(0.97) rotate(-0.5deg); }
 }
 
-/* Ghost glass action pill */
+/* Ghost glass action pill with diagonal glass-shine */
 .tip-action-pill {
+  position: relative;
+  overflow: hidden;
   padding: 6px 14px;
   border-radius: 999px;
   color: var(--text);
@@ -1293,9 +1485,32 @@ input[type="date"] {
   transition: background 0.15s ease, border-color 0.15s ease;
   font-family: 'Inter', sans-serif;
 }
+.tip-action-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    transparent 35%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.08) 55%,
+    transparent 65%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  animation: tip-pill-shine 6s ease-in-out infinite;
+  pointer-events: none;
+  will-change: background-position;
+}
 .tip-action-pill:hover {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.2);
+}
+.tip-action-pill:hover::before {
+  animation-duration: 2s;
 }
 .tip-action-pill svg {
   transition: transform 0.15s ease;
@@ -1304,10 +1519,16 @@ input[type="date"] {
   transform: translateX(2px);
 }
 
-/* Reduced motion — drop the floating/shimmer, keep static surfaces */
+@keyframes tip-pill-shine {
+  0%, 100% { background-position: 200% center; }
+  50%      { background-position: -50% center; }
+}
+
+/* Reduced motion — drop all tip animations, keep static surfaces */
 @media (prefers-reduced-motion: reduce) {
   .tip-emoji-float,
-  .tip-accent-bar {
+  .tip-accent-bar,
+  .tip-action-pill::before {
     animation: none !important;
   }
 }
@@ -1635,11 +1856,11 @@ input[type="date"] {
   z-index: 0;
   border-radius: var(--radius-md);
   pointer-events: none;
-  background: rgba(129, 140, 248, 0.13);
-  border: 0.5px solid rgba(129, 140, 248, 0.30);
+  background: rgba(129, 140, 248, 0.10);
+  border: 0.5px solid rgba(129, 140, 248, 0.22);
   box-shadow:
-    inset 0 0 8px rgba(129, 140, 248, 0.15),
-    0 0 12px 2px rgba(129, 140, 248, 0.18);
+    inset 0 0 6px rgba(129, 140, 248, 0.10),
+    0 0 8px 1px rgba(129, 140, 248, 0.12);
   transition: box-shadow 0.2s ease, background 0.2s ease;
 }
 
@@ -1684,8 +1905,15 @@ input[type="date"] {
   touch-action: manipulation;
   /* Dock morph transition (245.2) — GPU composited scale */
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  /* Subtle idle breathing glow (246.1) */
-  animation: fab-breathe 3.5s ease-in-out infinite;
+  /* Phase 6 (260.1): Remove idle breathing — hero AmbientGlow is the single
+   * focal glow on the home screen. Breathing only activates on hover. */
+}
+
+/* Hover-only breathing — desktop users get the subtle pulse on hover */
+@media (hover: hover) {
+  .app-dock-fab:hover {
+    animation: fab-breathe 3.5s ease-in-out infinite;
+  }
 }
 
 /* Breathing keyframe — pulses the outer glow ring opacity */
@@ -2054,6 +2282,7 @@ input[type="date"] {
 .celebration-card__dismiss {
   margin-top: 8px;
   padding: 10px 28px;
+  border: none;
   border-radius: 999px;
   font-family: 'Inter', sans-serif;
   font-size: 15px;
@@ -2061,7 +2290,9 @@ input[type="date"] {
   color: #1a1626;
   background: linear-gradient(135deg, #fcd34d 0%, #fb923c 100%);
   box-shadow: 0 6px 20px rgba(251, 146, 60, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
 }
 
 .celebration-card__dismiss:active {
@@ -2071,6 +2302,42 @@ input[type="date"] {
 .celebration-card__dismiss:focus-visible {
   outline: 2px solid #fcd34d;
   outline-offset: 3px;
+}
+
+/* Dismiss button wrapper: positions the timer ring behind the button. */
+.celebration-dismiss-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* Timer ring: depleting circular progress overlaid behind the button. */
+.celebration-timer-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+@keyframes celebration-timer-deplete {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 125.66; /* 2 * PI * 20 */ }
+}
+
+/* Milestone starburst wrapper: centers the SVG + smaller emoji beneath. */
+.celebration-starburst-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.celebration-emoji--milestone {
+  font-size: 32px;
+  line-height: 1;
 }
 
 /* Subtle screen shake for milestone celebrations (2px, 150ms). */
@@ -2085,9 +2352,10 @@ input[type="date"] {
   75%      { transform: translate3d(-1px, 2px, 0); }
 }
 
-/* Reduced motion — strip the flash, confetti, trails, emoji motion and shake.
- * The overlay degrades to a calm centered card with a gentle fade (handled in
- * the component by not rendering the effects); these guards are a safety net. */
+/* Reduced motion — strip the flash, confetti, trails, emoji motion, shake,
+ * timer ring, and starburst. The overlay degrades to a calm centered card with
+ * a gentle fade (handled in the component by not rendering the effects); these
+ * guards are a safety net. */
 @media (prefers-reduced-motion: reduce) {
   .celebration-flash,
   .celebration-trail,
@@ -2099,6 +2367,18 @@ input[type="date"] {
 
   .celebration-emoji--animated {
     transform: none !important;
+  }
+
+  .celebration-timer-ring {
+    display: none;
+  }
+
+  .celebration-starburst-wrap svg {
+    display: none;
+  }
+
+  @keyframes celebration-timer-deplete {
+    from, to { stroke-dashoffset: 0; }
   }
 }
 

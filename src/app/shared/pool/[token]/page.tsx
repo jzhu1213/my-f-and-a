@@ -14,18 +14,14 @@
  * shared goal page). In production this would fetch from Supabase with RLS.
  *
  * Task 201.1 — Invite-a-roommate loop (pairs with task 170.1)
+ * Phase 6, Task 269.1 — Premium design system styling
  */
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
-import {
-  CONTENT_MAX_WIDTH,
-  HORIZONTAL_PADDING,
-  borderRadius,
-  progressTrack,
-} from "@/styles/shared"
+import { Icon } from "@/components/ui/Icon"
+import { progressTrack } from "@/styles/shared"
 import {
   getPoolByShareToken,
   addMember,
@@ -36,43 +32,29 @@ import {
   type HouseholdPoolSummary,
   type HouseholdPoolExpense,
 } from "@/lib/householdPool"
-
-// ============================================================================
-// Styles
-// ============================================================================
-
-const pageContainer: React.CSSProperties = {
-  maxWidth: CONTENT_MAX_WIDTH,
-  margin: "0 auto",
-  padding: `60px ${HORIZONTAL_PADDING}px 40px`,
-  fontFamily: FONT_FAMILY,
-  minHeight: "100vh",
-  background: "var(--bg)",
-}
-
-const inputStyle: React.CSSProperties = {
-  flex: 1,
-  padding: "10px 12px",
-  fontSize: 14,
-  fontFamily: FONT_FAMILY,
-  color: "var(--text)",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid var(--border)",
-  borderRadius: 8,
-  outline: "none",
-}
-
-const actionButton = (enabled: boolean): React.CSSProperties => ({
-  padding: "10px 18px",
-  fontSize: 14,
-  fontWeight: 600,
-  fontFamily: FONT_FAMILY,
-  color: enabled ? "#fff" : "var(--muted)",
-  background: enabled ? "var(--accent)" : "rgba(255,255,255,0.04)",
-  border: "none",
-  borderRadius: 8,
-  cursor: enabled ? "pointer" : "default",
-})
+import {
+  sharedPageContainer,
+  headerBadge,
+  headerBadgeRow,
+  headerSubtitle,
+  notFoundContainer,
+  notFoundIconWrapper,
+  notFoundTitle,
+  notFoundDescription,
+  loadingText,
+  sectionLabel,
+  footerAttribution,
+  sharedInput,
+  sharedActionButton,
+  colorRamp,
+  fills,
+  shadows,
+  typography,
+  TABULAR_NUMS,
+  FONT_FAMILY,
+  spacing,
+  borderRadius,
+} from "../../sharedPageStyles"
 
 // ============================================================================
 // Component
@@ -145,10 +127,8 @@ export default function SharedPoolViewPage() {
   // Loading
   if (loading) {
     return (
-      <div style={pageContainer}>
-        <p style={{ color: "var(--sub)", fontSize: 14, textAlign: "center", marginTop: 80 }}>
-          Loading…
-        </p>
+      <div style={sharedPageContainer}>
+        <p style={loadingText}>Loading…</p>
       </div>
     )
   }
@@ -156,13 +136,15 @@ export default function SharedPoolViewPage() {
   // Not found / revoked
   if (notFound || !pool) {
     return (
-      <div style={pageContainer}>
-        <div style={{ textAlign: "center", marginTop: 80 }}>
-          <p style={{ fontSize: 40, marginBottom: 16 }} aria-hidden="true">🔗</p>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", marginBottom: 8, fontFamily: FONT_FAMILY }}>
+      <div style={sharedPageContainer}>
+        <div style={notFoundContainer}>
+          <div style={notFoundIconWrapper}>
+            <Icon name="shared:link-expired" size={28} />
+          </div>
+          <h1 style={notFoundTitle}>
             This link is no longer active
           </h1>
-          <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.5, maxWidth: 300, margin: "0 auto", fontFamily: FONT_FAMILY }}>
+          <p style={notFoundDescription}>
             The person who shared this pool may have removed it, or the link may have changed.
           </p>
         </div>
@@ -175,53 +157,39 @@ export default function SharedPoolViewPage() {
     : 0
 
   return (
-    <div style={pageContainer}>
+    <div style={sharedPageContainer}>
       {/* Badge */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
-        <span
-          style={{
-            padding: "4px 10px",
-            borderRadius: borderRadius.full,
-            background: "rgba(129, 140, 248, 0.1)",
-            border: "1px solid rgba(129, 140, 248, 0.2)",
-            fontSize: 11,
-            fontWeight: 600,
-            color: "rgba(129, 140, 248, 1)",
-            letterSpacing: "0.04em",
-            fontFamily: FONT_FAMILY,
-          }}
-        >
-          SHARED POOL
-        </span>
-        <span style={{ fontSize: 13, color: "var(--muted)", fontFamily: FONT_FAMILY }}>
+      <div style={headerBadgeRow}>
+        <span style={headerBadge}>SHARED POOL</span>
+        <span style={headerSubtitle}>
           · {pool.members.length + 1} {pool.members.length === 0 ? "person" : "people"}
         </span>
       </div>
 
       {/* Pool header */}
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
+      <div style={{ textAlign: "center", marginBottom: spacing.md }}>
         <span style={{ fontSize: 40 }} aria-hidden="true">{pool.emoji}</span>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginTop: 8, fontFamily: FONT_FAMILY }}>
+        <h1 style={{ ...typography.title, color: "var(--text)", marginTop: 8 }}>
           {pool.name}
         </h1>
-        <p style={{ fontSize: 13, color: "var(--sub)", marginTop: 4 }}>
+        <p style={{ ...typography.caption, color: "var(--sub)", marginTop: 4, ...TABULAR_NUMS }}>
           ${pool.monthlyLimit}/month shared budget
         </p>
       </div>
 
       {/* Summary */}
       {summary && (
-        <GlassCard elevation="low" style={{ padding: 16, marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+        <GlassCard elevation="medium" style={{ padding: spacing.md, marginBottom: spacing.md }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: spacing.sm }}>
             <div>
-              <p style={{ fontSize: 11, color: "var(--sub)" }}>Spent this month</p>
-              <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+              <p style={{ ...typography.caption, color: "var(--sub)" }}>Spent this month</p>
+              <p style={{ ...typography.title, fontSize: typography.headline.fontSize, color: "var(--text)", ...TABULAR_NUMS }}>
                 ${summary.spentThisMonth.toFixed(2)}
               </p>
             </div>
             <div style={{ textAlign: "right" }}>
-              <p style={{ fontSize: 11, color: "var(--sub)" }}>Remaining</p>
-              <p style={{ fontSize: 22, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
+              <p style={{ ...typography.caption, color: "var(--sub)" }}>Remaining</p>
+              <p style={{ ...typography.title, fontSize: typography.headline.fontSize, color: colorRamp.success[500], ...TABULAR_NUMS }}>
                 ${summary.remainingThisMonth.toFixed(2)}
               </p>
             </div>
@@ -232,13 +200,13 @@ export default function SharedPoolViewPage() {
                 width: `${pct * 100}%`,
                 height: "100%",
                 borderRadius: 2,
-                background: pct >= 0.9 ? "var(--warning)" : "var(--accent)",
+                background: pct >= 0.9 ? colorRamp.warning[500] : colorRamp.accent[500],
                 transition: "width 0.3s ease",
               }}
             />
           </div>
           {summary.expenseCount > 0 && (
-            <p style={{ fontSize: 12, color: "var(--sub)", marginTop: 8 }}>
+            <p style={{ ...typography.caption, color: "var(--sub)", marginTop: 8, ...TABULAR_NUMS }}>
               {summary.expenseCount} expense{summary.expenseCount !== 1 ? "s" : ""} · ~${summary.perPersonShare.toFixed(2)}/person
             </p>
           )}
@@ -247,11 +215,11 @@ export default function SharedPoolViewPage() {
 
       {/* Join or log */}
       {!myName ? (
-        <GlassCard elevation="low" style={{ padding: 20, marginBottom: 16 }}>
-          <p style={{ fontSize: 15, fontWeight: 500, color: "var(--text)", marginBottom: 6 }}>
+        <GlassCard elevation="low" style={{ padding: 20, marginBottom: spacing.md }}>
+          <p style={{ ...typography.body, fontWeight: 500, color: "var(--text)", marginBottom: 6 }}>
             Join this pool
           </p>
-          <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, marginBottom: 14 }}>
+          <p style={{ ...typography.caption, color: "var(--sub)", lineHeight: 1.5, marginBottom: 14 }}>
             Add your name so shared expenses show who logged them. This won&apos;t touch your personal budget.
           </p>
           <div style={{ display: "flex", gap: 8 }}>
@@ -261,26 +229,26 @@ export default function SharedPoolViewPage() {
               onChange={(e) => setJoinName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleJoin() }}
               placeholder="Your name"
-              style={inputStyle}
+              style={sharedInput}
               aria-label="Your name"
               maxLength={40}
             />
-            <button onClick={handleJoin} disabled={!joinName.trim()} style={actionButton(!!joinName.trim())}>
+            <button onClick={handleJoin} disabled={!joinName.trim()} style={sharedActionButton(!!joinName.trim())}>
               Join
             </button>
           </div>
         </GlassCard>
       ) : (
-        <GlassCard elevation="low" style={{ padding: 20, marginBottom: 16 }}>
-          <p style={{ fontSize: 15, fontWeight: 500, color: "var(--text)", marginBottom: 6 }}>
+        <GlassCard elevation="low" style={{ padding: 20, marginBottom: spacing.md }}>
+          <p style={{ ...typography.body, fontWeight: 500, color: "var(--text)", marginBottom: 6 }}>
             Log a shared expense
           </p>
-          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+          <p style={{ ...typography.caption, color: "var(--sub)", marginBottom: 14 }}>
             You&apos;re in as {myName}. Add something the group spent together.
           </p>
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
             <div style={{ position: "relative", flex: 1 }}>
-              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "var(--muted)" }}>
+              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", ...typography.body, color: "var(--muted)" }}>
                 $
               </span>
               <input
@@ -290,11 +258,11 @@ export default function SharedPoolViewPage() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0"
-                style={{ ...inputStyle, paddingLeft: 24, fontVariantNumeric: "tabular-nums" }}
+                style={{ ...sharedInput, paddingLeft: 24, ...TABULAR_NUMS }}
                 aria-label="Expense amount"
               />
             </div>
-            <button onClick={handleLog} disabled={!(parseFloat(amount) > 0)} style={actionButton(parseFloat(amount) > 0)}>
+            <button onClick={handleLog} disabled={!(parseFloat(amount) > 0)} style={sharedActionButton(parseFloat(amount) > 0)}>
               {logged ? "Logged ✓" : "Log"}
             </button>
           </div>
@@ -303,7 +271,7 @@ export default function SharedPoolViewPage() {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note (optional) — e.g. Weekly shop"
-            style={{ ...inputStyle, width: "100%" }}
+            style={{ ...sharedInput, width: "100%" }}
             aria-label="Expense note"
             maxLength={80}
           />
@@ -313,19 +281,17 @@ export default function SharedPoolViewPage() {
       {/* Recent shared expenses */}
       {expenses.length > 0 && (
         <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 10, letterSpacing: "0.02em", fontFamily: FONT_FAMILY }}>
-            Recent shared expenses
-          </p>
+          <p style={sectionLabel}>Recent shared expenses</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {expenses.slice(0, 15).map((exp) => (
               <GlassCard key={exp.id} elevation="low" style={{ padding: "12px 14px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <p style={{ fontSize: 14, color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                    <p style={{ ...typography.body, color: "var(--text)", fontWeight: 500, ...TABULAR_NUMS }}>
                       ${exp.amount.toFixed(2)}
                       {exp.note && <span style={{ color: "var(--sub)", fontWeight: 400 }}> · {exp.note}</span>}
                     </p>
-                    <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                    <p style={{ ...typography.caption, color: "var(--muted)", marginTop: 2 }}>
                       {exp.loggedBy} · {exp.date}
                     </p>
                   </div>
@@ -337,7 +303,7 @@ export default function SharedPoolViewPage() {
       )}
 
       {/* Footer */}
-      <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 24, opacity: 0.6, fontFamily: FONT_FAMILY }}>
+      <p style={footerAttribution}>
         Shared via Folio · Only shared pool costs are visible here
       </p>
     </div>

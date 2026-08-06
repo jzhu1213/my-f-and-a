@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import type { Transaction, TransactionCategory } from "@/types"
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
+import { fills, colorRamp } from "@/styles/shared"
 import { TagInput } from "./TagInput"
 import { getTagsForTransaction } from "@/lib/tagUtils"
 import { ReceiptAttachment } from "./ReceiptAttachment"
@@ -149,9 +150,9 @@ export function InlineTransactionEditor({
           aria-label="Quick edit transaction"
           style={{
             padding: "12px 16px",
-            background: "rgba(129, 140, 248, 0.04)",
-            borderTop: "1px solid rgba(129, 140, 248, 0.15)",
-            borderBottom: "1px solid rgba(129, 140, 248, 0.15)",
+            background: colorRamp.accent[50],
+            borderTop: `1px solid ${colorRamp.accent[200]}`,
+            borderBottom: `1px solid ${colorRamp.accent[200]}`,
           }}
         >
           {/* Amount row */}
@@ -229,10 +230,10 @@ export function InlineTransactionEditor({
                       justifyContent: "center",
                       borderRadius: 12,
                       border: selected
-                        ? "1.5px solid rgba(129, 140, 248, 0.5)"
-                        : "1px solid rgba(255, 255, 255, 0.08)",
+                        ? `1.5px solid ${colorRamp.accent[400]}`
+                        : `1px solid ${fills[8]}`,
                       background: selected
-                        ? "rgba(129, 140, 248, 0.12)"
+                        ? colorRamp.accent[200]
                         : "transparent",
                       cursor: "pointer",
                       padding: 0,

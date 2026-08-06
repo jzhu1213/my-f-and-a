@@ -12,6 +12,8 @@ import {
   sectionHeader,
   borderRadius,
   progressTrack,
+  fills,
+  colorRamp,
 } from "@/styles/shared"
 import {
   createPool,
@@ -371,7 +373,7 @@ function CreatePoolView({ onCreated }: { onCreated: () => void }) {
                 fontSize: 20,
                 borderRadius: borderRadius.sm,
                 border: emoji === e ? "2px solid var(--accent)" : "1px solid var(--border)",
-                background: emoji === e ? "rgba(129, 140, 248, 0.15)" : "transparent",
+                background: emoji === e ? colorRamp.accent[200] : "transparent",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -650,7 +652,7 @@ function PoolDetailView({ poolId, onDeleted }: { poolId: string; onDeleted: () =
             ...secondaryButton,
             width: "100%",
             color: "var(--error)",
-            borderColor: "rgba(248, 113, 113, 0.3)",
+            borderColor: colorRamp.error[300],
           }}
         >
           Delete Pool
@@ -724,7 +726,7 @@ function AddExpenseForm({
                     fontSize: 12,
                     borderRadius: 99,
                     border: category === cat ? "1.5px solid var(--accent)" : "1px solid var(--border)",
-                    background: category === cat ? "rgba(129, 140, 248, 0.15)" : "transparent",
+                    background: category === cat ? colorRamp.accent[200] : "transparent",
                     color: category === cat ? "var(--accent)" : "var(--sub)",
                     fontFamily: FONT_FAMILY,
                     cursor: "pointer",
@@ -763,7 +765,7 @@ function AddExpenseForm({
                     fontSize: 12,
                     borderRadius: 99,
                     border: loggedBy === name ? "1.5px solid var(--accent)" : "1px solid var(--border)",
-                    background: loggedBy === name ? "rgba(129, 140, 248, 0.15)" : "transparent",
+                    background: loggedBy === name ? colorRamp.accent[200] : "transparent",
                     color: loggedBy === name ? "var(--accent)" : "var(--sub)",
                     fontFamily: FONT_FAMILY,
                     cursor: "pointer",

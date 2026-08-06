@@ -17,6 +17,7 @@ import type { Goal, IncomeAllocation, AllocationPreset } from '@/types'
 import type { SavingsAccount } from '@/types/folio'
 import { getAccountTypeMetadata } from '@/lib/savingsAccountUtils'
 import { FONT_FAMILY } from '@/styles/typography'
+import { colorRamp } from '@/styles/shared'
 
 // ── Default presets ──────────────────────────────────────────────────────────
 
@@ -278,8 +279,8 @@ export function PaycheckSheet({
               {showTaxSuggestion && taxInfo && (
                 <div
                   style={{
-                    background: 'rgba(251, 191, 36, 0.1)',
-                    border: '1px solid rgba(251, 191, 36, 0.25)',
+                    background: colorRamp.warning[100],
+                    border: `1px solid ${colorRamp.warning[300]}`,
                     borderRadius: 'var(--radius-md)',
                     padding: '14px 16px',
                     marginBottom: 16,
@@ -346,8 +347,8 @@ export function PaycheckSheet({
               {showAutoContributeBanner && (
                 <div
                   style={{
-                    background: 'rgba(74, 222, 128, 0.08)',
-                    border: '1px solid rgba(74, 222, 128, 0.2)',
+                    background: colorRamp.success[100],
+                    border: `1px solid ${colorRamp.success[200]}`,
                     borderRadius: 'var(--radius-md)',
                     padding: '14px 16px',
                     marginBottom: 16,

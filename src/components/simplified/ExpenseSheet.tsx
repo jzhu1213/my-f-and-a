@@ -24,7 +24,7 @@ import { getCategoryEmoji } from '@/lib/vocabulary'
 import { Icon } from '@/components/ui/Icon'
 import { CUSTOM_CATEGORY_ICON_CHOICES, type IconName } from '@/lib/icons'
 import { FONT_FAMILY, spacing, pxToRem } from '@/styles/typography'
-import { borderRadius, roundButton, shadows } from '@/styles/shared'
+import { borderRadius, roundButton, shadows, fills, colorRamp } from '@/styles/shared'
 import { TagInput } from './TagInput'
 import { getRecentTags } from '@/lib/tagUtils'
 import type { FundingSource } from '@/lib/fundingSources'
@@ -676,8 +676,8 @@ export function ExpenseSheet({
                             alignItems: 'center',
                             gap: 2,
                             padding: '8px 14px',
-                            background: 'rgba(255, 255, 255, 0.06)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            background: fills[6],
+                            border: `1px solid ${fills[10]}`,
                             borderRadius: borderRadius.full,
                             cursor: 'pointer',
                           }}
@@ -701,7 +701,7 @@ export function ExpenseSheet({
                       style={{
                         padding: '8px 14px',
                         background: 'transparent',
-                        border: '1px dashed rgba(255, 255, 255, 0.15)',
+                        border: `1px dashed ${fills[15]}`,
                         borderRadius: borderRadius.full,
                         cursor: 'pointer',
                         fontSize: 13,
@@ -817,8 +817,8 @@ export function ExpenseSheet({
                         alignItems: 'center',
                         gap: 6,
                         padding: '6px 12px',
-                        background: 'rgba(255, 255, 255, 0.04)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        background: fills[4],
+                        border: `1px solid ${fills[10]}`,
                         borderRadius: borderRadius.full,
                         cursor: 'pointer',
                         fontSize: 13,
@@ -851,8 +851,8 @@ export function ExpenseSheet({
                           style={{
                             marginTop: 10,
                             padding: 12,
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            background: fills[4],
+                            border: `1px solid ${fills[10]}`,
                             borderRadius: 'var(--radius-md)',
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
@@ -990,13 +990,13 @@ export function ExpenseSheet({
                         ? {
                             backdropFilter: 'blur(8px)',
                             WebkitBackdropFilter: 'blur(8px)',
-                            background: 'rgba(129, 140, 248, 0.08)',
-                            border: '1.5px solid rgba(129, 140, 248, 0.4)',
+                            background: colorRamp.accent[100],
+                            border: `1.5px solid ${colorRamp.accent[400]}`,
                             boxShadow: shadows.glowAccent,
                           }
                         : {
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            background: fills[3],
+                            border: `1px solid ${fills[6]}`,
                           }),
                     }}
                   >
@@ -1061,13 +1061,13 @@ export function ExpenseSheet({
                           ? {
                               backdropFilter: 'blur(8px)',
                               WebkitBackdropFilter: 'blur(8px)',
-                              background: 'rgba(129, 140, 248, 0.08)',
-                              border: '1.5px solid rgba(129, 140, 248, 0.4)',
+                              background: colorRamp.accent[100],
+                              border: `1.5px solid ${colorRamp.accent[400]}`,
                               boxShadow: shadows.glowAccent,
                             }
                           : {
-                              background: 'rgba(255, 255, 255, 0.03)',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              background: fills[3],
+                              border: `1px solid ${fills[6]}`,
                             }),
                       }}
                     >
@@ -1419,7 +1419,7 @@ export function ExpenseSheet({
                           fontSize: 11,
                           fontFamily: FONT_FAMILY,
                           fontWeight: 400,
-                          color: 'rgba(74, 222, 128, 0.8)',
+                          color: colorRamp.success[400],
                         }}
                       >
                         ✓ remembered
@@ -2304,11 +2304,11 @@ export function ExpenseSheet({
                         width: '100%',
                         padding: '12px 14px',
                         background: trackAsIOU
-                          ? 'rgba(251, 191, 36, 0.06)'
+                          ? colorRamp.warning[100]
                           : 'transparent',
                         border: trackAsIOU
-                          ? '1px solid rgba(251, 191, 36, 0.3)'
-                          : '1px solid rgba(255, 255, 255, 0.08)',
+                          ? `1px solid ${colorRamp.warning[300]}`
+                          : `1px solid ${fills[8]}`,
                         borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
@@ -2322,7 +2322,7 @@ export function ExpenseSheet({
                           borderRadius: 10,
                           background: trackAsIOU
                             ? 'rgba(251, 191, 36, 0.8)'
-                            : 'rgba(255, 255, 255, 0.12)',
+                            : fills[12],
                           position: 'relative',
                           flexShrink: 0,
                           transition: 'background 0.15s ease',

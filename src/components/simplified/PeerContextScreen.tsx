@@ -19,14 +19,12 @@ import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  emptyStateContainer,
-  emptyStateTitle,
-  emptyStateSubtitle,
 } from "@/styles/shared"
 import { computePeerContext } from "@/lib/peerContextUtils"
 import type { Transaction } from "@/types"
@@ -204,15 +202,12 @@ export function PeerContextScreen({ transactions, monthKey, onBack }: PeerContex
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
           How you compare
         </h2>
-        <GlassCard elevation="low" style={{ padding: "28px 22px", marginTop: 12 }}>
-          <div style={emptyStateContainer}>
-            <span style={{ fontSize: 34 }} aria-hidden="true">🌱</span>
-            <p style={emptyStateTitle}>Not much to compare yet</p>
-            <p style={{ ...emptyStateSubtitle, maxWidth: 320 }}>
-              Log a few more expenses this month and we&apos;ll show some warm,
-              anonymized context — just for reassurance, never a scoreboard.
-            </p>
-          </div>
+        <GlassCard elevation="low" style={{ padding: "4px 0", marginTop: 12 }}>
+          <EmptyState
+            illustration="review"
+            title="Not much to compare yet"
+            subtitle="Log a few more expenses this month and we'll show some warm, anonymized context — just for reassurance, never a scoreboard."
+          />
         </GlassCard>
       </div>
     )

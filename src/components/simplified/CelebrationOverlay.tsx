@@ -1,38 +1,29 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { GlassCard } from "@/components/ui"
-import { springs, timings, useReducedMotion } from "@/lib/animations"
+import {
+  springs,
+  timings,
+  useReducedMotion,
+  celebrationMilestoneSpring,
+  celebrationEverydaySpring,
+  CELEBRATION_STAGGER_MS,
+} from "@/lib/animations"
 import { triggerHaptic } from "@/lib/haptics"
 import type { CelebrationEvent, CelebrationType } from "@/types/folio"
 
 /**
  * CelebrationOverlay — the immersive, full-screen celebration experience.
  *
- * When a {@link CelebrationEvent} is supplied it presents a layered moment of
- * positive reinforcement:
- *
- * - A brief full-screen warm gradient flash that glows then fades.
- * - Layered confetti rendered on two canvases: sharp, larger foreground pieces
- *   and smaller, depth-of-field-blurred background pieces (canvas-confetti is
- *   dynamically imported so it stays out of the initial bundle).
- * - CSS-animated trail particles that drift down behind the confetti.
- * - A centered, glass-treated celebration card that springs in with a playful
- *   bounce, showing an animated emoji, a title and an encouraging message.
- * - A subtle 2px / 150ms screen shake for the bigger milestone celebrations.
- *
- * This component owns only the *presentation* of a celebration. The Celebration
- * Engine (task 10) decides *when* to celebrate and simply passes the resolved
- * `event` in (and `null` to hide it), so this overlay can be driven declaratively.
- *
- * Accessibility & motion:
- * - Respects `prefers-reduced-motion`: it drops the flash, confetti, trails and
- *   screen shake entirely and shows a simple centered card with a gentle fade.
- * - All motion uses GPU-composited transform/opacity to stay at 60fps.
- * - The card is an `alertdialog`; it can be dismissed with the button, a click
- *   on the backdrop, or the Escape key, and auto-dismisses after the event's
- *   `duration`.
+ * Elevated in Task 257.1 with:
+ * - Refined confetti timing with multi-burst layering for milestones
+ * - Animated SVG star-burst for milestone celebrations (framer-motion powered)
+ * - Progress timer ring on dismiss button showing auto-dismiss countdown
+ * - Staggered card element entrance (icon → title → message → button)
+ * - Context-aware dismiss copy ("Nice!" / "Amazing!" / "Let's go!")
+ * - Full reduced-motion parity (calm static card, opacity-only fade)
  *
  * Validates: Requirements 6.7, 13.5, 15.4
  */
@@ -44,13 +35,27 @@ export interface CelebrationOverlayProps {
 }
 
 /**
- * The larger, milestone-grade celebrations that earn a subtle screen shake.
- * Everyday wins (a single under-budget day, goal progress, first log) stay calm.
+ * Expanded milestone set that earns premium treatment: screen shake, dramatic
+ * spring, SVG star-burst animation, multi-burst confetti, and "Amazing!" copy.
  */
 const MILESTONE_TYPES: ReadonlySet<CelebrationType> = new Set<CelebrationType>([
   "streak_7_days",
+  "streak_14_days",
+  "streak_30_days",
   "goal_complete",
   "weekly_win",
+  "first_month",
+  "first_goal_met",
+  "first_no_spend_week",
+])
+
+/** Streak-specific types that get "Let's go!" dismiss copy. */
+const STREAK_TYPES: ReadonlySet<CelebrationType> = new Set<CelebrationType>([
+  "streak_7_days",
+  "streak_14_days",
+  "streak_30_days",
+  "logging_streak",
+  "no_spend_streak",
 ])
 
 /** Warm, friendly confetti palette drawn from the theme's semantic colors. */
@@ -93,6 +98,152 @@ function buildTrailParticles(): TrailParticle[] {
   })
 }
 
+/**
+ * Returns context-aware dismiss button copy:
+ * - "Let's go!" for streaks (momentum)
+ * - "Amazing!" for milestones (celebration)
+ * - "Nice!" for everyday wins (warm)
+ */
+function getDismissCopy(type: CelebrationType): string {
+  if (STREAK_TYPES.has(type)) return "Let's go!"
+  if (MILESTONE_TYPES.has(type)) return "Amazing!"
+  return "Nice!"
+}
+
+// ---------------------------------------------------------------------------
+// SVG Star-burst animation (replaces Lottie — pure framer-motion)
+// ---------------------------------------------------------------------------
+
+/** A brief animated sparkle/star-burst rendered via motion.svg for milestones. */
+function MilestoneStarburst() {
+  const rays = 8
+  const size = 64
+  const center = size / 2
+
+  return (
+    <motion.svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-hidden="true"
+      style={{ display: "block" }}
+      initial={{ opacity: 0, scale: 0.3, rotate: -30 }}
+      animate={{ opacity: 1, scale: 1, rotate: 0 }}
+      exit={{ opacity: 0, scale: 0.6 }}
+      transition={{ type: "spring", stiffness: 350, damping: 18 }}
+    >
+      {Array.from({ length: rays }, (_, i) => {
+        const angle = (i / rays) * 360
+        const isLong = i % 2 === 0
+        const length = isLong ? 18 : 12
+        const rad = (angle * Math.PI) / 180
+        const x1 = center + Math.cos(rad) * 6
+        const y1 = center + Math.sin(rad) * 6
+        const x2 = center + Math.cos(rad) * length
+        const y2 = center + Math.sin(rad) * length
+        return (
+          <motion.line
+            key={i}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke={isLong ? "#fcd34d" : "#fb923c"}
+            strokeWidth={isLong ? 2.5 : 2}
+            strokeLinecap="round"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 1 }}
+            transition={{
+              delay: i * 0.04,
+              duration: 0.35,
+              ease: "easeOut",
+            }}
+          />
+        )
+      })}
+      {/* Central sparkle dot */}
+      <motion.circle
+        cx={center}
+        cy={center}
+        r={4}
+        fill="#fcd34d"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: [0, 1.4, 1], opacity: [0, 1, 0.85] }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      />
+      {/* Outer ring pulse */}
+      <motion.circle
+        cx={center}
+        cy={center}
+        r={24}
+        fill="none"
+        stroke="#818cf8"
+        strokeWidth={1.5}
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: [0.5, 1.1, 1], opacity: [0, 0.7, 0] }}
+        transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+      />
+    </motion.svg>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Progress Timer Ring (SVG circle that depletes over auto-dismiss duration)
+// ---------------------------------------------------------------------------
+
+interface TimerRingProps {
+  durationMs: number
+}
+
+/** A thin circular progress indicator that depletes over the dismiss countdown. */
+function TimerRing({ durationMs }: TimerRingProps) {
+  const radius = 20
+  const strokeWidth = 2.5
+  const circumference = 2 * Math.PI * radius
+  const size = (radius + strokeWidth) * 2
+
+  return (
+    <svg
+      className="celebration-timer-ring"
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-hidden="true"
+    >
+      {/* Background track */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(255, 255, 255, 0.15)"
+        strokeWidth={strokeWidth}
+      />
+      {/* Depleting progress arc */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(252, 211, 77, 0.7)"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={0}
+        style={{
+          transformOrigin: "center",
+          transform: "rotate(-90deg)",
+          animation: `celebration-timer-deplete ${durationMs}ms linear forwards`,
+        }}
+      />
+    </svg>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------------------------
+
 export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
@@ -100,10 +251,11 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
   const bgCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const dismissButtonRef = useRef<HTMLButtonElement | null>(null)
 
+  // Track whether the Lottie-replacement starburst has rendered, for fallback
+  const [starburstReady, setStarburstReady] = useState(false)
+
   const isMilestone = event ? MILESTONE_TYPES.has(event.type) : false
   const animation = event?.animation ?? "confetti"
-  // Confetti/trails only for expressive animation types, and never under
-  // reduced motion.
   const showParticles =
     !prefersReducedMotion &&
     event != null &&
@@ -111,25 +263,40 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
     animation !== "pulse"
   const showShake = !prefersReducedMotion && isMilestone
   const showFlash = !prefersReducedMotion && event != null
+  // Milestone starburst replaces emoji for premium celebrations
+  const showStarburst = !prefersReducedMotion && isMilestone
 
   const trailParticles = useMemo(
     () => (showParticles ? buildTrailParticles() : []),
     [showParticles],
   )
 
+  const duration = event
+    ? event.duration > 0
+      ? event.duration
+      : DEFAULT_DURATION_MS
+    : DEFAULT_DURATION_MS
+
   const handleDismiss = useCallback(() => {
     onDismiss()
   }, [onDismiss])
 
-  // Fire the layered confetti on the two canvases once the event appears.
-  // canvas-confetti is imported dynamically so it is code-split out of the
-  // initial bundle (Requirement 13.6 / performance guidance).
+  // Reset starburst state when event changes
+  useEffect(() => {
+    setStarburstReady(false)
+    if (showStarburst) {
+      // Small delay so the card entrance animation leads, then starburst pops
+      const t = setTimeout(() => setStarburstReady(true), 120)
+      return () => clearTimeout(t)
+    }
+  }, [showStarburst, event?.id])
+
+  // Fire the layered confetti — refined timing for milestones with multi-burst
   useEffect(() => {
     if (!showParticles) return
 
     let cancelled = false
     const timers: ReturnType<typeof setTimeout>[] = []
-    // Instances we create so we can reset them on cleanup.
     let cleanupInstances: Array<{ reset: () => void }> = []
 
     void (async () => {
@@ -145,28 +312,26 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
         const background = confetti.create(bgCanvas, { resize: true })
         cleanupInstances = [foreground, background]
 
-        const fireBurst = (originX: number) => {
-          // Smaller, softer pieces on the blurred background canvas.
+        const fireBurst = (originX: number, scale = 1) => {
           background({
-            particleCount: 34,
-            spread: 100,
-            startVelocity: 30,
-            scalar: 0.6,
-            gravity: 0.9,
-            ticks: 220,
-            origin: { x: originX, y: 0.62 },
+            particleCount: Math.round(38 * scale),
+            spread: 110,
+            startVelocity: 28,
+            scalar: 0.55,
+            gravity: 0.85,
+            ticks: 250,
+            origin: { x: originX, y: 0.6 },
             colors: [...CONFETTI_COLORS],
             disableForReducedMotion: true,
           })
-          // Larger, sharper pieces on the crisp foreground canvas.
           foreground({
-            particleCount: 55,
-            spread: 72,
-            startVelocity: 46,
-            scalar: 1.3,
-            gravity: 1,
-            ticks: 220,
-            origin: { x: originX, y: 0.66 },
+            particleCount: Math.round(60 * scale),
+            spread: 78,
+            startVelocity: 48,
+            scalar: 1.2,
+            gravity: 1.05,
+            ticks: 250,
+            origin: { x: originX, y: 0.64 },
             colors: [...CONFETTI_COLORS],
             disableForReducedMotion: true,
           })
@@ -175,14 +340,30 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
         // Center pop immediately.
         fireBurst(0.5)
 
-        // Milestones get celebratory side cannons for extra depth.
         if (isMilestone) {
-          timers.push(setTimeout(() => !cancelled && fireBurst(0.18), 160))
-          timers.push(setTimeout(() => !cancelled && fireBurst(0.82), 300))
+          // Milestones: layered multi-burst sequence for dramatic rhythm
+          timers.push(setTimeout(() => !cancelled && fireBurst(0.22, 0.7), 140))
+          timers.push(setTimeout(() => !cancelled && fireBurst(0.78, 0.7), 240))
+          // Second center burst (smaller, slower) for depth
+          timers.push(
+            setTimeout(() => {
+              if (cancelled) return
+              foreground({
+                particleCount: 25,
+                spread: 120,
+                startVelocity: 20,
+                scalar: 0.8,
+                gravity: 0.7,
+                ticks: 300,
+                origin: { x: 0.5, y: 0.55 },
+                colors: [...CONFETTI_COLORS],
+                disableForReducedMotion: true,
+              })
+            }, 420),
+          )
         }
       } catch {
-        // Confetti is a progressive enhancement — the card still celebrates
-        // if the dynamic import fails for any reason.
+        // Progressive enhancement — card still celebrates if confetti fails.
       }
     })()
 
@@ -203,12 +384,9 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
   useEffect(() => {
     if (!event) return
 
-    // Trigger celebratory haptic feedback when the celebration appears
     triggerHaptic("success")
-
     dismissButtonRef.current?.focus()
 
-    const duration = event.duration > 0 ? event.duration : DEFAULT_DURATION_MS
     const timer = setTimeout(handleDismiss, duration)
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -220,18 +398,30 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
       clearTimeout(timer)
       document.removeEventListener("keydown", handleKeyDown)
     }
-  }, [event, handleDismiss])
+  }, [event, handleDismiss, duration])
 
-  // Card entrance: playful spring-bounce, reduced to a gentle fade.
+  // Card entrance: dramatic spring for milestones, gentle for everyday
+  const cardTransition = prefersReducedMotion
+    ? timings.fast
+    : isMilestone
+      ? celebrationMilestoneSpring
+      : celebrationEverydaySpring
+
   const cardInitial = prefersReducedMotion
     ? { opacity: 0 }
-    : { opacity: 0, scale: 0.8, y: 12 }
+    : { opacity: 0, scale: 0.75, y: 16 }
   const cardAnimate = prefersReducedMotion
     ? { opacity: 1 }
     : { opacity: 1, scale: 1, y: 0 }
   const cardExit = prefersReducedMotion
     ? { opacity: 0, transition: timings.fast }
     : { opacity: 0, scale: 0.92, y: 8, transition: timings.normal }
+
+  // Stagger delay calculator for card elements
+  const stagger = (index: number) =>
+    prefersReducedMotion ? 0 : index * (CELEBRATION_STAGGER_MS / 1000)
+
+  const dismissCopy = event ? getDismissCopy(event.type) : "Nice!"
 
   return (
     <AnimatePresence>
@@ -291,7 +481,7 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
             </>
           )}
 
-          {/* Centered glass celebration card with spring-bounce entrance. */}
+          {/* Centered glass celebration card with spring entrance. */}
           <div
             className={`celebration-card-wrap${
               showShake ? " celebration-shake" : ""
@@ -305,39 +495,104 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
               initial={cardInitial}
               animate={cardAnimate}
               exit={cardExit}
-              transition={prefersReducedMotion ? timings.fast : springs.bouncy}
+              transition={cardTransition}
             >
               <GlassCard
                 elevation="high"
                 glow="celebration"
                 className="celebration-card"
               >
-                <span
-                  className={`celebration-emoji${
-                    prefersReducedMotion ? "" : " celebration-emoji--animated"
-                  }`}
-                  role="img"
-                  aria-hidden="true"
+                {/* Icon area: starburst for milestones, emoji for everyday */}
+                <motion.div
+                  initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.6 }}
+                  animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+                  transition={{
+                    delay: stagger(0),
+                    ...(prefersReducedMotion ? timings.fast : springs.bouncy),
+                  }}
                 >
-                  {event.emoji}
-                </span>
+                  {showStarburst && starburstReady ? (
+                    <div className="celebration-starburst-wrap">
+                      <MilestoneStarburst />
+                      {/* Emoji below starburst at smaller size */}
+                      <span
+                        className="celebration-emoji celebration-emoji--milestone"
+                        role="img"
+                        aria-hidden="true"
+                      >
+                        {event.emoji}
+                      </span>
+                    </div>
+                  ) : (
+                    <span
+                      className={`celebration-emoji${
+                        prefersReducedMotion ? "" : " celebration-emoji--animated"
+                      }`}
+                      role="img"
+                      aria-hidden="true"
+                    >
+                      {event.emoji}
+                    </span>
+                  )}
+                </motion.div>
 
-                <h2 id="celebration-title" className="celebration-card__title">
+                {/* Title */}
+                <motion.h2
+                  id="celebration-title"
+                  className="celebration-card__title"
+                  initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
+                  animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+                  transition={{
+                    delay: stagger(1),
+                    ...(prefersReducedMotion ? timings.fast : timings.normal),
+                  }}
+                >
                   {event.title}
-                </h2>
+                </motion.h2>
 
-                <p id="celebration-message" className="celebration-card__message">
-                  {event.message}
-                </p>
-
-                <button
-                  ref={dismissButtonRef}
-                  type="button"
-                  onClick={handleDismiss}
-                  className="celebration-card__dismiss"
+                {/* Message */}
+                <motion.p
+                  id="celebration-message"
+                  className="celebration-card__message"
+                  initial={prefersReducedMotion ? undefined : { opacity: 0, y: 6 }}
+                  animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+                  transition={{
+                    delay: stagger(2),
+                    ...(prefersReducedMotion ? timings.fast : timings.normal),
+                  }}
                 >
-                  Nice!
-                </button>
+                  {event.message}
+                </motion.p>
+
+                {/* Dismiss button with timer ring and spring animation */}
+                <motion.div
+                  className="celebration-dismiss-wrap"
+                  initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.85 }}
+                  animate={
+                    prefersReducedMotion
+                      ? undefined
+                      : { opacity: 1, scale: 1 }
+                  }
+                  transition={{
+                    delay: stagger(3),
+                    ...(prefersReducedMotion ? timings.fast : springs.bouncy),
+                  }}
+                >
+                  {!prefersReducedMotion && (
+                    <TimerRing durationMs={duration} />
+                  )}
+                  <motion.button
+                    ref={dismissButtonRef}
+                    type="button"
+                    onClick={handleDismiss}
+                    className="celebration-card__dismiss"
+                    whileHover={prefersReducedMotion ? undefined : { scale: 1.06 }}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.94 }}
+                    transition={springs.snappy}
+                  >
+                    {dismissCopy}
+                  </motion.button>
+                </motion.div>
               </GlassCard>
             </motion.div>
           </div>

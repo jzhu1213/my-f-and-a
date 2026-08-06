@@ -8,7 +8,7 @@ import type { Goal } from "@/types"
 import type { SavingsAccount } from "@/types/folio"
 import type { GoalFormData } from "./GoalsScreen"
 import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, shadows } from "@/styles/shared"
+import { borderRadius, shadows, fills, colorRamp } from "@/styles/shared"
 
 // ============================================================================
 // Config
@@ -238,13 +238,13 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                         cursor: "pointer",
                         ...(selected
                           ? {
-                              background: "rgba(129, 140, 248, 0.08)",
-                              border: "1.5px solid rgba(129, 140, 248, 0.4)",
+                              background: colorRamp.accent[100],
+                              border: `1.5px solid ${colorRamp.accent[400]}`,
                               boxShadow: shadows.glowAccent,
                             }
                           : {
-                              background: "rgba(255, 255, 255, 0.03)",
-                              border: "1px solid rgba(255, 255, 255, 0.06)",
+                              background: fills[3],
+                              border: `1px solid ${fills[6]}`,
                             }),
                       }}
                     >
@@ -427,7 +427,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                   alignItems: "center",
                   justifyContent: "center",
                   background: canSubmit
-                    ? "linear-gradient(135deg, rgba(129, 140, 248, 1) 0%, rgba(99, 102, 241, 1) 100%)"
+                    ? `linear-gradient(135deg, ${colorRamp.accent[500]} 0%, ${colorRamp.accent[600]} 100%)`
                     : "var(--dim)",
                   color: canSubmit ? "#fff" : "var(--muted)",
                   fontFamily: FONT_FAMILY,

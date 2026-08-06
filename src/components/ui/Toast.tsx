@@ -1,73 +1,146 @@
 "use client"
+
 import { useToast } from '@/contexts/ToastContext'
 import type { Toast as ToastType } from '@/contexts/ToastContext'
+import { motion, AnimatePresence } from 'framer-motion'
+import { springs, timings, useReducedMotion } from '@/lib/animations'
+import { Icon } from '@/components/ui/Icon'
+import type { IconName } from '@/lib/icons'
+
+/** Map toast type to its semantic icon name. */
+function getToastIcon(type: ToastType['type']): IconName {
+  switch (type) {
+    case 'success': return 'toast:success'
+    case 'error':   return 'toast:error'
+    case 'info':    return 'toast:info'
+  }
+}
+
+/** Map toast type to its accent color token. */
+function getAccentColor(type: ToastType['type']): string {
+  switch (type) {
+    case 'success': return 'var(--green)'
+    case 'error':   return 'var(--red)'
+    case 'info':    return 'var(--blue)'
+  }
+}
+
+/** Framer Motion variants for toast entrance/exit with spring slide-up. */
+const toastVariants = {
+  initial: { opacity: 0, y: 16, scale: 0.96 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: 8, scale: 0.97 },
+}
+
+/** Reduced-motion variants: opacity only, no translation or scale. */
+const toastVariantsReduced = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+}
 
 export function Toast() {
   const { toasts, removeToast } = useToast()
-  if (toasts.length === 0) return null
+  const { prefersReducedMotion } = useReducedMotion()
 
-  const accentColor = (type: ToastType['type']) => {
-    switch (type) {
-      case 'success': return 'var(--green)'
-      case 'error':   return 'var(--red)'
-      case 'info':    return 'var(--blue)'
-    }
-  }
+  const variants = prefersReducedMotion ? toastVariantsReduced : toastVariants
+  const transition = prefersReducedMotion ? timings.fast : springs.snappy
 
   return (
-    <div className="fixed top-5 right-5 z-[100] space-y-2 pointer-events-none">
-      {toasts.map(toast => (
-        <div
-          key={toast.id}
-          className="pointer-events-auto flex items-center gap-3 pl-3 pr-3 py-3 animate-slide-in-right"
-          style={{
-            background: 'var(--raised)',
-            border: '1px solid var(--line)',
-            borderLeft: `2px solid ${accentColor(toast.type)}`,
-            borderRadius: '8px',
-            minWidth: '200px',
-            maxWidth: '280px',
-          }}
-        >
-          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accentColor(toast.type) }} />
-          <p className="text-xs flex-1" style={{ color: 'var(--sub)', fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>{toast.message}</p>
+    <div
+      className="fixed left-0 right-0 z-[100] flex flex-col-reverse items-center gap-2 pointer-events-none px-4"
+      style={{ bottom: 'calc(90px + var(--safe-bottom, 0px))' }}
+    >
+      <AnimatePresence mode="popLayout">
+        {toasts.map(toast => (
+          <motion.div
+            key={toast.id}
+            layout
+            variants={variants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={transition}
+            role="status"
+            aria-live="polite"
+            className="pointer-events-auto flex items-center gap-3 px-4 py-3 w-full max-w-sm"
+            style={{
+              background: 'rgba(26, 26, 46, 0.85)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid var(--line)',
+              borderRadius: 'var(--radius-md, 12px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0.5px 0 rgba(255,255,255,0.06)',
+            }}
+          >
+            {/* Status icon */}
+            <span
+              className="flex-shrink-0"
+              style={{ color: getAccentColor(toast.type) }}
+            >
+              <Icon name={getToastIcon(toast.type)} size={16} strokeWidth={2} />
+            </span>
 
-          {toast.action && (
-            <button
-              onClick={() => { toast.action!.onClick(); removeToast(toast.id) }}
-              className="flex-shrink-0 text-xs transition-colors"
+            {/* Message */}
+            <p
+              className="text-xs flex-1 leading-snug"
               style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '11px',
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
                 color: 'var(--text)',
-                padding: '3px 8px',
-                border: '1px solid var(--line)',
-                borderRadius: '8px',
+                fontFamily: "'Inter', sans-serif",
+                fontWeight: 400,
               }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--sub)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--line)')}
             >
-              {toast.action.label}
-            </button>
-          )}
+              {toast.message}
+            </p>
 
-          {!toast.action && (
-            <button
-              onClick={() => removeToast(toast.id)}
-              style={{ color: 'var(--border)', padding: '2px 4px', flexShrink: 0 }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--muted)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--border)')}
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
-      ))}
+            {/* Action/Undo button */}
+            {toast.action && (
+              <button
+                onClick={() => { toast.action!.onClick(); removeToast(toast.id) }}
+                className="flex-shrink-0 text-xs transition-all duration-150"
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text)',
+                  padding: '4px 10px',
+                  border: '1px solid var(--line)',
+                  borderRadius: '20px',
+                  background: 'transparent',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = getAccentColor(toast.type)
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = 'var(--line)'
+                  e.currentTarget.style.background = 'transparent'
+                }}
+              >
+                {toast.action.label}
+              </button>
+            )}
+
+            {/* Close button (when no action) */}
+            {!toast.action && (
+              <button
+                onClick={() => removeToast(toast.id)}
+                className="flex-shrink-0 transition-colors duration-150"
+                style={{ color: 'var(--sub)', padding: '2px' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--sub)')}
+                aria-label="Dismiss"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   )
 }

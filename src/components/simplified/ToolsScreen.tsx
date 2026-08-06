@@ -1,9 +1,10 @@
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { springs, layoutTransition, listContainerVariants, listItemVariants, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
+import { motion } from "framer-motion"
+import { layoutTransition, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
 import { getPeerContextEnabled } from "@/lib/peerContextPreferences"
+import { Card } from "@/components/ui/Card"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/lib/icons"
@@ -427,7 +428,8 @@ export function ToolsScreen({
           fontSize: 22,
           fontWeight: 700,
           color: "var(--text)",
-          marginBottom: 8,
+          fontFamily: FONT_FAMILY,
+          marginBottom: 6,
         }}
       >
         More & Tools
@@ -436,8 +438,9 @@ export function ToolsScreen({
         style={{
           fontSize: 14,
           color: "var(--sub)",
-          marginBottom: 20,
+          marginBottom: SECTION_SPACING,
           lineHeight: 1.5,
+          fontFamily: FONT_FAMILY,
         }}
       >
         Advanced features, calculators, and tracking tools.
@@ -445,16 +448,16 @@ export function ToolsScreen({
 
       {/* ── Stat Cards (Set Aside / Savings Rate) ──────────────────────── */}
       {((totalSetAside ?? 0) > 0 || (savingsRate ?? 0) > 0) && (
-        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 12, marginBottom: SECTION_SPACING }}>
           {(totalSetAside ?? 0) > 0 && (
             <GlassCard elevation="low" style={{ padding: "14px 16px", flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <ToolIconChip name="stat:set-aside" size={32} />
                 <div>
-                  <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2 }}>
+                  <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2, fontFamily: FONT_FAMILY }}>
                     Set aside this month
                   </p>
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums", fontFamily: FONT_FAMILY }}>
                     ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
                   </p>
                 </div>
@@ -466,10 +469,10 @@ export function ToolsScreen({
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <ToolIconChip name="stat:savings-rate" size={32} />
                 <div>
-                  <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2 }}>
+                  <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2, fontFamily: FONT_FAMILY }}>
                     Savings rate
                   </p>
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums", fontFamily: FONT_FAMILY }}>
                     {savingsRate}%
                   </p>
                 </div>
@@ -517,67 +520,72 @@ export function ToolsScreen({
               </div>
             )}
 
-            {/* Tool Cards */}
+            {/* Tool Cards — per-item stagger for cascading reveal */}
             {sectionTools.length > 0 && (
-              <AnimatePresence initial={false}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {sectionTools.map((tool) => (
-                    <motion.div
-                      key={tool.id}
-                      layout={!prefersReducedMotion ? "position" : false}
-                      transition={layoutTransition}
-                      whileTap={{ scale: 0.98 }}
+              <motion.div
+                variants={listContainer}
+                initial="hidden"
+                animate="visible"
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+              >
+                {sectionTools.map((tool, toolIdx) => (
+                  <motion.div
+                    key={tool.id}
+                    variants={listItem}
+                    custom={Math.min(toolIdx, MAX_STAGGER_ITEMS)}
+                    layout={!prefersReducedMotion ? "position" : false}
+                    transition={layoutTransition}
+                    whileTap={tool.onOpen ? { scale: 0.98 } : undefined}
+                  >
+                    <Card
+                      padding="14px 16px"
+                      style={{
+                        cursor: tool.onOpen ? "pointer" : "default",
+                        opacity: tool.onOpen ? 1 : 0.5,
+                      }}
+                      onClick={tool.onOpen}
                     >
-                      <GlassCard
-                        elevation="low"
-                        style={{
-                          padding: "16px 18px",
-                          cursor: tool.onOpen ? "pointer" : "default",
-                          opacity: tool.onOpen ? 1 : 0.5,
-                        }}
-                        onClick={tool.onOpen}
-                      >
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                          <ToolIconChip name={tool.iconName} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p
-                              style={{
-                                fontSize: 15,
-                                fontWeight: 600,
-                                color: "var(--text)",
-                                marginBottom: 4,
-                              }}
-                            >
-                              {tool.title}
-                            </p>
-                            <p
-                              style={{
-                                fontSize: 13,
-                                color: "var(--sub)",
-                                lineHeight: 1.4,
-                              }}
-                            >
-                              {tool.description}
-                            </p>
-                          </div>
-                          {tool.onOpen && (
-                            <span
-                              style={{
-                                color: "var(--muted)",
-                                marginTop: 4,
-                                flexShrink: 0,
-                                display: "inline-flex",
-                              }}
-                            >
-                              <Icon name="action:forward" size={18} />
-                            </span>
-                          )}
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <ToolIconChip name={tool.iconName} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p
+                            style={{
+                              fontSize: 15,
+                              fontWeight: 600,
+                              color: "var(--text)",
+                              marginBottom: 3,
+                              fontFamily: FONT_FAMILY,
+                            }}
+                          >
+                            {tool.title}
+                          </p>
+                          <p
+                            style={{
+                              fontSize: 13,
+                              color: "var(--sub)",
+                              lineHeight: 1.5,
+                              fontFamily: FONT_FAMILY,
+                            }}
+                          >
+                            {tool.description}
+                          </p>
                         </div>
-                      </GlassCard>
-                    </motion.div>
-                  ))}
-                </div>
-              </AnimatePresence>
+                        {tool.onOpen && (
+                          <span
+                            style={{
+                              color: "var(--muted)",
+                              flexShrink: 0,
+                              display: "inline-flex",
+                            }}
+                          >
+                            <Icon name="action:forward" size={16} />
+                          </span>
+                        )}
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
             )}
           </motion.div>
         )

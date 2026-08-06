@@ -283,6 +283,33 @@ export const sheetSpring: Transition = {
  */
 export const MAX_STAGGER_ITEMS = 12
 
+// ---------------------------------------------------------------------------
+// Celebration-specific presets (Task 257.1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Dramatic spring for milestone celebration card entrance — more energy and
+ * overshoot to communicate "this is special".
+ */
+export const celebrationMilestoneSpring: Transition = {
+  type: "spring",
+  stiffness: 420,
+  damping: 14,
+  mass: 0.9,
+}
+
+/**
+ * Gentle spring for everyday celebration card entrance — friendly but calm.
+ */
+export const celebrationEverydaySpring: Transition = {
+  type: "spring",
+  stiffness: 300,
+  damping: 22,
+}
+
+/** Stagger delay for card element cascade (emoji → title → message → button). */
+export const CELEBRATION_STAGGER_MS = 80
+
 /** The full set of reusable variants exposed by {@link useReducedMotion}. */
 export interface MotionVariants {
   listContainer: Variants

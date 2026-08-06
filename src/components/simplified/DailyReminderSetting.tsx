@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeader, borderRadius, segmentedControl, segmentedButtonBase, segmentedButtonActive, segmentedButtonInactive, shadows } from "@/styles/shared"
+import { sectionHeader, borderRadius, segmentedControl, segmentedButtonBase, segmentedButtonActive, segmentedButtonInactive, shadows, fills, colorRamp } from "@/styles/shared"
 import {
   getReminderPreferences,
   setReminderPreferences,
@@ -143,8 +143,8 @@ export function DailyReminderSetting() {
             padding: 3,
             cursor: "pointer",
             background: prefs.enabled
-              ? "rgba(74, 222, 128, 0.5)"
-              : "rgba(255, 255, 255, 0.1)",
+              ? colorRamp.success[400]
+              : fills[10],
             display: "flex",
             alignItems: "center",
             justifyContent: prefs.enabled ? "flex-end" : "flex-start",
@@ -158,7 +158,7 @@ export function DailyReminderSetting() {
               width: 22,
               height: 22,
               borderRadius: borderRadius.md,
-              background: prefs.enabled ? "#fff" : "rgba(255, 255, 255, 0.5)",
+              background: prefs.enabled ? "#fff" : fills[15],
               boxShadow: shadows.sm,
             }}
           />
@@ -243,7 +243,7 @@ export function DailyReminderSetting() {
                 color: "var(--sub)",
                 lineHeight: 1.5,
                 padding: "8px 12px",
-                background: "rgba(255,255,255,0.03)",
+                background: fills[3],
                 borderRadius: borderRadius.sm,
               }}
             >

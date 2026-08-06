@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { FONT_FAMILY } from '@/styles/typography'
+import { progressBar, chartLabel, chartValueLabel, chartMotion } from '@/styles/chartTokens'
 import { computeCombinedSavingsInputs } from '@/lib/savingsAccountUtils'
 import type { CompoundGrowthResult } from '@/types'
 import type { SavingsAccount } from '@/types/folio'
@@ -289,18 +290,19 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
                   borderBottom: idx === displayRows.length - 1 ? 'none' : '1px solid var(--line)',
                 }}
               >
-                <span style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', width: 48 }}>YR {row.year}</span>
-                <div style={{ flex: 1, height: 2, background: 'var(--line)', borderRadius: 99, overflow: 'hidden' }}>
+                <span style={{ ...chartLabel, width: 48 }}>YR {row.year}</span>
+                <div style={{ flex: 1, height: progressBar.heightCompact, background: progressBar.track, borderRadius: progressBar.borderRadius, overflow: 'hidden' }}>
                   <div
                     style={{
                       height: '100%',
                       width: `${(row.balance / result.finalAmount) * 100}%`,
-                      background: 'var(--success)',
-                      transition: 'width 0.7s ease-out',
+                      background: progressBar.fill,
+                      borderRadius: progressBar.borderRadius,
+                      transition: chartMotion.barGrow,
                     }}
                   />
                 </div>
-                <span style={{ fontSize: 12, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--sub)', width: 80, textAlign: 'right' }}>
+                <span style={{ ...chartValueLabel, width: 80, textAlign: 'right' }}>
                   ${row.balance.toLocaleString()}
                 </span>
               </div>

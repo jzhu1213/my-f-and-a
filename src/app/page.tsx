@@ -187,7 +187,9 @@ import { useAppLock } from '@/hooks/useAppLock'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 import { useOverlayRouter } from '@/hooks/useOverlayRouter'
+import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { SyncIndicator } from '@/components/simplified/SyncIndicator'
+import { OfflineBanner } from '@/components/ui/OfflineBanner'
 
 type OnboardingStep = 'loading' | 'tutorial' | 'demo_replay' | 'done'
 
@@ -347,8 +349,12 @@ export default function FolioApp() {
     hasFailed: offlineHasFailed,
     recentlySyncedIds: offlineRecentlySyncedIds,
     retryAll: retryOfflineSync,
+    dismissFailed: dismissOfflineFailed,
     refresh: refreshOfflineSync,
   } = useOfflineSync(user?.id ?? undefined)
+
+  // ── Network Status (Phase 6, task 265.1 — offline detection) ───
+  const { isOnline } = useNetworkStatus()
 
   // ── Recurring Bills (task 65 — set-and-forget bills) ───────────
   const { bills: recurringBills, addBill, updateBill, deleteBill } = useRecurringBills(user?.id)
@@ -2143,13 +2149,17 @@ export default function FolioApp() {
         onQuickLog={anySheetOpen ? undefined : () => overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: false, originFromFab: true })}
         hideDock={anySheetOpen}
       >
+        {/* Offline banner — shown when network is down */}
+        <OfflineBanner visible={!isOnline} />
         {(offlinePendingCount > 0 || offlineRecentlySyncedIds.size > 0) && (
           <div style={{ marginBottom: 12 }}>
             <SyncIndicator
               pendingCount={offlinePendingCount}
               hasFailed={offlineHasFailed}
               recentlySyncedCount={offlineRecentlySyncedIds.size}
+              isOnline={isOnline}
               onRetry={retryOfflineSync}
+              onDismiss={dismissOfflineFailed}
             />
           </div>
         )}

@@ -19,14 +19,12 @@ import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  emptyStateContainer,
-  emptyStateTitle,
-  emptyStateSubtitle,
 } from "@/styles/shared"
 import { computeTermReview } from "@/lib/termReview"
 import type { Transaction, Budget } from "@/types"
@@ -167,16 +165,12 @@ export function TermReviewScreen({
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
           {heading}
         </h2>
-        <GlassCard elevation="low" style={{ padding: "28px 22px", marginTop: 12 }}>
-          <div style={emptyStateContainer}>
-            <span style={{ fontSize: 34 }} aria-hidden="true">🌱</span>
-            <p style={emptyStateTitle}>Your recap is still growing</p>
-            <p style={{ ...emptyStateSubtitle, maxWidth: 320 }}>
-              Keep logging as {review.mode === "term" ? "the term" : "the month"} goes
-              on. Once there&apos;s a bit more to look back on, your {review.periodLabel}{" "}
-              recap will appear right here.
-            </p>
-          </div>
+        <GlassCard elevation="low" style={{ padding: "4px 0", marginTop: 12 }}>
+          <EmptyState
+            illustration="review"
+            title="Your recap is still growing"
+            subtitle={`Keep logging as ${review.mode === "term" ? "the term" : "the month"} goes on. Once there's a bit more to look back on, your ${review.periodLabel} recap will appear right here.`}
+          />
         </GlassCard>
       </div>
     )

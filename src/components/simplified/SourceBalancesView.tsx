@@ -1,8 +1,10 @@
 "use client"
 
 import { useMemo } from "react"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/Card"
+import { Icon } from "@/components/ui/Icon"
 import { FONT_FAMILY } from "@/styles/typography"
+import { sectionHeader, borderRadius } from "@/styles/shared"
 import { computeSourceBalances } from "@/lib/sourceBalances"
 import type { FundingSource } from "@/lib/fundingSources"
 import type { Transaction } from "@/types"
@@ -23,9 +25,12 @@ export interface SourceBalancesViewProps {
 /**
  * SourceBalancesView — a compact, glanceable "Where my money is" grid.
  *
- * Displays a 2-column grid of GlassCards showing each funding source's
+ * Displays a 2-column grid of Card surfaces showing each funding source's
  * computed balance. Lives in the Tools screen under progressive disclosure.
  * Hides entirely if no sources have any meaningful balance data.
+ *
+ * Uses Tier 3 `Card` for individual balance items (list-level density) and
+ * the `sectionHeader` token for the heading.
  */
 export function SourceBalancesView({
   fundingSources,
@@ -55,17 +60,9 @@ export function SourceBalancesView({
   const balanceEntries = Array.from(balances.values())
 
   return (
-    <div style={{ marginBottom: 20 }}>
-      {/* Section heading */}
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: "var(--sub)",
-          fontFamily: FONT_FAMILY,
-          marginBottom: 10,
-        }}
-      >
+    <div style={{ marginBottom: 16 }}>
+      {/* Section heading — using shared sectionHeader token */}
+      <p style={{ ...sectionHeader, marginBottom: 10 }}>
         Where my money is
       </p>
 
@@ -78,14 +75,27 @@ export function SourceBalancesView({
         }}
       >
         {balanceEntries.map((balance) => (
-          <GlassCard
+          <Card
             key={balance.sourceId}
-            elevation="low"
-            style={{ padding: "12px 14px" }}
+            padding="12px 14px"
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 16, lineHeight: 1 }} aria-hidden="true">
-                {balance.emoji}
+              {/* Icon chip replacing emoji */}
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 28,
+                  height: 28,
+                  flexShrink: 0,
+                  borderRadius: borderRadius.sm,
+                  background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                  color: "var(--accent)",
+                }}
+              >
+                <Icon name="category:fallback" size={14} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
@@ -117,7 +127,7 @@ export function SourceBalancesView({
                 </p>
               </div>
             </div>
-          </GlassCard>
+          </Card>
         ))}
       </div>
     </div>

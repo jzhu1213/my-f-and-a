@@ -13,6 +13,68 @@ import type { TransactionCategory } from "@/types"
 import { FONT_FAMILY, spacing, pxToRem } from "./typography"
 
 // ============================================================================
+// Color ramp tokens (Phase 6 — task 260.2)
+// ============================================================================
+
+/**
+ * A color ramp step type. Steps 50–200 are translucent fills, 300–400 are
+ * borders/rings, 500 is the base, 600–900 are interactive/prominent states.
+ */
+export type RampStep = 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+
+/**
+ * A full 10-step color ramp mapping to CSS custom properties.
+ * Use in inline styles: `background: colorRamp.accent[100]`.
+ */
+export type ColorRamp = Record<RampStep, string>
+
+function buildRamp(prefix: string): ColorRamp {
+  return {
+    50: `var(--${prefix}-50)`,
+    100: `var(--${prefix}-100)`,
+    200: `var(--${prefix}-200)`,
+    300: `var(--${prefix}-300)`,
+    400: `var(--${prefix}-400)`,
+    500: `var(--${prefix}-500)`,
+    600: `var(--${prefix}-600)`,
+    700: `var(--${prefix}-700)`,
+    800: `var(--${prefix}-800)`,
+    900: `var(--${prefix}-900)`,
+  }
+}
+
+/**
+ * Semantic color ramps referencing the CSS custom properties defined in
+ * globals.css `:root`. Use these in inline styles instead of ad-hoc
+ * `rgba(129, 140, 248, ...)` values.
+ *
+ * Example:
+ * ```ts
+ * <div style={{ background: colorRamp.accent[100], border: `1px solid ${colorRamp.accent[300]}` }} />
+ * ```
+ *
+ * | Step | Typical use |
+ * |------|-------------|
+ * | 50 | Barely-visible bg (disabled, faint) |
+ * | 100 | Subtle bg fill (selected rows, hover) |
+ * | 200 | Medium bg fill (accent-muted, chips) |
+ * | 300 | Border/ring (focus, selection ring) |
+ * | 400 | Stronger border (active selection) |
+ * | 500 | Base color (text, icons, badges) |
+ * | 600 | Hover state (buttons, links) |
+ * | 700 | Active/pressed state |
+ * | 800 | Strong/prominent |
+ * | 900 | Near-opaque (dark accent use) |
+ */
+export const colorRamp = {
+  accent: buildRamp('accent'),
+  success: buildRamp('success'),
+  warning: buildRamp('warning'),
+  error: buildRamp('error'),
+  blue: buildRamp('blue'),
+} as const
+
+// ============================================================================
 // Category accent colors (Phase 6 — task 234.1)
 // ============================================================================
 
@@ -53,6 +115,43 @@ export const CATEGORY_ACCENTS: Record<TransactionCategory | "fallback", string> 
 export function getCategoryAccent(category: TransactionCategory | string): string {
   return (CATEGORY_ACCENTS as Record<string, string>)[category] ?? CATEGORY_ACCENTS.fallback
 }
+
+// ============================================================================
+// White alpha fill tokens (Phase 6 — task 261.1)
+// ============================================================================
+
+/**
+ * White alpha fill tokens used for translucent surface backgrounds and borders.
+ * Maps to CSS custom properties defined in globals.css (--fill-02 through --fill-15).
+ *
+ * Use these instead of scattered inline `rgba(255, 255, 255, ...)` values:
+ * ```ts
+ * <div style={{ background: fills[4], border: `1px solid ${fills[8]}` }} />
+ * ```
+ *
+ * | Token | Typical use |
+ * |-------|-------------|
+ * | 2 | Barely-visible hover bg, faint separator |
+ * | 3 | Glass surface default fill |
+ * | 4 | Subtle chip/input bg, inactive surface |
+ * | 5 | Slightly stronger chip bg |
+ * | 6 | Active chip bg, round buttons, borders |
+ * | 8 | Selected states, progress tracks, stronger borders |
+ * | 10 | Hover-selected, prominent fills |
+ * | 12 | Active/selected, toggle tracks |
+ * | 15 | Dashed borders, strong overlay strokes |
+ */
+export const fills = {
+  2: "var(--fill-02)",
+  3: "var(--fill-03)",
+  4: "var(--fill-04)",
+  5: "var(--fill-05)",
+  6: "var(--fill-06)",
+  8: "var(--fill-08)",
+  10: "var(--fill-10)",
+  12: "var(--fill-12)",
+  15: "var(--fill-15)",
+} as const
 
 // ============================================================================
 // Layout constants
@@ -143,35 +242,58 @@ export const linkButton: CSSProperties = {
 }
 
 /**
- * Empty state container — centered flex column with gap.
+ * Empty state container — centered flex column with generous spacing.
+ * Phase 6 (task 264): increased gap and padding for a warmer, more spacious
+ * feel when an area has no content.
  */
 export const emptyStateContainer: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  gap: spacing.sm - 2, // 10px as in existing code
+  gap: spacing.sm, // 12px — slightly more generous
+  maxWidth: 280,
+  margin: "0 auto",
 }
 
 /**
  * Empty state title text.
  */
 export const emptyStateTitle: CSSProperties = {
-  fontSize: pxToRem(14),
+  fontSize: pxToRem(15),
   color: "var(--text)",
   textAlign: "center",
   fontFamily: FONT_FAMILY,
-  fontWeight: 500,
+  fontWeight: 600,
+  lineHeight: 1.4,
 }
 
 /**
  * Empty state subtitle / description text.
  */
 export const emptyStateSubtitle: CSSProperties = {
-  fontSize: pxToRem(12),
+  fontSize: pxToRem(13),
   color: "var(--sub)",
   textAlign: "center",
   fontFamily: FONT_FAMILY,
-  opacity: 0.8,
+  lineHeight: 1.5,
+  opacity: 0.85,
+}
+
+/**
+ * Empty state action button — accent pill for the primary CTA inside an empty state.
+ * Phase 6 (task 264): standard pill styling so every empty state drives the user forward.
+ */
+export const emptyStateAction: CSSProperties = {
+  marginTop: 4,
+  padding: "10px 20px",
+  borderRadius: 9999,
+  border: "none",
+  background: colorRamp.accent[200],
+  color: "var(--accent, #a78bfa)",
+  fontSize: pxToRem(13),
+  fontWeight: 500,
+  fontFamily: FONT_FAMILY,
+  cursor: "pointer",
 }
 
 /**
@@ -211,8 +333,8 @@ export const chipButton: CSSProperties = {
   alignItems: "center",
   gap: 6,
   padding: "10px 16px",
-  background: "rgba(255, 255, 255, 0.06)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
+  background: fills[6],
+  border: `1px solid ${fills[10]}`,
   borderRadius: 99,
   color: "var(--text)",
   fontSize: pxToRem(13),
@@ -293,8 +415,8 @@ export const shadows = {
  * secondary surfaces that sit over the mesh (e.g. inline forms, overlays).
  */
 export const glassSurface: CSSProperties = {
-  background: "rgba(255, 255, 255, 0.03)",
-  border: "1px solid rgba(255, 255, 255, 0.08)",
+  background: fills[3],
+  border: `1px solid ${fills[8]}`,
   borderRadius: borderRadius.md,
   backdropFilter: "blur(8px)",
   WebkitBackdropFilter: "blur(8px)",
@@ -311,8 +433,8 @@ export const segmentedControl: CSSProperties = {
   // Phase 6 (task 237.2): the filled track already defines the control; soften
   // the outline to a faint hairline instead of the hard --border so it reads as
   // a calm surface. Selection is carried by the active button's fill + shadow.
-  background: "rgba(255, 255, 255, 0.04)",
-  border: "1px solid rgba(255, 255, 255, 0.06)",
+  background: fills[4],
+  border: `1px solid ${fills[6]}`,
 }
 
 /**
@@ -333,7 +455,7 @@ export const segmentedButtonBase: CSSProperties = {
 
 export const segmentedButtonActive: CSSProperties = {
   color: "var(--text)",
-  background: "rgba(255, 255, 255, 0.08)",
+  background: fills[8],
   boxShadow: shadows.sm,
 }
 
@@ -360,7 +482,7 @@ export const progressTrack: CSSProperties = {
   width: "100%",
   height: 4,
   borderRadius: 2,
-  background: "rgba(255, 255, 255, 0.08)",
+  background: fills[8],
   overflow: "hidden",
 }
 
@@ -371,8 +493,8 @@ export const roundButton: CSSProperties = {
   width: 32,
   height: 32,
   borderRadius: "50%",
-  background: "rgba(255, 255, 255, 0.06)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
+  background: fills[6],
+  border: `1px solid ${fills[10]}`,
   fontSize: pxToRem(18),
   fontFamily: FONT_FAMILY,
   display: "flex",

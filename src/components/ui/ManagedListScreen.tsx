@@ -4,15 +4,13 @@ import { useState, useCallback, type ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
   borderRadius,
-  emptyStateContainer,
-  emptyStateTitle,
-  emptyStateSubtitle,
 } from "@/styles/shared"
 
 // ============================================================================
@@ -131,7 +129,7 @@ export function ManagedListScreen<T extends ManagedItem>({
   items,
   title,
   addLabel,
-  emptyEmoji = "📋",
+  emptyEmoji: _emptyEmoji = "📋",
   emptyTitle = "Nothing here yet",
   emptySubtitle = "Add your first item to get started.",
   onBack,
@@ -325,37 +323,15 @@ export function ManagedListScreen<T extends ManagedItem>({
 
       {/* ── List or Empty State ────────────────────────────────────────────── */}
       {items.length === 0 && !isFormVisible ? (
-        <div
-          style={{
-            ...emptyStateContainer,
-            padding: "48px 20px",
-          }}
-        >
-          <span style={{ fontSize: 36 }} aria-hidden="true">
-            {emptyEmoji}
-          </span>
-          <p style={emptyStateTitle}>{emptyTitle}</p>
-          <p style={emptyStateSubtitle}>{emptySubtitle}</p>
-          <motion.button
-            onClick={openAddForm}
-            whileTap={{ scale: 0.97 }}
-            transition={springs.snappy}
-            style={{
-              marginTop: 8,
-              padding: "10px 20px",
-              borderRadius: borderRadius.full,
-              border: "1.5px solid rgba(6, 214, 160, 0.4)",
-              background: "transparent",
-              color: "var(--success)",
-              fontSize: 13,
-              fontWeight: 500,
-              fontFamily: FONT_FAMILY,
-              cursor: "pointer",
-            }}
-            aria-label={addLabel}
-          >
-            {addLabel}
-          </motion.button>
+        <div style={{ padding: "4px 0" }}>
+          <EmptyState
+            illustration="generic"
+            title={emptyTitle}
+            subtitle={emptySubtitle}
+            actionLabel={addLabel}
+            onAction={openAddForm}
+            actionColor="success"
+          />
         </div>
       ) : listLayout === "single-card" ? (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>

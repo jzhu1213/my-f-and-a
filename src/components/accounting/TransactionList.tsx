@@ -5,6 +5,7 @@ import { TRANSACTION_CATEGORIES } from '@/types'
 import type { Transaction, TransactionCategory } from '@/types'
 import type { FundingSource } from '@/lib/fundingSources'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { springs, timings } from '@/lib/animations'
 import { computeDailyTotal } from '@/lib/transactionUtils'
 import { getTagsForTransaction, getRecentTags, parseTagInput } from '@/lib/tagUtils'
@@ -1069,53 +1070,22 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         )
       })
       })() : (
-        <GlassCard elevation="low" style={{ padding: "32px 20px", borderRadius: borderRadius.lg }}>
-          <div className="flex flex-col items-center justify-center gap-3">
-            <span style={{ fontSize: 32 }} aria-hidden="true">
-              {hasActiveFilters ? '🔍' : '📝'}
-            </span>
-            <p style={{
-              fontSize: '15px',
-              color: 'var(--text)',
-              textAlign: 'center',
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 500,
-            }}>
-              {hasActiveFilters ? 'No results found' : 'Ready when you are'}
-            </p>
-            {!hasActiveFilters && (
-              <p style={{
-                fontSize: '13px',
-                color: 'var(--sub)',
-                textAlign: 'center',
-                fontFamily: 'Inter, sans-serif',
-              }}>
-                Log your first expense to get started
-              </p>
-            )}
-            {hasActiveFilters && (
-              <motion.button
-                type="button"
-                onClick={clearAllFilters}
-                whileTap={{ scale: 0.96 }}
-                transition={springs.snappy}
-                style={{
-                  marginTop: 8,
-                  padding: '8px 16px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  color: 'var(--accent)',
-                  background: 'rgba(129, 140, 248, 0.12)',
-                  border: '1px solid rgba(129, 140, 248, 0.3)',
-                  borderRadius: 99,
-                  cursor: 'pointer',
-                }}
-              >
-                Clear filters
-              </motion.button>
-            )}
-          </div>
+        <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: borderRadius.lg }}>
+          {hasActiveFilters ? (
+            <EmptyState
+              illustration="filter"
+              title="No results found"
+              subtitle="Try adjusting your filters to see more"
+              actionLabel="Clear filters"
+              onAction={clearAllFilters}
+            />
+          ) : (
+            <EmptyState
+              illustration="transactions"
+              title="Ready when you are"
+              subtitle="Log your first expense to get started"
+            />
+          )}
         </GlassCard>
       )}
 

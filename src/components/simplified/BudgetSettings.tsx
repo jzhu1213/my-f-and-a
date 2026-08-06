@@ -9,7 +9,7 @@ import { computeBudgetSummary, computeDailyEquivalent } from "@/lib/budgetSummar
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, TransactionCategory } from "@/types"
 import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, segmentedControl, segmentedButtonBase, shadows } from "@/styles/shared"
+import { borderRadius, segmentedControl, segmentedButtonBase, shadows, fills, colorRamp } from "@/styles/shared"
 
 // ============================================================================
 // Limit-type persistence helpers (localStorage, keyed per category)
@@ -712,8 +712,8 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                           fontSize: 12,
                           fontFamily: FONT_FAMILY,
                           color: "var(--error)",
-                          background: "rgba(248, 113, 113, 0.08)",
-                          border: "1px solid rgba(248, 113, 113, 0.2)",
+                          background: colorRamp.error[100],
+                          border: `1px solid ${colorRamp.error[200]}`,
                           borderRadius: borderRadius.sm,
                           cursor: "pointer",
                           fontWeight: 500,
@@ -863,7 +863,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                               aria-checked={isSemester}
                               style={{
                                 ...segmentedButtonBase,
-                                background: isSemester ? "rgba(251, 191, 36, 0.15)" : "transparent",
+                                background: isSemester ? colorRamp.warning[200] : "transparent",
                                 color: isSemester ? "var(--warning)" : "var(--muted)",
                                 boxShadow: isSemester ? shadows.sm : "none",
                               }}

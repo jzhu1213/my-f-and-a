@@ -25,6 +25,7 @@ import { recordEngagement } from "@/lib/engagementTracker"
 import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
 import { CELEBRATION_COPY, CELEBRATION_EMOJI } from "@/lib/vocabulary"
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { recordLastActive } from "@/lib/reminderPreferences"
 import { getInsightsEnabled } from "@/lib/insightPreferences"
 import { getSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
@@ -40,14 +41,13 @@ import {
   DOCK_PADDING_BOTTOM,
   SECTION_SPACING,
   sectionHeader,
-  emptyStateContainer,
-  emptyStateTitle,
-  emptyStateSubtitle,
   linkButton,
   chipButton,
   borderRadius,
   progressTrack,
   getCategoryAccent,
+  colorRamp,
+  fills,
 } from "@/styles/shared"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
 import { ContextualTipCard } from "./ContextualTipCard"
@@ -150,8 +150,8 @@ function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 12,
-        background: 'rgba(248, 113, 113, 0.06)',
-        border: '1px solid rgba(248, 113, 113, 0.18)',
+        background: colorRamp.error[100],
+        border: `1px solid ${colorRamp.error[200]}`,
         borderRadius: borderRadius.md,
         padding: '12px 16px',
       }}
@@ -177,8 +177,8 @@ function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
         aria-label="Log income to top up your budget"
         style={{
           flexShrink: 0,
-          background: 'rgba(248, 113, 113, 0.12)',
-          border: '1px solid rgba(248, 113, 113, 0.30)',
+          background: colorRamp.error[200],
+          border: `1px solid ${colorRamp.error[300]}`,
           borderRadius: borderRadius.full,
           padding: '7px 14px',
           color: 'var(--error)',
@@ -1145,7 +1145,7 @@ export function HomeScreen({
               style={{
                 flex: 1,
                 background: "transparent",
-                border: "1.5px solid rgba(74, 222, 128, 0.4)",
+                border: `1.5px solid ${colorRamp.success[400]}`,
                 borderRadius: borderRadius.full,
                 padding: "16px 20px",
                 color: "var(--success)",
@@ -1170,8 +1170,8 @@ export function HomeScreen({
                 style={{
                   fontSize: 13,
                   color: 'var(--sub)',
-                  background: 'rgba(129, 140, 248, 0.06)',
-                  border: '1px solid rgba(129, 140, 248, 0.15)',
+                  background: colorRamp.accent[100],
+                  border: `1px solid ${colorRamp.accent[200]}`,
                   borderRadius: borderRadius.full,
                   padding: '6px 14px',
                   cursor: 'pointer',
@@ -1189,8 +1189,8 @@ export function HomeScreen({
               style={{
                 fontSize: 13,
                 color: 'var(--sub)',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: fills[3],
+                border: `1px solid ${fills[8]}`,
                 borderRadius: borderRadius.full,
                 padding: '6px 14px',
                 cursor: 'pointer',
@@ -1210,8 +1210,8 @@ export function HomeScreen({
             style={{
               width: '100%',
               marginTop: 4,
-              background: 'rgba(129, 140, 248, 0.05)',
-              border: '1px solid rgba(129, 140, 248, 0.15)',
+              background: colorRamp.accent[50],
+              border: `1px solid ${colorRamp.accent[200]}`,
               borderRadius: borderRadius.md,
               overflow: 'hidden',
             }}
@@ -1224,7 +1224,7 @@ export function HomeScreen({
                   alignItems: 'center',
                   gap: 10,
                   padding: '10px 16px',
-                  borderTop: idx > 0 ? '1px solid rgba(255, 255, 255, 0.04)' : undefined,
+                  borderTop: idx > 0 ? `1px solid ${fills[4]}` : undefined,
                 }}
               >
                 <span style={{ fontSize: 14 }} aria-hidden="true">💸</span>
@@ -1253,8 +1253,8 @@ export function HomeScreen({
                       fontFamily: FONT_FAMILY,
                       fontWeight: 600,
                       color: 'var(--success, #4ade80)',
-                      background: 'rgba(74, 222, 128, 0.08)',
-                      border: '1px solid rgba(74, 222, 128, 0.2)',
+                      background: colorRamp.success[100],
+                      border: `1px solid ${colorRamp.success[200]}`,
                       borderRadius: borderRadius.full,
                       padding: '4px 10px',
                       cursor: 'pointer',
@@ -1424,38 +1424,15 @@ export function HomeScreen({
               animate={{ opacity: 1, y: 0 }}
               transition={timings.slow}
             >
-              <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: borderRadius.lg }}>
-                <div style={emptyStateContainer}>
-                  <span style={{ fontSize: 32 }} aria-hidden="true">🎯</span>
-                  <p style={emptyStateTitle}>
-                    You&rsquo;re all set to start — limits are optional
-                  </p>
-                  <p style={emptyStateSubtitle}>
-                    Add category limits anytime for a more accurate daily number
-                  </p>
-                  {onOpenBudgetSettings && (
-                    <motion.button
-                      type="button"
-                      onClick={onOpenBudgetSettings}
-                      whileTap={{ scale: 0.96 }}
-                      style={{
-                        marginTop: 8,
-                        background: "rgba(167, 139, 250, 0.12)",
-                        border: "1px solid rgba(167, 139, 250, 0.25)",
-                        borderRadius: borderRadius.full,
-                        padding: "10px 20px",
-                        color: "var(--accent, #a78bfa)",
-                        fontSize: 13,
-                        fontWeight: 500,
-                        fontFamily: FONT_FAMILY,
-                        cursor: "pointer",
-                      }}
-                      aria-label="Set up category limits"
-                    >
-                      Set up limits →
-                    </motion.button>
-                  )}
-                </div>
+              <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: borderRadius.lg }}>
+                <EmptyState
+                  illustration="budget"
+                  title="You're all set to start — limits are optional"
+                  subtitle="Add category limits anytime for a more accurate daily number"
+                  actionLabel={onOpenBudgetSettings ? "Set up limits →" : undefined}
+                  onAction={onOpenBudgetSettings ?? undefined}
+                  actionAriaLabel="Set up category limits"
+                />
               </GlassCard>
             </motion.div>
           ) : (
@@ -1615,36 +1592,16 @@ export function HomeScreen({
               animate={{ opacity: 1, y: 0 }}
               transition={timings.slow}
             >
-              <GlassCard elevation="low" style={{ padding: "28px 20px", borderRadius: borderRadius.lg }}>
-                <div style={emptyStateContainer}>
-                  <span style={{ fontSize: 32 }} aria-hidden="true">✨</span>
-                  <p style={emptyStateTitle}>
-                    Ready when you are
-                  </p>
-                  <p style={emptyStateSubtitle}>
-                    Log your first expense and Folio starts learning your habits
-                  </p>
-                  <motion.button
-                    type="button"
-                    onClick={() => onLogExpense()}
-                    whileTap={{ scale: 0.96 }}
-                    style={{
-                      marginTop: 8,
-                      background: "rgba(74, 222, 128, 0.12)",
-                      border: "1px solid rgba(74, 222, 128, 0.3)",
-                      borderRadius: borderRadius.full,
-                      padding: "10px 20px",
-                      color: "var(--success, #4ade80)",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      fontFamily: FONT_FAMILY,
-                      cursor: "pointer",
-                    }}
-                    aria-label="Log your first expense"
-                  >
-                    Log expense →
-                  </motion.button>
-                </div>
+              <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: borderRadius.lg }}>
+                <EmptyState
+                  illustration="transactions"
+                  title="Ready when you are"
+                  subtitle="Log your first expense and Folio starts learning your habits"
+                  actionLabel="Log expense →"
+                  onAction={() => onLogExpense()}
+                  actionAriaLabel="Log your first expense"
+                  actionColor="success"
+                />
               </GlassCard>
             </motion.div>
           ) : (
@@ -1730,7 +1687,7 @@ export function HomeScreen({
                           top: 8,
                           bottom: 8,
                           width: 1.5,
-                          background: "rgba(129, 140, 248, 0.15)",
+                          background: colorRamp.accent[200],
                           borderRadius: 1,
                         }}
                       />

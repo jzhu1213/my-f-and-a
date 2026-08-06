@@ -13,6 +13,7 @@ import { GlassCard, AmbientGlow } from "@/components/ui"
 import { useReducedMotion, springs, timings } from "@/lib/animations"
 import { useTimeOfDay } from "@/hooks/useTimeOfDay"
 import { typography, pxToRem, animatedFontWeight, fontWeights } from "@/styles/typography"
+import { fills } from "@/styles/shared"
 import { AllowanceRing } from "./AllowanceRing"
 import { Icon } from "@/components/ui/Icon"
 import { getStatusIconName, type IconName } from "@/lib/icons"
@@ -734,8 +735,8 @@ export function DailyAllowanceHero({
             className="flex items-center gap-1.5"
             style={{
               padding: "6px 12px",
-              background: "rgba(255, 255, 255, 0.04)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
+              background: fills[4],
+              border: `1px solid ${fills[8]}`,
               borderRadius: "var(--radius-full)",
               marginTop: 4,
             }}
@@ -761,8 +762,8 @@ export function DailyAllowanceHero({
             className="flex items-center gap-1.5"
             style={{
               padding: "6px 12px",
-              background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.10)",
+              background: fills[5],
+              border: `1px solid ${fills[10]}`,
               borderRadius: "var(--radius-full)",
               marginTop: 4,
             }}
@@ -786,8 +787,8 @@ export function DailyAllowanceHero({
             className="flex items-center gap-1.5"
             style={{
               padding: "6px 12px",
-              background: "rgba(255, 255, 255, 0.04)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
+              background: fills[4],
+              border: `1px solid ${fills[8]}`,
               borderRadius: "var(--radius-full)",
               marginTop: 4,
             }}
@@ -811,8 +812,8 @@ export function DailyAllowanceHero({
             className="flex items-center gap-1.5"
             style={{
               padding: "6px 12px",
-              background: "rgba(255, 255, 255, 0.04)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
+              background: fills[4],
+              border: `1px solid ${fills[8]}`,
               borderRadius: "var(--radius-full)",
               marginTop: 4,
             }}
@@ -836,8 +837,8 @@ export function DailyAllowanceHero({
             className="flex items-center gap-1.5"
             style={{
               padding: "6px 12px",
-              background: "rgba(255, 255, 255, 0.04)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
+              background: fills[4],
+              border: `1px solid ${fills[8]}`,
               borderRadius: "var(--radius-full)",
               marginTop: 4,
             }}
@@ -861,7 +862,7 @@ export function DailyAllowanceHero({
             <motion.div
               className="w-full mt-3"
               style={{
-                background: "rgba(255,255,255,0.04)",
+                background: fills[4],
                 borderRadius: "var(--radius-md)",
                 padding: "12px 16px",
                 overflow: "hidden",
@@ -888,7 +889,7 @@ export function DailyAllowanceHero({
                       padding: "12px 0",
                       borderBottom:
                         index < breakdownRows.length - 1
-                          ? "1px solid rgba(255,255,255,0.06)"
+                          ? `1px solid ${fills[6]}`
                           : "none",
                       color: "var(--sub)",
                     }}
@@ -951,7 +952,7 @@ export function DailyAllowanceHero({
                   <motion.div
                     className="mt-1"
                     style={{
-                      background: "rgba(255,255,255,0.02)",
+                      background: fills[2],
                       borderRadius: "var(--radius-md)",
                       padding: "12px 14px",
                       border: "1px solid var(--border)",

@@ -39,6 +39,9 @@ import {
   TriangleAlert,
   Heart,
   BarChart3,
+  WifiOff,
+  AlertCircle,
+  RefreshCw,
   // Tips
   Brain,
   Bell,
@@ -80,6 +83,13 @@ import {
   Plus,
   ChevronRight,
   Trash2,
+  // Toast
+  CircleCheck,
+  CircleX,
+  Info,
+  // Shared pages
+  Link2Off,
+  HeartHandshake,
 } from 'lucide-react'
 
 import type { TransactionCategory } from '@/types'
@@ -109,6 +119,9 @@ export type IconName =
   | 'status:over'
   | 'status:tracking'
   | 'status:elevated'
+  | 'status:offline'
+  | 'status:error'
+  | 'status:retry'
   // ── Contextual tip indicators (mirror TipType + TIP_EMOJI vocabulary) ─────
   | 'tip:celebration'
   | 'tip:nudge'
@@ -169,6 +182,14 @@ export type IconName =
   | 'action:forward'
   | 'action:edit'
   | 'action:delete'
+  // ── Toast status icons ───────────────────────────────────────────────────
+  | 'toast:success'
+  | 'toast:error'
+  | 'toast:info'
+  // ── Shared / public pages ────────────────────────────────────────────────
+  | 'shared:link-expired'
+  | 'shared:group'
+  | 'shared:support'
 
 /**
  * The registry itself. `satisfies` guarantees every {@link IconName} has a
@@ -195,6 +216,10 @@ export const ICON_REGISTRY = {
   'status:tracking': BarChart3,
   // Tracker-mode "higher than usual" — neutral, informational (never a warning).
   'status:elevated': TrendingUp,
+  // Network/sync status icons (Phase 6 task 265)
+  'status:offline': WifiOff,
+  'status:error': AlertCircle,
+  'status:retry': RefreshCw,
   // ── Contextual tip indicators ─────────────────────────────────────────────
   'tip:celebration': PartyPopper,
   'tip:nudge': Lightbulb,
@@ -255,6 +280,14 @@ export const ICON_REGISTRY = {
   'action:forward': ChevronRight,
   'action:edit': Pencil,
   'action:delete': Trash2,
+  // ── Toast status icons ────────────────────────────────────────────────────
+  'toast:success': CircleCheck,
+  'toast:error': CircleX,
+  'toast:info': Info,
+  // ── Shared / public pages ────────────────────────────────────────────────
+  'shared:link-expired': Link2Off,
+  'shared:group': UsersRound,
+  'shared:support': HeartHandshake,
 } satisfies Record<IconName, LucideIcon>
 
 /**

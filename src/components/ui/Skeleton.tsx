@@ -266,14 +266,21 @@ export interface HomeScreenSkeletonProps {
 }
 
 /**
- * Full-screen loading state that mirrors the intended Home screen layout:
- * a centered allowance ring/hero, a grid of category pills, and a list of
- * recent transaction rows. Keeps the same spacing and shapes as the real
- * content so the crossfade to loaded content is seamless.
+ * Full-screen loading state that accurately mirrors the real Home screen
+ * layout so the crossfade to loaded content is a calm, shift-free transition.
+ *
+ * Sections (top → bottom, matching HomeScreen):
+ *  1. Hero — GlassCard high elevation with ring, amount, message
+ *  2. Quick actions — row of 2 pill buttons + tertiary link
+ *  3. Category budget cards — 2×2 grid with icon, name, progress bar
+ *  4. Recent transactions — header + glass card with timeline rows
+ *  5. Tip card — single card placeholder at the bottom
+ *
+ * Spacing uses the real layout constants: SECTION_SPACING (32px gap),
+ * HORIZONTAL_PADDING (20px sides), spacing.lg (24px top), DOCK_PADDING_BOTTOM
+ * (120px bottom clearance for the floating dock).
  */
 export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeletonProps) {
-  // Mirrors the QuickLogArea category grid and the recent-transactions list.
-  const categoryCount = 6
   const transactionCount = 4
 
   return (
@@ -285,63 +292,194 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 28,
-        padding: "24px 20px",
+        gap: 32, // SECTION_SPACING
+        padding: "24px 20px 120px", // paddingTop: spacing.lg, sides: HORIZONTAL_PADDING, bottom: DOCK_PADDING_BOTTOM
+        maxWidth: 560, // CONTENT_MAX_WIDTH
+        width: "100%",
+        marginLeft: "auto",
+        marginRight: "auto",
         ...style,
       }}
     >
-      {/* ── Allowance ring / hero ── */}
+      {/* ── 1. Hero (GlassCard elevation="high") ── */}
       <div
+        className="glass-card glass-card--high"
         style={{
+          padding: "28px 20px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: 14,
-          paddingTop: 8,
         }}
       >
+        {/* Allowance ring circle */}
         <SkeletonCircle size={180} />
-        <Skeleton width={140} height={14} radius={7} />
-        <Skeleton width={90} height={10} radius={5} />
+        {/* Hero dollar amount */}
+        <Skeleton width={160} height={40} radius={8} />
+        {/* Encouraging message */}
+        <Skeleton width={200} height={14} radius={7} />
+        {/* Context text (spent today / rollover) */}
+        <Skeleton width={120} height={10} radius={5} />
       </div>
 
-      {/* ── Category pills grid ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <Skeleton width={92} height={12} radius={6} />
-        <div
-          className="grid gap-2"
-          style={{ gridTemplateColumns: `repeat(${categoryCount}, 1fr)` }}
-        >
-          {Array.from({ length: categoryCount }).map((_, i) => (
-            <Skeleton key={i} height={80} radius="var(--radius-sm)" />
-          ))}
+      {/* ── 2. Quick Actions (2 pills + tertiary link) ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          {/* Log expense — larger pill */}
+          <Skeleton
+            width="62%"
+            height={54}
+            radius={9999}
+            style={{ flexShrink: 0, flex: "1.6" }}
+          />
+          {/* Log income — smaller ghost pill */}
+          <Skeleton
+            width="38%"
+            height={50}
+            radius={9999}
+            style={{ flexShrink: 0, flex: "1" }}
+          />
+        </div>
+        {/* Tertiary link row */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 12 }}>
+          <Skeleton width={80} height={28} radius={9999} />
+          <Skeleton width={130} height={28} radius={9999} />
         </div>
       </div>
 
-      {/* ── Recent transactions list ── */}
+      {/* ── 3. Category Budget Cards (2×2 grid) ── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <Skeleton width={120} height={12} radius={6} />
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {Array.from({ length: transactionCount }).map((_, i) => (
+        {/* Section header */}
+        <Skeleton width={92} height={11} radius={6} />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 10,
+          }}
+        >
+          {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
+              className="glass-card glass-card--low"
               style={{
+                padding: 14,
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                gap: 12,
-                padding: "14px 0",
-                borderBottom: "1px solid var(--border)",
+                gap: 6,
               }}
             >
-              <SkeletonCircle size={38} />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                <Skeleton width="55%" height={12} radius={6} />
-                <Skeleton width="32%" height={10} radius={5} />
-              </div>
-              <Skeleton width={54} height={14} radius={7} />
+              {/* Category icon (44px) */}
+              <SkeletonCircle size={44} />
+              {/* Category name */}
+              <Skeleton width={52} height={10} radius={5} />
+              {/* Progress bar */}
+              <Skeleton width="100%" height={4} radius={2} />
+              {/* Amount remaining */}
+              <Skeleton width={60} height={9} radius={4} />
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ── 4. Recent Transactions (header + glass card with timeline) ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* Section header row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Skeleton width={56} height={11} radius={6} />
+          <Skeleton width={50} height={10} radius={5} />
+        </div>
+        {/* Transaction list inside a glass card */}
+        <div
+          className="glass-card glass-card--low"
+          style={{ padding: "12px 0" }}
+        >
+          {/* Date group header */}
+          <div style={{ padding: "8px 16px 4px" }}>
+            <Skeleton width={48} height={9} radius={4} />
+          </div>
+          {/* Transaction rows with timeline */}
+          <div style={{ position: "relative", paddingLeft: 16 }}>
+            {/* Vertical timeline line */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                left: 28,
+                top: 8,
+                bottom: 8,
+                width: 1.5,
+                borderRadius: 1,
+                background: "var(--surface)",
+              }}
+            />
+            {Array.from({ length: transactionCount }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 16px 10px 20px",
+                  position: "relative",
+                  borderBottom:
+                    i < transactionCount - 1
+                      ? "1px solid var(--border)"
+                      : undefined,
+                }}
+              >
+                {/* Timeline node dot */}
+                <span
+                  aria-hidden="true"
+                  className="skeleton skeleton--circle"
+                  style={{
+                    position: "absolute",
+                    left: 9,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 7,
+                    height: 7,
+                    display: "block",
+                    flexShrink: 0,
+                  }}
+                />
+                {/* Category icon */}
+                <SkeletonCircle size={32} />
+                {/* Text column */}
+                <div
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 5,
+                    marginLeft: 8,
+                  }}
+                >
+                  <Skeleton width="55%" height={12} radius={6} />
+                  <Skeleton width="32%" height={9} radius={4} />
+                </div>
+                {/* Amount */}
+                <Skeleton width={50} height={14} radius={7} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 5. Tip card placeholder ── */}
+      <div
+        className="glass-card glass-card--low"
+        style={{
+          padding: "20px 16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        <Skeleton width={140} height={12} radius={6} />
+        <Skeleton width="90%" height={10} radius={5} />
+        <Skeleton width="70%" height={10} radius={5} />
       </div>
     </div>
   )

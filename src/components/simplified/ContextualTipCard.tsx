@@ -1,6 +1,7 @@
 "use client"
 
-import { motion, type PanInfo } from "framer-motion"
+import { useState } from "react"
+import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion"
 import { GlassCard, type GlassGlow } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import { getTipIconName } from "@/lib/icons"
@@ -92,9 +93,20 @@ export function ContextualTipCard({
     const swipedFarEnough = Math.abs(info.offset.x) > SWIPE_DISMISS_THRESHOLD
     const flickedFastEnough = Math.abs(info.velocity.x) > SWIPE_DISMISS_VELOCITY
     if (swipedFarEnough || flickedFastEnough) {
+      // Record swipe direction for directional exit animation
+      setSwipeDirection(info.offset.x > 0 ? 1 : -1)
       onDismiss()
     }
   }
+
+  // Track drag X for rubber-band tilt and opacity fade
+  const dragX = useMotionValue(0)
+  // Slight rotation in swipe direction: max ±4deg at ±150px
+  const dragRotate = useTransform(dragX, [-150, 0, 150], [-4, 0, 4])
+  // Fade opacity as user drags further: 1 → 0.4 at ±200px
+  const dragOpacity = useTransform(dragX, [-200, 0, 200], [0.4, 1, 0.4])
+  // Track which direction the card was swiped for directional exit
+  const [swipeDirection, setSwipeDirection] = useState<number>(1)
 
   // Entrance: slide in from the right with a spring + slight rotation.
   // Reduced motion collapses this to a gentle fade.
@@ -104,9 +116,10 @@ export function ContextualTipCard({
   const animate = prefersReducedMotion
     ? { opacity: 1 }
     : { opacity: 1, x: 0, rotate: 0 }
+  // Directional exit: slide out in the direction the user swiped
   const exit = prefersReducedMotion
     ? { opacity: 0, transition: timings.fast }
-    : { opacity: 0, x: 32, scale: 0.96, transition: timings.normal }
+    : { opacity: 0, x: swipeDirection * 200, scale: 0.94, rotate: swipeDirection * 6, transition: timings.normal }
 
   return (
     <motion.div
@@ -122,9 +135,12 @@ export function ContextualTipCard({
       dragElastic={0.6}
       onDragEnd={handleDragEnd}
       whileDrag={{ cursor: "grabbing" }}
-      style={{ touchAction: "pan-y" }}
+      style={{ touchAction: "pan-y", x: dragX, rotate: prefersReducedMotion ? 0 : dragRotate, opacity: prefersReducedMotion ? undefined : dragOpacity }}
     >
       <GlassCard elevation="low" glow={style.glow} className="relative overflow-hidden">
+        {/* Frosted-noise texture overlay for subtle depth */}
+        <span aria-hidden="true" className="tip-noise-overlay" />
+
         {/* Gradient accent bar on the left edge, colored by tip type */}
         <span
           aria-hidden="true"

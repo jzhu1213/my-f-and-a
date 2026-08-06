@@ -14,6 +14,8 @@ import {
   segmentedButtonBase,
   segmentedButtonActive,
   segmentedButtonInactive,
+  fills,
+  colorRamp,
 } from "@/styles/shared"
 import type { FundingSource, FundingSourceKind } from "@/lib/fundingSources"
 
@@ -206,8 +208,8 @@ export function FundingSourcesScreen({
             onClick={openAddForm}
             aria-label="Add payment method"
             style={{
-              background: "rgba(255, 255, 255, 0.06)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
+              background: fills[6],
+              border: `1px solid ${fills[10]}`,
               borderRadius: 9999,
               width: 36,
               height: 36,
@@ -264,7 +266,7 @@ export function FundingSourcesScreen({
                     border:
                       form.emoji === emoji
                         ? "1.5px solid var(--success)"
-                        : "1px solid rgba(255, 255, 255, 0.08)",
+                        : `1px solid ${fills[8]}`,
                     background:
                       form.emoji === emoji
                         ? "rgba(6, 214, 160, 0.1)"
@@ -300,8 +302,8 @@ export function FundingSourcesScreen({
                 width: "100%",
                 padding: "10px 12px",
                 borderRadius: 8,
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                background: "rgba(255, 255, 255, 0.04)",
+                border: `1px solid ${fills[10]}`,
+                background: fills[4],
                 color: "var(--text)",
                 fontSize: 14,
                 fontFamily: FONT_FAMILY,
@@ -360,7 +362,7 @@ export function FundingSourcesScreen({
                   borderRadius: 8,
                   border: form.reducesBalanceNow
                     ? "1.5px solid var(--success)"
-                    : "1px solid rgba(255, 255, 255, 0.08)",
+                    : `1px solid ${fills[8]}`,
                   background: form.reducesBalanceNow
                     ? "rgba(6, 214, 160, 0.08)"
                     : "transparent",
@@ -385,7 +387,7 @@ export function FundingSourcesScreen({
                   borderRadius: 8,
                   border: !form.reducesBalanceNow
                     ? "1.5px solid var(--warning, #f59e0b)"
-                    : "1px solid rgba(255, 255, 255, 0.08)",
+                    : `1px solid ${fills[8]}`,
                   background: !form.reducesBalanceNow
                     ? "rgba(245, 158, 11, 0.08)"
                     : "transparent",
@@ -413,7 +415,7 @@ export function FundingSourcesScreen({
                 flex: 1,
                 padding: "10px 0",
                 borderRadius: 8,
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                border: `1px solid ${fills[10]}`,
                 background: "transparent",
                 color: "var(--sub)",
                 fontSize: 13,
@@ -435,7 +437,7 @@ export function FundingSourcesScreen({
                 border: "none",
                 background: form.label.trim()
                   ? "var(--success)"
-                  : "rgba(255, 255, 255, 0.06)",
+                  : fills[6],
                 color: form.label.trim() ? "#000" : "var(--muted)",
                 fontSize: 13,
                 fontWeight: 600,
@@ -561,8 +563,8 @@ export function FundingSourcesScreen({
                           fontWeight: 500,
                           padding: "2px 8px",
                           borderRadius: 9999,
-                          background: "rgba(255, 255, 255, 0.06)",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
+                          background: fills[6],
+                          border: `1px solid ${fills[8]}`,
                           color: "var(--sub)",
                           fontFamily: FONT_FAMILY,
                         }}
