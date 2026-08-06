@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/Card"
 import type { Debt, DebtType } from "@/types/folio"
 import { DEBT_TYPES } from "@/types/folio"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -101,7 +101,7 @@ const labelStyle: React.CSSProperties = {
 
 /**
  * DebtScreen — full-screen UI to add/edit/list debts (student loans,
- * credit cards, etc.). Reached from Settings. Uses GlassCard + Inter + warm palette.
+ * credit cards, etc.). Reached from Settings. Uses Card + Inter + warm palette.
  */
 export function DebtScreen({
   debts,
@@ -229,7 +229,7 @@ export function DebtScreen({
       </div>
 
       {/* ── Summary Card ───────────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+      <Card style={{ padding: "18px 20px", marginBottom: 20 }}>
         <p style={sectionHeader}>Total Balance</p>
         <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
           ${totalBalance.toLocaleString("en-US", { maximumFractionDigits: 0 })}
@@ -238,10 +238,10 @@ export function DebtScreen({
           ${totalMinimum.toLocaleString("en-US", { maximumFractionDigits: 0 })}
           <span style={{ marginLeft: 3 }}>/mo minimum</span>
         </p>
-      </GlassCard>
+      </Card>
 
       {/* ── Debts List ─────────────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+      <Card style={{ padding: "18px 20px", marginBottom: 20 }}>
         <p style={sectionHeader}>Your Debts</p>
 
         {debts.length === 0 && !showAddForm && (
@@ -377,7 +377,7 @@ export function DebtScreen({
             + Add debt
           </motion.button>
         )}
-      </GlassCard>
+      </Card>
 
       {/* ── Multi-Debt Payoff Comparison ───────────────────────────────────── */}
       <MultiDebtPayoffCard debts={debts} />

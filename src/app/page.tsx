@@ -28,6 +28,7 @@ import { getGoalDefaults } from '@/lib/goalDefaults'
 import { getCategorizationRules, saveCategorizationRule, updateCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
 import { getActiveShareLinks } from '@/lib/sharingUtils'
 import type { CategorizationRule, CategorizationRuleUpdate } from '@/lib/categorizationRules'
+import { shadows } from '@/styles/shared'
 
 // ── Code-split: heavy/advanced features loaded on demand ─────────────────────
 // These screens are behind progressive disclosure (Tools tab, settings overlays)
@@ -2139,7 +2140,7 @@ export default function FolioApp() {
         avatarUrl={undefined}
         avatarInitial={user?.email?.charAt(0)}
         meshVariant="home"
-        onQuickLog={anySheetOpen ? undefined : () => overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: false })}
+        onQuickLog={anySheetOpen ? undefined : () => overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: false, originFromFab: true })}
         hideDock={anySheetOpen}
       >
         {(offlinePendingCount > 0 || offlineRecentlySyncedIds.size > 0) && (
@@ -2329,6 +2330,7 @@ export default function FolioApp() {
         categorizationRules={categorizationRules}
         onAddCategorizationRule={handleAddCategorizationRule}
         dailyAllowanceAmount={allowance?.amount}
+        originFromFab={overlay.getSheetPayload('expense')?.originFromFab ?? false}
       />
 
       {/* ── Quick-log confirm sheet (task 180.1 — share sheet & assistant) ── */}
@@ -2362,7 +2364,7 @@ export default function FolioApp() {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 12,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            boxShadow: shadows.lg,
           }}
           role="status"
           aria-live="polite"

@@ -12,6 +12,7 @@ import {
   segmentedButtonBase,
   segmentedButtonActive,
   segmentedButtonInactive,
+  shadows,
 } from "@/styles/shared"
 import {
   getReminderPreferences,
@@ -121,9 +122,9 @@ function NudgeToggle({
             style={{
               width: 22,
               height: 22,
-              borderRadius: 11,
+              borderRadius: borderRadius.md,
               background: enabled ? "#fff" : "rgba(255, 255, 255, 0.5)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+              boxShadow: shadows.sm,
             }}
           />
         </motion.button>

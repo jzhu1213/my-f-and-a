@@ -28,6 +28,12 @@ export interface BottomSheetProps {
    * Default: false.
    */
   preventClose?: boolean
+  /**
+   * When true, animates the sheet in from the FAB origin (center-bottom scale)
+   * rather than sliding up from the bottom edge. Creates the illusion of the
+   * FAB expanding into the sheet. Default: false.
+   */
+  originFromFab?: boolean
 }
 
 // ============================================================================
@@ -47,6 +53,27 @@ const sheetVariantsFull = {
   hidden: { y: "100%" },
   visible: { y: "0%", transition: sheetSpring },
   exit: { y: "100%", transition: { type: "tween" as const, duration: 0.25, ease: "easeIn" as const } },
+}
+
+/**
+ * Origin-scale variants: the sheet scales up from the FAB position (center-bottom)
+ * giving the illusion of the FAB morphing into the full sheet. GPU-composited
+ * (scale + opacity + translateY only).
+ */
+const sheetVariantsFabOrigin = {
+  hidden: { opacity: 0, scale: 0.3, y: "40%" },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: "0%",
+    transition: sheetSpring,
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.4,
+    y: "30%",
+    transition: { type: "tween" as const, duration: 0.2, ease: "easeIn" as const },
+  },
 }
 
 const sheetVariantsReduced = {
@@ -94,6 +121,7 @@ export function BottomSheet({
   className,
   ariaLabel,
   preventClose = false,
+  originFromFab = false,
 }: BottomSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -178,7 +206,11 @@ export function BottomSheet({
     }
   }, [isOpen, handleKeyDown, getFocusableElements])
 
-  const sheetVars = prefersReducedMotion ? sheetVariantsReduced : sheetVariantsFull
+  const sheetVars = prefersReducedMotion
+    ? sheetVariantsReduced
+    : originFromFab
+      ? sheetVariantsFabOrigin
+      : sheetVariantsFull
 
   // ── Drag-to-dismiss handler ─────────────────────────────────────────────
   const handleDragEnd = useCallback(
@@ -245,6 +277,7 @@ export function BottomSheet({
               overflow: "hidden",
               willChange: "transform",
               transform: "translate3d(0, 0, 0)",
+              transformOrigin: originFromFab ? "center bottom" : undefined,
               paddingBottom: "max(32px, env(safe-area-inset-bottom))",
             }}
           >

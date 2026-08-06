@@ -24,7 +24,7 @@ import { getCategoryEmoji } from '@/lib/vocabulary'
 import { Icon } from '@/components/ui/Icon'
 import { CUSTOM_CATEGORY_ICON_CHOICES, type IconName } from '@/lib/icons'
 import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius, roundButton } from '@/styles/shared'
+import { borderRadius, roundButton, shadows } from '@/styles/shared'
 import { TagInput } from './TagInput'
 import { getRecentTags } from '@/lib/tagUtils'
 import type { FundingSource } from '@/lib/fundingSources'
@@ -76,6 +76,11 @@ interface ExpenseSheetProps {
    * entering an amount. Reinforces the core "can I afford this?" identity. (Task 117.1)
    */
   dailyAllowanceAmount?: number
+  /**
+   * When true, animates the sheet in from the FAB's center-bottom position
+   * (origin-scale) rather than the default slide-up. (Task 246.2)
+   */
+  originFromFab?: boolean
 }
 
 // ── Date helper utilities (task 87.1) ────────────────────────────────────
@@ -158,6 +163,7 @@ export function ExpenseSheet({
   categorizationRules = [],
   onAddCategorizationRule,
   dailyAllowanceAmount,
+  originFromFab = false,
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
@@ -538,7 +544,7 @@ export function ExpenseSheet({
     : { tap: { scale: 1.3 } }
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} minHeight="50vh" ariaLabel="Log expense">
+    <BottomSheet isOpen={isOpen} onClose={onClose} minHeight="50vh" ariaLabel="Log expense" originFromFab={originFromFab}>
       <div style={{ padding: '0 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
               {habitChips.length > 0 && (
                 <div
@@ -985,7 +991,7 @@ export function ExpenseSheet({
                             WebkitBackdropFilter: 'blur(8px)',
                             background: 'rgba(129, 140, 248, 0.08)',
                             border: '1.5px solid rgba(129, 140, 248, 0.4)',
-                            boxShadow: '0 0 12px rgba(129, 140, 248, 0.15)',
+                            boxShadow: shadows.glowAccent,
                           }
                         : {
                             background: 'rgba(255, 255, 255, 0.03)',
@@ -1056,7 +1062,7 @@ export function ExpenseSheet({
                               WebkitBackdropFilter: 'blur(8px)',
                               background: 'rgba(129, 140, 248, 0.08)',
                               border: '1.5px solid rgba(129, 140, 248, 0.4)',
-                              boxShadow: '0 0 12px rgba(129, 140, 248, 0.15)',
+                              boxShadow: shadows.glowAccent,
                             }
                           : {
                               background: 'rgba(255, 255, 255, 0.03)',
@@ -2384,7 +2390,7 @@ export function ExpenseSheet({
                   border: 'none',
                   cursor: canSubmit ? 'pointer' : 'not-allowed',
                   opacity: canSubmit ? 1 : 0.5,
-                  boxShadow: canSubmit ? '0 4px 16px rgba(129, 140, 248, 0.3)' : 'none',
+                  boxShadow: canSubmit ? shadows.glowAccentStrong : 'none',
                 }}
               >
                 Log

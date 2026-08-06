@@ -27,6 +27,7 @@ import {
   segmentedButtonActive,
   segmentedButtonInactive,
   dangerZone,
+  shadows,
 } from "@/styles/shared"
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 import { RegionSettings } from "./RegionSettings"
@@ -35,6 +36,7 @@ import { AppLockSetting } from "./AppLockSetting"
 import { SessionsSetting } from "./SessionsSetting"
 import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
 import { getSavingsRateBadgeEnabled, setSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
+import { getPaceIndicatorEnabled, setPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
 import { getPeerContextEnabled, setPeerContextEnabled } from "@/lib/peerContextPreferences"
 import { useFeatureFlags } from "@/hooks/useFeatureFlags"
 import type { FeatureFlags } from "@/lib/featureFlags"
@@ -462,6 +464,7 @@ export function SettingsScreen({
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [insightsEnabled, setInsightsEnabledState] = useState(() => getInsightsEnabled())
   const [savingsRateBadgeEnabled, setSavingsRateBadgeEnabledState] = useState(() => getSavingsRateBadgeEnabled())
+  const [paceIndicatorEnabled, setPaceIndicatorEnabledState] = useState(() => getPaceIndicatorEnabled())
   const [peerContextEnabled, setPeerContextEnabledState] = useState(() => getPeerContextEnabled())
   const [countCreditImmediately, setCountCreditImmediatelyState] = useState(countCreditImmediatelyProp ?? true)
 
@@ -1033,7 +1036,7 @@ export function SettingsScreen({
                       borderRadius: "50%",
                       background: flags[item.key] ? "#fff" : "rgba(255,255,255,0.4)",
                       transition: "left 0.2s ease, background 0.2s ease",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                      boxShadow: shadows.sm,
                     }}
                   />
                 </motion.button>
@@ -1105,7 +1108,55 @@ export function SettingsScreen({
                     width: 20, height: 20, borderRadius: "50%",
                     background: savingsRateBadgeEnabled ? "#fff" : "rgba(255,255,255,0.4)",
                     transition: "left 0.2s ease, background 0.2s ease",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    boxShadow: shadows.sm,
+                  }}
+                />
+              </motion.button>
+            </div>
+
+            {/* Spending-pace indicator toggle (task 250) */}
+            <div
+              style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "12px 0",
+                borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+              }}
+            >
+              <div style={{ flex: 1, marginRight: 12 }}>
+                <span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>
+                  Show spending-pace indicator
+                </span>
+                <span style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.4, marginTop: 2, display: "block" }}>
+                  A subtle sparkline showing today&apos;s spend pace vs. your typical day
+                </span>
+              </div>
+              <motion.button
+                type="button"
+                role="switch"
+                aria-checked={paceIndicatorEnabled}
+                aria-label="Show spending-pace indicator on home screen"
+                onClick={() => {
+                  const next = !paceIndicatorEnabled
+                  setPaceIndicatorEnabledState(next)
+                  setPaceIndicatorEnabled(next)
+                }}
+                whileTap={{ scale: 0.92 }}
+                transition={springs.snappy}
+                style={{
+                  flexShrink: 0, width: 44, height: 26, borderRadius: 13,
+                  border: "none", cursor: "pointer",
+                  background: paceIndicatorEnabled ? "rgba(167, 139, 250, 0.6)" : "rgba(255, 255, 255, 0.1)",
+                  position: "relative", transition: "background 0.2s ease",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute", top: 3,
+                    left: paceIndicatorEnabled ? 21 : 3,
+                    width: 20, height: 20, borderRadius: "50%",
+                    background: paceIndicatorEnabled ? "#fff" : "rgba(255,255,255,0.4)",
+                    transition: "left 0.2s ease, background 0.2s ease",
+                    boxShadow: shadows.sm,
                   }}
                 />
               </motion.button>
@@ -1925,7 +1976,7 @@ export function SettingsScreen({
                     width: 20, height: 20, borderRadius: "50%",
                     background: insightsEnabled ? "#fff" : "rgba(255,255,255,0.4)",
                     transition: "left 0.2s ease, background 0.2s ease",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    boxShadow: shadows.sm,
                   }}
                 />
               </motion.button>
@@ -1972,7 +2023,7 @@ export function SettingsScreen({
                     width: 20, height: 20, borderRadius: "50%",
                     background: peerContextEnabled ? "#fff" : "rgba(255,255,255,0.4)",
                     transition: "left 0.2s ease, background 0.2s ease",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    boxShadow: shadows.sm,
                   }}
                 />
               </motion.button>
@@ -2020,7 +2071,7 @@ export function SettingsScreen({
                       width: 20, height: 20, borderRadius: "50%",
                       background: countCreditImmediately ? "#fff" : "rgba(255,255,255,0.4)",
                       transition: "left 0.2s ease, background 0.2s ease",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                      boxShadow: shadows.sm,
                     }}
                   />
                 </motion.button>

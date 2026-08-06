@@ -12,6 +12,7 @@ import {
   sectionHeader,
   linkButton,
   listRow,
+  shadows,
 } from "@/styles/shared"
 import type { Reimbursement, ReimbursementDirection, SettleUpEntry } from "@/lib/reimbursements"
 import { getNetBalance, getNetSummary, validateReimbursement, computeSettleUpLedger, generateReminder } from "@/lib/reimbursements"
@@ -320,7 +321,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
               cursor: "pointer",
               color: activeTab === tab ? "var(--text)" : "var(--muted)",
               background: activeTab === tab ? "rgba(255,255,255,0.08)" : "transparent",
-              boxShadow: activeTab === tab ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+              boxShadow: activeTab === tab ? shadows.sm : "none",
               transition: "background 0.2s, color 0.2s",
             }}
             aria-pressed={activeTab === tab}

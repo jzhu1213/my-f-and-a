@@ -11,3 +11,5 @@ export type {
 } from './useOverlayRouter'
 export { useRubberBand } from './useRubberBand'
 export type { UseRubberBandOptions, UseRubberBandReturn } from './useRubberBand'
+export { useTimeOfDay } from './useTimeOfDay'
+export type { TimePeriod, TimeAtmosphere } from './useTimeOfDay'

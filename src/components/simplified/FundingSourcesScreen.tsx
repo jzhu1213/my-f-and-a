@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/Card"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -73,7 +73,7 @@ const DEFAULT_FORM: FormState = {
  * FundingSourcesScreen — Manage payment methods / funding sources.
  *
  * Allows users to add, edit, and remove funding sources. Each source is
- * displayed as a GlassCard with emoji, label, kind badge, and settlement
+ * displayed as a Card with emoji, label, kind badge, and settlement
  * indicator. Reachable from Settings → Tools area (progressive disclosure).
  *
  * Requirements: 8.1, 8.4
@@ -514,7 +514,7 @@ export function FundingSourcesScreen({
               whileTap={{ scale: 0.98 }}
               transition={springs.snappy}
             >
-              <GlassCard elevation="low" style={{ padding: "14px 16px" }}>
+              <Card style={{ padding: "14px 16px" }}>
                 <div
                   style={{
                     display: "flex",
@@ -655,7 +655,7 @@ export function FundingSourcesScreen({
                     </button>
                   </div>
                 </div>
-              </GlassCard>
+              </Card>
             </motion.div>
           ))}
         </div>

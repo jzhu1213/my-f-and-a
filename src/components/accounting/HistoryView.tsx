@@ -7,6 +7,7 @@ import type { FundingSource } from '@/lib/fundingSources'
 import { shiftMonth, toMonthString } from '@/lib/budgetUtils'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { springs } from '@/lib/animations'
+import { borderRadius } from '@/styles/shared'
 
 interface HistoryViewProps {
   transactions: Transaction[]
@@ -51,7 +52,7 @@ export function HistoryView({
         }}
       >
         {/* Month selector card */}
-        <GlassCard elevation="low" style={{ padding: "20px", borderRadius: 14 }}>
+        <GlassCard elevation="low" style={{ padding: "20px", borderRadius: borderRadius.lg }}>
           <h2
             style={{
               fontSize: 12,
@@ -130,7 +131,7 @@ export function HistoryView({
 
         {/* Transaction list */}
         {isLoading ? (
-          <GlassCard elevation="low" style={{ padding: "32px 20px", borderRadius: 14 }}>
+          <GlassCard elevation="low" style={{ padding: "32px 20px", borderRadius: borderRadius.lg }}>
             <div className="flex flex-col items-center justify-center gap-4">
               <div
                 className="w-6 h-6 animate-spin"

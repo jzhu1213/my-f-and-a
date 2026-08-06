@@ -9,7 +9,7 @@ import { computeBudgetSummary, computeDailyEquivalent } from "@/lib/budgetSummar
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, TransactionCategory } from "@/types"
 import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, segmentedControl, segmentedButtonBase } from "@/styles/shared"
+import { borderRadius, segmentedControl, segmentedButtonBase, shadows } from "@/styles/shared"
 
 // ============================================================================
 // Limit-type persistence helpers (localStorage, keyed per category)
@@ -752,7 +752,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                 ...segmentedButtonBase,
                                 background: !isFirm ? "rgba(255,255,255,0.08)" : "transparent",
                                 color: !isFirm ? "var(--text)" : "var(--muted)",
-                                boxShadow: !isFirm ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                                boxShadow: !isFirm ? shadows.sm : "none",
                               }}
                             >
                               Soft
@@ -767,7 +767,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                 ...segmentedButtonBase,
                                 background: isFirm ? "rgba(249, 115, 22, 0.15)" : "transparent",
                                 color: isFirm ? "#f97316" : "var(--muted)",
-                                boxShadow: isFirm ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                                boxShadow: isFirm ? shadows.sm : "none",
                               }}
                             >
                               Firm
@@ -818,7 +818,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                 ...segmentedButtonBase,
                                 background: !isWeekly && !isPaydayAligned && !isSemester ? "rgba(255,255,255,0.08)" : "transparent",
                                 color: !isWeekly && !isPaydayAligned && !isSemester ? "var(--text)" : "var(--muted)",
-                                boxShadow: !isWeekly && !isPaydayAligned && !isSemester ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                                boxShadow: !isWeekly && !isPaydayAligned && !isSemester ? shadows.sm : "none",
                               }}
                             >
                               Monthly
@@ -833,7 +833,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                 ...segmentedButtonBase,
                                 background: isWeekly ? "rgba(129, 140, 248, 0.15)" : "transparent",
                                 color: isWeekly ? "var(--accent)" : "var(--muted)",
-                                boxShadow: isWeekly ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                                boxShadow: isWeekly ? shadows.sm : "none",
                               }}
                             >
                               Weekly
@@ -849,7 +849,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                   ...segmentedButtonBase,
                                   background: isPaydayAligned ? "rgba(52, 211, 153, 0.15)" : "transparent",
                                   color: isPaydayAligned ? "var(--success)" : "var(--muted)",
-                                  boxShadow: isPaydayAligned ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                                  boxShadow: isPaydayAligned ? shadows.sm : "none",
                                 }}
                               >
                                 Payday cycle
@@ -865,7 +865,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                 ...segmentedButtonBase,
                                 background: isSemester ? "rgba(251, 191, 36, 0.15)" : "transparent",
                                 color: isSemester ? "var(--warning)" : "var(--muted)",
-                                boxShadow: isSemester ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                                boxShadow: isSemester ? shadows.sm : "none",
                               }}
                             >
                               Semester
@@ -1134,7 +1134,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                 height: 24,
                 borderRadius: borderRadius.md,
                 background: "#fff",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                boxShadow: shadows.sm,
               }}
             />
           </motion.button>

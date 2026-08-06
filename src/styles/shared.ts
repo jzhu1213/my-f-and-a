@@ -240,8 +240,53 @@ export const borderRadius = {
 } as const
 
 // ============================================================================
+// Elevation shadow tokens (Phase 6 — task 244.2)
+// ============================================================================
+
+/**
+ * Tokenized shadow scale referencing the CSS custom properties defined in
+ * globals.css `:root`. Use these in inline styles instead of raw rgba values.
+ *
+ * | Token | Use case |
+ * |-------|----------|
+ * | sm | Toggle knobs, small UI controls |
+ * | md | Cards, segmented controls |
+ * | lg | Elevated panels, toasts, sheets |
+ * | xl | Overlays, hero glass, dropdowns |
+ * | glowAccent | Selected states, subtle accent glow |
+ * | glowAccentStrong | CTA buttons, prominent accent glow |
+ */
+export const shadows = {
+  sm: "var(--shadow-sm)",
+  md: "var(--shadow-md)",
+  lg: "var(--shadow-lg)",
+  xl: "var(--shadow-xl)",
+  glowAccent: "var(--shadow-glow-accent)",
+  glowAccentStrong: "var(--shadow-glow-accent-strong)",
+} as const
+
+// ============================================================================
 // Common surface patterns
 // ============================================================================
+
+/**
+ * ## Surface Hierarchy (Phase 6 — task 243)
+ *
+ * Folio uses three surface tiers to create clear visual hierarchy:
+ *
+ * | Tier | Component | When to use | Example |
+ * |------|-----------|-------------|---------|
+ * | 1 — Hero/Overlay | `GlassCard elevation="high"` | Single focal hero, celebration overlays, bottom sheets | DailyAllowanceHero, CelebrationOverlay |
+ * | 2 — Primary Card | `GlassCard elevation="low"\|"medium"` | Featured insight cards, contextual tips, growth outlook | ContextualTipCard, CombinedGrowthOutlook |
+ * | 3 — List/Dense | `Card` | Goal items, debt rows, category rows, settings, funding sources | GoalsScreen items, DebtScreen list |
+ *
+ * **Rules:**
+ * - Never use `GlassCard` for repeating list items — the blur/shadow stacks
+ *   create visual noise and collapse hierarchy.
+ * - `Card` uses `var(--surface)` (opaque), no `backdrop-filter`, quiet shadow.
+ * - Both share `var(--radius-md)` (12px) for consistent rounding.
+ * - Glass is reserved for surfaces that need to "float" above the mesh.
+ */
 
 /**
  * Glass surface — translucent background with backdrop blur, used for
@@ -276,7 +321,7 @@ export const segmentedControl: CSSProperties = {
 export const segmentedButtonBase: CSSProperties = {
   flex: 1,
   padding: "10px 0",
-  borderRadius: 9,
+  borderRadius: borderRadius.sm,
   border: "none",
   fontSize: pxToRem(13),
   fontWeight: 500,
@@ -289,7 +334,7 @@ export const segmentedButtonBase: CSSProperties = {
 export const segmentedButtonActive: CSSProperties = {
   color: "var(--text)",
   background: "rgba(255, 255, 255, 0.08)",
-  boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+  boxShadow: shadows.sm,
 }
 
 export const segmentedButtonInactive: CSSProperties = {

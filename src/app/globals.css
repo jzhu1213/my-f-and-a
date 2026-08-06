@@ -75,6 +75,14 @@
   --radius-md: 12px;   /* cards, inputs */
   --radius-lg: 16px;   /* modals, sheets */
   --radius:    8px;
+
+  /* Elevation shadows — tokenized scale */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.15);
+  --shadow-xl: 0 12px 40px rgba(0,0,0,0.4), 0 6px 12px rgba(0,0,0,0.2);
+  --shadow-glow-accent: 0 0 12px rgba(129, 140, 248, 0.15);
+  --shadow-glow-accent-strong: 0 4px 16px rgba(129, 140, 248, 0.3);
 }
 
 /* Dark theme option - original brutalist aesthetic */
@@ -110,6 +118,14 @@
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius:    4px;
+
+  /* Elevation shadows — same tokens, slightly deeper for pure-black bg */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.28), 0 2px 4px rgba(0,0,0,0.14);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.38), 0 4px 8px rgba(0,0,0,0.2);
+  --shadow-xl: 0 12px 40px rgba(0,0,0,0.5), 0 6px 12px rgba(0,0,0,0.25);
+  --shadow-glow-accent: 0 0 12px rgba(129, 140, 248, 0.12);
+  --shadow-glow-accent-strong: 0 4px 16px rgba(129, 140, 248, 0.25);
 }
 
 /* ── Gradient accent utilities ───────────────────────────────────── */
@@ -737,35 +753,35 @@ input[type="date"] {
 
 /* Elevation — controls blur intensity, rim brightness and shadow depth */
 .glass-card--low {
-  backdrop-filter: blur(4px) saturate(125%);
-  -webkit-backdrop-filter: blur(4px) saturate(125%);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  --glass-border-top: rgba(129, 140, 248, 0.05);
+  backdrop-filter: blur(6px) saturate(130%);
+  -webkit-backdrop-filter: blur(6px) saturate(130%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --glass-border-top: rgba(129, 140, 248, 0.06);
 }
 
 .glass-card--medium {
-  backdrop-filter: blur(5px) saturate(140%);
-  -webkit-backdrop-filter: blur(5px) saturate(140%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-  --glass-border-top: rgba(129, 140, 248, 0.08);
+  backdrop-filter: blur(10px) saturate(145%);
+  -webkit-backdrop-filter: blur(10px) saturate(145%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.12);
+  --glass-border-top: rgba(129, 140, 248, 0.12);
 }
 
 .glass-card--high {
-  backdrop-filter: blur(8px) saturate(150%);
-  -webkit-backdrop-filter: blur(8px) saturate(150%);
-  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.4);
-  --glass-border-top: rgba(129, 140, 248, 0.10);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --glass-border-top: rgba(129, 140, 248, 0.16);
 }
 
 /* Contextual colored halo — layered on top of the elevation drop-shadow */
 .glass-card--glow.glass-card--low {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 20px 0 var(--glass-glow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 16px 0 var(--glass-glow);
 }
 .glass-card--glow.glass-card--medium {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 28px 0 var(--glass-glow);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.12), 0 0 24px 0 var(--glass-glow);
 }
 .glass-card--glow.glass-card--high {
-  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.4), 0 0 40px 2px var(--glass-glow);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2), 0 0 40px 2px var(--glass-glow);
 }
 
 /* Fallback for browsers without backdrop-filter: use a solid-ish surface so
@@ -774,6 +790,20 @@ input[type="date"] {
   .glass-card {
     background: rgba(17, 24, 39, 0.95); /* --surface with high opacity */
   }
+}
+
+/* ── Solid card (Tier 3 — list rows, dense content) ─────────────── */
+/*
+ * Non-glass surface for list items, settings rows, and dense content.
+ * Uses an opaque background (no backdrop-filter), quiet shadow, and shared
+ * radius tokens. Reserves glassmorphism for Tier 1/2 focal surfaces.
+ */
+.card {
+  position: relative;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 /* Subtle scan-line texture for added depth */
@@ -956,22 +986,22 @@ input[type="date"] {
   100% { background-position: 0% center; }
 }
 
-/* Breathing ambient light behind the number */
+/* Breathing ambient light behind the number (Task 248.1: more pronounced, Task 249.1: time-of-day rhythm) */
 .hero-breathe {
   will-change: transform, opacity;
-  animation: hero-breathe 4.5s ease-in-out infinite;
+  animation: hero-breathe var(--hero-breathe-duration, 4.5s) ease-in-out infinite;
 }
 
 @keyframes hero-breathe {
-  0%, 100% { transform: scale(1);    opacity: 0.85; }
-  50%      { transform: scale(1.03); opacity: 0.95; }
+  0%, 100% { transform: scale(1);                                    opacity: var(--hero-breathe-opacity-min, 0.7); }
+  50%      { transform: scale(var(--hero-breathe-scale, 1.05));      opacity: var(--hero-breathe-opacity-max, 0.95); }
 }
 
-/* Barely-visible particle shimmer around the ring (healthy status only) */
+/* Barely-visible particle shimmer around the ring (Task 248.1: larger, more visible) */
 .hero-shimmer-particle {
   position: absolute;
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--success);
   opacity: 0;
@@ -982,7 +1012,7 @@ input[type="date"] {
 
 @keyframes hero-shimmer {
   0%, 100% { opacity: 0;    transform: scale(0.5); }
-  50%      { opacity: 0.25; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(1); }
 }
 
 /* Reduced motion — freeze the shifting gradient, breathing and shimmer */
@@ -1207,7 +1237,35 @@ input[type="date"] {
   background: rgba(10, 15, 26, 0.45);
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid transparent;
+}
+
+/*
+ * Scroll-aware bottom divider (Task 247.1):
+ * A gradient divider that fades in once content scrolls beneath the bar,
+ * replacing the previous static border. Uses a pseudo-element so the gradient
+ * can run from transparent → accent-tinted → transparent for a soft edge.
+ * Respects prefers-reduced-motion by skipping the opacity transition.
+ */
+.app-topbar::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(129, 140, 248, 0.18) 30%, rgba(255, 255, 255, 0.08) 50%, rgba(129, 140, 248, 0.18) 70%, transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.app-topbar--scrolled::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-topbar::after {
+    transition: none;
+  }
 }
 
 /* Shared round icon-button base for top-bar controls */
@@ -1222,7 +1280,7 @@ input[type="date"] {
   color: var(--sub);
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
-  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
 .app-topbar__avatar:hover,
@@ -1237,9 +1295,35 @@ input[type="date"] {
   transform: scale(0.94);
 }
 
+/*
+ * Avatar ring + soft shadow (Task 247.1):
+ * A 1.5px accent-tinted ring via box-shadow (inset + outset) so it works
+ * equally for images, initials, and the person-icon fallback. The outer
+ * shadow adds a subtle float. Contrast remains AA-safe as the ring is
+ * decorative and the avatar itself is not text.
+ */
 .app-topbar__avatar {
   overflow: hidden;
   padding: 0;
+  box-shadow:
+    0 0 0 1.5px rgba(129, 140, 248, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/*
+ * Settings button affordance (Task 247.1):
+ * A very subtle accent-tinted background and slightly brighter border give
+ * the settings gear just enough presence to feel tappable without breaking
+ * the minimal chrome aesthetic.
+ */
+.app-topbar__btn {
+  background: rgba(129, 140, 248, 0.06);
+  border-color: rgba(129, 140, 248, 0.14);
+}
+
+.app-topbar__btn:hover {
+  background: rgba(129, 140, 248, 0.12);
+  border-color: rgba(129, 140, 248, 0.28);
 }
 
 .app-topbar__avatar-img {
@@ -1350,16 +1434,43 @@ input[type="date"] {
   z-index: 45;
   padding: 8px;
   border-radius: var(--radius-md);
-  /* Frosted glass matching the warm mesh backdrop */
+  /* Frosted glass matching the warm mesh backdrop — stronger blur for floating feel */
   background: rgba(17, 24, 39, 0.45);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 0.5px solid rgba(129, 140, 248, 0.1);
-  /* Soft *upward* shadow so it lifts off the content below */
+  /* Soft *upward* shadow + top highlight so it reads as truly floating */
   box-shadow:
     0 -1px 6px rgba(0, 0, 0, 0.15),
     0 -6px 20px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+  /* Dock morph transitions (245.2) — GPU-composited */
+  transition: padding 0.2s ease;
+}
+
+/* Gradient rim — reuses the glass-card::before mask technique with stronger purple tint */
+.app-dock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 0.5px;
+  background: linear-gradient(
+    to bottom,
+    rgba(129, 140, 248, 0.14),
+    rgba(255, 255, 255, 0.03)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Compact dock state when content is scrolled (245.2) */
+.app-dock--compact {
+  padding: 6px;
 }
 
 .app-dock__list {
@@ -1404,11 +1515,12 @@ input[type="date"] {
   z-index: 0;
   border-radius: var(--radius-md);
   pointer-events: none;
-  background: rgba(129, 140, 248, 0.10);
-  border: 0.5px solid rgba(129, 140, 248, 0.25);
+  background: rgba(129, 140, 248, 0.13);
+  border: 0.5px solid rgba(129, 140, 248, 0.30);
   box-shadow:
-    inset 0 0 6px rgba(129, 140, 248, 0.12),
-    0 0 8px rgba(129, 140, 248, 0.15);
+    inset 0 0 8px rgba(129, 140, 248, 0.15),
+    0 0 12px 2px rgba(129, 140, 248, 0.18);
+  transition: box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .app-dock__icon {
@@ -1417,6 +1529,7 @@ input[type="date"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity 0.2s ease;
 }
 
 /* ── Quick-log FAB (centered, elevated above dock) ─────────────── */
@@ -1435,23 +1548,73 @@ input[type="date"] {
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  /* Warm purple gradient matching the brand */
-  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  /* Refined warm purple gradient — slightly richer for more pop */
+  background: linear-gradient(135deg, #b49aff 0%, #8b5cf6 40%, #6d28d9 100%);
   color: #fff;
+  /* Core shadow + outer glow ring */
   box-shadow:
-    0 4px 14px rgba(124, 58, 237, 0.4),
+    0 0 0 4px rgba(139, 92, 246, 0.2),
+    0 0 20px rgba(139, 92, 246, 0.35),
+    0 4px 14px rgba(109, 40, 217, 0.4),
     0 2px 6px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   /* Prevent text selection */
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   touch-action: manipulation;
+  /* Dock morph transition (245.2) — GPU composited scale */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Subtle idle breathing glow (246.1) */
+  animation: fab-breathe 3.5s ease-in-out infinite;
+}
+
+/* Breathing keyframe — pulses the outer glow ring opacity */
+@keyframes fab-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 0 4px rgba(139, 92, 246, 0.2),
+      0 0 20px rgba(139, 92, 246, 0.35),
+      0 4px 14px rgba(109, 40, 217, 0.4),
+      0 2px 6px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(139, 92, 246, 0.35),
+      0 0 28px rgba(139, 92, 246, 0.5),
+      0 4px 14px rgba(109, 40, 217, 0.4),
+      0 2px 6px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Compact FAB when user scrolls content (245.2) */
+.app-dock-fab--compact {
+  transform: translateX(-50%) scale(0.9);
 }
 
 .app-dock-fab:active {
   box-shadow:
-    0 2px 8px rgba(124, 58, 237, 0.35),
+    0 0 0 3px rgba(139, 92, 246, 0.15),
+    0 0 12px rgba(139, 92, 246, 0.25),
+    0 2px 8px rgba(109, 40, 217, 0.35),
     0 1px 3px rgba(0, 0, 0, 0.2);
+  animation: none;
+}
+
+/* Reduced motion — disable dock morph transitions and breathing animation */
+@media (prefers-reduced-motion: reduce) {
+  .app-dock,
+  .app-dock-fab {
+    transition: none !important;
+    animation: none !important;
+  }
+  .app-dock--compact {
+    padding: 8px;
+  }
+  .app-dock-fab--compact {
+    transform: translateX(-50%);
+  }
 }
 
 /* ── Safe-area: feed env() insets into the shell spacing tokens ─── */

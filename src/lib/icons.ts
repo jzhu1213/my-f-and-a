@@ -66,6 +66,12 @@ import {
   UsersRound,
   PiggyBank,
   Percent,
+  // Breakdown
+  CalendarDays,
+  RefreshCcw,
+  ShieldCheck,
+  CalendarClock,
+  Lock,
   // Navigation / chrome / actions
   History,
   Settings,
@@ -145,6 +151,13 @@ export type IconName =
   // ── Tools screen stat cards ──────────────────────────────────────────────
   | 'stat:set-aside'
   | 'stat:savings-rate'
+  // ── Breakdown rows (DailyAllowanceHero detail panel) ──────────────────────
+  | 'breakdown:daily-budget'
+  | 'breakdown:rollover'
+  | 'breakdown:spent'
+  | 'breakdown:reserved'
+  | 'breakdown:scheduled'
+  | 'breakdown:total-locked'
   // ── Navigation / chrome / actions ────────────────────────────────────────
   | 'nav:home'
   | 'nav:history'
@@ -222,6 +235,13 @@ export const ICON_REGISTRY = {
   // ── Tools screen stat cards ───────────────────────────────────────────────
   'stat:set-aside': PiggyBank,
   'stat:savings-rate': Percent,
+  // ── Breakdown rows ─────────────────────────────────────────────────────────
+  'breakdown:daily-budget': CalendarDays,
+  'breakdown:rollover': RefreshCcw,
+  'breakdown:spent': Wallet,
+  'breakdown:reserved': ShieldCheck,
+  'breakdown:scheduled': CalendarClock,
+  'breakdown:total-locked': Lock,
   // ── Navigation / chrome / actions ─────────────────────────────────────────
   'nav:home': Home,
   'nav:history': History,

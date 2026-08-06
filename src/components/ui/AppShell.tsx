@@ -32,6 +32,7 @@
  */
 
 import type { ReactNode } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GradientMesh, type GradientMeshVariant } from './GradientMesh'
 import { Icon } from './Icon'
@@ -121,6 +122,25 @@ export function AppShell({
     maxStretch: 60,
   })
 
+  // Dock morph on scroll (Task 245.2): compress dock padding & shrink FAB when scrolled
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  const handleScroll = useCallback((e: Event) => {
+    const target = e.target as HTMLElement
+    setIsScrolled(target.scrollTop > 20)
+  }, [])
+
+  useEffect(() => {
+    // Skip morph entirely when reduced motion is preferred
+    if (prefersReducedMotion) return
+
+    const el = rubberBandRef.current as HTMLElement | null
+    if (!el) return
+
+    el.addEventListener('scroll', handleScroll, { passive: true })
+    return () => el.removeEventListener('scroll', handleScroll)
+  }, [prefersReducedMotion, handleScroll, rubberBandRef])
+
   // 3-tab primary dock: Home / History / Settings. Advanced features (the Tools
   // surface, which includes Learn) are reached via progressive disclosure from
   // the Settings screen, not a dedicated dock tab (Requirement 9.5).
@@ -144,7 +164,7 @@ export function AppShell({
 
       {/* ── Floating glass top bar ─────────────────────────────── */}
       {!hideTopBar && (
-        <header className="app-topbar">
+        <header className={`app-topbar${isScrolled ? ' app-topbar--scrolled' : ''}`}>
           <div className="app-topbar__avatar">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -189,13 +209,13 @@ export function AppShell({
           <motion.button
             key="quick-log-fab"
             type="button"
-            className="app-dock-fab"
+            className={`app-dock-fab ${isScrolled ? 'app-dock-fab--compact' : ''}`}
             onClick={onQuickLog}
             aria-label="Log expense"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            whileTap={prefersReducedMotion ? undefined : { scale: 0.88 }}
+            exit={{ opacity: 0, scale: 0.6 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
             transition={springs.snappy}
           >
             <Icon name="action:add" size={26} strokeWidth={2.2} />
@@ -205,7 +225,7 @@ export function AppShell({
 
       {/* ── Floating dock navigation ───────────────────────────── */}
       {!hideDock && (
-      <nav className="app-dock" aria-label="Primary">
+      <nav className={`app-dock ${isScrolled ? 'app-dock--compact' : ''}`} aria-label="Primary">
         <ul
           className="app-dock__list"
           onKeyDown={(e) => {
@@ -258,7 +278,7 @@ export function AppShell({
                     className="app-dock__icon"
                     aria-hidden="true"
                     animate={
-                      prefersReducedMotion ? undefined : { opacity: isActive ? 1 : 0.6 }
+                      prefersReducedMotion ? undefined : { opacity: isActive ? 1 : 0.5 }
                     }
                     transition={timings.fast}
                   >

@@ -28,6 +28,8 @@ import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import { recordLastActive } from "@/lib/reminderPreferences"
 import { getInsightsEnabled } from "@/lib/insightPreferences"
 import { getSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
+import { getPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
+import { SpendPaceIndicator } from "./SpendPaceIndicator"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, STAGGER_STEP, layoutTransition, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY, spacing } from "@/styles/typography"
@@ -466,6 +468,10 @@ export function HomeScreen({
   // Off by default to keep the home screen minimal; opt in via
   // Settings → Hero & display.
   const [savingsRateBadgeEnabled] = useState(() => getSavingsRateBadgeEnabled())
+
+  // ── Spending-pace indicator preference (task 250) ─────────────────────────
+  // On by default (subtle, informative); dismissible via Settings → Hero & display.
+  const [paceIndicatorEnabled] = useState(() => getPaceIndicatorEnabled())
 
   // ── User goal (task 222.3) ─────────────────────────────────────────────────
   // Read the persisted goal so tip selection can boost relevant content.
@@ -956,6 +962,14 @@ export function HomeScreen({
                 this month
               </span>
             </motion.div>
+          )}
+
+          {/* ── Spending-pace indicator (task 250) — subtle sparkline ────── */}
+          {paceIndicatorEnabled && !isLoading && transactions.length > 0 && (
+            <SpendPaceIndicator
+              transactions={transactions}
+              todayStr={todayStr}
+            />
           )}
 
           {/* "New day" micro-celebration (task 74) — warm, brief indicator */}

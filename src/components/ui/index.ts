@@ -30,6 +30,8 @@ export type {
   GlowPreset,
   GlowColor,
 } from './GlassCard'
+export { Card } from './Card'
+export type { CardProps } from './Card'
 export { AppShell } from './AppShell'
 export type { AppShellProps, AppNavKey } from './AppShell'
 export { Icon } from './Icon'

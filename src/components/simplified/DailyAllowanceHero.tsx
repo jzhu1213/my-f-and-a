@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   motion,
   AnimatePresence,
@@ -11,7 +11,8 @@ import type { AllowanceStatus, HeroMeaning, HeroDisplay, ConfidenceBand } from "
 import { getStatus, generateEncouragingMessage } from "@/lib/dailyAllowanceUtils"
 import { GlassCard, AmbientGlow } from "@/components/ui"
 import { useReducedMotion, springs, timings } from "@/lib/animations"
-import { typography, pxToRem } from "@/styles/typography"
+import { useTimeOfDay } from "@/hooks/useTimeOfDay"
+import { typography, pxToRem, animatedFontWeight, fontWeights } from "@/styles/typography"
 import { AllowanceRing } from "./AllowanceRing"
 import { Icon } from "@/components/ui/Icon"
 import { getStatusIconName, type IconName } from "@/lib/icons"
@@ -181,8 +182,8 @@ function triggerHaptic(): void {
   }
 }
 
-/** Spring used by the animated counter — soft settle with a tiny overshoot. */
-const HERO_COUNTER_SPRING = { ...springs.gentle, restDelta: 0.5 }
+/** Spring used by the animated counter — bouncy settle with controlled overshoot (Task 248.2). */
+const HERO_COUNTER_SPRING = { type: "spring" as const, stiffness: 300, damping: 20, restDelta: 0.5 }
 
 /**
  * AnimatedAmount — the large dollar amount rendered with a spring-driven
@@ -192,6 +193,9 @@ const HERO_COUNTER_SPRING = { ...springs.gentle, restDelta: 0.5 }
  * `useMotionValue` + `useSpring`. The visible text is derived from the spring
  * so it counts through the intermediate integers. Under reduced motion the
  * value is shown immediately with a static color (no gradient animation).
+ *
+ * Task 248.2: Applies a brief "bold flash" via `animatedFontWeight` when the
+ * status changes, creating a perceptible emphasis pulse that settles back.
  *
  * Kept `aria-hidden` — the accessible amount lives on the parent button label.
  */
@@ -212,6 +216,24 @@ function AnimatedAmount({
   const spring = useSpring(motionValue, HERO_COUNTER_SPRING)
   const [display, setDisplay] = useState(value)
 
+  // Task 248.2: bold flash on status change — briefly push weight to bold,
+  // then settle back to semibold using animatedFontWeight's transition.
+  const [emphasisWeight, setEmphasisWeight] = useState<number>(fontWeights.semibold)
+  const prevStatusRef = useRef(status)
+
+  useEffect(() => {
+    if (prevStatusRef.current !== status && !prefersReducedMotion) {
+      // Flash to bold
+      setEmphasisWeight(fontWeights.bold)
+      const timer = setTimeout(() => {
+        setEmphasisWeight(fontWeights.semibold)
+      }, 400)
+      prevStatusRef.current = status
+      return () => clearTimeout(timer)
+    }
+    prevStatusRef.current = status
+  }, [status, prefersReducedMotion])
+
   // Subscribe to the spring so the visible number ticks through integers.
   useEffect(() => {
     if (prefersReducedMotion) return
@@ -230,6 +252,11 @@ function AnimatedAmount({
 
   const shown = prefersReducedMotion ? value : display
 
+  const fontWeightStyle = animatedFontWeight(
+    emphasisWeight as Parameters<typeof animatedFontWeight>[0],
+    300
+  )
+
   return (
     <span
       className={prefersReducedMotion ? undefined : "hero-amount"}
@@ -239,6 +266,7 @@ function AnimatedAmount({
         lineHeight: 1.05,
         display: "block",
         textAlign: "center",
+        ...fontWeightStyle,
         ...(prefersReducedMotion
           ? { color: grad.from }
           : ({
@@ -370,6 +398,7 @@ export function DailyAllowanceHero({
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showExplainer, setShowExplainer] = useState(false)
   const { prefersReducedMotion, listContainer, listItem } = useReducedMotion()
+  const atmosphere = useTimeOfDay()
 
   // When heroDisplay is provided (heroMeaning !== 'allowance' or explicit heroDisplay),
   // use it to override the default allowance framing entirely.
@@ -438,8 +467,9 @@ export function DailyAllowanceHero({
   const clampedProgress = Math.max(0, Math.min(1, progress))
 
   // Soft depth shadow beneath the ring shifts horizontally with progress.
-  const shadowShift = (clampedProgress - 0.5) * ringSize * 0.28
-  const shadowOpacity = 0.18 + clampedProgress * 0.22
+  // Task 248.1: deeper blur + stronger opacity range for a floating effect.
+  const shadowShift = (clampedProgress - 0.5) * ringSize * 0.25
+  const shadowOpacity = 0.2 + clampedProgress * 0.25
   const shadowTransition = prefersReducedMotion ? { duration: 0 } : springs.gentle
 
   // Shimmer: show when status is healthy (works for all meanings)
@@ -454,88 +484,98 @@ export function DailyAllowanceHero({
   // In tracker mode: "spent today" is the headline, no "safe to spend" concept.
   const breakdownRows: {
     key: string
-    icon: string
+    icon: IconName
     label: string
     value: string
     valueColor: string
+    accentColor: string
   }[] = isTrackerMode
     ? [
         {
           key: "spent-today",
-          icon: "💸",
+          icon: "breakdown:spent",
           label: "Spent today",
           value: formatCurrency(spentToday),
           valueColor: "var(--text)",
+          accentColor: "#fb923c",
         },
         ...(dailyBudget > 0
           ? [{
               key: "daily-avg",
-              icon: "📅",
+              icon: "breakdown:daily-budget" as IconName,
               label: "Your typical day",
               value: `${formatCurrency(dailyBudget)}/day`,
               valueColor: "var(--sub)",
+              accentColor: "#818cf8",
             }]
           : []),
         ...(reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0
           ? [{
               key: "reserved-bills",
-              icon: "🛡️",
+              icon: "breakdown:reserved" as IconName,
               label: "Set aside for bills",
               value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
               valueColor: "var(--sub)",
+              accentColor: "#60a5fa",
             }]
           : []),
       ]
     : [
         {
           key: "daily-budget",
-          icon: "📅",
+          icon: "breakdown:daily-budget",
           label: "Daily budget",
           value: `${formatCurrency(dailyBudget)}/day`,
           valueColor: "var(--text)",
+          accentColor: "#818cf8",
         },
         {
           key: "rollover",
-          icon: "🔄",
+          icon: "breakdown:rollover",
           label: "Rollover",
           value: formatRollover(rollover),
           valueColor: rollover >= 0 ? "var(--success)" : "var(--sub)",
+          accentColor: rollover >= 0 ? "#4ade80" : "#fbbf24",
         },
         {
           key: "spent-today",
-          icon: "💸",
+          icon: "breakdown:spent",
           label: "Spent today",
           value: `${formatCurrency(spentToday)} spent today`,
           valueColor: "var(--text)",
+          accentColor: "#fb923c",
         },
         // Reserved for bills row — only included when there are upcoming bills
         ...(reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0
           ? [{
               key: "reserved-bills",
-              icon: "🛡️",
+              icon: "breakdown:reserved" as IconName,
               label: "Set aside for bills",
               value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
               valueColor: "var(--sub)",
+              accentColor: "#60a5fa",
             }]
           : []),
         // Scheduled expenses row — only included when there are future-dated transactions (task 90.1)
         ...(reservedForScheduled !== undefined && reservedForScheduled > 0 && scheduledCount !== undefined && scheduledCount > 0
           ? [{
               key: "reserved-scheduled",
-              icon: "📅",
+              icon: "breakdown:scheduled" as IconName,
               label: "Scheduled",
               value: `${formatCurrency(reservedForScheduled)} for ${scheduledCount} item${scheduledCount === 1 ? '' : 's'}`,
               valueColor: "var(--sub)",
+              accentColor: "#22d3ee",
             }]
           : []),
         // Combined total reserved row (Task 90.2) — shown when BOTH bills and scheduled items exist
         ...(reservedForBills !== undefined && reservedForBills > 0 && reservedForScheduled !== undefined && reservedForScheduled > 0
           ? [{
               key: "reserved-total",
-              icon: "🔒",
+              icon: "breakdown:total-locked" as IconName,
               label: "Total reserved",
               value: formatCurrency(reservedForBills + reservedForScheduled),
               valueColor: "var(--sub)",
+              accentColor: "#a78bfa",
             }]
           : []),
       ]
@@ -553,10 +593,31 @@ export function DailyAllowanceHero({
       className="w-full relative"
       style={{ padding: "28px 20px", overflow: "visible" }}
     >
-      {/* Breathing ambient light behind the number */}
-      <div className={prefersReducedMotion ? undefined : "hero-breathe"}>
+      {/* Breathing ambient light behind the number — time-of-day atmosphere (Task 249.1) */}
+      <div
+        className={prefersReducedMotion ? undefined : "hero-breathe"}
+        style={prefersReducedMotion ? undefined : {
+          ["--hero-breathe-duration" as string]: `${atmosphere.breatheDuration}s`,
+          ["--hero-breathe-opacity-min" as string]: String(atmosphere.breatheOpacityMin),
+          ["--hero-breathe-opacity-max" as string]: String(atmosphere.breatheOpacityMax),
+          ["--hero-breathe-scale" as string]: String(atmosphere.breatheScale),
+        } as React.CSSProperties}
+      >
         <AmbientGlow status={status} size="lg" intensity="medium" position="center" />
       </div>
+
+      {/* Time-of-day tint — purely atmospheric, sits underneath status glow */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "inherit",
+          background: atmosphere.tintColor,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
 
       <motion.button
         type="button"
@@ -615,19 +676,19 @@ export function DailyAllowanceHero({
 
         {/* Ring with depth shadow + shimmer particles */}
         <div className="relative" style={{ width: ringSize, height: ringSize }}>
-          {/* Soft depth shadow beneath the ring, shifting with progress */}
+          {/* Soft depth shadow beneath the ring, shifting with progress (Task 248.1: refined) */}
           <motion.div
             aria-hidden="true"
             style={{
               position: "absolute",
               left: "50%",
-              bottom: -4,
-              width: ringSize * 0.55,
-              height: 14,
-              marginLeft: -(ringSize * 0.55) / 2,
+              bottom: -6,
+              width: ringSize * 0.5,
+              height: 18,
+              marginLeft: -(ringSize * 0.5) / 2,
               borderRadius: "50%",
               background: color,
-              filter: "blur(14px)",
+              filter: "blur(18px)",
               pointerEvents: "none",
             }}
             animate={{ x: shadowShift, opacity: shadowOpacity }}
@@ -641,7 +702,7 @@ export function DailyAllowanceHero({
             progress={progress}
             status={status}
             size={ringSize}
-            strokeWidth={6}
+            strokeWidth={8}
           >
             <AnimatedAmount
               value={heroValue}
@@ -800,9 +861,9 @@ export function DailyAllowanceHero({
             <motion.div
               className="w-full mt-3"
               style={{
-                background: "rgba(255,255,255,0.03)",
+                background: "rgba(255,255,255,0.04)",
                 borderRadius: "var(--radius-md)",
-                padding: "6px 16px",
+                padding: "12px 16px",
                 overflow: "hidden",
               }}
               initial={{ opacity: 0, height: 0 }}
@@ -824,21 +885,36 @@ export function DailyAllowanceHero({
                     variants={listItem}
                     className="flex justify-between items-center text-sm"
                     style={{
-                      padding: "10px 0",
+                      padding: "12px 0",
                       borderBottom:
                         index < breakdownRows.length - 1
-                          ? "1px solid var(--border)"
+                          ? "1px solid rgba(255,255,255,0.06)"
                           : "none",
                       color: "var(--sub)",
                     }}
                   >
-                    <span className="flex items-center gap-2">
-                      <span aria-hidden="true" style={{ fontSize: pxToRem(14) }}>
-                        {row.icon}
+                    <span className="flex items-center" style={{ gap: 10 }}>
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 28,
+                          height: 28,
+                          borderRadius: 'var(--radius-sm)',
+                          background: `${row.accentColor}15`,
+                          color: row.accentColor,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Icon name={row.icon} size={16} />
                       </span>
-                      {row.label}
+                      <span style={{ fontFamily: 'var(--font-family, Inter, sans-serif)' }}>
+                        {row.label}
+                      </span>
                     </span>
-                    <span style={{ color: row.valueColor }}>{row.value}</span>
+                    <span style={{ color: row.valueColor, fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>{row.value}</span>
                   </motion.div>
                 ))}
               </motion.div>

@@ -15,7 +15,7 @@ import {
 } from "@/lib/autoEarmarkSavings"
 import type { SweepFrequency } from "@/lib/autoEarmarkSavings"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeader } from "@/styles/shared"
+import { sectionHeader, shadows } from "@/styles/shared"
 import type { Transaction, Goal, Budget } from "@/types"
 
 // ============================================================================
@@ -405,7 +405,7 @@ function ToggleSwitch({ checked, onToggle, label }: { checked: boolean; onToggle
           height: 24,
           borderRadius: 12,
           background: "#fff",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+          boxShadow: shadows.sm,
         }}
       />
     </motion.button>

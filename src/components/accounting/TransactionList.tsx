@@ -8,6 +8,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { springs, timings } from '@/lib/animations'
 import { computeDailyTotal } from '@/lib/transactionUtils'
 import { getTagsForTransaction, getRecentTags, parseTagInput } from '@/lib/tagUtils'
+import { borderRadius, shadows } from '@/styles/shared'
 
 // ── Session storage key ──────────────────────────────────────────
 const SESSION_FILTERS_KEY = 'folio-history-filters'
@@ -800,7 +801,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
           </div>
 
           {/* Transactions in glass card */}
-          <GlassCard elevation="low" style={{ padding: '4px 0', borderRadius: 14, marginBottom: 16 }}>
+          <GlassCard elevation="low" style={{ padding: '4px 0', borderRadius: borderRadius.lg, marginBottom: 16 }}>
             {grouped[date].map((tx, idx) => {
               const isIncome = tx.type === 'income'
               const expanded = !isMultiSelectMode && expandedId === tx.id
@@ -1035,7 +1036,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         )
       })
       })() : (
-        <GlassCard elevation="low" style={{ padding: "32px 20px", borderRadius: 14 }}>
+        <GlassCard elevation="low" style={{ padding: "32px 20px", borderRadius: borderRadius.lg }}>
           <div className="flex flex-col items-center justify-center gap-3">
             <span style={{ fontSize: 32 }} aria-hidden="true">
               {hasActiveFilters ? '🔍' : '📝'}
@@ -1104,8 +1105,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               padding: '12px 16px',
               background: 'var(--surface)',
               border: '1px solid rgba(129, 140, 248, 0.3)',
-              borderRadius: 16,
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+              borderRadius: borderRadius.lg,
+              boxShadow: shadows.xl,
               zIndex: 100,
               fontFamily: 'Inter, sans-serif',
             }}

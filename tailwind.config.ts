@@ -67,6 +67,14 @@ const config: Config = {
         lg: 'var(--radius-lg)',
         full: '9999px',
       },
+      boxShadow: {
+        sm: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+        xl: 'var(--shadow-xl)',
+        'glow-accent': 'var(--shadow-glow-accent)',
+        'glow-accent-strong': 'var(--shadow-glow-accent-strong)',
+      },
       animation: {
         'slide-up':   'slideUp 0.25s ease-out forwards',
         'fade-in':    'fadeIn 0.2s ease-out forwards',

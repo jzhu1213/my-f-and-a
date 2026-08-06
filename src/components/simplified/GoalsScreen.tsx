@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/Card"
 import { GoalEditSheet } from "./GoalEditSheet"
 import { GoalContributeSheet } from "./GoalContributeSheet"
 import { SaveUpPlanSheet } from "./SaveUpPlanSheet"
@@ -112,10 +112,12 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
   }, [confirmingDelete])
 
   return (
-    <GlassCard
-      elevation="low"
-      glow={complete ? "healthy" : "none"}
-      style={{ padding: "18px 20px", marginBottom: 14 }}
+    <Card
+      style={{
+        padding: "18px 20px",
+        marginBottom: 14,
+        ...(complete ? { border: "1px solid rgba(74, 222, 128, 0.25)" } : {}),
+      }}
     >
       {/* ── Header: emoji + name + progress badge ─────────────────────────── */}
       <div
@@ -413,12 +415,10 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
           </motion.button>
         )}
       </div>
-    </GlassCard>
+    </Card>
   )
 }
 
-// ============================================================================
-// GoalsScreen Component
 // ============================================================================
 
 /**
@@ -657,7 +657,7 @@ export function GoalsScreen({
 
       {/* ── Empty state ────────────────────────────────────────────────────── */}
       {goals.length === 0 && (
-        <GlassCard elevation="low" style={{ padding: "32px 20px", textAlign: "center", marginBottom: 16 }}>
+        <Card style={{ padding: "32px 20px", textAlign: "center", marginBottom: 16 }}>
           <p style={{ fontSize: 28, marginBottom: 10 }} aria-hidden="true">🎯</p>
           <p style={{ fontSize: 15, color: "var(--text)", marginBottom: 6, fontWeight: 500 }}>
             What are you saving for?
@@ -665,7 +665,7 @@ export function GoalsScreen({
           <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.5 }}>
             Set a goal and Folio will help you get there — one day at a time.
           </p>
-        </GlassCard>
+        </Card>
       )}
 
       {/* ── Create action (3-goal cap enforced) ────────────────────────────── */}
@@ -770,7 +770,7 @@ export function GoalsScreen({
               const isEditing = editingAutoRule?.goalId === goal.id
 
               return (
-                <GlassCard key={goal.id} elevation="low" style={{ padding: "12px 16px" }}>
+                <Card key={goal.id} style={{ padding: "12px 16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 18 }}>{goal.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -935,7 +935,7 @@ export function GoalsScreen({
                       </button>
                     )}
                   </div>
-                </GlassCard>
+                </Card>
               )
             })}
           </div>

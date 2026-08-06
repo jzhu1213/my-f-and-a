@@ -40,13 +40,17 @@ function getStatusStrokeColor(status: AllowanceStatus): string {
  * Uses framer-motion's motion.circle for GPU-accelerated stroke-dashoffset
  * animation, ensuring smooth 60fps transitions via CSS transforms.
  *
+ * A soft color-matched glow behind the progress stroke gives the ring ambient
+ * depth (Task 248.1). The glow is achieved via an extra blurred circle behind
+ * the main arc — purely decorative and GPU-composited (filter: blur).
+ *
  * Validates: Requirements 2.2, 13.5, 15.2
  */
 export function AllowanceRing({
   progress,
   status,
   size = 180,
-  strokeWidth = 6,
+  strokeWidth = 8,
   children,
 }: AllowanceRingProps) {
   const radius = (size - strokeWidth) / 2
@@ -82,15 +86,39 @@ export function AllowanceRing({
         }}
         aria-hidden="true"
       >
-        {/* Background track */}
+        {/* SVG filter for the ring glow (Task 248.1) */}
+        <defs>
+          <filter id="ring-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" />
+          </filter>
+        </defs>
+
+        {/* Background track — refined opacity for subtlety */}
         <circle
           fill="transparent"
           stroke="var(--border)"
           strokeWidth={strokeWidth}
-          strokeOpacity={0.4}
+          strokeOpacity={0.3}
           r={radius}
           cx={size / 2}
           cy={size / 2}
+        />
+
+        {/* Glow layer behind the progress arc — blurred duplicate (Task 248.1) */}
+        <motion.circle
+          fill="transparent"
+          stroke={strokeColor}
+          strokeWidth={strokeWidth + 4}
+          strokeLinecap="round"
+          strokeOpacity={0.35}
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={timings.slow}
+          filter="url(#ring-glow)"
         />
 
         {/* Animated progress arc */}

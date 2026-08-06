@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/Card"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeader, borderRadius, segmentedControl, segmentedButtonBase, segmentedButtonActive, segmentedButtonInactive } from "@/styles/shared"
+import { sectionHeader, borderRadius, segmentedControl, segmentedButtonBase, segmentedButtonActive, segmentedButtonInactive, shadows } from "@/styles/shared"
 import {
   getReminderPreferences,
   setReminderPreferences,
@@ -100,7 +100,7 @@ export function DailyReminderSetting() {
   const permissionDenied = prefs.enabled && permissionStatus === "denied"
 
   return (
-    <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+    <Card style={{ padding: "18px 20px", marginBottom: 20 }}>
       <p style={{ ...sectionHeader, marginBottom: 6 }}>
         Daily Reminder
       </p>
@@ -157,9 +157,9 @@ export function DailyReminderSetting() {
             style={{
               width: 22,
               height: 22,
-              borderRadius: 11,
+              borderRadius: borderRadius.md,
               background: prefs.enabled ? "#fff" : "rgba(255, 255, 255, 0.5)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+              boxShadow: shadows.sm,
             }}
           />
         </motion.button>
@@ -264,6 +264,6 @@ export function DailyReminderSetting() {
           )}
         </div>
       )}
-    </GlassCard>
+    </Card>
   )
 }

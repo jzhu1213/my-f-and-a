@@ -8,7 +8,7 @@ import type { Goal } from "@/types"
 import type { SavingsAccount } from "@/types/folio"
 import type { GoalFormData } from "./GoalsScreen"
 import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { borderRadius, shadows } from "@/styles/shared"
 
 // ============================================================================
 // Config
@@ -240,7 +240,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                           ? {
                               background: "rgba(129, 140, 248, 0.08)",
                               border: "1.5px solid rgba(129, 140, 248, 0.4)",
-                              boxShadow: "0 0 12px rgba(129, 140, 248, 0.15)",
+                              boxShadow: shadows.glowAccent,
                             }
                           : {
                               background: "rgba(255, 255, 255, 0.03)",
@@ -437,7 +437,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                   border: "none",
                   cursor: canSubmit ? "pointer" : "not-allowed",
                   opacity: canSubmit ? 1 : 0.5,
-                  boxShadow: canSubmit ? "0 4px 16px rgba(129, 140, 248, 0.3)" : "none",
+                  boxShadow: canSubmit ? shadows.glowAccentStrong : "none",
                 }}
               >
                 {submitting ? "Saving…" : sheetMode === "edit" ? "Save goal" : "Create goal"}

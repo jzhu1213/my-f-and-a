@@ -9,6 +9,7 @@ import { useToast } from '@/contexts/ToastContext'
 import type { Transaction, TransactionCategory } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 import { FONT_FAMILY } from '@/styles/typography'
+import { shadows } from '@/styles/shared'
 import { DatePickerChips, getRelativeDateLabel } from '@/components/ui/DatePickerChips'
 
 interface EditTransactionSheetProps {
@@ -283,7 +284,7 @@ export function EditTransactionSheet({
                             ? {
                                 background: 'rgba(129, 140, 248, 0.08)',
                                 border: '1.5px solid rgba(129, 140, 248, 0.4)',
-                                boxShadow: '0 0 12px rgba(129, 140, 248, 0.15)',
+                                boxShadow: shadows.glowAccent,
                               }
                             : {
                                 background: 'rgba(255, 255, 255, 0.03)',

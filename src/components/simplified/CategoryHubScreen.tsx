@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/Card"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -412,7 +412,7 @@ export function CategoryHubScreen({
             transition={springs.snappy}
             style={{ overflow: "hidden", marginBottom: 16 }}
           >
-            <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
+            <Card style={{ padding: "16px 18px" }}>
               <p style={{ ...sectionHeader, marginBottom: 12 }}>New Category</p>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}>
                 <button
@@ -490,7 +490,7 @@ export function CategoryHubScreen({
                   Cancel
                 </motion.button>
               </div>
-            </GlassCard>
+            </Card>
           </motion.div>
         )}
       </AnimatePresence>
@@ -508,7 +508,7 @@ export function CategoryHubScreen({
               layout
               transition={springs.snappy}
             >
-              <GlassCard elevation="low" style={{ padding: "12px 14px" }}>
+              <Card style={{ padding: "12px 14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   {/* Emoji (clickable to change) */}
                   <button
@@ -653,7 +653,7 @@ export function CategoryHubScreen({
                     </motion.button>
                   )}
                 </div>
-              </GlassCard>
+              </Card>
             </motion.div>
           )
         })}
@@ -671,7 +671,7 @@ export function CategoryHubScreen({
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
             {archivedItems.map(item => (
               <motion.div key={item.id} layout transition={springs.snappy}>
-                <GlassCard elevation="low" style={{ padding: "12px 14px", opacity: 0.7 }}>
+                <Card style={{ padding: "12px 14px", opacity: 0.7 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 20 }} aria-hidden="true">{item.emoji}</span>
                     <span style={{ flex: 1, fontSize: 14, color: "var(--sub)", fontFamily: FONT_FAMILY }}>
@@ -698,7 +698,7 @@ export function CategoryHubScreen({
                       Restore
                     </motion.button>
                   </div>
-                </GlassCard>
+                </Card>
               </motion.div>
             ))}
           </div>
