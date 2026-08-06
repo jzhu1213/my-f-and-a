@@ -27,9 +27,9 @@ import {
 
 export interface CategoryHubScreenProps {
   customCategories: CustomCategory[]
-  onAddCustomCategory: (label: string, emoji: string) => Promise<CustomCategory | null>
+  onAddCustomCategory: (label: string, emoji: string, icon?: string) => Promise<CustomCategory | null>
   onRemoveCustomCategory: (id: string) => Promise<boolean>
-  onRenameCustomCategory: (id: string, updates: { label?: string; emoji?: string }) => Promise<CustomCategory | null>
+  onRenameCustomCategory: (id: string, updates: { label?: string; emoji?: string; icon?: string }) => Promise<CustomCategory | null>
   onClose: () => void
 }
 

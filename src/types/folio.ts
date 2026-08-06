@@ -1,4 +1,5 @@
 import { TransactionCategory, UserType, UserPriority, UserGoal } from './index'
+import type { IconName } from '@/lib/icons'
 
 // ============================================================================
 // Daily Allowance Types (Requirements 1.1, 1.6-1.9)
@@ -135,7 +136,17 @@ export interface ContextualTip {
   type: TipType
   title: string
   message: string
+  /**
+   * Legacy expressive emoji. Retained for backward compatibility, but the UI
+   * now renders a themeable icon (see {@link iconName}). Structural surfaces
+   * should prefer the icon; celebration surfaces keep expressive emoji.
+   */
   emoji: string
+  /**
+   * Semantic registry icon for the tip's structural indicator. When omitted the
+   * card falls back to the per-{@link TipType} default via `getTipIconName`.
+   */
+  iconName?: IconName
   actionLabel?: string
   actionType?: 'set_goal' | 'adjust_budget' | 'view_insight' | 'learn_more'
   priority: 'low' | 'medium' | 'high'
@@ -550,6 +561,14 @@ export interface CustomCategory {
   emoji: string
   userId: string
   createdAt: string
+  /**
+   * Optional semantic icon name from the central icon registry (Phase 6, task
+   * 234.2). New custom categories pick an icon from the set; when absent, the
+   * stored `emoji` is rendered as a graceful fallback so pre-icon categories
+   * keep working. Typed loosely as `string` here to avoid a hard dependency on
+   * `@/lib/icons` from the domain types — callers narrow it to `IconName`.
+   */
+  icon?: string
 }
 
 // ============================================================================

@@ -9,7 +9,50 @@
  */
 
 import type { CSSProperties } from "react"
+import type { TransactionCategory } from "@/types"
 import { FONT_FAMILY, spacing, pxToRem } from "./typography"
+
+// ============================================================================
+// Category accent colors (Phase 6 — task 234.1)
+// ============================================================================
+
+/**
+ * Per-`TransactionCategory` accent color used for the tinted icon-chip that
+ * sits behind a category's icon. Single source of truth so every surface
+ * (QuickLogArea, budget cards, transaction rows, CategoryDetailSheet) shows the
+ * same color for a given category instead of scattering ad-hoc rgba values.
+ *
+ * Colors are drawn from the existing warm-purple palette / semantic tokens in
+ * `globals.css` where they map naturally (transport→`--blue`, school→`--amber`,
+ * health/income→`--green`, rent/fallback→the purple accents) and extended with
+ * a few harmonizing hues for the remaining categories. All values are bright
+ * enough to clear the WCAG 2.1 AA 3:1 non-text contrast ratio against the warm
+ * dark background (`--bg` #12121f), and the icon itself inherits the color via
+ * `currentColor`.
+ *
+ * The `fallback` entry backs unknown/custom categories.
+ */
+export const CATEGORY_ACCENTS: Record<TransactionCategory | "fallback", string> = {
+  food: "#fb923c", // warm orange
+  rent: "#a78bfa", // brand purple (accent-2)
+  transport: "#60a5fa", // --blue
+  school: "#fbbf24", // --amber
+  fun: "#f472b6", // warm pink
+  health: "#4ade80", // --green / --success
+  subscriptions: "#22d3ee", // cyan
+  gig: "#c084fc", // violet
+  income: "#4ade80", // --green / --success
+  other: "#94a3b8", // neutral slate
+  fallback: "#818cf8", // --accent
+}
+
+/**
+ * Resolve a category (built-in or arbitrary custom string) to its accent color,
+ * falling back to the purple accent for unknown/custom categories.
+ */
+export function getCategoryAccent(category: TransactionCategory | string): string {
+  return (CATEGORY_ACCENTS as Record<string, string>)[category] ?? CATEGORY_ACCENTS.fallback
+}
 
 // ============================================================================
 // Layout constants

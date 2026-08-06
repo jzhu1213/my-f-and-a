@@ -3,6 +3,7 @@ import { TRANSACTION_CATEGORIES } from '@/types'
 import type { Transaction, TransactionCategory } from '@/types'
 import type { CategoryBudgetRow } from '@/lib/budgetUtils'
 import { weekStart } from '@/lib/budgetUtils'
+import { CategoryIcon } from '@/components/ui/CategoryIcon'
 import { FONT_FAMILY } from '@/styles/typography'
 
 interface CategoryDetailSheetProps {
@@ -51,7 +52,7 @@ export function CategoryDetailSheet({
 
         <div className="px-6 pb-5 flex items-start justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-3">
-            <span style={{ fontSize: '32px', lineHeight: 1 }}>{row.emoji}</span>
+            <CategoryIcon category={row.category} size={48} />
             <div>
               <p style={{ fontSize: '17px', color: 'var(--text)' }}>{row.label}</p>
               <p style={{

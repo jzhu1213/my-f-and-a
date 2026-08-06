@@ -13,7 +13,9 @@ import { GlassCard, AmbientGlow } from "@/components/ui"
 import { useReducedMotion, springs, timings } from "@/lib/animations"
 import { typography, pxToRem } from "@/styles/typography"
 import { AllowanceRing } from "./AllowanceRing"
-import { STATUS_EMOJI, STATUS_LABELS } from "@/lib/vocabulary"
+import { Icon } from "@/components/ui/Icon"
+import { getStatusIconName, type IconName } from "@/lib/icons"
+import { STATUS_LABELS } from "@/lib/vocabulary"
 import type { SpendingMode } from "@/lib/spendingModes"
 
 interface DailyAllowanceHeroProps {
@@ -74,8 +76,8 @@ function getStatusGlow(status: AllowanceStatus): AllowanceStatus {
  *
  * Uses the canonical vocabulary for consistent emoji/labels across all surfaces.
  */
-function getInstantStatus(status: AllowanceStatus): { emoji: string; phrase: string } {
-  return { emoji: STATUS_EMOJI[status], phrase: STATUS_LABELS[status] }
+function getInstantStatus(status: AllowanceStatus): { iconName: IconName; phrase: string } {
+  return { iconName: getStatusIconName(status), phrase: STATUS_LABELS[status] }
 }
 
 /**
@@ -83,22 +85,22 @@ function getInstantStatus(status: AllowanceStatus): { emoji: string; phrase: str
  * level relative to the user's own history. Maps spend level to a neutral,
  * informational emoji + phrase rather than a budget-health signal.
  */
-function getTrackerInstantStatus(spentToday: number, dailyBudget: number): { emoji: string; phrase: string; color: string } {
+function getTrackerInstantStatus(spentToday: number, dailyBudget: number): { iconName: IconName; phrase: string; color: string } {
   // When there is no historical daily average to compare against, show neutral
   if (dailyBudget <= 0) {
-    return { emoji: '📊', phrase: 'Tracking', color: 'var(--sub)' }
+    return { iconName: 'status:tracking', phrase: 'Tracking', color: 'var(--sub)' }
   }
   const ratio = spentToday / dailyBudget
   if (ratio < 0.5) {
-    return { emoji: '✨', phrase: 'Light day', color: 'var(--success)' }
+    return { iconName: 'status:healthy', phrase: 'Light day', color: 'var(--success)' }
   }
   if (ratio < 0.9) {
-    return { emoji: '📊', phrase: 'Typical', color: 'var(--accent, #a78bfa)' }
+    return { iconName: 'status:tracking', phrase: 'Typical', color: 'var(--accent, #a78bfa)' }
   }
   if (ratio < 1.3) {
-    return { emoji: '💡', phrase: 'Busy day', color: 'var(--warning)' }
+    return { iconName: 'status:caution', phrase: 'Busy day', color: 'var(--warning)' }
   }
-  return { emoji: '📈', phrase: 'High day', color: 'var(--warning)' }
+  return { iconName: 'status:elevated', phrase: 'High day', color: 'var(--warning)' }
 }
 
 /**
@@ -421,10 +423,10 @@ export function DailyAllowanceHero({
     : isTrackerMode ? 'Spent today' : null
 
   // The instant status badge
-  const instantStatus = hasCustomDisplay
-    ? { emoji: STATUS_EMOJI[status], phrase: heroDisplay!.label }
+  const instantStatus: { iconName: IconName; phrase: string } = hasCustomDisplay
+    ? { iconName: getStatusIconName(status), phrase: heroDisplay!.label }
     : isTrackerMode
-      ? { emoji: trackerStatus?.emoji ?? '📊', phrase: trackerStatus?.phrase ?? 'Tracking' }
+      ? { iconName: trackerStatus?.iconName ?? 'status:tracking', phrase: trackerStatus?.phrase ?? 'Tracking' }
       : getInstantStatus(status)
 
   if (isLoading) {
@@ -586,10 +588,13 @@ export function DailyAllowanceHero({
           }}
           aria-label={isTrackerMode ? `Tracker: ${instantStatus.phrase}` : `Status: ${instantStatus.phrase}`}
         >
-          <span aria-hidden="true" style={{ marginRight: 6 }}>
-            {instantStatus.emoji}
+          <span
+            aria-hidden="true"
+            style={{ marginRight: 6, display: "inline-flex", verticalAlign: "middle" }}
+          >
+            <Icon name={instantStatus.iconName} size={22} />
           </span>
-          {isTrackerMode ? instantStatus.phrase : instantStatus.phrase}
+          {instantStatus.phrase}
         </p>
 
         {/* Hero label — in tracker mode or custom hero meaning, show a label below the badge */}

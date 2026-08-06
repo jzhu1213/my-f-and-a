@@ -54,7 +54,12 @@ export function getCategoryEmoji(category: string): string {
 
 /**
  * Canonical emoji for each allowance status level.
- * Used in hero displays, tips, and anywhere status is visualized with an icon.
+ *
+ * @deprecated Structural status indicators now render themeable icons via the
+ * central icon registry — use `getStatusIconName` from `@/lib/icons` with the
+ * {@link Icon} wrapper instead. These emoji are retained only for reference /
+ * backward compatibility and are no longer rendered in the UI (Phase 6 task
+ * 235.2). Expressive emoji live on in celebration surfaces.
  */
 export const STATUS_EMOJI: Record<AllowanceStatus, string> = {
   healthy: '✨',
@@ -65,6 +70,9 @@ export const STATUS_EMOJI: Record<AllowanceStatus, string> = {
 
 /**
  * Returns the canonical emoji for a given allowance status.
+ *
+ * @deprecated Use `getStatusIconName` from `@/lib/icons` with the {@link Icon}
+ * wrapper for structural status indicators (Phase 6 task 235.2).
  */
 export function getStatusEmoji(status: AllowanceStatus): string {
   return STATUS_EMOJI[status]

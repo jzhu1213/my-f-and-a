@@ -1246,17 +1246,48 @@ input[type="date"] {
   line-height: 1;
 }
 
-/* Centered wordmark — lightweight, modern brand presence */
+/*
+ * Centered wordmark — reads as a brand, not body text.
+ *
+ * Treatment: Inter at a medium optical weight with slightly tightened tracking
+ * (brand feel vs. the wide label tracking it had before), a subtle top-lit
+ * gradient that fades from bright white into the soft-purple accent, and a
+ * glowing accent "mark" dot that echoes the "folio · …" lockup used elsewhere.
+ *
+ * Accessibility: `color: var(--text)` is set first as a solid high-contrast
+ * fallback for engines that don't support `background-clip: text`. The gradient
+ * only ever ranges white → #a5b4fc, both of which clear WCAG 2.1 AA against the
+ * dark glass top bar. No animation is used, so there is nothing for
+ * `prefers-reduced-motion` to disable (the dot's glow is a static shadow).
+ */
 .app-topbar__wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-family: 'Inter', sans-serif;
-  font-size: 17px;
-  font-weight: 300;
-  letter-spacing: 0.12em;
-  color: var(--text);
-  opacity: 0.85;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   text-transform: lowercase;
   user-select: none;
   pointer-events: none;
+  /* Solid fallback (contrast-safe) before the gradient clip is applied. */
+  color: var(--text);
+  background: linear-gradient(135deg, #ffffff 45%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Small brand mark — a soft-purple accent dot sitting near the baseline. */
+.app-topbar__wordmark-dot {
+  width: 5px;
+  height: 5px;
+  align-self: flex-end;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  box-shadow: 0 0 6px rgba(129, 140, 248, 0.5);
 }
 
 /* ── Scrollable content ─────────────────────────────────────────── */

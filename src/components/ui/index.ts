@@ -32,6 +32,8 @@ export type {
 } from './GlassCard'
 export { AppShell } from './AppShell'
 export type { AppShellProps, AppNavKey } from './AppShell'
+export { Icon } from './Icon'
+export type { IconProps } from './Icon'
 export { AmbientGlow } from './AmbientGlow'
 export type {
   AmbientGlowProps,

@@ -23,7 +23,8 @@ import {
 } from "@/lib/tipUtils"
 import { recordEngagement } from "@/lib/engagementTracker"
 import { checkAllCelebrations, getUnderBudgetStreak } from "@/lib/celebrationEngine"
-import { CELEBRATION_COPY, CELEBRATION_EMOJI, getCategoryEmoji } from "@/lib/vocabulary"
+import { CELEBRATION_COPY, CELEBRATION_EMOJI } from "@/lib/vocabulary"
+import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import { recordLastActive } from "@/lib/reminderPreferences"
 import { getInsightsEnabled } from "@/lib/insightPreferences"
 import { getSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
@@ -1311,7 +1312,6 @@ export function HomeScreen({
               }}
             >
               {repeats.map((repeat, index) => {
-                const emoji = getCategoryEmoji(repeat.category)
                 return (
                   <motion.button
                     key={`${repeat.category}-${repeat.amount}-${repeat.note ?? ""}`}
@@ -1324,7 +1324,7 @@ export function HomeScreen({
                     whileTap={{ scale: 0.95 }}
                     style={chipButton}
                   >
-                    <span>{emoji}</span>
+                    <CategoryIcon category={repeat.category} size={26} />
                     <span>{repeat.label}</span>
                   </motion.button>
                 )
@@ -1477,8 +1477,8 @@ export function HomeScreen({
                         gap: 6,
                       }}
                     >
-                      {/* Emoji */}
-                      <span style={{ fontSize: 24, lineHeight: 1 }}>{row.emoji}</span>
+                      {/* Category icon chip */}
+                      <CategoryIcon category={row.category} size={44} />
 
                       {/* Category name */}
                       <span
@@ -1664,7 +1664,6 @@ export function HomeScreen({
                       const catInfo = BUDGET_CATEGORIES.find(
                         (c) => c.category === tx.category
                       )
-                      const emoji = getCategoryEmoji(tx.category)
                       const label = tx.note || catInfo?.label || tx.category
                       const isLast =
                         groupIdx === grouped.length - 1 &&
@@ -1696,10 +1695,11 @@ export function HomeScreen({
                                   fontFamily: FONT_FAMILY,
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: 4,
+                                  gap: 8,
                                 }}
                               >
-                                {emoji} {label}
+                                <CategoryIcon category={tx.category} size={32} />
+                                {label}
                                 {splitTransactionIds?.has(tx.id) && (
                                   <span
                                     style={{

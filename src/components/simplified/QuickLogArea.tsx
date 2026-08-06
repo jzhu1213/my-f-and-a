@@ -8,7 +8,8 @@ import type { QuickTransaction, SmartSuggestion, CustomCategory } from "@/types/
 import { generateSmartSuggestions } from "@/lib/suggestionUtils"
 import { useToast } from "@/contexts/ToastContext"
 import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
-import { getCategoryEmoji } from "@/lib/vocabulary"
+import { CategoryIcon } from "@/components/ui/CategoryIcon"
+import type { IconName } from "@/lib/icons"
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius } from '@/styles/shared'
 import {
@@ -71,6 +72,10 @@ interface CategoryButtonProps {
   onSelect: () => void
   reducedMotion: boolean
   tabIndex?: number
+  /** True when this is a user-defined custom category. */
+  isCustom?: boolean
+  /** Resolved icon for a custom category (falls back to emoji when absent). */
+  iconName?: IconName
 }
 
 /**
@@ -91,6 +96,8 @@ function CategoryButton({
   onSelect,
   reducedMotion,
   tabIndex,
+  isCustom = false,
+  iconName,
 }: CategoryButtonProps) {
   // Variant maps drive the tap gesture. Framer propagates the active gesture
   // variant ("tap") to any child that defines the same key, so the icon
@@ -148,12 +155,18 @@ function CategoryButton({
         }}
       >
         <motion.span
-          style={{ fontSize: 24, display: "inline-block" }}
+          style={{ display: "inline-flex" }}
           variants={iconBounceVariants}
           transition={ICON_BOUNCE_SPRING}
           aria-hidden="true"
         >
-          {emoji}
+          <CategoryIcon
+            category={category}
+            emoji={emoji}
+            isCustom={isCustom}
+            iconName={iconName}
+            size={40}
+          />
         </motion.span>
         <span
           style={{
@@ -459,9 +472,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
       aria-label={`Custom amount for ${categoryInfo?.label ?? category}`}
     >
       <div className="flex items-center gap-2">
-        <span style={{ fontSize: 20 }} aria-hidden="true">
-          {getCategoryEmoji(category)}
-        </span>
+        <CategoryIcon category={category} size={28} />
         <span style={{ fontSize: 14, color: "var(--sub)", fontWeight: 500 }}>
           {categoryInfo?.label ?? category}
         </span>
@@ -637,6 +648,7 @@ export function QuickLogArea({
           emoji: c.emoji,
           label: c.label,
           customId: c.id,
+          icon: c.icon,
         }))
       return [...customizedCategories, ...custom]
     }
@@ -663,6 +675,7 @@ export function QuickLogArea({
         emoji: c.emoji,
         label: c.label,
         customId: c.id,
+        icon: c.icon,
       }))
 
     return [...builtIn, ...custom]
@@ -1028,6 +1041,8 @@ export function QuickLogArea({
               category={cat.category}
               emoji={cat.emoji}
               label={cat.label}
+              isCustom={'customId' in cat && !!cat.customId}
+              iconName={'icon' in cat && cat.icon ? (cat.icon as IconName) : undefined}
               isSelected={selectedCategory === cat.category}
               onSelect={() => handleCategorySelect(cat.category)}
               reducedMotion={prefersReducedMotion}

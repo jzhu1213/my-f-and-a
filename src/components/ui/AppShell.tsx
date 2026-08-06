@@ -34,6 +34,7 @@
 import type { ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GradientMesh, type GradientMeshVariant } from './GradientMesh'
+import { Icon } from './Icon'
 import { useReducedMotion, springs, timings } from '@/lib/animations'
 
 /**
@@ -92,44 +93,10 @@ interface NavItem {
   icon: ReactNode
 }
 
-/* ── Icons (stroke, currentColor) ───────────────────────────────── */
-
-function HomeIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 10.5 12 3l9 7.5" />
-      <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
-    </svg>
-  )
-}
-
-function HistoryIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-      <path d="M3 4v4h4" />
-      <path d="M12 8v4l3 2" />
-    </svg>
-  )
-}
-
-function SettingsIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-    </svg>
-  )
-}
-
-function PersonIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5 20c0-3.314 3.134-6 7-6s7 2.686 7 6" />
-    </svg>
-  )
-}
+/* ── Icons ───────────────────────────────────────────────────────
+ * All chrome/nav icons now come from the central icon registry via the
+ * shared <Icon> wrapper (stroke-based, currentColor). See src/lib/icons.ts.
+ */
 
 export function AppShell({
   children,
@@ -150,9 +117,9 @@ export function AppShell({
   // surface, which includes Learn) are reached via progressive disclosure from
   // the Settings screen, not a dedicated dock tab (Requirement 9.5).
   const navItems: NavItem[] = [
-    { key: 'home', label: 'Home', icon: <HomeIcon /> },
-    { key: 'history', label: 'History', icon: <HistoryIcon /> },
-    { key: 'settings', label: 'Settings', icon: <SettingsIcon /> },
+    { key: 'home', label: 'Home', icon: <Icon name="nav:home" size={22} /> },
+    { key: 'history', label: 'History', icon: <Icon name="nav:history" size={22} /> },
+    { key: 'settings', label: 'Settings', icon: <Icon name="nav:settings" size={22} /> },
   ]
 
   const handleSettingsTop = onOpenSettings ?? (() => onNavChange('settings'))
@@ -179,12 +146,13 @@ export function AppShell({
                 {avatarInitial.slice(0, 1).toUpperCase()}
               </span>
             ) : (
-              <PersonIcon />
+              <Icon name="chrome:person" size={20} />
             )}
           </div>
 
           <span className="app-topbar__wordmark" aria-label="Folio">
             folio
+            <span className="app-topbar__wordmark-dot" aria-hidden="true" />
           </span>
 
           <button
@@ -193,7 +161,7 @@ export function AppShell({
             onClick={handleSettingsTop}
             aria-label="Open settings"
           >
-            <SettingsIcon />
+            <Icon name="nav:settings" size={22} />
           </button>
         </header>
       )}
@@ -220,10 +188,7 @@ export function AppShell({
             whileTap={prefersReducedMotion ? undefined : { scale: 0.88 }}
             transition={springs.snappy}
           >
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
-              <path d="M12 5v14" />
-              <path d="M5 12h14" />
-            </svg>
+            <Icon name="action:add" size={26} strokeWidth={2.2} />
           </motion.button>
         )}
       </AnimatePresence>

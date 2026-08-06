@@ -2,6 +2,9 @@
 
 import { motion, type PanInfo } from "framer-motion"
 import { GlassCard, type GlassGlow } from "@/components/ui"
+import { Icon } from "@/components/ui/Icon"
+import { getTipIconName } from "@/lib/icons"
+import { borderRadius } from "@/styles/shared"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import type { ContextualTip, TipType } from "@/types/folio"
 
@@ -73,6 +76,9 @@ export function ContextualTipCard({
   const { prefersReducedMotion } = useReducedMotion()
   const hasAction = tip.actionLabel && tip.actionType
   const style = TIP_STYLES[tip.type] ?? TIP_STYLES.did_you_know
+  // Structural icon for the tip: a tip may specify a precise semantic icon
+  // (bill, subscription, credit, …); otherwise fall back to the per-type icon.
+  const iconName = tip.iconName ?? getTipIconName(tip.type)
 
   function handleAction() {
     if (tip.actionType === "learn_more") {
@@ -163,15 +169,26 @@ export function ContextualTipCard({
 
           {/* Tip content */}
           <div className="flex items-start gap-3 pr-8">
-            {/* Emoji with a gentle floating animation */}
+            {/* Themeable icon in a tinted chip, colored by the tip type accent.
+                Retains the gentle floating animation (skipped under reduced
+                motion). Decorative — the tip title/message carry the meaning. */}
             <span
-              className={`flex-shrink-0 text-2xl${
+              className={`flex-shrink-0${
                 prefersReducedMotion ? "" : " tip-emoji-float"
               }`}
-              role="img"
               aria-hidden="true"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 40,
+                height: 40,
+                borderRadius: borderRadius.md,
+                background: `color-mix(in srgb, ${style.accentFrom} 16%, transparent)`,
+                color: style.accentFrom,
+              }}
             >
-              {tip.emoji}
+              <Icon name={iconName} size={22} />
             </span>
 
             <div className="flex flex-col gap-1 min-w-0">

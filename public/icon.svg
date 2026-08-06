@@ -1,0 +1,44 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Folio">
+  <title>Folio</title>
+  <defs>
+    <!-- Warm purple surface → background, matching --surface/--bg tokens -->
+    <linearGradient id="folio-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e1b3a" />
+      <stop offset="1" stop-color="#12121f" />
+    </linearGradient>
+    <!-- Wordmark gradient: bright white → soft-purple accent (--accent family) -->
+    <linearGradient id="folio-mark" x1="0.2" y1="0" x2="0.9" y2="1">
+      <stop offset="0.4" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#a5b4fc" />
+    </linearGradient>
+    <!-- Subtle accent glow behind the mark -->
+    <radialGradient id="folio-glow" cx="0.5" cy="0.4" r="0.62">
+      <stop offset="0" stop-color="#818cf8" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#818cf8" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Full-bleed background keeps the icon maskable-safe (platform applies its own shape) -->
+  <rect width="512" height="512" rx="112" fill="url(#folio-bg)" />
+  <rect width="512" height="512" rx="112" fill="url(#folio-glow)" />
+
+  <!-- "f" monogram, drawn as outlined geometry so it renders without a web font.
+       Stem + top hook + crossbar, kept within the maskable safe zone. -->
+  <g fill="url(#folio-mark)">
+    <!-- vertical stem -->
+    <rect x="238" y="150" width="46" height="236" rx="23" />
+    <!-- top hook: quarter-round rising from the stem -->
+    <path d="M261 150
+             h44
+             a70 70 0 0 0 -70 70
+             v10
+             h-44
+             v-10
+             a70 70 0 0 1 70 -70 z" />
+    <!-- crossbar -->
+    <rect x="196" y="232" width="132" height="42" rx="21" />
+  </g>
+
+  <!-- Accent dot — the brand mark that echoes the "folio·" wordmark lockup -->
+  <circle cx="330" cy="366" r="20" fill="#818cf8" />
+</svg>

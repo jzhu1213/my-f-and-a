@@ -21,6 +21,8 @@ import type { HabitChip } from '@/lib/habitEngine'
 import type { CategoryDisplayItem } from '@/lib/customCategories'
 import { mergeCategories } from '@/lib/customCategories'
 import { getCategoryEmoji } from '@/lib/vocabulary'
+import { Icon } from '@/components/ui/Icon'
+import { CUSTOM_CATEGORY_ICON_CHOICES, type IconName } from '@/lib/icons'
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius, roundButton } from '@/styles/shared'
 import { TagInput } from './TagInput'
@@ -37,8 +39,8 @@ interface ExpenseSheetProps {
   defaultCategory?: TransactionCategory
   transactions?: Transaction[]
   customCategories?: CustomCategory[]
-  /** Callback to create a new custom category inline (task 69) */
-  onAddCustomCategory?: (label: string, emoji: string) => Promise<CustomCategory | null>
+  /** Callback to create a new custom category inline (task 69, icon: task 234.2) */
+  onAddCustomCategory?: (label: string, emoji: string, icon?: string) => Promise<CustomCategory | null>
   /** When true, the split toggle starts enabled (task 65 — one-tap split flow) */
   splitPreEnabled?: boolean
   /** Available funding sources (payment methods) for the user */
@@ -199,10 +201,11 @@ export function ExpenseSheet({
   const [showAddCategoryForm, setShowAddCategoryForm] = useState(false)
   const [newCategoryLabel, setNewCategoryLabel] = useState('')
   const [newCategoryEmoji, setNewCategoryEmoji] = useState('✨')
+  // Chosen icon for the new custom category (task 234.2). Defaults to the
+  // neutral fallback glyph; the stored emoji stays as a backward-compat fallback.
+  const [newCategoryIcon, setNewCategoryIcon] = useState<IconName>('category:fallback')
   const [isAddingCategory, setIsAddingCategory] = useState(false)
 
-  // Quick-pick emoji palette for the inline add form
-  const EMOJI_PALETTE = ['🛒', '☕', '🍜', '🎓', '🏋️', '💇', '🎁', '🐾', '💊', '🧴', '✈️', '🎨', '🎶', '📱', '🪴']
 
   // Compute smart suggestions when category is selected
   const suggestions: SmartSuggestion[] = useMemo(() => {
@@ -258,6 +261,7 @@ export function ExpenseSheet({
       setShowAddCategoryForm(false)
       setNewCategoryLabel('')
       setNewCategoryEmoji('✨')
+      setNewCategoryIcon('category:fallback')
       setIsAddingCategory(false)
       
       // Reset date to today (task 87.1)
@@ -325,7 +329,7 @@ export function ExpenseSheet({
     if (!trimmedLabel || !onAddCustomCategory) return
     setIsAddingCategory(true)
     try {
-      const created = await onAddCustomCategory(trimmedLabel, newCategoryEmoji)
+      const created = await onAddCustomCategory(trimmedLabel, newCategoryEmoji, newCategoryIcon)
       if (created) {
         // Select the newly created category and close the form
         setCategory('other')
@@ -334,11 +338,12 @@ export function ExpenseSheet({
         setShowAddCategoryForm(false)
         setNewCategoryLabel('')
         setNewCategoryEmoji('✨')
+        setNewCategoryIcon('category:fallback')
       }
     } finally {
       setIsAddingCategory(false)
     }
-  }, [newCategoryLabel, newCategoryEmoji, onAddCustomCategory])
+  }, [newCategoryLabel, newCategoryEmoji, newCategoryIcon, onAddCustomCategory])
 
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '')
@@ -1137,7 +1142,8 @@ export function ExpenseSheet({
                       padding: '14px 14px 12px',
                     }}
                   >
-                    {/* Emoji palette */}
+                    {/* Icon palette (task 234.2) — pick a themeable icon instead
+                        of an emoji. The stored emoji stays as a fallback. */}
                     <div
                       style={{
                         display: 'flex',
@@ -1146,49 +1152,54 @@ export function ExpenseSheet({
                         marginBottom: 12,
                       }}
                       role="group"
-                      aria-label="Choose an emoji for your category"
+                      aria-label="Choose an icon for your category"
                     >
-                      {EMOJI_PALETTE.map((em) => (
-                        <button
-                          key={em}
-                          type="button"
-                          onClick={() => setNewCategoryEmoji(em)}
-                          aria-label={`Use emoji ${em}`}
-                          aria-pressed={newCategoryEmoji === em}
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 'var(--radius-sm)',
-                            border: newCategoryEmoji === em
-                              ? '1.5px solid rgba(129, 140, 248, 0.6)'
-                              : '1px solid rgba(255, 255, 255, 0.08)',
-                            background: newCategoryEmoji === em
-                              ? 'rgba(129, 140, 248, 0.1)'
-                              : 'transparent',
-                            fontSize: 18,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {em}
-                        </button>
-                      ))}
+                      {CUSTOM_CATEGORY_ICON_CHOICES.map((choice) => {
+                        const isSelected = newCategoryIcon === choice
+                        return (
+                          <button
+                            key={choice}
+                            type="button"
+                            onClick={() => setNewCategoryIcon(choice)}
+                            aria-label={`Use ${choice.split(':')[1]} icon`}
+                            aria-pressed={isSelected}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 'var(--radius-sm)',
+                              border: isSelected
+                                ? '1.5px solid rgba(129, 140, 248, 0.6)'
+                                : '1px solid rgba(255, 255, 255, 0.08)',
+                              background: isSelected
+                                ? 'rgba(129, 140, 248, 0.1)'
+                                : 'transparent',
+                              color: isSelected ? 'var(--accent)' : 'var(--sub)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Icon name={choice} size={18} />
+                          </button>
+                        )
+                      })}
                     </div>
 
                     {/* Label input + action row */}
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <span
                         style={{
-                          fontSize: 20,
                           flexShrink: 0,
                           width: 32,
-                          textAlign: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--accent)',
                         }}
                         aria-hidden="true"
                       >
-                        {newCategoryEmoji}
+                        <Icon name={newCategoryIcon} size={20} />
                       </span>
                       <input
                         type="text"

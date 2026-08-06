@@ -5,11 +5,14 @@ import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { getPeerContextEnabled } from "@/lib/peerContextPreferences"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { Icon } from "@/components/ui/Icon"
+import type { IconName } from "@/lib/icons"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
+  borderRadius,
   sectionHeadingStrong,
 } from "@/styles/shared"
 import { SourceBalancesView } from "./SourceBalancesView"
@@ -77,10 +80,39 @@ export interface ToolsScreenProps {
 
 interface ToolItem {
   id: string
-  emoji: string
+  /** Semantic registry icon name resolved through the {@link Icon} wrapper. */
+  iconName: IconName
   title: string
   description: string
   onOpen?: () => void
+}
+
+/**
+ * Subtle, tinted icon-chip that backs every tool's icon. Uses a muted tint of
+ * the warm-purple `--accent` token (via `color-mix`) so the tools grid reads as
+ * a designed dashboard rather than an emoji list. The icon inherits the accent
+ * through `currentColor`. Decorative — each chip is paired with a visible tool
+ * title, so it is hidden from assistive tech.
+ */
+function ToolIconChip({ name, size = 40 }: { name: IconName; size?: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: size,
+        height: size,
+        flexShrink: 0,
+        borderRadius: borderRadius.md,
+        background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+        color: "var(--accent)",
+      }}
+    >
+      <Icon name={name} size={Math.round(size * 0.5)} />
+    </span>
+  )
 }
 
 // ============================================================================
@@ -131,7 +163,7 @@ const SECTIONS: ToolSection[] = [
  *
  * Accessible from the dock navigation. Presents advanced tools grouped into
  * logical sections (Money Map, Obligations, Planning, Learn) as glass cards
- * with emoji, title, and description.
+ * with a tinted icon-chip, title, and description.
  */
 export function ToolsScreen({
   onOpenCompoundGrowth,
@@ -208,140 +240,140 @@ export function ToolsScreen({
   const allTools: ToolItem[] = [
     {
       id: "trajectory",
-      emoji: "📊",
+      iconName: "tool:trajectory",
       title: "Financial Trajectory",
       description: "See how your money habits are trending — no intimidating numbers.",
       onOpen: onOpenTrajectory,
     },
     {
       id: "debt",
-      emoji: "💳",
+      iconName: "tool:debt",
       title: "Debt Tracking",
       description: "Track balances, APRs, and payoff timelines for your debts.",
       onOpen: onOpenDebt,
     },
     {
       id: "recurring-bills",
-      emoji: "📅",
+      iconName: "tool:recurring-bills",
       title: "Recurring Bills",
       description: "Track your monthly fixed costs like rent, subscriptions, and utilities.",
       onOpen: onOpenRecurringBills,
     },
     {
       id: "reimbursements",
-      emoji: "🤝",
+      iconName: "tool:reimbursements",
       title: "IOUs & Reimbursements",
       description: "Track money friends owe you — or that you owe them.",
       onOpen: onOpenReimbursements,
     },
     {
       id: "sinking-funds",
-      emoji: "🎯",
+      iconName: "tool:sinking-funds",
       title: "Sinking Funds",
       description: "Save gradually for predictable large expenses like insurance or travel.",
       onOpen: onOpenSinkingFunds,
     },
     {
       id: "subscriptions",
-      emoji: "🔄",
+      iconName: "tool:subscriptions",
       title: "Subscription Audit",
       description: "Review detected recurring charges and decide what's worth keeping.",
       onOpen: onOpenSubscriptions,
     },
     {
       id: "cancel-negotiate",
-      emoji: "💬",
+      iconName: "tool:cancel-negotiate",
       title: "Cancel or Negotiate Helper",
       description: "DIY steps and a friendly script to lower a bill or cancel a subscription yourself.",
       onOpen: onOpenCancelNegotiate,
     },
     {
       id: "household-pool",
-      emoji: "🏠",
+      iconName: "tool:household-pool",
       title: "Shared Pools",
       description: "Split shared expenses like groceries and utilities with roommates — separate from your daily number.",
       onOpen: onOpenHouseholdPool,
     },
     {
       id: "invite-roommate",
-      emoji: "💌",
+      iconName: "tool:invite-roommate",
       title: "Invite a Roommate",
       description: "Share a pool or goal with a roommate so you can split and save together.",
       onOpen: onOpenInviteRoommate,
     },
     {
       id: "savings-projections",
-      emoji: "🏦",
+      iconName: "tool:savings-projections",
       title: "Savings Projections",
       description: "Project how your savings accounts and investments might grow.",
       onOpen: onOpenSavingsProjections,
     },
     {
       id: "manage-savings",
-      emoji: "✏️",
+      iconName: "tool:manage-savings",
       title: "Manage Savings Accounts",
       description: "Add, edit, or remove your savings and investment accounts.",
       onOpen: onOpenManageSavings,
     },
     {
       id: "portfolio-allocation",
-      emoji: "🥧",
+      iconName: "tool:portfolio-allocation",
       title: "Portfolio Allocation",
       description: "See your savings broken down by account type — where your money lives and grows.",
       onOpen: onOpenPortfolioAllocation,
     },
     {
       id: "investment-explorer",
-      emoji: "🔮",
+      iconName: "tool:investment-explorer",
       title: "What If I Invest?",
       description: "Model how different contributions and returns could grow over time.",
       onOpen: onOpenInvestmentExplorer,
     },
     {
       id: "cash-flow-forecast",
-      emoji: "📉",
+      iconName: "tool:cash-flow-forecast",
       title: "Cash Flow Forecast",
       description: "See your projected balance through your next payday or end of term.",
       onOpen: onOpenCashFlowForecast,
     },
     {
       id: "compound-growth",
-      emoji: "📈",
+      iconName: "tool:compound-growth",
       title: "Compound Growth Calculator",
       description: "See how your savings could grow over time with compound interest.",
       onOpen: onOpenCompoundGrowth,
     },
     {
       id: "credit-payoff",
-      emoji: "💰",
+      iconName: "tool:credit-payoff",
       title: "Credit Payoff Calculator",
       description: "Plan how to pay off credit card debt faster.",
       onOpen: onOpenCreditPayoff,
     },
     {
       id: "term-review",
-      emoji: "📖",
+      iconName: "tool:term-review",
       title: "Term in Review",
       description: "A warm end-of-term (or end-of-month) recap of your savings, streaks, and wins.",
       onOpen: onOpenTermReview,
     },
     {
       id: "year-in-review",
-      emoji: "🎉",
+      iconName: "tool:year-in-review",
       title: "Year in Review",
       description: "A warm, once-a-year look back at your streaks, savings, and wins.",
       onOpen: onOpenYearInReview,
     },
     {
       id: "peer-context",
-      emoji: "💜",
+      iconName: "tool:peer-context",
       title: "How you compare",
       description: "Optional, anonymized context against rough student ranges — reassuring, never a scoreboard.",
       onOpen: onOpenPeerContext,
     },
     {
       id: "learn",
-      emoji: "📚",
+      iconName: "tool:learn",
       title: "Learn",
       description: "Short lessons on budgeting, saving, and growing your money.",
       onOpen: onOpenLearn,
@@ -415,7 +447,7 @@ export function ToolsScreen({
           {(totalSetAside ?? 0) > 0 && (
             <GlassCard elevation="low" style={{ padding: "14px 16px", flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 18 }} aria-hidden="true">🏦</span>
+                <ToolIconChip name="stat:set-aside" size={32} />
                 <div>
                   <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2 }}>
                     Set aside this month
@@ -430,7 +462,7 @@ export function ToolsScreen({
           {(savingsRate ?? 0) > 0 && (
             <GlassCard elevation="low" style={{ padding: "14px 16px", flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 18 }} aria-hidden="true">💪</span>
+                <ToolIconChip name="stat:savings-rate" size={32} />
                 <div>
                   <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2 }}>
                     Savings rate
@@ -492,12 +524,7 @@ export function ToolsScreen({
                       onClick={tool.onOpen}
                     >
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                        <span
-                          style={{ fontSize: 24, lineHeight: 1, flexShrink: 0, marginTop: 2 }}
-                          aria-hidden="true"
-                        >
-                          {tool.emoji}
-                        </span>
+                        <ToolIconChip name={tool.iconName} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p
                             style={{
@@ -522,14 +549,13 @@ export function ToolsScreen({
                         {tool.onOpen && (
                           <span
                             style={{
-                              fontSize: 14,
                               color: "var(--muted)",
                               marginTop: 4,
                               flexShrink: 0,
+                              display: "inline-flex",
                             }}
-                            aria-hidden="true"
                           >
-                            →
+                            <Icon name="action:forward" size={18} />
                           </span>
                         )}
                       </div>
