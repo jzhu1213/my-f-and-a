@@ -22,12 +22,12 @@ import { AppLockScreen } from '@/components/simplified/AppLockScreen'
 import { readQuickCaptureIntent } from '@/lib/quickCapture'
 import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath, buildDemoOnlySteps } from '@/components/simplified/TutorialSteps'
 import type { PayCadence } from '@/lib/paySchedule'
-import { detectSubscriptions } from '@/lib/subscriptionDetector'
+import { detectSubscriptions, toRecurringBillDraft } from '@/lib/subscriptionDetector'
 import { mapGoalToPriority } from '@/lib/goalMapping'
 import { getGoalDefaults } from '@/lib/goalDefaults'
-import { getCategorizationRules, saveCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
+import { getCategorizationRules, saveCategorizationRule, updateCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
 import { getActiveShareLinks } from '@/lib/sharingUtils'
-import type { CategorizationRule } from '@/lib/categorizationRules'
+import type { CategorizationRule, CategorizationRuleUpdate } from '@/lib/categorizationRules'
 
 // ── Code-split: heavy/advanced features loaded on demand ─────────────────────
 // These screens are behind progressive disclosure (Tools tab, settings overlays)
@@ -47,6 +47,10 @@ const SinkingFundsScreen = dynamic(
 )
 const SubscriptionAuditScreen = dynamic(
   () => import('@/components/simplified/SubscriptionAuditScreen').then(m => ({ default: m.SubscriptionAuditScreen })),
+  { ssr: false }
+)
+const CategorizationRulesScreen = dynamic(
+  () => import('@/components/simplified/CategorizationRulesScreen').then(m => ({ default: m.CategorizationRulesScreen })),
   { ssr: false }
 )
 const RecurringBillsScreen = dynamic(
@@ -121,6 +125,10 @@ const TrajectoryScreen = dynamic(
   () => import('@/components/simplified/TrajectoryScreen').then(m => ({ default: m.TrajectoryScreen })),
   { ssr: false }
 )
+const RoommateInviteScreen = dynamic(
+  () => import('@/components/simplified/RoommateInviteScreen').then(m => ({ default: m.RoommateInviteScreen })),
+  { ssr: false }
+)
 const SharingScreen = dynamic(
   () => import('@/components/simplified/SharingScreen').then(m => ({ default: m.SharingScreen })),
   { ssr: false }
@@ -149,12 +157,17 @@ const InvestmentExplorerScreen = dynamic(
   () => import('@/components/simplified/InvestmentExplorerScreen').then(m => ({ default: m.InvestmentExplorerScreen })),
   { ssr: false }
 )
+const PrivacyDataScreen = dynamic(
+  () => import('@/components/simplified/PrivacyDataScreen').then(m => ({ default: m.PrivacyDataScreen })),
+  { ssr: false }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
-import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement, upsertPaySchedule, upsertBudget } from '@/lib/supabaseData'
+import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement, upsertPaySchedule, upsertBudget, deleteAllUserData } from '@/lib/supabaseData'
+import type { StoredDataCategory } from '@/components/simplified/PrivacyDataScreen'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
 import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, setOnboardingPath, markOnboardingStepCompleted } from '@/lib/storage'
 import type { TransactionCategory, Transaction, OnboardingPath, UserGoal } from '@/types'
@@ -409,8 +422,9 @@ export default function FolioApp() {
   const appLock = useAppLock()
 
   // ── Smart Notifications (task 114.2 — low balance & bill-due alerts;
-  //    task 160.1 — payday-triggered savings contribution reminder) ──
-  useSmartNotifications(allowance, recurringBills, savingsAccounts, paySchedule, transactions)
+  //    task 160.1 — payday-triggered savings contribution reminder;
+  //    task 189.1 — if-this-then-that trigger suggestions) ──
+  useSmartNotifications(allowance, recurringBills, savingsAccounts, paySchedule, transactions, sinkingFunds)
 
   // ── Subscription Detection ─────────────────────────────────────
   const [dismissedSubscriptions, setDismissedSubscriptions] = useState<Set<string>>(new Set())
@@ -482,6 +496,18 @@ export default function FolioApp() {
   const handleDismissSubscription = useCallback((id: string) => {
     setDismissedSubscriptions(prev => new Set([...prev, id]))
   }, [])
+
+  // One-tap confirm: promote a detected subscription into a tracked recurring
+  // bill, then dismiss it from the audit list so it isn't proposed again.
+  const handleConfirmSubscription = useCallback(async (sub: DetectedSubscription) => {
+    try {
+      await addBill(toRecurringBillDraft(sub))
+      setDismissedSubscriptions(prev => new Set([...prev, sub.id]))
+      showToast(`${sub.label} added to recurring bills ✓`, 'success')
+    } catch {
+      showToast("Couldn't add that bill — please try again", 'error')
+    }
+  }, [addBill, showToast])
 
   // ── Onboarding Check ───────────────────────────────────────────
   // Task 66: Skip the onboarding gate — new users go straight to the Home Screen.
@@ -824,11 +850,24 @@ export default function FolioApp() {
     }
   }
 
-  // ── Categorization Rules Handlers (task 113.3) ──────────────────
-  const handleAddCategorizationRule = useCallback((keyword: string, category: TransactionCategory) => {
-    const rule = saveCategorizationRule(keyword, category)
-    setCategorizationRules(prev => [...prev, rule])
-  }, [])
+  // ── Categorization Rules Handlers (task 113.3, 187.1) ───────────
+  const handleAddCategorizationRule = useCallback(
+    (keyword: string, category: TransactionCategory, fundingSourceId?: string | null) => {
+      const rule = saveCategorizationRule(keyword, category, fundingSourceId)
+      setCategorizationRules(prev => [...prev, rule])
+    },
+    []
+  )
+
+  const handleUpdateCategorizationRule = useCallback(
+    (id: string, updates: CategorizationRuleUpdate) => {
+      const updated = updateCategorizationRule(id, updates)
+      if (updated) {
+        setCategorizationRules(prev => prev.map(r => (r.id === id ? updated : r)))
+      }
+    },
+    []
+  )
 
   const handleDeleteCategorizationRule = useCallback((id: string) => {
     deleteCategorizationRule(id)
@@ -1477,6 +1516,41 @@ export default function FolioApp() {
     }
   }
 
+  // ── Privacy & Data dashboard (task 191.1) ──────────────────────
+  // Summarize what Folio stores about the user (counts by category) for the
+  // "What's stored" section. Only always-loaded collections are included so
+  // the counts are honest (debts/reimbursements load on demand elsewhere).
+  const privacyCategories = useMemo<StoredDataCategory[]>(() => [
+    { key: 'transactions', emoji: '🧾', label: 'Transactions', count: transactions.length, note: 'Every expense and income you\u2019ve logged' },
+    { key: 'budgets', emoji: '🎯', label: 'Budget limits', count: budgets.length, note: 'Category limits you\u2019ve set' },
+    { key: 'goals', emoji: '⭐', label: 'Goals', count: goals.length, note: 'Things you\u2019re saving toward' },
+    { key: 'savings', emoji: '🏦', label: 'Savings accounts', count: savingsAccounts.length, note: 'Balances you track by hand — no bank link' },
+    { key: 'sources', emoji: '💳', label: 'Money sources', count: fundingSources.length, note: 'Cards, cash, and accounts you pay from' },
+    { key: 'sinkingFunds', emoji: '💰', label: 'Sinking funds', count: sinkingFunds.length, note: 'Money set aside for known future costs' },
+    { key: 'recurringBills', emoji: '🔁', label: 'Recurring bills', count: recurringBills.length, note: 'Bills you\u2019ve asked Folio to remember' },
+  ], [transactions.length, budgets.length, goals.length, savingsAccounts.length, fundingSources.length, sinkingFunds.length, recurringBills.length])
+
+  // GDPR/CCPA-style "delete everything": clear all data across every table,
+  // best-effort remove the auth user, then reset the local app to a clean state.
+  const handleDeleteEverything = useCallback(async () => {
+    if (!user?.id) throw new Error('Not signed in')
+
+    const result = await deleteAllUserData(user.id)
+    if (!result.success) {
+      showToast(result.error || 'Failed to delete your data', 'error')
+      throw new Error(result.error || 'Delete failed')
+    }
+
+    // Best-effort removal of the auth account itself (needs elevated privileges;
+    // data is already gone regardless of the outcome here).
+    await deleteUserAccount(user.id).catch(() => {})
+
+    showToast('Everything\u2019s been deleted. Take care of yourself.', 'success')
+    overlay.closeOverlay()
+    // handleSignOut clears local onboarding state and returns to the tutorial.
+    handleSignOut()
+  }, [user?.id, showToast, overlay])
+
   // ── Profile Handlers ───────────────────────────────────────────
   const handleOpenProfile = () => {
     overlay.openSheet('profile')
@@ -1680,6 +1754,7 @@ export default function FolioApp() {
         <SubscriptionAuditScreen
           subscriptions={detectedSubscriptions}
           onDismiss={handleDismissSubscription}
+          onConfirm={handleConfirmSubscription}
           onClose={() => overlay.closeOverlay()}
           onOpenCancelNegotiate={(sub) => {
             overlay.openOverlay('cancelNegotiate', { target: sub })
@@ -1711,6 +1786,22 @@ export default function FolioApp() {
           onAddBill={addBill}
           onUpdateBill={updateBill}
           onDeleteBill={deleteBill}
+          onClose={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
+  // ── Categorization & Routing Rules (full-screen overlay, task 187.1) ──
+  if (overlay.activeOverlay === 'categorizationRules') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <CategorizationRulesScreen
+          rules={categorizationRules}
+          fundingSources={fundingSources}
+          onAddRule={handleAddCategorizationRule}
+          onUpdateRule={handleUpdateCategorizationRule}
+          onDeleteRule={handleDeleteCategorizationRule}
           onClose={() => overlay.closeOverlay()}
         />
       </div>
@@ -1797,6 +1888,24 @@ export default function FolioApp() {
     )
   }
 
+  // ── Privacy & Data dashboard (full-screen overlay, task 191.1) ──
+  if (overlay.activeOverlay === 'privacyData') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <PrivacyDataScreen
+          userEmail={user?.email}
+          categories={privacyCategories}
+          onBack={() => overlay.closeOverlay()}
+          onExportAll={handleExportData}
+          onOpenReports={() => overlay.openOverlay('reports')}
+          onExportCSV={handleExportCSV}
+          onDeleteEverything={handleDeleteEverything}
+          onNotify={showToast}
+        />
+      </div>
+    )
+  }
+
   // ── Financial Trajectory (full-screen overlay, task 111.1) ─────
   if (flags.financialTrajectory && overlay.activeOverlay === 'trajectory') {
     return (
@@ -1843,6 +1952,19 @@ export default function FolioApp() {
           budgets={budgets}
           allowance={allowance}
           onBack={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
+  // ── Invite a Roommate (full-screen overlay, task 201.1) ────────
+  if (overlay.activeOverlay === 'inviteRoommate') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <RoommateInviteScreen
+          inviterName={user?.name}
+          goals={goals}
+          onClose={() => overlay.closeOverlay()}
         />
       </div>
     )
@@ -2111,6 +2233,7 @@ export default function FolioApp() {
                 onOpenYearInReview={() => overlay.openOverlay('yearInReview')}
                 onOpenTermReview={() => overlay.openOverlay('termReview')}
                 onOpenPeerContext={() => overlay.openOverlay('peerContext')}
+                onOpenInviteRoommate={() => overlay.openOverlay('inviteRoommate')}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}
@@ -2150,10 +2273,12 @@ export default function FolioApp() {
                 onExportData={handleExportData}
                 onExportCSV={handleExportCSV}
                 onOpenReports={() => overlay.openOverlay('reports')}
+                onOpenPrivacyDashboard={() => overlay.openOverlay('privacyData')}
                 onDeleteAccount={handleDeleteAccount}
                 categorizationRules={categorizationRules}
                 onAddCategorizationRule={handleAddCategorizationRule}
                 onDeleteCategorizationRule={handleDeleteCategorizationRule}
+                onOpenCategorizationRules={() => overlay.openOverlay('categorizationRules')}
                 onOpenSharing={() => overlay.openOverlay('sharing')}
                 onOpenCategoryHub={() => overlay.openOverlay('categoryHub')}
                 activeShareCount={getActiveShareLinks().length}

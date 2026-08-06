@@ -1,5 +1,6 @@
 import type { Transaction, TransactionCategory } from '@/types'
 import { BUDGET_CATEGORIES } from '@/types'
+import type { FixedExpense } from '@/lib/fixedExpenses'
 import { parseDateLocal, formatDateLocal, addDaysLocal } from '@/lib/dateUtils'
 
 // ============================================================================
@@ -40,6 +41,22 @@ export interface DetectedSubscription {
   frequency: 'monthly' | 'weekly' | 'annual'
   isConfirmed: boolean
   recurringId?: string
+  /**
+   * A 0–1 score for how confident we are that this is a genuine recurring
+   * charge. Confirmed subscriptions (linked by `recurringId`) always score
+   * high; heuristic detections are scored from charge count, gap regularity,
+   * amount consistency, how closely the cadence fits a real billing cycle, and
+   * whether the label matches a known service. Deterministic and pure.
+   */
+  confidence: number
+  /**
+   * A human-friendly band derived from {@link confidence}. Drives the
+   * confidence badge in the audit UI ("Very likely" / "Probably" / "Maybe").
+   * - high   → confidence ≥ 0.8
+   * - medium → confidence ≥ 0.55
+   * - low    → below 0.55
+   */
+  confidenceLevel: 'high' | 'medium' | 'low'
   /**
    * Broad service grouping when the label matches a known service. Used to
    * flag overlapping services (two streaming apps) and pick warm hints.
@@ -116,6 +133,163 @@ function averageGap(dates: string[]): number {
     totalGap += (d2 - d1) / (1000 * 60 * 60 * 24)
   }
   return totalGap / (sorted.length - 1)
+}
+
+// ============================================================================
+// Confidence Scoring (Task 190.1)
+// ============================================================================
+
+/**
+ * Confidence bands. A detection is surfaced with a badge derived from these:
+ * - high   → "Very likely" — treat as a real recurring charge
+ * - medium → "Probably"    — likely recurring, worth a glance
+ * - low    → "Maybe"       — a soft guess
+ */
+export const CONFIDENCE_HIGH_THRESHOLD = 0.8
+export const CONFIDENCE_MEDIUM_THRESHOLD = 0.55
+
+/**
+ * Minimum confidence for a *heuristic* (unconfirmed) pattern to be proposed at
+ * all. Below this we stay quiet rather than guess — no noise, no false alarms.
+ */
+export const MIN_HEURISTIC_CONFIDENCE = 0.45
+
+/** Canonical billing cadences in days, used to score how "billing-like" a gap is. */
+const CANONICAL_CYCLE_DAYS = [7, 30.44, 365.25] as const
+
+/** Clamps a number into the [0, 1] range. */
+function clamp01(n: number): number {
+  if (Number.isNaN(n)) return 0
+  return Math.max(0, Math.min(1, n))
+}
+
+/**
+ * Scores how regular the gaps between charges are, from 0 (erratic) to 1
+ * (perfectly even). With fewer than three charges there is only one gap to
+ * measure, so we return a neutral 0.5 rather than pretend to know.
+ *
+ * Uses the coefficient of variation (stddev / mean) of the gaps: a low spread
+ * relative to the average gap means a steady, subscription-like rhythm.
+ */
+export function gapRegularity(dates: string[]): number {
+  if (dates.length < 3) return 0.5
+  const sorted = [...dates].sort()
+  const gaps: number[] = []
+  for (let i = 1; i < sorted.length; i++) {
+    const d1 = new Date(sorted[i - 1]).getTime()
+    const d2 = new Date(sorted[i]).getTime()
+    gaps.push((d2 - d1) / (1000 * 60 * 60 * 24))
+  }
+  const mean = gaps.reduce((s, g) => s + g, 0) / gaps.length
+  if (mean <= 0) return 0
+  const variance = gaps.reduce((s, g) => s + (g - mean) ** 2, 0) / gaps.length
+  const cv = Math.sqrt(variance) / mean
+  return clamp01(1 - cv)
+}
+
+/**
+ * Scores how consistent the charge amounts are, from 0 (all over the place) to
+ * 1 (identical every time). Heuristic groups are keyed on an exact amount so
+ * they score 1; confirmed groups linked by `recurringId` can vary slightly
+ * (price changes, taxes) and are scored by their relative average deviation.
+ */
+export function amountConsistency(amounts: number[]): number {
+  if (amounts.length < 2) return 1
+  const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length
+  if (mean <= 0) return 0
+  const avgAbsDev = amounts.reduce((s, a) => s + Math.abs(a - mean), 0) / amounts.length
+  return clamp01(1 - avgAbsDev / mean)
+}
+
+/**
+ * Scores how closely an average gap matches a real billing cadence (weekly,
+ * monthly, or annual), from 0 (nothing like a bill) to 1 (right on cycle).
+ * Two same-priced coffees 60 days apart score near 0; a monthly charge scores
+ * near 1.
+ */
+export function cycleFit(avgGapDays: number): number {
+  if (avgGapDays <= 0) return 0
+  let best = 0
+  for (const cycle of CANONICAL_CYCLE_DAYS) {
+    const relDist = Math.abs(avgGapDays - cycle) / cycle
+    best = Math.max(best, clamp01(1 - relDist))
+  }
+  return best
+}
+
+/** Maps a raw 0–1 confidence score to its band. */
+export function confidenceLevelFor(score: number): 'high' | 'medium' | 'low' {
+  if (score >= CONFIDENCE_HIGH_THRESHOLD) return 'high'
+  if (score >= CONFIDENCE_MEDIUM_THRESHOLD) return 'medium'
+  return 'low'
+}
+
+/**
+ * Inputs to the confidence model. All are pure, pre-computed signals.
+ */
+interface ConfidenceSignals {
+  isConfirmed: boolean
+  chargeCount: number
+  regularity: number
+  amountConsistency: number
+  cycleFit: number
+  knownService: boolean
+}
+
+/**
+ * Combines the recurring-detection signals into a single 0–1 confidence score.
+ *
+ * Confirmed subscriptions (linked by `recurringId`) start from a high floor and
+ * are nudged up by how many times they've charged and how even the rhythm is —
+ * they always land in the "high" band.
+ *
+ * Heuristic detections are built up from weighted signals and capped below full
+ * certainty, since we inferred them rather than had them confirmed.
+ */
+export function scoreRecurringConfidence(signals: ConfidenceSignals): number {
+  const countFactor = clamp01((signals.chargeCount - 1) / 3) // 2→0.33, 3→0.67, 4+→1
+
+  if (signals.isConfirmed) {
+    return clamp01(0.82 + 0.1 * countFactor + 0.08 * signals.regularity)
+  }
+
+  const score =
+    0.15 +
+    0.3 * signals.regularity +
+    0.25 * countFactor +
+    0.12 * signals.amountConsistency +
+    0.1 * signals.cycleFit +
+    (signals.knownService ? 0.12 : 0)
+
+  // Heuristic detections never reach the certainty of a confirmed one.
+  return Math.min(0.92, clamp01(score))
+}
+
+/**
+ * A compact, display-ready summary of a subscription's confidence, for the
+ * badge in the audit UI. Copy stays warm and non-committal.
+ */
+export interface ConfidenceBadge {
+  level: 'high' | 'medium' | 'low'
+  /** Short warm label, e.g. "Very likely". */
+  label: string
+  /** Whole-number percent (0–100) for an optional inline readout. */
+  percent: number
+}
+
+/** Warm, shame-free label for each confidence band. */
+export function confidenceBadge(sub: DetectedSubscription): ConfidenceBadge {
+  const label =
+    sub.confidenceLevel === 'high'
+      ? 'Very likely'
+      : sub.confidenceLevel === 'medium'
+        ? 'Probably'
+        : 'Maybe'
+  return {
+    level: sub.confidenceLevel,
+    label,
+    percent: Math.round(clamp01(sub.confidence) * 100),
+  }
 }
 
 // ============================================================================
@@ -385,7 +559,17 @@ export function detectSubscriptions(transactions: Transaction[]): DetectedSubscr
 
     const sorted = [...txGroup].sort((a, b) => a.date.localeCompare(b.date))
     const latest = sorted[sorted.length - 1]
-    const avgGap = averageGap(sorted.map(t => t.date))
+    const dates = sorted.map(t => t.date)
+    const avgGap = averageGap(dates)
+    const regularity = gapRegularity(dates)
+    const confidence = scoreRecurringConfidence({
+      isConfirmed: true,
+      chargeCount: txGroup.length,
+      regularity,
+      amountConsistency: amountConsistency(sorted.map(t => t.amount)),
+      cycleFit: cycleFit(avgGap),
+      knownService: !!matchKnownService(latest.note || latest.category),
+    })
 
     const sub: DetectedSubscription = {
       id: `confirmed-${recurringId}`,
@@ -397,6 +581,8 @@ export function detectSubscriptions(transactions: Transaction[]): DetectedSubscr
       frequency: inferFrequency(avgGap),
       isConfirmed: true,
       recurringId,
+      confidence,
+      confidenceLevel: confidenceLevelFor(confidence),
     }
 
     subscriptions.push(sub)
@@ -423,10 +609,26 @@ export function detectSubscriptions(transactions: Transaction[]): DetectedSubscr
     if (txGroup.length < 2) continue
 
     const sorted = [...txGroup].sort((a, b) => a.date.localeCompare(b.date))
-    const avgGap = averageGap(sorted.map(t => t.date))
+    const dates = sorted.map(t => t.date)
+    const avgGap = averageGap(dates)
 
-    // Only consider monthly-ish patterns (28–35 day average gap)
-    if (avgGap < 28 || avgGap > 35) continue
+    // Smarter cadence gate: accept weekly, monthly, or annual rhythms (not just
+    // the old tight 28–35 day monthly window) as long as the gap actually looks
+    // like a billing cycle. This filters out coincidental same-amount repeats.
+    const fit = cycleFit(avgGap)
+    if (fit < 0.5) continue
+
+    const confidence = scoreRecurringConfidence({
+      isConfirmed: false,
+      chargeCount: txGroup.length,
+      regularity: gapRegularity(dates),
+      amountConsistency: 1, // grouped on an exact amount, so always consistent
+      cycleFit: fit,
+      knownService: !!matchKnownService(sorted[sorted.length - 1].note || ''),
+    })
+
+    // Only propose patterns we're reasonably sure about — stay quiet otherwise.
+    if (confidence < MIN_HEURISTIC_CONFIDENCE) continue
 
     const latest = sorted[sorted.length - 1]
     const subId = `heuristic-${key}`
@@ -440,8 +642,10 @@ export function detectSubscriptions(transactions: Transaction[]): DetectedSubscr
       category: latest.category,
       lastCharged: latest.date,
       chargeCount: txGroup.length,
-      frequency: 'monthly',
+      frequency: inferFrequency(avgGap),
       isConfirmed: false,
+      confidence,
+      confidenceLevel: confidenceLevelFor(confidence),
     })
 
     seenIds.add(subId)
@@ -500,6 +704,36 @@ export function getOverlappingSubscriptions(
   subscriptions: DetectedSubscription[]
 ): DetectedSubscription[] {
   return subscriptions.filter(sub => sub.isLikelyDuplicate)
+}
+
+// ============================================================================
+// One-Tap Confirm (Task 190.1)
+// ============================================================================
+
+/**
+ * Turns a detected subscription into a ready-to-save recurring bill draft, so a
+ * single tap in the audit UI promotes a proposal into a tracked fixed expense.
+ *
+ * The `dueDay` is inferred from the day-of-month of the last charge (clamped to
+ * a valid 1–31), and the group's `recurringId` is reused when present so the
+ * new bill links back to its source charges (preventing double-counting via
+ * `isScheduledForKnownBill`). `id` and `userId` are intentionally omitted — the
+ * data layer assigns those. Pure and deterministic.
+ */
+export function toRecurringBillDraft(
+  sub: DetectedSubscription
+): Omit<FixedExpense, 'id' | 'userId'> {
+  const dayOfMonth = parseDateLocal(sub.lastCharged).getDate()
+  const dueDay = Math.min(31, Math.max(1, dayOfMonth))
+
+  return {
+    category: sub.category,
+    label: sub.label,
+    amount: sub.amount,
+    dueDay,
+    recurringId: sub.recurringId ?? sub.id,
+    isActive: true,
+  }
 }
 
 // ============================================================================

@@ -33,10 +33,25 @@ import {
   revokeShareLink,
   getShareUrl,
   refreshAllSharedSummaries,
+  describeExpiry,
+  getShareLinkStatus,
+  EXPIRY_OPTIONS,
+  ALL_SHARE_SECTIONS,
   type ShareLink,
+  type ShareSection,
 } from "@/lib/sharingUtils"
 import type { Transaction, Budget } from "@/types"
 import type { DailyAllowance } from "@/types/folio"
+
+// ============================================================================
+// Section metadata (warm labels for scope toggles)
+// ============================================================================
+
+const SECTION_META: Record<ShareSection, { label: string; hint: string }> = {
+  status: { label: "Daily budget status", hint: "How you're doing today" },
+  weekSpending: { label: "Weekly spending total", hint: "One number for the week" },
+  categories: { label: "Category progress", hint: "Percent used per category" },
+}
 
 // ============================================================================
 // Types
@@ -65,6 +80,9 @@ export function SharingScreen({
   const [newLabel, setNewLabel] = useState("")
   const [showForm, setShowForm] = useState(false)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
+  // Expiry preset (days | null) and which sections the recipient can see.
+  const [expiryDays, setExpiryDays] = useState<number | null>(30)
+  const [scopeSections, setScopeSections] = useState<ShareSection[]>([...ALL_SHARE_SECTIONS])
 
   // Load links on mount and refresh shared data
   useEffect(() => {
@@ -72,22 +90,41 @@ export function SharingScreen({
     refreshAllSharedSummaries(userId, transactions, budgets, allowance)
   }, [userId, transactions, budgets, allowance])
 
-  const activeLinks = links.filter(l => l.isActive)
+  // A link is shown as "active" only when it's active AND not expired.
+  const activeLinks = links.filter(l => getShareLinkStatus(l) === "active")
+  const expiredLinks = links.filter(l => getShareLinkStatus(l) === "expired")
+
+  const toggleSection = useCallback((section: ShareSection) => {
+    setScopeSections(prev =>
+      prev.includes(section)
+        ? prev.filter(s => s !== section)
+        : [...ALL_SHARE_SECTIONS].filter(s => s === section || prev.includes(s))
+    )
+  }, [])
+
+  const resetForm = useCallback(() => {
+    setShowForm(false)
+    setNewLabel("")
+    setExpiryDays(30)
+    setScopeSections([...ALL_SHARE_SECTIONS])
+  }, [])
 
   const handleCreate = useCallback(() => {
-    if (!newLabel.trim()) return
-    const link = createShareLink(userId, newLabel.trim())
+    if (!newLabel.trim() || scopeSections.length === 0) return
+    const link = createShareLink(userId, newLabel.trim(), {
+      expiresInDays: expiryDays,
+      scope: { access: "read-only", sections: scopeSections },
+    })
     // Store the summary for this new link
     refreshAllSharedSummaries(userId, transactions, budgets, allowance)
     setLinks(getShareLinks())
-    setNewLabel("")
-    setShowForm(false)
+    resetForm()
     // Auto-copy the new link
     const url = getShareUrl(link.token)
     navigator.clipboard?.writeText(url).catch(() => {})
     setCopiedToken(link.token)
     setTimeout(() => setCopiedToken(null), 2000)
-  }, [newLabel, userId, transactions, budgets, allowance])
+  }, [newLabel, scopeSections, expiryDays, userId, transactions, budgets, allowance, resetForm])
 
   const handleRevoke = useCallback((id: string) => {
     revokeShareLink(id)
@@ -155,9 +192,10 @@ export function SharingScreen({
       <GlassCard elevation="low" style={{ padding: "16px 18px", marginBottom: 20 }}>
         <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.6 }}>
           <span style={{ fontSize: 15 }} aria-hidden="true">🔒</span>{" "}
-          <strong style={{ color: "var(--text)", fontWeight: 500 }}>What they can see:</strong>{" "}
-          daily budget status, weekly spending total, and budget category progress. 
-          They won&apos;t see individual purchases or amounts.
+          <strong style={{ color: "var(--text)", fontWeight: 500 }}>You&apos;re in control:</strong>{" "}
+          links are read-only, you pick exactly what they show, they expire on
+          your schedule, and you can revoke any of them anytime. No individual
+          purchases or amounts are ever shared.
         </p>
       </GlassCard>
 
@@ -196,10 +234,22 @@ export function SharingScreen({
                     color: "var(--muted)",
                   }}
                 >
-                  Created {new Date(link.createdAt).toLocaleDateString()}
+                  {describeExpiry(link)}
                   {link.lastViewedAt && (
                     <> · Last viewed {new Date(link.lastViewedAt).toLocaleDateString()}</>
                   )}
+                </p>
+                <p
+                  style={{
+                    fontSize: 11,
+                    color: "var(--muted)",
+                    marginTop: 2,
+                  }}
+                >
+                  Shows:{" "}
+                  {(link.scope?.sections ?? ALL_SHARE_SECTIONS)
+                    .map(s => SECTION_META[s].label)
+                    .join(", ")}
                 </p>
               </div>
 
@@ -307,36 +357,157 @@ export function SharingScreen({
                 fontFamily: FONT_FAMILY,
                 color: "var(--text)",
                 padding: "8px 0",
-                marginBottom: 14,
+                marginBottom: 18,
               }}
             />
+
+            {/* Expiry selector */}
+            <fieldset style={{ border: "none", padding: 0, margin: "0 0 18px" }}>
+              <legend
+                style={{
+                  fontSize: 12,
+                  color: "var(--sub)",
+                  marginBottom: 8,
+                  padding: 0,
+                }}
+              >
+                When should it expire?
+              </legend>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {EXPIRY_OPTIONS.map(opt => {
+                  const selected = expiryDays === opt.days
+                  return (
+                    <motion.button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => setExpiryDays(opt.days)}
+                      whileTap={{ scale: 0.95 }}
+                      transition={springs.snappy}
+                      aria-pressed={selected}
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: borderRadius.full,
+                        background: selected
+                          ? "rgba(129, 140, 248, 0.8)"
+                          : "rgba(255, 255, 255, 0.06)",
+                        border: selected
+                          ? "1px solid rgba(129, 140, 248, 0.9)"
+                          : "1px solid rgba(255, 255, 255, 0.1)",
+                        color: selected ? "#fff" : "var(--sub)",
+                        fontSize: 12,
+                        fontFamily: FONT_FAMILY,
+                        fontWeight: 500,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {opt.label}
+                    </motion.button>
+                  )
+                })}
+              </div>
+            </fieldset>
+
+            {/* Scope selector */}
+            <fieldset style={{ border: "none", padding: 0, margin: "0 0 18px" }}>
+              <legend
+                style={{
+                  fontSize: 12,
+                  color: "var(--sub)",
+                  marginBottom: 8,
+                  padding: 0,
+                }}
+              >
+                What can they see?
+              </legend>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {ALL_SHARE_SECTIONS.map(section => {
+                  const checked = scopeSections.includes(section)
+                  const meta = SECTION_META[section]
+                  return (
+                    <label
+                      key={section}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleSection(section)}
+                        style={{
+                          marginTop: 2,
+                          accentColor: "rgba(129, 140, 248, 1)",
+                          width: 16,
+                          height: 16,
+                          cursor: "pointer",
+                        }}
+                      />
+                      <span>
+                        <span
+                          style={{
+                            fontSize: 13,
+                            color: "var(--text)",
+                            fontFamily: FONT_FAMILY,
+                            display: "block",
+                          }}
+                        >
+                          {meta.label}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: "var(--muted)",
+                            fontFamily: FONT_FAMILY,
+                          }}
+                        >
+                          {meta.hint}
+                        </span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+              {scopeSections.length === 0 && (
+                <p
+                  style={{
+                    fontSize: 11,
+                    color: "var(--error)",
+                    marginTop: 8,
+                    fontFamily: FONT_FAMILY,
+                  }}
+                >
+                  Pick at least one thing to share.
+                </p>
+              )}
+            </fieldset>
+
             <div style={{ display: "flex", gap: 8 }}>
               <motion.button
                 onClick={handleCreate}
-                disabled={!newLabel.trim()}
+                disabled={!newLabel.trim() || scopeSections.length === 0}
                 whileTap={{ scale: 0.97 }}
                 transition={springs.snappy}
                 style={{
                   padding: "10px 20px",
                   borderRadius: borderRadius.full,
-                  background: newLabel.trim()
+                  background: newLabel.trim() && scopeSections.length > 0
                     ? "rgba(129, 140, 248, 0.8)"
                     : "rgba(255, 255, 255, 0.08)",
                   border: "none",
-                  color: newLabel.trim() ? "#fff" : "var(--muted)",
+                  color: newLabel.trim() && scopeSections.length > 0 ? "#fff" : "var(--muted)",
                   fontSize: 13,
                   fontFamily: FONT_FAMILY,
                   fontWeight: 600,
-                  cursor: newLabel.trim() ? "pointer" : "not-allowed",
+                  cursor: newLabel.trim() && scopeSections.length > 0 ? "pointer" : "not-allowed",
                 }}
               >
                 Generate link
               </motion.button>
               <button
-                onClick={() => {
-                  setShowForm(false)
-                  setNewLabel("")
-                }}
+                onClick={resetForm}
                 style={{
                   padding: "10px 14px",
                   borderRadius: borderRadius.full,
@@ -364,6 +535,21 @@ export function SharingScreen({
           </motion.button>
         )}
       </GlassCard>
+
+      {/* Expired links (collapsed info) */}
+      {expiredLinks.length > 0 && (
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--muted)",
+            textAlign: "center",
+            marginTop: 8,
+          }}
+        >
+          {expiredLinks.length} expired{" "}
+          {expiredLinks.length === 1 ? "link" : "links"} — no longer accessible
+        </p>
+      )}
 
       {/* Revoked links (collapsed info) */}
       {links.filter(l => !l.isActive).length > 0 && (

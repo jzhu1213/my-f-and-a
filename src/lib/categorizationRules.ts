@@ -19,7 +19,20 @@ export interface CategorizationRule {
   id: string
   keyword: string
   category: TransactionCategory
+  /**
+   * Optional auto-route target. When set, logging a transaction whose note
+   * matches this rule's keyword also pre-selects this funding source
+   * (payment method). Null / undefined means "categorize only, don't route".
+   */
+  fundingSourceId?: string | null
   createdAt: string
+}
+
+/** Fields a user can change when editing an existing rule. */
+export interface CategorizationRuleUpdate {
+  keyword?: string
+  category?: TransactionCategory
+  fundingSourceId?: string | null
 }
 
 // ============================================================================
@@ -49,21 +62,55 @@ export function getCategorizationRules(): CategorizationRule[] {
 
 /**
  * Save a new categorization rule. Returns the created rule.
+ *
+ * @param keyword - The note keyword to match (case-insensitive "contains").
+ * @param category - The category to always apply on a match.
+ * @param fundingSourceId - Optional funding source to auto-route to on a match.
  */
 export function saveCategorizationRule(
   keyword: string,
-  category: TransactionCategory
+  category: TransactionCategory,
+  fundingSourceId?: string | null
 ): CategorizationRule {
   const rules = getCategorizationRules()
   const rule: CategorizationRule = {
     id: `rule_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     keyword: keyword.toLowerCase().trim(),
     category,
+    fundingSourceId: fundingSourceId ?? null,
     createdAt: new Date().toISOString(),
   }
   rules.push(rule)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(rules))
   return rule
+}
+
+/**
+ * Update an existing categorization rule in place. Returns the updated rule,
+ * or null when no rule matches the given id.
+ */
+export function updateCategorizationRule(
+  id: string,
+  updates: CategorizationRuleUpdate
+): CategorizationRule | null {
+  const rules = getCategorizationRules()
+  const index = rules.findIndex(r => r.id === id)
+  if (index === -1) return null
+
+  const existing = rules[index]
+  const updated: CategorizationRule = {
+    ...existing,
+    ...(updates.keyword !== undefined
+      ? { keyword: updates.keyword.toLowerCase().trim() }
+      : {}),
+    ...(updates.category !== undefined ? { category: updates.category } : {}),
+    ...(updates.fundingSourceId !== undefined
+      ? { fundingSourceId: updates.fundingSourceId }
+      : {}),
+  }
+  rules[index] = updated
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(rules))
+  return updated
 }
 
 /**
@@ -107,6 +154,36 @@ export function applyUserRules(
   if (!bestMatch) return null
 
   return { category: bestMatch.category, confidence: 1.0 }
+}
+
+/**
+ * Check user-defined auto-route rules against a note. Returns the funding
+ * source id of the first (longest-keyword) matching rule that has a route
+ * target set, or null when nothing matches.
+ *
+ * Mirrors the matching semantics of `applyUserRules` so category + route stay
+ * consistent for the same note.
+ */
+export function applyRouteRule(
+  note: string,
+  rules: CategorizationRule[]
+): string | null {
+  if (!note || note.trim().length === 0 || rules.length === 0) return null
+
+  const lower = note.toLowerCase().trim()
+
+  let bestMatch: CategorizationRule | null = null
+
+  for (const rule of rules) {
+    if (!rule.fundingSourceId) continue
+    if (lower.includes(rule.keyword)) {
+      if (!bestMatch || rule.keyword.length > bestMatch.keyword.length) {
+        bestMatch = rule
+      }
+    }
+  }
+
+  return bestMatch?.fundingSourceId ?? null
 }
 
 /**

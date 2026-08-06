@@ -215,6 +215,10 @@ export type CelebrationType =
   | 'lowest_spend_day'
   | 'no_spend_streak'
   | 'no_spend_weekend'
+  // Milestone journeys (Phase 4 task 199.1) — once-ever, warm re-engagement moments
+  | 'first_month'
+  | 'first_goal_met'
+  | 'first_no_spend_week'
 
 /**
  * Animation style for celebrations
@@ -418,6 +422,18 @@ export interface QuickTransaction {
 // ============================================================================
 
 /**
+ * Persona a new user can optionally self-identify as during onboarding, used to
+ * tailor sensible starting defaults (budget preset, starting income, currency).
+ *
+ * Task 200.1 — Persona-based onboarding branches. Purely a starting hint: the
+ * step is skippable, never forces setup, and never overrides an explicit choice.
+ */
+export type OnboardingPersona =
+  | 'on_campus'      // On-campus student — dorm/meal plan, tight budget
+  | 'freelancer'     // Freelancer / gig worker — variable income across gigs
+  | 'international'   // International student — studying abroad, home currency
+
+/**
  * Result of onboarding flow
  */
 export interface OnboardingResult {
@@ -425,6 +441,11 @@ export interface OnboardingResult {
   budgetPreset: BudgetPreset
   customLimits?: Record<TransactionCategory, number>
   primaryGoal?: UserGoal
+  /**
+   * The persona the user optionally selected (task 200.1). Undefined when the
+   * persona step was skipped — the flow keeps its neutral defaults in that case.
+   */
+  persona?: OnboardingPersona
 }
 
 /**

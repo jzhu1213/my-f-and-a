@@ -637,6 +637,156 @@ export function checkLowestSpendDay(
   )
 }
 
+// ============================================================================
+// Milestone Journeys (Phase 4 task 199.1)
+// ----------------------------------------------------------------------------
+// Warm, once-ever "re-engagement" moments that go beyond streaks: a user's
+// first month with Folio, their first completed goal, and their first full
+// no-spend week. Each fires exactly once (lifetime), guarded by the same
+// localStorage dedup as every other celebration. They extend the streak and
+// gentle re-engagement systems (Phase 1 task 77, Phase 2 task 126.1) by
+// celebrating durable habits rather than transient streak counts.
+// ============================================================================
+
+/**
+ * Returns the earliest transaction date (YYYY-MM-DD) across all transactions,
+ * or null when there are none. Dates are ISO `YYYY-MM-DD` strings, so a plain
+ * lexicographic min is chronologically correct.
+ */
+export function getFirstTransactionDate(transactions: Transaction[]): string | null {
+  let earliest: string | null = null
+  for (const tx of transactions) {
+    const day = tx.date.slice(0, 10)
+    if (earliest === null || day < earliest) earliest = day
+  }
+  return earliest
+}
+
+/**
+ * Whole days elapsed between a `YYYY-MM-DD` day and `now` (local time).
+ * Returns 0 for same-day and never goes negative.
+ */
+function daysSinceLocal(dayStr: string, now: Date): number {
+  const [y, m, d] = dayStr.split('-').map(Number)
+  const start = new Date(y, m - 1, d)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffMs = today.getTime() - start.getTime()
+  if (diffMs <= 0) return 0
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24))
+}
+
+/**
+ * Number of days a user has been active (a once-ever milestone) after which the
+ * "first month" journey fires. 30 days ≈ one month of showing up.
+ */
+const FIRST_MONTH_DAYS = 30
+
+/**
+ * Checks if the "first month with Folio" milestone should trigger.
+ *
+ * A warm, shame-free re-engagement moment: fires once, ever, when at least
+ * 30 days have passed since the user's first logged transaction. It celebrates
+ * simply *being here* — not a streak, not a budget outcome — so it lands even
+ * for users whose streaks have lapsed (gentle re-engagement, task 77).
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date/time (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkFirstMonth(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  const firstDate = getFirstTransactionDate(transactions)
+  if (firstDate === null) return null
+
+  if (daysSinceLocal(firstDate, now) < FIRST_MONTH_DAYS) return null
+
+  const id = 'milestone_first_month'
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'first_month',
+    CELEBRATION_COPY.first_month.title,
+    CELEBRATION_COPY.first_month.message,
+    CELEBRATION_EMOJI.first_month,
+    'confetti',
+    5000,
+    'cheerful'
+  )
+}
+
+/**
+ * Checks if the "first goal reached" milestone should trigger.
+ *
+ * Fires once, ever, the first time *any* goal reaches 100% funded. This is a
+ * lifetime journey milestone distinct from the per-goal `goal_complete`
+ * celebration — it marks the moment the user proves to themselves that goals
+ * are achievable.
+ *
+ * @param goals - User's savings goals
+ * @returns CelebrationEvent or null
+ */
+export function checkFirstGoalMet(goals: Goal[]): CelebrationEvent | null {
+  const hasCompletedGoal = goals.some(
+    g => g.targetAmount > 0 && g.currentAmount >= g.targetAmount
+  )
+  if (!hasCompletedGoal) return null
+
+  const id = 'milestone_first_goal_met'
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'first_goal_met',
+    CELEBRATION_COPY.first_goal_met.title,
+    CELEBRATION_COPY.first_goal_met.message,
+    CELEBRATION_EMOJI.first_goal_met,
+    'confetti',
+    5000,
+    'cheerful'
+  )
+}
+
+/**
+ * Checks if the "first full no-spend week" milestone should trigger.
+ *
+ * Fires once, ever, the first time the user reaches a 7+ day no-spend streak
+ * (counted back from yesterday, since today is still in progress). Builds on
+ * the existing no-spend streak infrastructure but marks the first week as a
+ * distinct, lasting achievement.
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date/time (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkFirstNoSpendWeek(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  const yesterdayStr = formatDateLocal(subtractDaysLocal(now, 1))
+  const streak = getNoSpendStreak(transactions, yesterdayStr)
+  if (streak < 7) return null
+
+  const id = 'milestone_first_no_spend_week'
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'first_no_spend_week',
+    CELEBRATION_COPY.first_no_spend_week.title,
+    CELEBRATION_COPY.first_no_spend_week.message,
+    CELEBRATION_EMOJI.first_no_spend_week,
+    'confetti',
+    5000,
+    'cheerful'
+  )
+}
+
 /**
  * Runs all celebration checks and returns any newly triggered events.
  *
@@ -699,6 +849,17 @@ export function checkAllCelebrations(
   // Micro-celebration: lowest spend day this week
   const lowestSpend = checkLowestSpendDay(transactions, now)
   if (lowestSpend) events.push(lowestSpend)
+
+  // ── Milestone journeys (Phase 4 task 199.1) ────────────────────────────
+  // Once-ever warm moments that reward durable habits and re-engagement.
+  const firstMonth = checkFirstMonth(transactions, now)
+  if (firstMonth) events.push(firstMonth)
+
+  const firstGoalMet = checkFirstGoalMet(goals)
+  if (firstGoalMet) events.push(firstGoalMet)
+
+  const firstNoSpendWeek = checkFirstNoSpendWeek(transactions, now)
+  if (firstNoSpendWeek) events.push(firstNoSpendWeek)
 
   return events
 }

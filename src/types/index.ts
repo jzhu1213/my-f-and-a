@@ -144,6 +144,27 @@ export interface Transaction {
    * References an `IncomeStream.id` from `src/types/folio.ts`.
    */
   incomeStreamId?: string
+  /**
+   * Optional ISO 4217 currency code (e.g. "THB", "EUR") of the currency the
+   * user actually spent in — used for study-abroad terms and international
+   * students (task 195.1).
+   *
+   * Multi-currency is strictly additive: when `currency` is absent (or equals
+   * the user's home currency), the transaction behaves exactly as before and
+   * `amount` is already in the home currency.
+   */
+  currency?: string
+  /**
+   * Optional stored exchange rate captured at log time: home-currency units per
+   * 1 unit of `currency`. For example, if `currency` is "THB" and 1 THB = 0.028
+   * USD, then `exchangeRate` is `0.028`.
+   *
+   * `amount` is ALWAYS stored in the home currency (so every existing daily
+   * allowance / budget / rollover calculation is unchanged). The original local
+   * amount is derived for display only via `amount / exchangeRate`. The rate is
+   * stored so display never requires a network call. Absent means no conversion.
+   */
+  exchangeRate?: number
 }
 
 // Account Types (3 buckets)

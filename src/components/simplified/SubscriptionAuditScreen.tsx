@@ -3,8 +3,8 @@
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
-import type { DetectedSubscription, SubscriptionAlert } from "@/lib/subscriptionDetector"
-import { emojiForCategory, getMonthlySubscriptionTotal, getStudentSavingsOpportunities, getSubscriptionAlerts } from "@/lib/subscriptionDetector"
+import type { DetectedSubscription, SubscriptionAlert, ConfidenceBadge } from "@/lib/subscriptionDetector"
+import { emojiForCategory, getMonthlySubscriptionTotal, getStudentSavingsOpportunities, getSubscriptionAlerts, confidenceBadge } from "@/lib/subscriptionDetector"
 import { getTodayLocal } from "@/lib/dateUtils"
 import { TIP_EMOJI } from "@/lib/vocabulary"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -28,6 +28,12 @@ export interface SubscriptionAuditScreenProps {
    * omitted, the per-item helper action is hidden.
    */
   onOpenCancelNegotiate?: (subscription: DetectedSubscription) => void
+  /**
+   * One-tap confirm: promote a detected (unconfirmed) subscription into a
+   * tracked recurring bill. When omitted, the confirm action is hidden. Only
+   * shown for detections that aren't already confirmed.
+   */
+  onConfirm?: (subscription: DetectedSubscription) => void
 }
 
 // ============================================================================
@@ -40,6 +46,22 @@ function frequencyLabel(frequency: 'monthly' | 'weekly' | 'annual'): string {
     case 'annual': return '/yr'
     case 'monthly':
     default: return '/mo'
+  }
+}
+
+/**
+ * Color tokens for a confidence badge. Tuned for AA contrast on the dark
+ * surface: a light foreground over a low-opacity tinted background.
+ */
+function confidenceBadgeStyle(level: ConfidenceBadge['level']): { bg: string; fg: string; border: string } {
+  switch (level) {
+    case 'high':
+      return { bg: "rgba(74, 222, 128, 0.16)", fg: "#86efac", border: "rgba(74, 222, 128, 0.32)" }
+    case 'medium':
+      return { bg: "rgba(129, 140, 248, 0.16)", fg: "#c7d2fe", border: "rgba(129, 140, 248, 0.32)" }
+    case 'low':
+    default:
+      return { bg: "rgba(255, 255, 255, 0.08)", fg: "var(--sub)", border: "var(--border)" }
   }
 }
 
@@ -77,6 +99,7 @@ export function SubscriptionAuditScreen({
   onDismiss,
   onClose,
   onOpenCancelNegotiate,
+  onConfirm,
 }: SubscriptionAuditScreenProps) {
   const monthlyTotal = getMonthlySubscriptionTotal(subscriptions)
   const savingsOpportunities = getStudentSavingsOpportunities(subscriptions)
@@ -208,10 +231,41 @@ export function SubscriptionAuditScreen({
                   >
                     {sub.label}
                   </p>
-                  <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                    {sub.isConfirmed ? "Confirmed" : "Detected"} · {sub.chargeCount} charges
-                    {sub.isLikelyTrialConversion ? " · started as a trial" : ""}
-                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
+                    {(() => {
+                      const badge = confidenceBadge(sub)
+                      const style = confidenceBadgeStyle(badge.level)
+                      return (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "2px 8px",
+                            borderRadius: 8,
+                            background: style.bg,
+                            border: `1px solid ${style.border}`,
+                            color: style.fg,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            lineHeight: 1.3,
+                            whiteSpace: "nowrap",
+                          }}
+                          title={`${badge.percent}% confidence this is recurring`}
+                          aria-label={`Confidence: ${badge.label}, about ${badge.percent} percent`}
+                        >
+                          {badge.label}
+                          <span style={{ fontWeight: 400, fontVariantNumeric: "tabular-nums", opacity: 0.85 }}>
+                            {badge.percent}%
+                          </span>
+                        </span>
+                      )
+                    })()}
+                    <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                      {sub.isConfirmed ? "Confirmed" : "Detected"} · {sub.chargeCount} charges
+                      {sub.isLikelyTrialConversion ? " · started as a trial" : ""}
+                    </span>
+                  </div>
                   {sub.isLikelyDuplicate && (
                     <p style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 4, lineHeight: 1.45 }}>
                       You have another {sub.serviceKind === "music" ? "music" : "streaming"} service too — keep both if you love them.
@@ -263,29 +317,54 @@ export function SubscriptionAuditScreen({
                 </motion.button>
               </div>
 
-              {/* DIY cancel/negotiate helper entry */}
-              {onOpenCancelNegotiate && (
-                <motion.button
-                  onClick={() => onOpenCancelNegotiate(sub)}
-                  whileTap={{ scale: 0.98 }}
-                  transition={springs.snappy}
-                  style={{
-                    marginTop: 12,
-                    width: "100%",
-                    padding: "10px 0",
-                    background: "rgba(129, 140, 248, 0.12)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 10,
-                    color: "var(--text)",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    fontFamily: FONT_FAMILY,
-                    cursor: "pointer",
-                  }}
-                  aria-label={`Get help cancelling or negotiating ${sub.label}`}
-                >
-                  💬 Cancel or negotiate
-                </motion.button>
+              {/* Action row: one-tap confirm (unconfirmed only) + cancel/negotiate */}
+              {(onOpenCancelNegotiate || (onConfirm && !sub.isConfirmed)) && (
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  {onConfirm && !sub.isConfirmed && (
+                    <motion.button
+                      onClick={() => onConfirm(sub)}
+                      whileTap={{ scale: 0.98 }}
+                      transition={springs.snappy}
+                      style={{
+                        flex: 1,
+                        padding: "10px 0",
+                        background: "rgba(74, 222, 128, 0.14)",
+                        border: "1px solid rgba(74, 222, 128, 0.32)",
+                        borderRadius: 10,
+                        color: "#86efac",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        fontFamily: FONT_FAMILY,
+                        cursor: "pointer",
+                      }}
+                      aria-label={`Confirm ${sub.label} as a recurring bill`}
+                    >
+                      ✓ Yes, it&apos;s recurring
+                    </motion.button>
+                  )}
+                  {onOpenCancelNegotiate && (
+                    <motion.button
+                      onClick={() => onOpenCancelNegotiate(sub)}
+                      whileTap={{ scale: 0.98 }}
+                      transition={springs.snappy}
+                      style={{
+                        flex: 1,
+                        padding: "10px 0",
+                        background: "rgba(129, 140, 248, 0.12)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 10,
+                        color: "var(--text)",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        fontFamily: FONT_FAMILY,
+                        cursor: "pointer",
+                      }}
+                      aria-label={`Get help cancelling or negotiating ${sub.label}`}
+                    >
+                      💬 Cancel or negotiate
+                    </motion.button>
+                  )}
+                </div>
               )}
             </GlassCard>
           ))}

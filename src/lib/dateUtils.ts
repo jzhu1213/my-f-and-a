@@ -137,20 +137,53 @@ export function isSameDayLocal(date1: Date, date2: Date): boolean {
 }
 
 /**
+ * The default display locale for date formatting. Kept as `en-US` so the
+ * standard experience is unchanged; callers pass a resolved locale to opt in to
+ * locale-aware formatting (see Task 196.1 and `localeFormat.ts`).
+ */
+const DEFAULT_DATE_LOCALE = 'en-US'
+
+/**
+ * Locale-aware date formatting built on `Intl.DateTimeFormat`. This is the
+ * canonical low-level helper all localized date display routes through.
+ *
+ * @param date - A Date object or a YYYY-MM-DD string (parsed as local midnight)
+ * @param options - Intl.DateTimeFormat options (defaults to "Jun 15" short form)
+ * @param locale - BCP-47 locale tag (defaults to "en-US" for backward compat)
+ * @returns The formatted date string, degrading gracefully on any error
+ */
+export function formatLocalizedDate(
+  date: Date | string,
+  options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' },
+  locale: string = DEFAULT_DATE_LOCALE
+): string {
+  const d = typeof date === 'string' ? parseDateLocal(date) : date
+  try {
+    return new Intl.DateTimeFormat(locale || DEFAULT_DATE_LOCALE, options).format(d)
+  } catch {
+    // Invalid locale/options for this runtime — fall back to the default locale.
+    return new Intl.DateTimeFormat(DEFAULT_DATE_LOCALE, options).format(d)
+  }
+}
+
+/**
  * Returns a human-friendly relative date label using LOCAL time.
  * - "Today" for the current date
  * - "Yesterday" for the previous date
- * - A short format like "Jun 15" otherwise
+ * - A short, locale-aware format like "Jun 15" otherwise
  *
- * Expects `dateStr` in ISO date format (YYYY-MM-DD).
+ * Expects `dateStr` in ISO date format (YYYY-MM-DD). The optional `locale`
+ * defaults to "en-US" so existing callers are unaffected.
  */
-export function getRelativeDate(dateStr: string): string {
+export function getRelativeDate(
+  dateStr: string,
+  locale: string = DEFAULT_DATE_LOCALE
+): string {
   const today = getTodayLocal()
   const yesterday = getYesterdayLocal()
   if (dateStr === today) return "Today"
   if (dateStr === yesterday) return "Yesterday"
-  const d = parseDateLocal(dateStr)
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  return formatLocalizedDate(dateStr, { month: "short", day: "numeric" }, locale)
 }
 
 /**

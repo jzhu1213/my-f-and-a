@@ -29,8 +29,10 @@ import {
   dangerZone,
 } from "@/styles/shared"
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
+import { RegionSettings } from "./RegionSettings"
 import { NotificationCenter } from "./NotificationCenter"
 import { AppLockSetting } from "./AppLockSetting"
+import { SessionsSetting } from "./SessionsSetting"
 import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
 import { getSavingsRateBadgeEnabled, setSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
 import { getPeerContextEnabled, setPeerContextEnabled } from "@/lib/peerContextPreferences"
@@ -78,6 +80,8 @@ export interface SettingsScreenProps {
   onExportCSV?: () => void
   /** Callback to open the filtered Reports overlay (task 185.1) */
   onOpenReports?: () => void
+  /** Callback to open the Privacy & Data dashboard overlay (task 191.1) */
+  onOpenPrivacyDashboard?: () => void
   onDeleteAccount?: () => void
   /** User-defined categorization rules (task 113.3) */
   categorizationRules?: CategorizationRule[]
@@ -85,6 +89,8 @@ export interface SettingsScreenProps {
   onAddCategorizationRule?: (keyword: string, category: TransactionCategory) => void
   /** Callback to delete a categorization rule (task 113.3) */
   onDeleteCategorizationRule?: (id: string) => void
+  /** Callback to open the full Categorization & Routing Rules screen (task 187.1) */
+  onOpenCategorizationRules?: () => void
   /** Callback to open the Sharing overlay (task 115.1) */
   onOpenSharing?: () => void
   /** Callback to open the Category Hub overlay (task 138.1) */
@@ -286,7 +292,7 @@ const SECTIONS: SectionDef[] = [
   {
     id: 'appearance',
     title: 'Appearance',
-    keywords: ['appearance', 'theme', 'warm', 'dark', 'system', 'currency', 'insight', 'credit', 'tutorial', 'onboarding', 'backfill', 'preferences', 'peer', 'compare', 'typical', 'students', 'benchmark'],
+    keywords: ['appearance', 'theme', 'warm', 'dark', 'system', 'currency', 'region', 'country', 'locale', 'language', 'international', 'abroad', 'insight', 'credit', 'tutorial', 'onboarding', 'backfill', 'preferences', 'peer', 'compare', 'typical', 'students', 'benchmark'],
   },
   {
     id: 'notifications',
@@ -296,7 +302,7 @@ const SECTIONS: SectionDef[] = [
   {
     id: 'privacy-security',
     title: 'Privacy & security',
-    keywords: ['privacy', 'security', 'lock', 'app lock', 'pin', 'biometric', 'biometrics', 'face id', 'touch id', 'passcode', 'protect'],
+    keywords: ['privacy', 'security', 'lock', 'app lock', 'pin', 'biometric', 'biometrics', 'face id', 'touch id', 'passcode', 'protect', 'data', 'export', 'delete', 'erase', 'gdpr', 'ccpa', 'download my data', 'dashboard', 'session', 'sessions', 'devices', 'sign out', 'signed in', 'revoke', 'active session'],
   },
   {
     id: 'data-account',
@@ -426,10 +432,12 @@ export function SettingsScreen({
   onExportData,
   onExportCSV,
   onOpenReports,
+  onOpenPrivacyDashboard,
   onDeleteAccount,
   categorizationRules = [],
   onAddCategorizationRule,
   onDeleteCategorizationRule,
+  onOpenCategorizationRules,
   onOpenSharing,
   onOpenCategoryHub,
   activeShareCount = 0,
@@ -1766,6 +1774,18 @@ export function SettingsScreen({
                   + Add rule →
                 </motion.button>
               )}
+
+              {onOpenCategorizationRules && (
+                <motion.button
+                  onClick={onOpenCategorizationRules}
+                  whileTap={{ scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={{ ...linkButton, marginTop: 12 }}
+                  aria-label="Manage all categorization and routing rules"
+                >
+                  Manage rules & auto-routing →
+                </motion.button>
+              )}
             </GlassCard>
           )}
         </CollapsibleSection>
@@ -1843,20 +1863,12 @@ export function SettingsScreen({
             </div>
           </GlassCard>
 
+          {/* Region-aware defaults — currency, formatting & amount presets (task 198.1) */}
+          <RegionSettings />
+
           {/* Preferences */}
           <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
             <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>Preferences</p>
-
-            {/* Currency Display */}
-            <div
-              style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "10px 0", borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <span style={{ fontSize: 14, color: "var(--text)" }}>Currency</span>
-              <span style={{ fontSize: 14, color: "var(--sub)" }}>USD ($)</span>
-            </div>
 
             {/* Show daily insights toggle */}
             <div
@@ -2069,6 +2081,28 @@ export function SettingsScreen({
           onToggle={() => toggleSection('privacy-security')}
         >
           <AppLockSetting />
+
+          {/* Active sessions — device list with revoke (task 192.1) */}
+          <SessionsSetting />
+
+          {/* Privacy & data dashboard (task 191.1) */}
+          {onOpenPrivacyDashboard && (
+            <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
+              <p style={{ ...sectionHeadingStrong }}>Privacy &amp; data</p>
+              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
+                See what&apos;s stored, take a copy, or erase everything — your call, anytime.
+              </p>
+              <motion.button
+                onClick={onOpenPrivacyDashboard}
+                whileTap={{ scale: 0.97 }}
+                transition={springs.snappy}
+                style={linkButton}
+                aria-label="Open the privacy and data dashboard"
+              >
+                See, export &amp; delete my data →
+              </motion.button>
+            </GlassCard>
+          )}
         </CollapsibleSection>
       )}
 

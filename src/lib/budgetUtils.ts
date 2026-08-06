@@ -1,6 +1,7 @@
 import { BUDGET_CATEGORIES } from '@/types'
 import type { Budget, Transaction, TransactionCategory } from '@/types'
 import { formatDateLocal, getDaysInMonthLocal } from '@/lib/dateUtils'
+import { formatDate } from '@/lib/localeFormat'
 
 // ============================================================================
 // Category Budget Rollover — Pure Utility
@@ -108,7 +109,7 @@ export function weekRangeLabel(): string {
   const start = new Date(weekStart() + 'T00:00:00')
   const end   = new Date(start)
   end.setDate(end.getDate() + 6)
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const fmt = (d: Date) => formatDate(d, { month: 'short', day: 'numeric' })
   return `${fmt(start)} – ${fmt(end)}`
 }
 

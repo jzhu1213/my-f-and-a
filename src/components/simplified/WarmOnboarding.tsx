@@ -3,9 +3,11 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs } from '@/lib/animations'
-import type { OnboardingResult, BudgetPreset } from '@/types/folio'
+import type { OnboardingResult, BudgetPreset, OnboardingPersona } from '@/types/folio'
 import { PRESET_EMOJI } from '@/lib/vocabulary'
 import { FONT_FAMILY } from '@/styles/typography'
+import { ONBOARDING_PERSONAS, getPersonaDefaults } from '@/lib/personaDefaults'
+import { REGIONS, setRegion, getRegion, type RegionCode } from '@/lib/regionDefaults'
 
 // ============================================================================
 // Props
@@ -68,7 +70,30 @@ export function WarmOnboarding({ onComplete, onSkip }: WarmOnboardingProps) {
   const [monthlyIncome, setMonthlyIncome] = useState(2000)
   const [budgetPreset, setBudgetPreset] = useState<BudgetPreset>('student_moderate')
 
+  // Persona branch (task 200.1) — optional starting hint, never forces setup.
+  const [persona, setPersona] = useState<OnboardingPersona | null>(null)
+  const [region, setRegionState] = useState<RegionCode>(() => getRegion())
+
   const stepId = STEPS[currentStep]
+
+  // Selecting a persona seeds sensible starting values for the next screens.
+  // Tapping the same persona again clears it, returning to neutral defaults.
+  const handlePersonaSelect = useCallback((next: OnboardingPersona) => {
+    setPersona(prev => {
+      if (prev === next) return null
+      const defaults = getPersonaDefaults(next)
+      setMonthlyIncome(defaults.monthlyIncome)
+      setBudgetPreset(defaults.budgetPreset)
+      return next
+    })
+  }, [])
+
+  // International persona pairs with multi-currency: choosing a region cascades
+  // its currency + locale defaults (regionDefaults.setRegion), no new screen.
+  const handleRegionSelect = useCallback((code: RegionCode) => {
+    setRegionState(code)
+    setRegion(code)
+  }, [])
 
   const goNext = useCallback(() => {
     if (currentStep < STEPS.length - 1) {
@@ -88,8 +113,9 @@ export function WarmOnboarding({ onComplete, onSkip }: WarmOnboardingProps) {
     onComplete({
       monthlyIncome,
       budgetPreset,
+      ...(persona ? { persona } : {}),
     })
-  }, [onComplete, monthlyIncome, budgetPreset])
+  }, [onComplete, monthlyIncome, budgetPreset, persona])
 
   const selectedPreset = BUDGET_PRESETS.find(p => p.value === budgetPreset)
   const savingsPercent = selectedPreset?.savingsPercent ?? 0
@@ -132,7 +158,12 @@ export function WarmOnboarding({ onComplete, onSkip }: WarmOnboardingProps) {
               className="flex flex-col flex-1"
             >
               {stepId === 'welcome' && (
-                <WelcomeStep />
+                <WelcomeStep
+                  persona={persona}
+                  onPersonaSelect={handlePersonaSelect}
+                  region={region}
+                  onRegionSelect={handleRegionSelect}
+                />
               )}
               {stepId === 'income' && (
                 <IncomeStep
@@ -244,28 +275,109 @@ export function WarmOnboarding({ onComplete, onSkip }: WarmOnboardingProps) {
 // Step: Welcome
 // ============================================================================
 
-function WelcomeStep() {
+interface WelcomeStepProps {
+  persona: OnboardingPersona | null
+  onPersonaSelect: (persona: OnboardingPersona) => void
+  region: RegionCode
+  onRegionSelect: (code: RegionCode) => void
+}
+
+function WelcomeStep({ persona, onPersonaSelect, region, onRegionSelect }: WelcomeStepProps) {
   return (
     <div className="flex flex-col items-center text-center">
-      <div className="text-5xl mb-6" role="img" aria-label="waving hand">
+      <div className="text-5xl mb-5" role="img" aria-label="waving hand">
         👋
       </div>
       <h1
-        className="text-2xl font-semibold mb-3"
+        className="text-2xl font-semibold mb-2"
         style={{ color: 'var(--text)' }}
       >
         Hey! Let&apos;s get you set up in 30 seconds
       </h1>
       <p
-        className="text-base leading-relaxed"
+        className="text-sm leading-relaxed mb-6"
         style={{ color: 'var(--sub)' }}
       >
-        Folio helps you answer one simple question every day:
-        <br />
+        Folio helps you answer one simple question every day:{' '}
         <span className="font-medium" style={{ color: 'var(--text)' }}>
           &ldquo;Can I afford this?&rdquo;
         </span>
       </p>
+
+      {/* Optional persona branch — tailors starting defaults, never required. */}
+      <p className="text-sm mb-3" style={{ color: 'var(--sub)' }}>
+        Which sounds most like you?{' '}
+        <span style={{ color: 'var(--muted)' }}>(optional)</span>
+      </p>
+
+      <div className="flex flex-col gap-2.5 w-full">
+        {ONBOARDING_PERSONAS.map((option) => {
+          const isSelected = persona === option.value
+          return (
+            <button
+              key={option.value}
+              onClick={() => onPersonaSelect(option.value)}
+              aria-pressed={isSelected}
+              className="flex items-center gap-3 p-3 rounded-xl text-left transition-all"
+              style={{
+                background: isSelected ? 'var(--accent-muted)' : 'var(--surface)',
+                border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                boxShadow: isSelected ? '0 0 12px rgba(129, 140, 248, 0.25)' : 'none',
+              }}
+            >
+              <span className="text-xl flex-shrink-0">{option.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                  {option.label}
+                </div>
+                <div className="text-xs" style={{ color: 'var(--sub)' }}>
+                  {option.description}
+                </div>
+              </div>
+              {isSelected && (
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* International branch: pick a home currency via region (multi-currency). */}
+      {persona === 'international' && (
+        <div className="w-full mt-4">
+          <p className="text-xs mb-2 text-left" style={{ color: 'var(--muted)' }}>
+            Where are you studying?
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(Object.values(REGIONS)).map((r) => {
+              const isSelected = region === r.code
+              return (
+                <button
+                  key={r.code}
+                  onClick={() => onRegionSelect(r.code)}
+                  aria-pressed={isSelected}
+                  className="flex items-center gap-1.5 py-2 px-3 rounded-lg text-xs transition-all"
+                  style={{
+                    background: isSelected ? 'var(--accent-muted)' : 'var(--surface)',
+                    border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                    color: 'var(--text)',
+                  }}
+                >
+                  <span>{r.flag}</span>
+                  <span>{r.currency}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

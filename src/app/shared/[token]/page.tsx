@@ -122,6 +122,12 @@ export default function SharedViewPage() {
 
   // Valid shared summary
   const statusConfig = STATUS_CONFIG[summary.status]
+  // Respect the link's scope: only render sections the sharer chose to include.
+  // Older summaries without a scope default to showing everything.
+  const visibleSections = summary.scope?.sections ?? ["status", "weekSpending", "categories"]
+  const showStatus = visibleSections.includes("status")
+  const showWeek = visibleSections.includes("weekSpending")
+  const showCategories = visibleSections.includes("categories")
 
   return (
     <div style={pageContainer}>
@@ -155,6 +161,7 @@ export default function SharedViewPage() {
       </div>
 
       {/* Budget health status */}
+      {showStatus && (
       <GlassCard
         elevation="low"
         glow={summary.status === "healthy" ? "healthy" : summary.status === "over" ? "over" : "none"}
@@ -244,8 +251,10 @@ export default function SharedViewPage() {
           </div>
         </div>
       </GlassCard>
+      )}
 
       {/* Week spending */}
+      {showWeek && (
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
         <p style={{ ...labelStyle }}>This week&apos;s spending</p>
         <p
@@ -260,9 +269,10 @@ export default function SharedViewPage() {
           ${summary.weekSpendingTotal.toFixed(0)}
         </p>
       </GlassCard>
+      )}
 
       {/* Category breakdown */}
-      {summary.categoryBreakdown.length > 0 && (
+      {showCategories && summary.categoryBreakdown.length > 0 && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
           <p style={{ ...labelStyle, marginBottom: 12 }}>Budget categories</p>
           {summary.categoryBreakdown.map((cat, idx) => (

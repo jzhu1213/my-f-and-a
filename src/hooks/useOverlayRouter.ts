@@ -30,6 +30,9 @@ export type OverlayId =
   | 'termReview'
   | 'reports'
   | 'peerContext'
+  | 'categorizationRules'
+  | 'privacyData'
+  | 'inviteRoommate'
 
 // ── Sheet IDs (bottom sheets — can be open alongside main content) ───────────
 
@@ -72,6 +75,9 @@ export interface OverlayPayloads {
   termReview: undefined
   reports: undefined
   peerContext: undefined
+  categorizationRules: undefined
+  privacyData: undefined
+  inviteRoommate: undefined
 }
 
 export interface SheetPayloads {

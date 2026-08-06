@@ -13,6 +13,7 @@ import type { SavingsAccount, SavingsAccountType, Debt, DebtType } from '@/types
 import type { IncomeAllocation } from '@/types/folio'
 import type { SinkingFund } from './sinkingFunds'
 import type { PaySchedule, PayCadence } from './paySchedule'
+import type { ActiveSession } from './sessionManagement'
 
 import type { OnboardingPath, UserPriority } from '@/types'
 
@@ -1712,4 +1713,219 @@ export async function updateFundingSourceBalance(
   }
 
   return dbFundingSourceToApp(data)
+}
+
+// ============================================
+// ACCOUNT & DATA DELETION (GDPR / CCPA) — task 191.1
+// ============================================
+
+/**
+ * Every Supabase table that holds user-owned rows, in a delete-safe order
+ * (children before anything they might reference). All rows are scoped by the
+ * authenticated user's id, so Supabase RLS keeps the delete confined to the
+ * signed-in person's own data.
+ */
+const USER_DATA_TABLES = [
+  'transactions',
+  'reimbursements',
+  'allocations',
+  'sinking_funds',
+  'savings_accounts',
+  'debts',
+  'funding_sources',
+  'pay_schedules',
+  'goals',
+  'budgets',
+  'lesson_progress',
+] as const
+
+export interface DeleteAllUserDataResult {
+  /** True when every table (and the profile row) was cleared without error. */
+  success: boolean
+  /** Table names that were successfully cleared. */
+  deletedTables: string[]
+  /** Human-readable error, present only when success is false. */
+  error?: string
+}
+
+/**
+ * Permanently delete every piece of data Folio stores about a user across all
+ * tables, then the profile row. This is the GDPR/CCPA "delete everything"
+ * primitive behind the Privacy & Data dashboard (task 191.1).
+ *
+ * Notes:
+ *   • Each delete is scoped by user id, so RLS keeps it to the caller's data.
+ *   • Deleting the auth user itself requires a service-role key and is handled
+ *     separately (best-effort) — data removal here is the durable guarantee.
+ *   • Idempotent: deleting rows that don't exist is a no-op, not an error.
+ */
+export async function deleteAllUserData(userId: string): Promise<DeleteAllUserDataResult> {
+  if (!userId) {
+    return { success: false, deletedTables: [], error: 'Missing user id' }
+  }
+
+  const deletedTables: string[] = []
+
+  for (const table of USER_DATA_TABLES) {
+    const { error } = await supabase.from(table).delete().eq('user_id', userId)
+
+    if (error) {
+      console.error(`Error deleting ${table}:`, error)
+      return {
+        success: false,
+        deletedTables,
+        error: `Couldn't remove your ${table.replace(/_/g, ' ')} just now. Nothing else was deleted — please try again.`,
+      }
+    }
+
+    deletedTables.push(table)
+  }
+
+  // Profile row is keyed by id (not user_id).
+  const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId)
+
+  if (profileError) {
+    console.error('Error deleting profile:', profileError)
+    return {
+      success: false,
+      deletedTables,
+      error: "Your records were cleared, but we couldn't remove your profile. Please try again.",
+    }
+  }
+
+  deletedTables.push('profiles')
+
+  return { success: true, deletedTables }
+}
+
+// ============================================
+// ACTIVE SESSIONS (device list + revoke) — task 192.1
+// ============================================
+
+/** Row shape for the additive `user_sessions` table (see sessionManagement.ts). */
+interface DbUserSession {
+  id: string
+  user_id: string
+  device_id: string
+  label: string
+  user_agent: string | null
+  created_at: string
+  last_seen_at: string
+}
+
+/**
+ * Record — or refresh — the current device's session row. Upserts on
+ * (user_id, device_id) so each device keeps a single, stable row and we simply
+ * bump `last_seen_at` on each cold open. Best-effort and non-throwing: if the
+ * table hasn't been created yet, this quietly no-ops so the app never breaks.
+ */
+export async function registerSession(
+  userId: string,
+  device: { deviceId: string; label: string; userAgent?: string }
+): Promise<boolean> {
+  if (!userId || !device.deviceId) return false
+  const nowIso = new Date().toISOString()
+
+  const { error } = await supabase
+    .from('user_sessions')
+    .upsert(
+      {
+        user_id: userId,
+        device_id: device.deviceId,
+        label: device.label,
+        user_agent: device.userAgent ?? null,
+        last_seen_at: nowIso,
+      },
+      { onConflict: 'user_id,device_id' }
+    )
+
+  if (error) {
+    // Table may not exist on older backends — additive feature, fail quietly.
+    console.warn('registerSession skipped:', error.message)
+    return false
+  }
+  return true
+}
+
+/**
+ * List the active sessions for a user, newest activity first, flagging the
+ * current device. Returns an empty array (never throws) when the table is
+ * missing so the caller can fall back to a locally-synthesized current device.
+ */
+export async function getActiveSessions(
+  userId: string,
+  currentDeviceId: string
+): Promise<ActiveSession[]> {
+  if (!userId) return []
+
+  const { data, error } = await supabase
+    .from('user_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('last_seen_at', { ascending: false })
+
+  if (error) {
+    console.warn('getActiveSessions skipped:', error.message)
+    return []
+  }
+
+  return (data as DbUserSession[]).map((row) => ({
+    deviceId: row.device_id,
+    label: row.label,
+    userAgent: row.user_agent ?? undefined,
+    createdAt: row.created_at,
+    lastSeenAt: row.last_seen_at,
+    isCurrent: row.device_id === currentDeviceId,
+  }))
+}
+
+/**
+ * Remove a single device's session row from the registry (revoke it from the
+ * visible list). Scoped by user id so RLS confines it to the caller's data.
+ */
+export async function revokeSession(userId: string, deviceId: string): Promise<boolean> {
+  if (!userId || !deviceId) return false
+  const { error } = await supabase
+    .from('user_sessions')
+    .delete()
+    .eq('user_id', userId)
+    .eq('device_id', deviceId)
+
+  if (error) {
+    console.error('Error revoking session:', error)
+    return false
+  }
+  return true
+}
+
+/**
+ * Remove every session row *except* the current device — paired with the auth
+ * "sign out other devices" call so the visible list matches reality.
+ */
+export async function revokeOtherSessions(
+  userId: string,
+  currentDeviceId: string
+): Promise<boolean> {
+  if (!userId || !currentDeviceId) return false
+  const { error } = await supabase
+    .from('user_sessions')
+    .delete()
+    .eq('user_id', userId)
+    .neq('device_id', currentDeviceId)
+
+  if (error) {
+    console.error('Error revoking other sessions:', error)
+    return false
+  }
+  return true
+}
+
+/**
+ * The hard security guarantee: invalidate every *other* device's refresh token
+ * via Supabase auth (the current device stays signed in). This is the reliable
+ * revoke that the session list's "Sign out all other devices" action performs.
+ */
+export async function signOutOtherSessions(): Promise<{ error: Error | null }> {
+  const { error } = await supabase.auth.signOut({ scope: 'others' })
+  return { error }
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import type { DailyAllowance, SavingsAccount } from "@/types/folio"
 import type { FixedExpense } from "@/lib/fixedExpenses"
 import type { PaySchedule } from "@/lib/paySchedule"
+import type { SinkingFund } from "@/lib/sinkingFunds"
 import type { Transaction } from "@/types"
 import { getNotificationPermissionStatus } from "@/lib/notificationScheduler"
 import { getDaysUntilPayday } from "@/lib/paySchedule"
@@ -17,6 +18,68 @@ import {
   fireSmartNotification,
   markNotificationFired,
 } from "@/lib/smartNotifications"
+import {
+  getTriggerPreferences,
+  selectTriggerSuggestion,
+  markTriggerFired,
+  type TriggerEvent,
+} from "@/lib/triggerEngine"
+
+/** Retirement account types eligible for the payday → Roth funding trigger. */
+const RETIREMENT_ACCOUNT_TYPES = new Set(["roth_ira", "401k"])
+
+/**
+ * Build the events the if-this-then-that trigger engine reacts to from current
+ * state (task 189.1). Pure given its inputs so the effect stays predictable:
+ *
+ *  - `payday_detected` — a paycheck landed today AND at least one retirement
+ *    account still has room toward its monthly contribution target.
+ *  - `overspend` — today's spend ran over the daily budget.
+ */
+function buildTriggerEvents(
+  allowance: DailyAllowance | null,
+  savingsAccounts: SavingsAccount[],
+  sinkingFunds: SinkingFund[],
+  paySchedule: PaySchedule | null,
+  transactions: Transaction[],
+  now: Date
+): TriggerEvent[] {
+  const events: TriggerEvent[] = []
+
+  // Payday → fund your Roth/retirement account.
+  if (wasPaycheckToday(paySchedule, transactions, now)) {
+    const retirement = savingsAccounts.filter(
+      (a) => RETIREMENT_ACCOUNT_TYPES.has(a.type) && a.monthlyContribution > 0
+    )
+    if (retirement.length > 0) {
+      const monthToDate = getMonthToDateContributionsByAccount(
+        retirement.map((a) => a.id),
+        now
+      )
+      const underfundedRetirement = retirement
+        .map((a) => ({
+          accountId: a.id,
+          name: a.name,
+          remaining: a.monthlyContribution - Math.max(0, monthToDate[a.id] ?? 0),
+        }))
+        .filter((a) => a.remaining > 0.005)
+      if (underfundedRetirement.length > 0) {
+        events.push({ type: "payday_detected", underfundedRetirement })
+      }
+    }
+  }
+
+  // Overspend → suggest a buffer / sinking fund.
+  if (allowance && allowance.spentToday > allowance.dailyBudget && allowance.dailyBudget > 0) {
+    events.push({
+      type: "overspend",
+      overspendAmount: allowance.spentToday - allowance.dailyBudget,
+      hasBufferFund: sinkingFunds.length > 0,
+    })
+  }
+
+  return events
+}
 
 /** Check interval for bill-due notifications: once per hour */
 const BILL_CHECK_INTERVAL_MS = 60 * 60 * 1000
@@ -63,7 +126,8 @@ export function useSmartNotifications(
   fixedExpenses: FixedExpense[],
   savingsAccounts: SavingsAccount[] = [],
   paySchedule: PaySchedule | null = null,
-  transactions: Transaction[] = []
+  transactions: Transaction[] = [],
+  sinkingFunds: SinkingFund[] = []
 ) {
   const lastCheckedAllowanceRef = useRef<number | null>(null)
 
@@ -184,4 +248,46 @@ export function useSmartNotifications(
     const interval = setInterval(checkBalanceUpdate, BILL_CHECK_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [savingsAccounts])
+
+  // ── If-this-then-that trigger suggestions (task 189.1) ─────────
+  // Detects events (payday landed, day ran over budget), asks the pure trigger
+  // engine for the single best opt-in suggestion, and fires it through the same
+  // notification centre. Every rule is off by default and deduped per cadence,
+  // so at most one gentle prompt surfaces at a time — never a stack.
+  useEffect(() => {
+    if (getNotificationPermissionStatus() !== "granted") return
+
+    function checkTriggers() {
+      const prefs = getTriggerPreferences()
+      // Nothing enabled — stay silent (opt-in).
+      if (!prefs.paydayRothEnabled && !prefs.overspendFundEnabled) return
+
+      const now = new Date()
+      const events = buildTriggerEvents(
+        allowance,
+        savingsAccounts,
+        sinkingFunds,
+        paySchedule,
+        transactions,
+        now
+      )
+      const suggestion = selectTriggerSuggestion(events, prefs, now)
+      if (!suggestion) return
+
+      fireSmartNotification({
+        title: suggestion.title,
+        body: suggestion.body,
+        tag: suggestion.tag,
+      }).then((sent) => {
+        if (sent) markTriggerFired(suggestion.ruleId, suggestion.dedupeKey)
+      })
+    }
+
+    // Check on mount / when inputs change.
+    checkTriggers()
+
+    // Re-check hourly to catch payday / day transitions while the app is open.
+    const interval = setInterval(checkTriggers, BILL_CHECK_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [allowance, savingsAccounts, sinkingFunds, paySchedule, transactions])
 }

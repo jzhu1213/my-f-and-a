@@ -92,6 +92,10 @@ export const CELEBRATION_EMOJI = {
   lowest_spend_day: '🌱',
   no_spend_streak: '🌿',
   no_spend_weekend: '🎯',
+  // Milestone journeys (Phase 4 task 199.1)
+  first_month: '📅',
+  first_goal_met: '🥳',
+  first_no_spend_week: '🍃',
 } as const
 
 // ============================================================================
@@ -225,6 +229,19 @@ export const CELEBRATION_COPY = {
   no_spend_weekend: {
     title: 'No-spend weekend!',
     message: 'You made it through the whole weekend without spending — nice one!',
+  },
+  // ── Milestone journeys (Phase 4 task 199.1) ──────────────────────────────
+  first_month: {
+    title: 'One month with Folio',
+    message: "A whole month of showing up for yourself. However it's gone, you're still here — that's what counts.",
+  },
+  first_goal_met: {
+    title: 'First goal reached!',
+    message: "You set a goal and got there. That's a real milestone — here's to the next one.",
+  },
+  first_no_spend_week: {
+    title: 'A full no-spend week',
+    message: "Seven days in a row without spending — your first. That takes some serious intention.",
   },
 } as const
 

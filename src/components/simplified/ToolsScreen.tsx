@@ -43,6 +43,8 @@ export interface ToolsScreenProps {
   onOpenTrajectory?: () => void
   onOpenCashFlowForecast?: () => void
   onOpenHouseholdPool?: () => void
+  /** Open the warm invite-a-roommate flow (task 201.1) */
+  onOpenInviteRoommate?: () => void
   onOpenPortfolioAllocation?: () => void
   onOpenInvestmentExplorer?: () => void
   onOpenYearInReview?: () => void
@@ -100,7 +102,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "obligations",
     label: "Obligations",
-    toolIds: ["debt", "recurring-bills", "reimbursements", "subscriptions", "cancel-negotiate", "household-pool"],
+    toolIds: ["debt", "recurring-bills", "reimbursements", "subscriptions", "cancel-negotiate", "household-pool", "invite-roommate"],
   },
   {
     id: "planning",
@@ -146,6 +148,7 @@ export function ToolsScreen({
   onOpenTrajectory,
   onOpenCashFlowForecast,
   onOpenHouseholdPool,
+  onOpenInviteRoommate,
   onOpenPortfolioAllocation,
   onOpenInvestmentExplorer,
   onOpenYearInReview,
@@ -258,6 +261,13 @@ export function ToolsScreen({
       title: "Shared Pools",
       description: "Split shared expenses like groceries and utilities with roommates — separate from your daily number.",
       onOpen: onOpenHouseholdPool,
+    },
+    {
+      id: "invite-roommate",
+      emoji: "💌",
+      title: "Invite a Roommate",
+      description: "Share a pool or goal with a roommate so you can split and save together.",
+      onOpen: onOpenInviteRoommate,
     },
     {
       id: "savings-projections",

@@ -8,7 +8,7 @@ import { generateSmartSuggestions } from '@/lib/suggestionUtils'
 import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePerFriendOwedCustom } from '@/lib/splitUtils'
 import { autoCategorizeWithRules } from '@/lib/autoCategorize'
 import type { CategorizationRule } from '@/lib/categorizationRules'
-import { hasExistingRule } from '@/lib/categorizationRules'
+import { hasExistingRule, applyRouteRule } from '@/lib/categorizationRules'
 import { lookupMerchant, recordMerchant } from '@/lib/merchantMemory'
 import { triggerHaptic } from '@/lib/haptics'
 import { predictHabit, getTopHabitChips } from '@/lib/habitEngine'
@@ -514,7 +514,14 @@ export function ExpenseSheet({
         setIsAutoSuggested(false)
       }
     }
-  }, [showNoteField, manualCategorySelection, effectiveDefault, categorizationRules])
+
+    // Auto-route: if a user rule targets a funding source and still exists,
+    // pre-select it (task 187.1). Reversible — the user can change the picker.
+    const routedSourceId = applyRouteRule(sanitized, categorizationRules)
+    if (routedSourceId && fundingSources.some(s => s.id === routedSourceId)) {
+      setSelectedSourceId(routedSourceId)
+    }
+  }, [showNoteField, manualCategorySelection, effectiveDefault, categorizationRules, fundingSources])
 
   // ── Category button animation variants ──────────────────────────────────
   const cardTapVariants: Variants = prefersReducedMotion
