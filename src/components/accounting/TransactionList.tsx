@@ -795,13 +795,27 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                 fontFamily: 'Inter, sans-serif',
                 fontVariantNumeric: 'tabular-nums',
               }}>
-                ${dailyTotal.toFixed(2)}
+                ${dailyTotal.toFixed(2)} spent
               </p>
             )}
           </div>
 
-          {/* Transactions in glass card */}
-          <GlassCard elevation="low" style={{ padding: '4px 0', borderRadius: borderRadius.lg, marginBottom: 16 }}>
+          {/* Transactions in glass card with timeline (255.1) */}
+          <GlassCard elevation="low" style={{ padding: '4px 0', borderRadius: borderRadius.lg, marginBottom: 16, position: 'relative' }}>
+            {/* Vertical timeline accent line */}
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: 20,
+                top: 12,
+                bottom: 12,
+                width: 1.5,
+                background: 'rgba(129, 140, 248, 0.15)',
+                borderRadius: 1,
+                pointerEvents: 'none',
+              }}
+            />
             {grouped[date].map((tx, idx) => {
               const isIncome = tx.type === 'income'
               const expanded = !isMultiSelectMode && expandedId === tx.id
@@ -813,11 +827,30 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   onPointerDown={() => handleRowPointerDown(tx.id)}
                   onPointerUp={handleRowPointerUp}
                   onPointerLeave={handleRowPointerUp}
+                  style={{ position: 'relative' }}
                 >
+                  {/* Timeline node (255.1) */}
+                  <span
+                    aria-hidden
+                    style={{
+                      position: 'absolute',
+                      left: 16,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      background: isIncome ? 'var(--success)' : 'var(--accent)',
+                      boxShadow: `0 0 4px ${isIncome ? 'rgba(74, 222, 128, 0.3)' : 'rgba(129, 140, 248, 0.3)'}`,
+                      zIndex: 1,
+                    }}
+                  />
                   {/* Main row */}
                   <motion.div
-                    className="flex items-center justify-between gap-4 py-3 px-4 cursor-pointer transition-colors"
+                    className="flex items-center justify-between gap-4 py-3 cursor-pointer transition-colors"
                     style={{
+                      paddingLeft: 36,
+                      paddingRight: 16,
                       borderBottom: (expanded || isLast) ? 'none' : '1px solid rgba(255, 255, 255, 0.04)',
                       background: isSelected ? 'rgba(129, 140, 248, 0.08)' : undefined,
                     }}

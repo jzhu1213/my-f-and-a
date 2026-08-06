@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import type { Transaction, TransactionCategory } from "@/types"
-import { getCategoryEmoji } from "@/lib/vocabulary"
+import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import { TagInput } from "./TagInput"
 import { getTagsForTransaction } from "@/lib/tagUtils"
 import { ReceiptAttachment } from "./ReceiptAttachment"
@@ -25,13 +25,13 @@ export interface InlineTransactionEditorProps {
   onClose: () => void
 }
 
-const CATEGORY_OPTIONS: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: "food", emoji: getCategoryEmoji("food"), label: "Food" },
-  { category: "transport", emoji: getCategoryEmoji("transport"), label: "Transport" },
-  { category: "fun", emoji: getCategoryEmoji("fun"), label: "Fun" },
-  { category: "school", emoji: getCategoryEmoji("school"), label: "School" },
-  { category: "rent", emoji: getCategoryEmoji("rent"), label: "Rent" },
-  { category: "other", emoji: getCategoryEmoji("other"), label: "Other" },
+const CATEGORY_OPTIONS: { category: TransactionCategory; label: string }[] = [
+  { category: "food", label: "Food" },
+  { category: "transport", label: "Transport" },
+  { category: "fun", label: "Fun" },
+  { category: "school", label: "School" },
+  { category: "rent", label: "Rent" },
+  { category: "other", label: "Other" },
 ]
 
 const MAX_AMOUNT = 99999
@@ -200,12 +200,12 @@ export function InlineTransactionEditor({
             />
           </div>
 
-          {/* Category emoji row (only for expenses) */}
+          {/* Category selector row (only for expenses) */}
           {transaction.type === "expense" && (
             <div
               style={{
                 display: "flex",
-                gap: 6,
+                gap: 8,
                 marginBottom: 10,
                 flexWrap: "wrap",
               }}
@@ -222,12 +222,12 @@ export function InlineTransactionEditor({
                     aria-label={cat.label}
                     aria-pressed={selected}
                     style={{
-                      width: 36,
-                      height: 36,
+                      width: 40,
+                      height: 40,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      borderRadius: 10,
+                      borderRadius: 12,
                       border: selected
                         ? "1.5px solid rgba(129, 140, 248, 0.5)"
                         : "1px solid rgba(255, 255, 255, 0.08)",
@@ -235,11 +235,15 @@ export function InlineTransactionEditor({
                         ? "rgba(129, 140, 248, 0.12)"
                         : "transparent",
                       cursor: "pointer",
-                      fontSize: 16,
+                      padding: 0,
                       transition: "all 0.12s ease",
                     }}
                   >
-                    {cat.emoji}
+                    <CategoryIcon
+                      category={cat.category}
+                      size={28}
+                      iconSize={14}
+                    />
                   </button>
                 )
               })}

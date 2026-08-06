@@ -11,7 +11,7 @@ import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animatio
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import type { IconName } from "@/lib/icons"
 import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius } from '@/styles/shared'
+import { borderRadius, getCategoryAccent } from '@/styles/shared'
 import {
   loadCategoryGridPrefs,
   saveCategoryGridPrefs,
@@ -30,14 +30,14 @@ const MAX_NOTE_LENGTH = 60
 /** Minimum swipe distance (px) to reveal custom amount input (Requirement 3.5) */
 const SWIPE_THRESHOLD = 60
 
-/** Spring for category icon bounce micro-interaction (task 3.5, task 9.4). */
-const ICON_BOUNCE_SPRING = springs.snappy
+/** Spring for category icon bounce micro-interaction (task 252.2). */
+const ICON_BOUNCE_SPRING = { type: "spring", stiffness: 500, damping: 22 } as const
 
 /** How long (ms) a chip must be held before the pulse-ring haptic fires. */
 const LONG_PRESS_MS = 350
 
 /** How long (ms) the success ripple plays before the selection resets. */
-const RIPPLE_MS = 550
+const RIPPLE_MS = 700
 
 // ── Validation & Sanitization ────────────────────────────────────────────────
 
@@ -79,12 +79,13 @@ interface CategoryButtonProps {
 }
 
 /**
- * Large tappable category button — minimum 48×80px for accessibility.
+ * Large tappable category button — icon-centric pill with colored chip.
  *
- * Restyled as a rounded glass pill (task 9.4). On selection a shared-layout
- * highlight slides in behind the content as an expanding backdrop with a
- * subtle inner glow, and the whole card lifts slightly with a scale. On tap
- * the icon plays a spring bounce (stiffness 400 / damping 17).
+ * Phase 6 task 252 redesign: a prominent tinted circle icon chip as the
+ * primary visual element, with a subtle text label beneath. Fixed 72px width
+ * for consistent optical alignment across the grid. On selection the shared-
+ * layout highlight slides in and a subtle glow ring appears around the icon
+ * chip. Tap triggers a crisp bounce on the icon (stiffness 500 / damping 22).
  *
  * Requirement 3.1, 8.4, 13.5, 15.2
  */
@@ -108,18 +109,20 @@ function CategoryButton({
 
   const iconBounceVariants: Variants = reducedMotion
     ? { tap: {} }
-    : { tap: { scale: 1.3 } }
+    : { tap: { scale: 1.25 } }
 
-  // Selection lift — the highlighted card floats upward slightly with scale.
+  // Selection lift — subtle float upward with gentle scale increase.
   const selectionAnimate = reducedMotion
     ? {}
-    : { y: isSelected ? -4 : 0, scale: isSelected ? 1.03 : 1 }
+    : { y: isSelected ? -3 : 0, scale: isSelected ? 1.02 : 1 }
+
+  // Per-category accent for the selection glow ring around the icon chip.
+  const accent = getCategoryAccent(category)
 
   return (
     <motion.button
       type="button"
-      className={`cat-pill cat-pill--glass flex-1 min-w-0${isSelected ? " selected" : ""}`}
-      style={{ minHeight: 80, minWidth: 48 }}
+      className={`cat-pill cat-pill--glass${isSelected ? " selected" : ""}`}
       onClick={onSelect}
       variants={cardTapVariants}
       initial={false}
@@ -151,11 +154,19 @@ function CategoryButton({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 8,
+          gap: 6,
         }}
       >
+        {/* Icon chip — prominent tinted circle with selection glow ring */}
         <motion.span
-          style={{ display: "inline-flex" }}
+          style={{
+            display: "inline-flex",
+            borderRadius: "50%",
+            boxShadow: isSelected
+              ? `0 0 0 2px ${accent}40, 0 0 8px ${accent}20`
+              : "none",
+            transition: "box-shadow 0.15s ease-out",
+          }}
           variants={iconBounceVariants}
           transition={ICON_BOUNCE_SPRING}
           aria-hidden="true"
@@ -165,15 +176,21 @@ function CategoryButton({
             emoji={emoji}
             isCustom={isCustom}
             iconName={iconName}
-            size={40}
+            size={44}
           />
         </motion.span>
+        {/* Label beneath — subtle, smaller text */}
         <span
           style={{
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: 500,
             color: isSelected ? "var(--text)" : "var(--sub)",
-            letterSpacing: "0.03em",
+            letterSpacing: "0.02em",
+            maxWidth: 60,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            textAlign: "center",
           }}
         >
           {label}
@@ -195,8 +212,9 @@ interface SuggestionChipProps {
  * Chip showing a suggested amount with optional label.
  *
  * Restyled as a floating glass pill with a soft shadow (task 9.4). Tapping
- * immediately logs the expense and triggers a success ripple; pressing and
- * holding fires a haptic buzz and shows a breathing pulse ring.
+ * immediately logs the expense and triggers a multi-ring success ripple with
+ * haptic feedback; pressing and holding fires a haptic buzz and shows a
+ * breathing pulse ring.
  *
  * Requirements 3.3, 3.4, 8.4, 13.5
  */
@@ -227,6 +245,13 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion }: Sugg
     }, LONG_PRESS_MS)
   }
 
+  // Fire haptic when the ripple activates (success feedback).
+  useEffect(() => {
+    if (rippleActive && typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      navigator.vibrate(12)
+    }
+  }, [rippleActive])
+
   // Clean up any pending timer on unmount.
   useEffect(() => clearHold, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -236,13 +261,13 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion }: Sugg
       className="amount-chip active chip--glass flex-shrink-0"
       style={{
         position: "relative",
-        minHeight: 48,
+        minHeight: 52,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 2,
-        padding: "10px 16px",
+        gap: 4,
+        padding: "12px 20px",
         borderRadius: borderRadius.full,
       }}
       onClick={onTap}
@@ -261,12 +286,22 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion }: Sugg
       {isHolding && !reducedMotion && (
         <span className="chip-pulse-ring" aria-hidden="true" />
       )}
-      {/* Success ripple emanating from the tapped chip */}
-      {rippleActive && !reducedMotion && (
-        <span className="chip-ripple" aria-hidden="true" />
-      )}
+      {/* Filled flash — "confirmed" pulse behind the chip */}
+      {rippleActive && <span className="chip-ripple-flash" aria-hidden="true" />}
+      {/* Multi-ring success ripple emanating from the tapped chip */}
+      {rippleActive && <span className="chip-ripple" aria-hidden="true" />}
 
-      <span style={{ position: "relative", zIndex: 3, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>
+      <span
+        style={{
+          position: "relative",
+          zIndex: 3,
+          fontSize: 16,
+          fontWeight: 600,
+          color: "var(--text)",
+          fontVariantNumeric: "tabular-nums",
+          fontFamily: FONT_FAMILY,
+        }}
+      >
         {amountStr}
       </span>
       {suggestion.label && (
@@ -276,10 +311,11 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion }: Sugg
             zIndex: 3,
             fontSize: 11,
             color: "var(--muted)",
-            maxWidth: 80,
+            maxWidth: 88,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            fontFamily: FONT_FAMILY,
           }}
         >
           {suggestion.label}
@@ -864,20 +900,35 @@ export function QuickLogArea({
                 <motion.button
                   type="button"
                   onClick={() => setShowCustomInput(true)}
+                  className="chip--glass"
                   style={{
                     fontSize: 12,
-                    color: "var(--muted)",
-                    background: "none",
-                    border: "none",
+                    fontWeight: 500,
+                    color: "var(--text)",
+                    background: "rgba(129, 140, 248, 0.06)",
+                    border: "0.5px solid rgba(129, 140, 248, 0.18)",
                     cursor: "pointer",
-                    padding: "4px 0",
+                    padding: "5px 14px",
+                    borderRadius: borderRadius.full,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontFamily: FONT_FAMILY,
                   }}
                   whileTap={{ scale: 0.95 }}
                   aria-label="Enter custom amount"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
-                  Custom ↓
+                  Custom
+                  <motion.span
+                    aria-hidden="true"
+                    animate={{ y: [0, 3, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+                    style={{ display: "inline-block", fontSize: 11 }}
+                  >
+                    ↓
+                  </motion.span>
                 </motion.button>
               )}
             </>
@@ -1007,10 +1058,9 @@ export function QuickLogArea({
           </p>
         </div>
       ) : (
-        /* ── Normal mode: category grid ── */
+        /* ── Normal mode: category grid (task 252 — icon-centric pills) ── */
         <div
-          className="grid gap-2"
-          style={{ gridTemplateColumns: `repeat(${sortedCategories.length}, 1fr)` }}
+          className="flex flex-wrap gap-2 justify-center"
           role="group"
           aria-label="Expense categories"
           onKeyDown={(e) => {
@@ -1126,19 +1176,45 @@ export function QuickLogArea({
               ))}
             </motion.div>
 
-            {/* Swipe hint */}
-            <p
+            {/* Swipe hint — styled as a subtle animated pill */}
+            <motion.p
               style={{
                 fontSize: 11,
                 color: "var(--muted)",
                 textAlign: "center",
-                marginTop: 6,
+                marginTop: 8,
                 userSelect: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
               }}
               aria-hidden="true"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
             >
-              Swipe down or tap &ldquo;Custom&rdquo; for a different amount
-            </p>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "3px 10px",
+                  borderRadius: borderRadius.full,
+                  background: "rgba(129, 140, 248, 0.04)",
+                  border: "0.5px solid rgba(129, 140, 248, 0.1)",
+                }}
+              >
+                Swipe down for custom
+                <motion.span
+                  animate={{ y: [0, 2, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
+                  style={{ display: "inline-block" }}
+                >
+                  ↓
+                </motion.span>
+              </span>
+            </motion.p>
           </motion.div>
         )}
 

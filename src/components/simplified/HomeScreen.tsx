@@ -47,6 +47,7 @@ import {
   chipButton,
   borderRadius,
   progressTrack,
+  getCategoryAccent,
 } from "@/styles/shared"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
 import { ContextualTipCard } from "./ContextualTipCard"
@@ -1661,116 +1662,190 @@ export function HomeScreen({
                   }
                 }
 
-                return grouped.map((group, groupIdx) => (
+                return grouped.map((group, groupIdx) => {
+                  // 255.3: compute day subtotal for expenses
+                  const dayExpenseTotal = group.txs.reduce(
+                    (sum, tx) => sum + (tx.type === "expense" ? tx.amount : 0),
+                    0
+                  )
+
+                  return (
                   <div key={group.date}>
-                    {/* Date group header */}
-                    <p
+                    {/* Date group header — sticky overline style (255.1) */}
+                    <div
                       style={{
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: "var(--sub)",
-                        fontFamily: FONT_FAMILY,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 2,
                         padding: "8px 16px 4px",
                         marginTop: groupIdx > 0 ? 4 : 0,
-                        opacity: 0.7,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.03em",
+                        background: "inherit",
                       }}
                     >
-                      {getRelativeDate(group.date)}
-                    </p>
-
-                    {/* Transaction rows */}
-                    <AnimatePresence initial={false}>
-                    {group.txs.map((tx, txIdx) => {
-                      const catInfo = BUDGET_CATEGORIES.find(
-                        (c) => c.category === tx.category
-                      )
-                      const label = tx.note || catInfo?.label || tx.category
-                      const isLast =
-                        groupIdx === grouped.length - 1 &&
-                        txIdx === group.txs.length - 1
-
-                      return (
-                        <motion.div
-                          key={tx.id}
-                          layout={!prefersReducedMotion ? "position" : false}
-                          transition={layoutTransition}
+                      <p
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: "var(--sub)",
+                          fontFamily: FONT_FAMILY,
+                          opacity: 0.7,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.03em",
+                        }}
+                      >
+                        {getRelativeDate(group.date)}
+                      </p>
+                      {/* 255.3: Day subtotal */}
+                      {dayExpenseTotal > 0 && (
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: "var(--muted)",
+                            fontFamily: FONT_FAMILY,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
                         >
-                          <SwipeableTransactionRow
-                            id={tx.id}
-                            onDelete={(id) => onDeleteTransaction?.(id)}
-                            onTap={() => onViewTransaction(tx)}
-                            onEdit={onEditTransaction ? (id) => setInlineEditId(id) : undefined}
-                            showBorder={!isLast && inlineEditId !== tx.id}
+                          ${dayExpenseTotal.toFixed(2)} spent
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Transaction rows with vertical timeline (255.1) */}
+                    <div
+                      style={{
+                        position: "relative",
+                        paddingLeft: 16,
+                      }}
+                    >
+                      {/* Vertical timeline accent line */}
+                      <div
+                        aria-hidden
+                        style={{
+                          position: "absolute",
+                          left: 28,
+                          top: 8,
+                          bottom: 8,
+                          width: 1.5,
+                          background: "rgba(129, 140, 248, 0.15)",
+                          borderRadius: 1,
+                        }}
+                      />
+
+                      <AnimatePresence initial={false}>
+                      {group.txs.map((tx, txIdx) => {
+                        const catInfo = BUDGET_CATEGORIES.find(
+                          (c) => c.category === tx.category
+                        )
+                        const label = tx.note || catInfo?.label || tx.category
+                        const isLast =
+                          groupIdx === grouped.length - 1 &&
+                          txIdx === group.txs.length - 1
+                        const accent = getCategoryAccent(tx.category)
+
+                        return (
+                          <motion.div
+                            key={tx.id}
+                            layout={!prefersReducedMotion ? "position" : false}
+                            transition={layoutTransition}
                           >
-                            <motion.div
-                              layoutId={!prefersReducedMotion ? `tx-row-${tx.id}` : undefined}
-                              transition={layoutTransition}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                width: "100%",
-                                padding: "10px 16px",
-                                textAlign: "left",
-                              }}
+                            <SwipeableTransactionRow
+                              id={tx.id}
+                              onDelete={(id) => onDeleteTransaction?.(id)}
+                              onTap={() => onViewTransaction(tx)}
+                              onEdit={onEditTransaction ? (id) => setInlineEditId(id) : undefined}
+                              showBorder={!isLast && inlineEditId !== tx.id}
                             >
-                              <span
+                              <motion.div
+                                layoutId={!prefersReducedMotion ? `tx-row-${tx.id}` : undefined}
+                                transition={layoutTransition}
                                 style={{
-                                  fontSize: 14,
-                                  color: "var(--text)",
-                                  fontFamily: FONT_FAMILY,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 8,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  width: "100%",
+                                  padding: "10px 16px 10px 20px",
+                                  textAlign: "left",
+                                  position: "relative",
                                 }}
                               >
-                                <CategoryIcon category={tx.category} size={32} />
-                                {label}
-                                {splitTransactionIds?.has(tx.id) && (
-                                  <span
-                                    style={{
-                                      fontSize: 11,
-                                      opacity: 0.6,
-                                      marginLeft: 2,
-                                    }}
-                                    aria-label="Split expense"
-                                    title="Split"
-                                  >
-                                    ✂️
-                                  </span>
-                                )}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: 14,
-                                  fontWeight: 500,
-                                  fontFamily: FONT_FAMILY,
-                                  color:
-                                    tx.type === "income"
-                                      ? "var(--success)"
-                                      : "var(--text)",
-                                }}
-                              >
-                                {tx.type === "income" ? "+" : "−"}$
-                                {tx.amount.toFixed(2)}
-                              </span>
-                            </motion.div>
-                          </SwipeableTransactionRow>
-                          {inlineEditId === tx.id && onEditTransaction && (
-                            <InlineTransactionEditor
-                              transaction={tx}
-                              onSave={onEditTransaction}
-                              onClose={() => setInlineEditId(null)}
-                            />
-                          )}
-                        </motion.div>
-                      )
-                    })}
-                    </AnimatePresence>
+                                {/* Timeline node */}
+                                <span
+                                  aria-hidden
+                                  style={{
+                                    position: "absolute",
+                                    left: 9,
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: "50%",
+                                    background: accent,
+                                    boxShadow: `0 0 4px ${accent}40`,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span
+                                  style={{
+                                    fontSize: 14,
+                                    color: "var(--text)",
+                                    fontFamily: FONT_FAMILY,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                  }}
+                                >
+                                  <CategoryIcon category={tx.category} size={32} />
+                                  {label}
+                                  {splitTransactionIds?.has(tx.id) && (
+                                    <span
+                                      style={{
+                                        fontSize: 11,
+                                        opacity: 0.6,
+                                        marginLeft: 2,
+                                      }}
+                                      aria-label="Split expense"
+                                      title="Split"
+                                    >
+                                      ✂️
+                                    </span>
+                                  )}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    fontFamily: FONT_FAMILY,
+                                    fontVariantNumeric: "tabular-nums",
+                                    color:
+                                      tx.type === "income"
+                                        ? "var(--success)"
+                                        : "var(--text)",
+                                  }}
+                                >
+                                  {tx.type === "income" ? "+" : "−"}$
+                                  {tx.amount.toFixed(2)}
+                                </span>
+                              </motion.div>
+                            </SwipeableTransactionRow>
+                            {inlineEditId === tx.id && onEditTransaction && (
+                              <InlineTransactionEditor
+                                transaction={tx}
+                                onSave={onEditTransaction}
+                                onClose={() => setInlineEditId(null)}
+                              />
+                            )}
+                          </motion.div>
+                        )
+                      })}
+                      </AnimatePresence>
+                    </div>
                   </div>
-                ))
+                  )
+                })
               })()}
             </GlassCard>
           )}

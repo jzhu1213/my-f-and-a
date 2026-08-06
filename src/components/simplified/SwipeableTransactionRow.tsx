@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion"
-import { springs, timings } from "@/lib/animations"
-import { FONT_FAMILY } from '@/styles/typography'
+import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from "framer-motion"
+import { springs, timings, useReducedMotion } from "@/lib/animations"
+import { Icon } from "@/components/ui/Icon"
 
 // ============================================================================
 // SwipeableTransactionRow
@@ -39,6 +39,9 @@ const MAX_DRAG_RIGHT = 120
  * swiping right past the threshold triggers edit. Releasing before threshold
  * snaps back. The row animates out smoothly on delete.
  *
+ * Phase 6 (task 255.2): icon-based reveals (Trash2 / Pencil), refined spring
+ * physics with dragMomentum for natural feel, subtle scale bounce on threshold.
+ *
  * Requirements: 9.4
  */
 export function SwipeableTransactionRow({
@@ -50,28 +53,28 @@ export function SwipeableTransactionRow({
   showBorder = true,
 }: SwipeableTransactionRowProps) {
   const [isDeleting, setIsDeleting] = useState(false)
+  const { prefersReducedMotion } = useReducedMotion()
   const dragX = useMotionValue(0)
   const isDragging = useRef(false)
 
-  // Map drag progress to reveal opacity for the delete button (swipe left)
-  const deleteOpacity = useTransform(dragX, [0, -40, -80], [0, 0.5, 1])
-  const deleteScale = useTransform(dragX, [0, -60, -100], [0.6, 0.9, 1])
+  // Smooth spring for icon scale — gives a haptic-like bounce at threshold
+  const rawDeleteScale = useTransform(dragX, [0, -40, -80, -100], [0.5, 0.7, 1, 1.15])
+  const rawEditScale = useTransform(dragX, [0, 40, 80, 100], [0.5, 0.7, 1, 1.15])
+  const deleteIconScale = useSpring(rawDeleteScale, { stiffness: 400, damping: 25 })
+  const editIconScale = useSpring(rawEditScale, { stiffness: 400, damping: 25 })
 
-  // Map drag progress to reveal opacity for the edit button (swipe right)
-  const editOpacity = useTransform(dragX, [0, 40, 80], [0, 0.5, 1])
-  const editScale = useTransform(dragX, [0, 60, 100], [0.6, 0.9, 1])
+  // Map drag progress to reveal opacity
+  const deleteOpacity = useTransform(dragX, [0, -30, -60], [0, 0.4, 1])
+  const editOpacity = useTransform(dragX, [0, 30, 60], [0, 0.4, 1])
 
   const handleDragEnd = () => {
     const currentX = dragX.get()
     if (currentX < DELETE_THRESHOLD) {
-      // Trigger delete
       setIsDeleting(true)
       onDelete(id)
     } else if (currentX > EDIT_THRESHOLD && onEdit) {
-      // Trigger edit
       onEdit(id)
     }
-    // Snap back is handled by framer-motion's dragElastic/dragConstraints
     isDragging.current = false
   }
 
@@ -80,7 +83,6 @@ export function SwipeableTransactionRow({
   }
 
   const handleTap = () => {
-    // Only fire tap if we didn't just swipe
     if (!isDragging.current) {
       onTap()
     }
@@ -90,7 +92,7 @@ export function SwipeableTransactionRow({
     <AnimatePresence mode="popLayout">
       {!isDeleting && (
         <motion.div
-          layout
+          layout={!prefersReducedMotion}
           initial={{ opacity: 1, height: "auto" }}
           exit={{
             opacity: 0,
@@ -112,28 +114,29 @@ export function SwipeableTransactionRow({
               top: 0,
               right: 0,
               bottom: 0,
-              width: 80,
+              width: 72,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               opacity: deleteOpacity,
-              scale: deleteScale,
+              scale: deleteIconScale,
               pointerEvents: "none",
             }}
             aria-hidden
           >
             <span
               style={{
-                fontSize: 12,
-                fontWeight: 600,
-                fontFamily: FONT_FAMILY,
-                color: "#fff",
+                width: 36,
+                height: 36,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 10,
                 background: "var(--error, #f87171)",
-                borderRadius: 8,
-                padding: "6px 12px",
+                color: "#fff",
               }}
             >
-              Delete
+              <Icon name="action:delete" size={18} strokeWidth={2} />
             </span>
           </motion.div>
 
@@ -145,28 +148,29 @@ export function SwipeableTransactionRow({
                 top: 0,
                 left: 0,
                 bottom: 0,
-                width: 80,
+                width: 72,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: editOpacity,
-                scale: editScale,
+                scale: editIconScale,
                 pointerEvents: "none",
               }}
               aria-hidden
             >
               <span
                 style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  fontFamily: FONT_FAMILY,
-                  color: "#fff",
+                  width: 36,
+                  height: 36,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 10,
                   background: "rgba(129, 140, 248, 0.9)",
-                  borderRadius: 8,
-                  padding: "6px 12px",
+                  color: "#fff",
                 }}
               >
-                Edit
+                <Icon name="action:edit" size={18} strokeWidth={2} />
               </span>
             </motion.div>
           )}
@@ -176,8 +180,9 @@ export function SwipeableTransactionRow({
             drag="x"
             dragDirectionLock
             dragConstraints={{ left: MAX_DRAG_LEFT, right: onEdit ? MAX_DRAG_RIGHT : 0 }}
-            dragElastic={{ left: 0.1, right: onEdit ? 0.1 : 0 }}
-            dragMomentum={false}
+            dragElastic={{ left: 0.08, right: onEdit ? 0.08 : 0 }}
+            dragMomentum
+            dragTransition={{ bounceStiffness: 400, bounceDamping: 30 }}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleTap}

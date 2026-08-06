@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useToast } from '@/contexts/ToastContext'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius } from '@/styles/shared'
+import { FONT_FAMILY, spacing, pxToRem } from '@/styles/typography'
+import { borderRadius, shadows } from '@/styles/shared'
 import type { FundingSource } from '@/lib/fundingSources'
 import { predictFundingSource } from '@/lib/fundingSources'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -353,15 +353,15 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       ) : (
       <div style={{ padding: '0 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
               {/* ── Amount Input (calculator-style) ─────────────────── */}
-              <div style={{ textAlign: 'center', marginBottom: 28 }}>
+              <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
                 {/* Quick income presets — common student amounts (task 65) */}
                 <div
                   style={{
                     display: 'flex',
-                    gap: 8,
+                    gap: spacing.xs,
                     flexWrap: 'wrap',
                     justifyContent: 'center',
-                    marginBottom: 16,
+                    marginBottom: spacing.md,
                   }}
                   aria-label="Quick income amounts"
                 >
@@ -372,7 +372,8 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                       onClick={() => setAmount(String(preset))}
                       aria-label={`Set amount to $${preset}`}
                       style={{
-                        padding: '8px 14px',
+                        padding: '10px 16px',
+                        minHeight: 44,
                         background: amount === String(preset)
                           ? 'rgba(74, 222, 128, 0.12)'
                           : 'rgba(255, 255, 255, 0.04)',
@@ -381,7 +382,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                           : '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: borderRadius.full,
                         cursor: 'pointer',
-                        fontSize: 14,
+                        fontSize: pxToRem(14),
                         fontWeight: 500,
                         fontFamily: FONT_FAMILY,
                         color: amount === String(preset) ? 'var(--success)' : 'var(--text)',
@@ -397,7 +398,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                     display: 'flex',
                     alignItems: 'baseline',
                     justifyContent: 'center',
-                    gap: 4,
+                    gap: spacing.xxs,
                   }}
                 >
                   <span
@@ -431,20 +432,21 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                       fontSize: 48,
                       fontFamily: FONT_FAMILY,
                       fontWeight: 600,
+                      fontVariantNumeric: 'tabular-nums',
                       color: 'var(--text)',
                       textAlign: 'center',
                       width: '100%',
                       maxWidth: 240,
-                      caretColor: 'var(--text)',
+                      caretColor: 'var(--accent)',
                       lineHeight: 1.1,
                     }}
                   />
                 </div>
                 <p
                   style={{
-                    fontSize: 13,
+                    fontSize: pxToRem(12),
                     color: 'var(--muted)',
-                    marginTop: 8,
+                    marginTop: spacing.xs,
                     fontFamily: FONT_FAMILY,
                   }}
                 >
@@ -560,17 +562,18 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
 
               {/* ── Note Input (optional, hidden unless toggled) ───────────────────────────── */}
               {!showNoteField && !note ? (
-                <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                <div style={{ marginBottom: spacing.xl, textAlign: 'center' }}>
                   <button
                     type="button"
                     onClick={() => setShowNoteField(true)}
                     aria-label="Add a note"
                     style={{
-                      background: 'transparent',
-                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
                       borderRadius: 'var(--radius-md)',
-                      padding: '10px 16px',
-                      fontSize: 13,
+                      padding: `${spacing.sm}px ${spacing.md}px`,
+                      minHeight: 44,
+                      fontSize: pxToRem(13),
                       fontFamily: FONT_FAMILY,
                       fontWeight: 400,
                       color: 'var(--sub)',
@@ -584,7 +587,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                   </button>
                 </div>
               ) : (
-                <div style={{ marginBottom: 28 }}>
+                <div style={{ marginBottom: spacing.xl }}>
                   <div style={{ position: 'relative' }}>
                     <input
                       type="text"
@@ -597,14 +600,17 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                         width: '100%',
                         background: 'transparent',
                         border: 'none',
-                        borderBottom: '1px solid var(--line)',
+                        borderBottom: '1.5px solid var(--line)',
                         outline: 'none',
-                        fontSize: 15,
+                        fontSize: pxToRem(15),
                         fontFamily: FONT_FAMILY,
                         color: 'var(--text)',
-                        padding: '12px 0',
-                        caretColor: 'var(--text)',
+                        padding: `${spacing.sm}px 0`,
+                        caretColor: 'var(--accent)',
+                        transition: 'border-color 0.2s ease',
                       }}
+                      onFocus={(e) => { e.currentTarget.style.borderBottomColor = 'var(--accent)' }}
+                      onBlur={(e) => { e.currentTarget.style.borderBottomColor = 'var(--line)' }}
                     />
                     {/* Character count indicator — shown when 50+ chars */}
                     {note.length >= 50 && (
@@ -613,7 +619,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                           position: 'absolute',
                           right: 0,
                           bottom: 14,
-                          fontSize: 11,
+                          fontSize: pxToRem(11),
                           fontFamily: FONT_FAMILY,
                           fontWeight: 400,
                           color: 'var(--muted)',
@@ -627,7 +633,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
               )}
 
               {/* ── Gig / Freelance Income Toggle ─────────────────────────── */}
-              <div style={{ marginBottom: 28, textAlign: 'center' }}>
+              <div style={{ marginBottom: spacing.xl, textAlign: 'center' }}>
                 <button
                   type="button"
                   onClick={() => setIsGigIncome(!isGigIncome)}
@@ -641,8 +647,9 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                       ? '1px solid rgba(251, 191, 36, 0.4)'
                       : '1px dashed rgba(255, 255, 255, 0.15)',
                     borderRadius: 'var(--radius-md)',
-                    padding: '10px 16px',
-                    fontSize: 13,
+                    padding: `${spacing.sm}px ${spacing.md}px`,
+                    minHeight: 44,
+                    fontSize: pxToRem(13),
                     fontFamily: FONT_FAMILY,
                     fontWeight: isGigIncome ? 500 : 400,
                     color: isGigIncome ? '#fbbf24' : 'var(--sub)',
@@ -989,12 +996,14 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                     : 'var(--dim)',
                   color: canSubmit ? '#fff' : 'var(--muted)',
                   fontFamily: FONT_FAMILY,
-                  fontSize: 16,
+                  fontSize: pxToRem(16),
                   fontWeight: 600,
                   borderRadius: 'var(--radius-md)',
                   border: 'none',
                   cursor: canSubmit ? 'pointer' : 'not-allowed',
                   opacity: canSubmit ? 1 : 0.5,
+                  boxShadow: canSubmit ? shadows.glowAccentStrong : 'none',
+                  transition: 'opacity 0.2s ease, background 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
                 Done

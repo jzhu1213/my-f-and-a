@@ -8,7 +8,7 @@ import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { Transaction, TransactionCategory } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, pxToRem } from '@/styles/typography'
 import { shadows } from '@/styles/shared'
 import { DatePickerChips, getRelativeDateLabel } from '@/components/ui/DatePickerChips'
 
@@ -170,29 +170,29 @@ export function EditTransactionSheet({
   return (
     <BottomSheet isOpen={isOpen && !!transaction} onClose={onClose} ariaLabel="Edit transaction" preventClose={isSaving}>
       {transaction && (
-        <div style={{ padding: '0 24px 32px' }}>
+        <div style={{ padding: `0 ${spacing.lg}px ${spacing.xl}px` }}>
               {/* ── Header ────────────────────────────────────── */}
-              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ textAlign: 'center', marginBottom: spacing.md }}>
                 <p style={{
-                  fontSize: 15,
+                  fontSize: pxToRem(18),
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   color: 'var(--text)',
                 }}>
                   Edit transaction
                 </p>
                 <p style={{
-                  fontSize: 12,
+                  fontSize: pxToRem(12),
                   fontFamily: FONT_FAMILY,
                   color: 'var(--muted)',
-                  marginTop: 4,
+                  marginTop: spacing.xxs,
                 }}>
                   {getRelativeDateLabel(date)}
                 </p>
               </div>
 
               {/* ── Date Picker ───────────────────────────────── */}
-              <div style={{ marginBottom: 24, textAlign: 'center' }}>
+              <div style={{ marginBottom: spacing.lg, textAlign: 'center' }}>
                 <DatePickerChips
                   selectedDate={date}
                   onDateChange={setDate}
@@ -201,12 +201,12 @@ export function EditTransactionSheet({
               </div>
 
               {/* ── Amount Input ──────────────────────────────── */}
-              <div style={{ textAlign: 'center', marginBottom: 28 }}>
+              <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'baseline',
                   justifyContent: 'center',
-                  gap: 4,
+                  gap: spacing.xxs,
                 }}>
                   <span style={{
                     fontSize: 28,
@@ -237,11 +237,12 @@ export function EditTransactionSheet({
                       fontSize: 48,
                       fontFamily: FONT_FAMILY,
                       fontWeight: 600,
+                      fontVariantNumeric: 'tabular-nums',
                       color: 'var(--text)',
                       textAlign: 'center',
                       width: '100%',
                       maxWidth: 240,
-                      caretColor: 'var(--text)',
+                      caretColor: 'var(--accent)',
                       lineHeight: 1.1,
                     }}
                   />
@@ -254,8 +255,8 @@ export function EditTransactionSheet({
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 10,
-                    marginBottom: 24,
+                    gap: spacing.sm,
+                    marginBottom: spacing.lg,
                   }}
                   role="group"
                   aria-label="Transaction category"
@@ -278,7 +279,7 @@ export function EditTransactionSheet({
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: 8,
+                          gap: spacing.xs,
                           cursor: 'pointer',
                           ...(selected
                             ? {
@@ -297,7 +298,7 @@ export function EditTransactionSheet({
                         </span>
                         <span style={{
                           fontFamily: FONT_FAMILY,
-                          fontSize: 12,
+                          fontSize: pxToRem(12),
                           fontWeight: 500,
                           color: selected ? 'var(--text)' : 'var(--sub)',
                         }}>
@@ -311,17 +312,18 @@ export function EditTransactionSheet({
 
               {/* ── Note Input ────────────────────────────────── */}
               {!showNoteField && !note ? (
-                <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                <div style={{ marginBottom: spacing.xl, textAlign: 'center' }}>
                   <button
                     type="button"
                     onClick={() => setShowNoteField(true)}
                     aria-label="Add a note"
                     style={{
-                      background: 'transparent',
-                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
                       borderRadius: 'var(--radius-md)',
-                      padding: '10px 16px',
-                      fontSize: 13,
+                      padding: `${spacing.sm}px ${spacing.md}px`,
+                      minHeight: 44,
+                      fontSize: pxToRem(13),
                       fontFamily: FONT_FAMILY,
                       fontWeight: 400,
                       color: 'var(--sub)',
@@ -335,7 +337,7 @@ export function EditTransactionSheet({
                   </button>
                 </div>
               ) : (
-                <div style={{ marginBottom: 28 }}>
+                <div style={{ marginBottom: spacing.xl }}>
                   <div style={{ position: 'relative' }}>
                     <input
                       type="text"
@@ -348,21 +350,24 @@ export function EditTransactionSheet({
                         width: '100%',
                         background: 'transparent',
                         border: 'none',
-                        borderBottom: '1px solid var(--line)',
+                        borderBottom: '1.5px solid var(--line)',
                         outline: 'none',
-                        fontSize: 15,
+                        fontSize: pxToRem(15),
                         fontFamily: FONT_FAMILY,
                         color: 'var(--text)',
-                        padding: '12px 0',
-                        caretColor: 'var(--text)',
+                        padding: `${spacing.sm}px 0`,
+                        caretColor: 'var(--accent)',
+                        transition: 'border-color 0.2s ease',
                       }}
+                      onFocus={(e) => { e.currentTarget.style.borderBottomColor = 'var(--accent)' }}
+                      onBlur={(e) => { e.currentTarget.style.borderBottomColor = 'var(--line)' }}
                     />
                     {note.length >= 50 && (
                       <span style={{
                         position: 'absolute',
                         right: 0,
                         bottom: 14,
-                        fontSize: 11,
+                        fontSize: pxToRem(11),
                         fontFamily: FONT_FAMILY,
                         fontWeight: 400,
                         color: 'var(--muted)',
@@ -390,12 +395,14 @@ export function EditTransactionSheet({
                     : 'var(--dim)',
                   color: canSubmit && hasChanges ? '#fff' : 'var(--muted)',
                   fontFamily: FONT_FAMILY,
-                  fontSize: 16,
+                  fontSize: pxToRem(16),
                   fontWeight: 600,
                   borderRadius: 'var(--radius-md)',
                   border: 'none',
                   cursor: canSubmit && hasChanges ? 'pointer' : 'not-allowed',
                   opacity: canSubmit && hasChanges ? 1 : 0.5,
+                  boxShadow: canSubmit && hasChanges ? shadows.glowAccentStrong : 'none',
+                  transition: 'opacity 0.2s ease, background 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
                 {isSaving ? 'Saving...' : 'Save'}
@@ -403,7 +410,7 @@ export function EditTransactionSheet({
 
               {/* ── Refund Link (only for expenses) ───────────── */}
               {transaction.type === 'expense' && onRefund && (
-                <div style={{ textAlign: 'center', marginTop: 16 }}>
+                <div style={{ textAlign: 'center', marginTop: spacing.md }}>
                   <button
                     type="button"
                     onClick={handleRefund}
@@ -412,11 +419,12 @@ export function EditTransactionSheet({
                       background: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
-                      fontSize: 13,
+                      fontSize: pxToRem(13),
                       fontFamily: FONT_FAMILY,
                       fontWeight: 500,
                       color: 'var(--success)',
-                      padding: '8px 16px',
+                      padding: `${spacing.xs}px ${spacing.md}px`,
+                      minHeight: 44,
                       opacity: 0.9,
                     }}
                   >

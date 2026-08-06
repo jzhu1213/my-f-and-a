@@ -359,23 +359,21 @@ input[type="date"] {
 .t-fab:hover  { background: #f0f0f0; }
 .t-fab:active { transform: scale(0.92); }
 
-/* ── Category pill ───────────────────────────────────────────────── */
+/* ── Category pill (Phase 6 task 252 — icon-centric redesign) ────── */
 .cat-pill {
-  @apply flex flex-col items-center justify-center gap-2 transition-all duration-150;
-  /* Phase 6 (task 237.2): drop the resting hairline outline — the filled
-   * surface + spacing already separate the pills. The border only returns to
-   * carry real meaning on hover/selection below. */
+  @apply flex flex-col items-center justify-center gap-1.5 transition-all duration-150;
   border: 0.5px solid transparent;
   background: var(--surface);
-  border-radius: var(--radius-md);
-  min-height: 80px;
-  padding: 14px 8px;
+  border-radius: var(--radius-lg);
+  width: 72px;
+  min-height: 84px;
+  padding: 14px 6px 10px;
 }
 
 .cat-pill.selected {
   background: var(--raised);
   border-color: rgba(129, 140, 248, 0.4);
-  box-shadow: 0 0 5px rgba(129, 140, 248, 0.10);
+  box-shadow: 0 0 8px rgba(129, 140, 248, 0.12);
 }
 
 .cat-pill:not(.selected):hover {
@@ -385,6 +383,12 @@ input[type="date"] {
 
 .cat-pill:active {
   transform: scale(0.97);
+}
+
+/* Focus-visible ring for keyboard navigation (WCAG 2.1 AA) */
+.cat-pill:focus-visible {
+  outline: 2px solid rgba(129, 140, 248, 0.8);
+  outline-offset: 2px;
 }
 
 /* ── Amount chip ─────────────────────────────────────────────────── */
@@ -1030,7 +1034,7 @@ input[type="date"] {
  * prefers-reduced-motion so the experience stays calm.
  */
 
-/* Category card — frosted glass pill with a lit rim */
+/* Category card — frosted glass pill with rounded, friendly shape */
 .cat-pill--glass {
   position: relative;
   overflow: hidden;
@@ -1038,8 +1042,8 @@ input[type="date"] {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(6px) saturate(140%);
   -webkit-backdrop-filter: blur(6px) saturate(140%);
-  border-radius: var(--radius-md);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
 }
 
 .cat-pill--glass:not(.selected):hover {
@@ -1047,37 +1051,87 @@ input[type="date"] {
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Selection backdrop — a soft purple inner glow behind the content */
+/* Selection backdrop — soft purple glow behind the content */
 .cat-pill-highlight {
   position: absolute;
   inset: 0;
   z-index: 0;
   border-radius: inherit;
   pointer-events: none;
-  border: 0.5px solid rgba(129, 140, 248, 0.5);
-  background: rgba(129, 140, 248, 0.06);
+  border: 0.5px solid rgba(129, 140, 248, 0.45);
+  background: rgba(129, 140, 248, 0.05);
   box-shadow:
-    inset 0 0 8px rgba(129, 140, 248, 0.10),
-    0 0 10px rgba(129, 140, 248, 0.12);
+    inset 0 0 10px rgba(129, 140, 248, 0.08),
+    0 0 12px rgba(129, 140, 248, 0.10);
 }
 
-/* Suggestion chip — floating glass pill with a soft shadow */
+/* Suggestion chip — floating glass pill with premium depth and glow */
 .chip--glass {
   position: relative;
-  border: 0.5px solid rgba(129, 140, 248, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(6px) saturate(140%);
-  -webkit-backdrop-filter: blur(6px) saturate(140%);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+  border: 0.5px solid rgba(129, 140, 248, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.22),
+    0 0 0 0.5px rgba(129, 140, 248, 0.06);
   border-radius: var(--radius-md);
 }
 
-.chip--glass:hover {
-  border-color: rgba(129, 140, 248, 0.25);
-  background: rgba(129, 140, 248, 0.05);
+/* Gradient rim — subtle warm-purple edge highlight (same technique as glass-card) */
+.chip--glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 0.5px;
+  background: linear-gradient(
+    160deg,
+    rgba(167, 139, 250, 0.14),
+    rgba(129, 140, 248, 0.06) 50%,
+    rgba(255, 255, 255, 0.02)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.15s ease-out;
 }
 
-/* Success ripple — expands and fades out from the tapped chip */
+.chip--glass:hover {
+  border-color: rgba(129, 140, 248, 0.28);
+  background: rgba(129, 140, 248, 0.06);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.22),
+    0 0 12px rgba(129, 140, 248, 0.08);
+}
+
+/* Active/selected state — accent glow ring */
+.chip--glass.active {
+  border-color: rgba(129, 140, 248, 0.35);
+  background: rgba(129, 140, 248, 0.07);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    0 0 16px rgba(129, 140, 248, 0.12),
+    0 0 4px rgba(167, 139, 250, 0.2);
+}
+
+.chip--glass.active::before {
+  background: linear-gradient(
+    160deg,
+    rgba(167, 139, 250, 0.22),
+    rgba(129, 140, 248, 0.10) 50%,
+    rgba(255, 255, 255, 0.03)
+  );
+}
+
+/* Success ripple — multi-ring radial pulse emanating from the tapped chip */
 .chip-ripple {
   position: absolute;
   inset: 0;
@@ -1085,12 +1139,61 @@ input[type="date"] {
   border-radius: inherit;
   pointer-events: none;
   border: 1.5px solid rgba(129, 140, 248, 0.6);
-  animation: chip-ripple 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: chip-ripple-ring1 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-@keyframes chip-ripple {
-  0%   { opacity: 0.75; transform: scale(1); }
-  100% { opacity: 0;    transform: scale(1.9); }
+/* Second concentric ring — slightly delayed and larger */
+.chip-ripple::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  animation: chip-ripple-ring2 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
+  opacity: 0;
+}
+
+/* Third outer ring — most delayed, largest reach */
+.chip-ripple::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 0.5px solid rgba(129, 140, 248, 0.25);
+  animation: chip-ripple-ring3 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.16s forwards;
+  opacity: 0;
+}
+
+/* Filled background flash — chip briefly lights up as "confirmed" */
+.chip-ripple-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(129, 140, 248, 0.18);
+  animation: chip-flash 0.7s ease-out forwards;
+}
+
+@keyframes chip-ripple-ring1 {
+  0%   { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(2.0); }
+}
+
+@keyframes chip-ripple-ring2 {
+  0%   { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(2.2); }
+}
+
+@keyframes chip-ripple-ring3 {
+  0%   { opacity: 0.4; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(2.5); }
+}
+
+@keyframes chip-flash {
+  0%   { opacity: 1; }
+  35%  { opacity: 0.7; }
+  100% { opacity: 0; }
 }
 
 /* Press-and-hold pulse ring — breathing outline while a chip is held */
@@ -1115,12 +1218,29 @@ input[type="date"] {
   to   { transform: rotate(360deg); }
 }
 
-/* Reduced motion — drop the emanating/breathing motion entirely */
+/* Reduced motion — replace expanding motion with gentle opacity flash */
 @media (prefers-reduced-motion: reduce) {
-  .chip-ripple,
+  .chip-ripple {
+    animation: chip-reduced-flash 0.4s ease-out forwards;
+    border: none;
+    background: rgba(129, 140, 248, 0.12);
+  }
+  .chip-ripple::before,
+  .chip-ripple::after {
+    animation: none !important;
+    display: none;
+  }
+  .chip-ripple-flash {
+    animation: chip-reduced-flash 0.4s ease-out forwards;
+  }
   .chip-pulse-ring {
     animation: none !important;
   }
+}
+
+@keyframes chip-reduced-flash {
+  0%   { opacity: 0.6; }
+  100% { opacity: 0; }
 }
 
 /* ── Contextual tip card ─────────────────────────────────────────── */

@@ -79,6 +79,7 @@ import {
   User,
   Plus,
   ChevronRight,
+  Trash2,
 } from 'lucide-react'
 
 import type { TransactionCategory } from '@/types'
@@ -166,6 +167,8 @@ export type IconName =
   | 'chrome:person'
   | 'action:add'
   | 'action:forward'
+  | 'action:edit'
+  | 'action:delete'
 
 /**
  * The registry itself. `satisfies` guarantees every {@link IconName} has a
@@ -250,6 +253,8 @@ export const ICON_REGISTRY = {
   'chrome:person': User,
   'action:add': Plus,
   'action:forward': ChevronRight,
+  'action:edit': Pencil,
+  'action:delete': Trash2,
 } satisfies Record<IconName, LucideIcon>
 
 /**

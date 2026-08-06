@@ -23,7 +23,7 @@ import { mergeCategories } from '@/lib/customCategories'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 import { Icon } from '@/components/ui/Icon'
 import { CUSTOM_CATEGORY_ICON_CHOICES, type IconName } from '@/lib/icons'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, pxToRem } from '@/styles/typography'
 import { borderRadius, roundButton, shadows } from '@/styles/shared'
 import { TagInput } from './TagInput'
 import { getRecentTags } from '@/lib/tagUtils'
@@ -717,13 +717,13 @@ export function ExpenseSheet({
               </AnimatePresence>
 
               {/* ── Amount Input (calculator-style) ─────────────────── */}
-              <div style={{ textAlign: 'center', marginBottom: 28 }}>
+              <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'baseline',
                     justifyContent: 'center',
-                    gap: 4,
+                    gap: spacing.xxs,
                   }}
                 >
                   <span
@@ -757,20 +757,21 @@ export function ExpenseSheet({
                       fontSize: 48,
                       fontFamily: FONT_FAMILY,
                       fontWeight: 600,
+                      fontVariantNumeric: 'tabular-nums',
                       color: 'var(--text)',
                       textAlign: 'center',
                       width: '100%',
                       maxWidth: 240,
-                      caretColor: 'var(--text)',
+                      caretColor: 'var(--accent)',
                       lineHeight: 1.1,
                     }}
                   />
                 </div>
                 <p
                   style={{
-                    fontSize: 13,
+                    fontSize: pxToRem(12),
                     color: 'var(--muted)',
-                    marginTop: 8,
+                    marginTop: spacing.xs,
                     fontFamily: FONT_FAMILY,
                   }}
                 >
@@ -910,8 +911,8 @@ export function ExpenseSheet({
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 10,
-                  marginBottom: 24,
+                  gap: spacing.sm,
+                  marginBottom: spacing.lg,
                 }}
                 role="group"
                 aria-label={spendingMode === 'tracker' ? 'Category (optional)' : 'Expense categories'}
@@ -1342,17 +1343,18 @@ export function ExpenseSheet({
 
               {/* ── Note Input (optional, hidden unless toggled) ───────────────────────────── */}
               {!showNoteField && !note ? (
-                <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                <div style={{ marginBottom: spacing.xl, textAlign: 'center' }}>
                   <button
                     type="button"
                     onClick={() => setShowNoteField(true)}
                     aria-label="Add a note"
                     style={{
-                      background: 'transparent',
-                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
                       borderRadius: 'var(--radius-md)',
-                      padding: '10px 16px',
-                      fontSize: 13,
+                      padding: `${spacing.sm}px ${spacing.md}px`,
+                      minHeight: 44,
+                      fontSize: pxToRem(13),
                       fontFamily: FONT_FAMILY,
                       fontWeight: 400,
                       color: 'var(--sub)',
@@ -1366,7 +1368,7 @@ export function ExpenseSheet({
                   </button>
                 </div>
               ) : (
-                <div style={{ marginBottom: 28 }}>
+                <div style={{ marginBottom: spacing.xl }}>
                   <div style={{ position: 'relative' }}>
                     <input
                       type="text"
@@ -1379,14 +1381,17 @@ export function ExpenseSheet({
                         width: '100%',
                         background: 'transparent',
                         border: 'none',
-                        borderBottom: '1px solid var(--line)',
+                        borderBottom: '1.5px solid var(--line)',
                         outline: 'none',
-                        fontSize: 15,
+                        fontSize: pxToRem(15),
                         fontFamily: FONT_FAMILY,
                         color: 'var(--text)',
-                        padding: '12px 0',
-                        caretColor: 'var(--text)',
+                        padding: `${spacing.sm}px 0`,
+                        caretColor: 'var(--accent)',
+                        transition: 'border-color 0.2s ease',
                       }}
+                      onFocus={(e) => { e.currentTarget.style.borderBottomColor = 'var(--accent)' }}
+                      onBlur={(e) => { e.currentTarget.style.borderBottomColor = 'var(--line)' }}
                     />
                     {/* Character count indicator — shown when 50+ chars */}
                     {note.length >= 50 && (
@@ -2384,13 +2389,14 @@ export function ExpenseSheet({
                     : 'var(--dim)',
                   color: canSubmit ? '#fff' : 'var(--muted)',
                   fontFamily: FONT_FAMILY,
-                  fontSize: 17,
+                  fontSize: pxToRem(17),
                   fontWeight: 600,
                   borderRadius: 'var(--radius-md)',
                   border: 'none',
                   cursor: canSubmit ? 'pointer' : 'not-allowed',
                   opacity: canSubmit ? 1 : 0.5,
                   boxShadow: canSubmit ? shadows.glowAccentStrong : 'none',
+                  transition: 'opacity 0.2s ease, background 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
                 Log
