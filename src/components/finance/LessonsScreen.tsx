@@ -16,7 +16,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeading,
+  sectionHeader,
 } from '@/styles/shared'
 import type { SavingsAccount } from '@/types/folio'
 
@@ -105,7 +105,7 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonI
       {/* ------------------------------------------------------------------ */}
       <GlassCard elevation="medium" glow={completedCount === totalLessons ? 'celebration' : 'none'}>
         <div style={{ padding: 24 }}>
-          <p style={{ ...sectionHeading, marginBottom: 12 }}>Your progress</p>
+          <p style={{ ...sectionHeader, marginBottom: 12 }}>Your progress</p>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 36, fontWeight: 300, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
@@ -151,7 +151,7 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonI
         if (unreadMicro.length === 0) return null
         return (
           <div style={{ marginTop: 24 }}>
-            <p style={{ ...sectionHeading, marginBottom: 12 }}>Quick tips</p>
+            <p style={{ ...sectionHeader, marginBottom: 12 }}>Quick tips</p>
             <div
               style={{
                 display: 'flex',
@@ -187,7 +187,7 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonI
       {/* ------------------------------------------------------------------ */}
       {nextLesson && (
         <div style={{ marginTop: 28 }}>
-          <p style={{ ...sectionHeading, marginBottom: 12 }}>Up next</p>
+          <p style={{ ...sectionHeader, marginBottom: 12 }}>Up next</p>
           <GlassCard elevation="high" glow="healthy">
             <button
               onClick={() => setActiveLesson(nextLesson)}
@@ -223,7 +223,7 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonI
       {/* Topic Groups                                                         */}
       {/* ------------------------------------------------------------------ */}
       <div style={{ marginTop: 32 }}>
-        <p style={{ ...sectionHeading, marginBottom: 16 }}>Topics</p>
+        <p style={{ ...sectionHeader, marginBottom: 16 }}>Topics</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {lessonsByTopic.map(group => (
@@ -314,7 +314,7 @@ export function LessonsScreen({ lessonProgress, onCompleteLesson, initialLessonI
       {/* Calculators                                                          */}
       {/* ------------------------------------------------------------------ */}
       <div style={{ marginTop: 32 }}>
-        <p style={{ ...sectionHeading, marginBottom: 12 }}>Calculators</p>
+        <p style={{ ...sectionHeader, marginBottom: 12 }}>Calculators</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[

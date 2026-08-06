@@ -60,7 +60,6 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
-        mono: ['Space Mono', 'monospace'],
       },
       borderRadius: {
         sm: 'var(--radius-sm)',

@@ -36,6 +36,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { GradientMesh, type GradientMeshVariant } from './GradientMesh'
 import { Icon } from './Icon'
 import { useReducedMotion, springs, timings } from '@/lib/animations'
+import { useRubberBand } from '@/hooks/useRubberBand'
 
 /**
  * App navigation keys.
@@ -113,6 +114,13 @@ export function AppShell({
 }: AppShellProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
+  // Rubber-band overscroll on the main content scroll area (Task 242.3)
+  const { containerRef: rubberBandRef, style: rubberBandStyle } = useRubberBand({
+    disabled: prefersReducedMotion,
+    elasticity: 0.25,
+    maxStretch: 60,
+  })
+
   // 3-tab primary dock: Home / History / Settings. Advanced features (the Tools
   // surface, which includes Learn) are reached via progressive disclosure from
   // the Settings screen, not a dedicated dock tab (Requirement 9.5).
@@ -167,11 +175,13 @@ export function AppShell({
       )}
 
       {/* ── Scrollable content ─────────────────────────────────── */}
-      <main
+      <motion.main
+        ref={rubberBandRef as React.RefObject<HTMLElement>}
         className={`app-content ${hideTopBar ? 'app-content--no-topbar' : ''} ${contentClassName}`.trim()}
+        style={rubberBandStyle}
       >
         {children}
-      </main>
+      </motion.main>
 
       {/* ── Quick-log FAB (always visible, centered above dock) ──── */}
       <AnimatePresence>

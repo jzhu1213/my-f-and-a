@@ -58,41 +58,75 @@ export function getCategoryAccent(category: TransactionCategory | string): strin
 // Layout constants
 // ============================================================================
 
-/** Maximum content width used by all simplified screens. */
+/**
+ * Maximum content width used by all simplified screens.
+ *
+ * Tuned for comfortable reading (~60–70 characters per line at the body size)
+ * and one-thumb reach on phones. Folio is phone-first, so this cap only takes
+ * effect on tablet / desktop / installed-PWA widths — keeping the primary
+ * column calm and centered rather than stretching edge-to-edge. Kept at 560 so
+ * the hero number, cards, and copy stay in a single, easily-scanned column.
+ */
 export const CONTENT_MAX_WIDTH = 560
 
 /** Bottom padding to clear the floating dock. */
 export const DOCK_PADDING_BOTTOM = 120
 
-/** Standard horizontal page padding. */
+/**
+ * Standard horizontal page padding (side gutters) for the simplified screens.
+ *
+ * 20px gives a generous, thumb-friendly edge margin without squeezing content
+ * on narrow phones. Sits just inside `AppShell`'s own safe-area-aware inline
+ * padding, so notch / rounded-corner insets are always cleared underneath it.
+ */
 export const HORIZONTAL_PADDING = 20
+
+/**
+ * Major-section vertical rhythm (Phase 6 — task 237.1, "let it breathe").
+ *
+ * The single source of truth for the gap between top-level sections on the
+ * primary screens (e.g. hero → quick actions → recent → tip on Home, and the
+ * grouped sections on Tools). Maps to the `spacing.xl` (32px) grid step for a
+ * generous, consistent rhythm that reduces perceived clunkiness. Dense areas
+ * (chip rows, list rows) intentionally stay tighter and are not driven by this.
+ */
+export const SECTION_SPACING = spacing.xl
 
 // ============================================================================
 // Shared style objects
 // ============================================================================
 
 /**
- * Section heading / overline label — used for "Budget Limits", "Goals",
- * "Categories", "Recent", etc.
+ * Unified section header treatment (Phase 6 — task 238.2).
+ *
+ * ONE reusable overline-style label used everywhere section headings appear:
+ * "Budget Limits", "Goals", "Categories", "Recent", card titles, etc.
+ * Replaces the previous two ad-hoc variants (`sectionHeading` / `sectionHeadingStrong`).
+ *
+ * The style uses the `overline` tier from the type scale — small, uppercase,
+ * wide-tracked — to create a clear, lightweight section label that contrasts
+ * with the heavier `headline` / `title` levels used for actual content headings.
  */
-export const sectionHeading: CSSProperties = {
-  fontSize: pxToRem(13),
-  fontWeight: 500,
-  color: "var(--sub)",
+export const sectionHeader: CSSProperties = {
   fontFamily: FONT_FAMILY,
+  fontSize: pxToRem(11),
+  fontWeight: 600,
+  lineHeight: 1.4,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "var(--muted)",
+  marginBottom: 12,
 }
 
 /**
- * Stronger section heading variant used in SettingsScreen card headers —
- * fontWeight 600 with muted color and letter-spacing.
+ * @deprecated Use {@link sectionHeader} instead. Kept temporarily for gradual migration.
  */
-export const sectionHeadingStrong: CSSProperties = {
-  fontSize: pxToRem(13),
-  fontWeight: 600,
-  color: "var(--muted)",
-  letterSpacing: "0.02em",
-  marginBottom: 12,
-}
+export const sectionHeading: CSSProperties = sectionHeader
+
+/**
+ * @deprecated Use {@link sectionHeader} instead. Kept temporarily for gradual migration.
+ */
+export const sectionHeadingStrong: CSSProperties = sectionHeader
 
 /**
  * Link-style navigation button — "Manage limits →", "See all →", etc.
@@ -229,8 +263,11 @@ export const segmentedControl: CSSProperties = {
   gap: 6,
   padding: 4,
   borderRadius: borderRadius.md,
+  // Phase 6 (task 237.2): the filled track already defines the control; soften
+  // the outline to a faint hairline instead of the hard --border so it reads as
+  // a calm surface. Selection is carried by the active button's fill + shadow.
   background: "rgba(255, 255, 255, 0.04)",
-  border: "1px solid var(--border)",
+  border: "1px solid rgba(255, 255, 255, 0.06)",
 }
 
 /**

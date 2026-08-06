@@ -1,7 +1,7 @@
 "use client"
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { timings } from '@/lib/animations'
+import { timings, layoutTransition, useReducedMotion } from '@/lib/animations'
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius } from '@/styles/shared'
 
@@ -70,6 +70,7 @@ export function SetupChecklistCard({
 }: SetupChecklistCardProps) {
   const items = dedupeSteps(skippedSteps)
   const [dismissed, setDismissed] = useState(false)
+  const { prefersReducedMotion } = useReducedMotion()
 
   const handleDismiss = useCallback(() => {
     setDismissed(true)
@@ -145,49 +146,59 @@ export function SetupChecklistCard({
 
         {/* Checklist items */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <AnimatePresence initial={false}>
           {items.map((item) => (
-            <button
+            <motion.div
               key={item.id}
-              type="button"
-              onClick={() => onResumeStep(item.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 10px',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-                borderRadius: borderRadius.md,
-                cursor: 'pointer',
-                width: '100%',
-                textAlign: 'left',
-              }}
-              aria-label={`Resume: ${item.label}`}
+              layout={!prefersReducedMotion ? "position" : false}
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { opacity: timings.fast, height: timings.normal } }}
+              transition={layoutTransition}
             >
-              <span style={{ fontSize: 14 }} aria-hidden="true">{item.emoji}</span>
-              <span
+              <button
+                type="button"
+                onClick={() => onResumeStep(item.id)}
                 style={{
-                  fontSize: 13,
-                  color: 'var(--text)',
-                  fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
-                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 10px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderRadius: borderRadius.md,
+                  cursor: 'pointer',
+                  width: '100%',
+                  textAlign: 'left',
                 }}
+                aria-label={`Resume: ${item.label}`}
               >
-                {item.label}
-              </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  color: 'var(--accent, #a78bfa)',
-                  fontFamily: FONT_FAMILY,
-                  opacity: 0.9,
-                }}
-              >
-                →
-              </span>
-            </button>
+                <span style={{ fontSize: 14 }} aria-hidden="true">{item.emoji}</span>
+                <span
+                  style={{
+                    fontSize: 13,
+                    color: 'var(--text)',
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: 500,
+                    flex: 1,
+                  }}
+                >
+                  {item.label}
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--accent, #a78bfa)',
+                    fontFamily: FONT_FAMILY,
+                    opacity: 0.9,
+                  }}
+                >
+                  →
+                </span>
+              </button>
+            </motion.div>
           ))}
+          </AnimatePresence>
         </div>
       </motion.div>
     </AnimatePresence>

@@ -9,3 +9,5 @@ export type {
   SheetPayloads,
   UseOverlayRouterReturn,
 } from './useOverlayRouter'
+export { useRubberBand } from './useRubberBand'
+export type { UseRubberBandOptions, UseRubberBandReturn } from './useRubberBand'

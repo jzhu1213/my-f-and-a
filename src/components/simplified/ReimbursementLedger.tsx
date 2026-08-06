@@ -9,7 +9,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   linkButton,
   listRow,
 } from "@/styles/shared"
@@ -261,7 +261,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
 
       {/* Net Summary Card */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={{ ...sectionHeadingStrong }}>Net Summary</p>
+        <p style={{ ...sectionHeader }}>Net Summary</p>
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
           <div>
             <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>Owed to you</p>
@@ -347,7 +347,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
 
           {settleUpLedger.length > 0 && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-              <p style={{ ...sectionHeadingStrong }}>Who Owes Whom</p>
+              <p style={{ ...sectionHeader }}>Who Owes Whom</p>
               {settleUpLedger.map(entry => (
                 <SettleUpRow
                   key={entry.personName}
@@ -402,7 +402,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                     {settlingPerson.iouCount} IOU{settlingPerson.iouCount !== 1 ? 's' : ''} · ${Math.abs(settlingPerson.netAmount).toFixed(2)} net
                   </p>
 
-                  <p style={{ ...sectionHeadingStrong }}>How are you settling?</p>
+                  <p style={{ ...sectionHeader }}>How are you settling?</p>
 
                   {/* Skip source option */}
                   <motion.button
@@ -526,7 +526,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
             transition={springs.gentle}
           >
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-              <p style={{ ...sectionHeadingStrong }}>New IOU</p>
+              <p style={{ ...sectionHeader }}>New IOU</p>
 
               {/* Direction toggle */}
               <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
@@ -647,7 +647,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
       {/* Per-person breakdown */}
       {balances.size > 0 && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>By Person</p>
+          <p style={{ ...sectionHeader }}>By Person</p>
           {Array.from(balances.entries()).map(([person, net]) => (
             <div key={person} style={listRow}>
               <span style={{ fontSize: 14, color: "var(--text)" }}>{person}</span>
@@ -669,7 +669,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
       {/* Unsettled IOUs */}
       {unsettled.length > 0 && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>Open IOUs</p>
+          <p style={{ ...sectionHeader }}>Open IOUs</p>
           {unsettled.map(r => (
             <IOURow
               key={r.id}
@@ -684,7 +684,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
       {/* Settled IOUs */}
       {settled.length > 0 && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>Settled</p>
+          <p style={{ ...sectionHeader }}>Settled</p>
           {settled.slice(0, 10).map(r => (
             <IOURow
               key={r.id}

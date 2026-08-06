@@ -9,7 +9,7 @@
  * Guidelines:
  * - One emoji per category — used everywhere without exception
  * - Status messages are warm, short, human, and non-judgmental
- * - Numbers should be displayed large and in a tabular/monospace style
+ * - Numbers should be displayed large with tabular-nums for column alignment
  * - Tone is encouraging across all surfaces (hero, tips, celebrations)
  */
 

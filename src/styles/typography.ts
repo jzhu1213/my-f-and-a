@@ -32,14 +32,10 @@ import type { CSSProperties } from 'react'
 export const FONT_FAMILY =
   "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" as const
 
-/**
- * Monospace font for code/technical content only.
- * 
- * **Not recommended for financial amounts or UI text** — use FONT_FAMILY with
- * `fontVariantNumeric: 'tabular-nums'` instead for a warmer, more welcoming look.
- */
-export const MONO_FAMILY =
-  "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace" as const
+// NOTE (Phase 6 — task 238.3): there is intentionally no monospace font stack.
+// Project rule: never use monospace for financial amounts or UI text. Numbers
+// use FONT_FAMILY with `fontVariantNumeric: 'tabular-nums'` for aligned,
+// column-friendly digits with a warm, welcoming look.
 
 /**
  * Root font size (px) used to convert the design's px values into `rem`.
@@ -80,13 +76,23 @@ export type FontWeightValue = (typeof fontWeights)[FontWeightName]
 // ============================================================================
 
 /**
- * Letter-spacing tokens. Tighter for large display type, neutral for body,
- * and wider (tracked) for overlines/labels (Requirement 8.4).
+ * Letter-spacing tokens. Progressively tighter tracking for larger type
+ * (large type reads better with negative tracking), neutral for body, and
+ * wider (tracked) for overlines / section labels (Requirement 8.4).
+ *
+ * Phase 6 (task 238.1): the tokens now carry *distinct* values so large type
+ * (`display`) tracks noticeably tighter than headings, giving the scale a
+ * crisper, more intentional feel at a glance.
  */
 export const letterSpacing = {
-  tighter: '-0.03em',
-  tight: '-0.03em',
+  /** Very large display type (the daily-allowance number). */
+  tighter: '-0.04em',
+  /** Titles and headlines. */
+  tight: '-0.02em',
+  /** Subtle optical correction for mid-size emphasis text. */
+  snug: '-0.01em',
   normal: '0em',
+  /** Overlines / section labels. */
   wide: '0.08em',
 } as const
 
@@ -124,12 +130,18 @@ export type TypeScaleName =
 /**
  * The refined Folio type scale.
  *
- * - `display`  56px / thin    — dominates the screen (daily allowance amount)
- * - `title`    28px / medium  — screen and major section titles
- * - `headline` 20px / medium  — sub-section headings
- * - `body`     15px / regular — general content (matches globals.css body)
- * - `caption`  12px / medium  — secondary labels and hints
- * - `overline` 10px / semibold uppercase tracked — eyebrow labels
+ * Phase 6 (task 238.1) — *widen the hierarchy jumps*: the previous scale
+ * clustered around 13/14/15px, so adjacent tiers were hard to tell apart.
+ * The steps below open the gaps between tiers (≈1.4× between the upper tiers)
+ * and push `title`/`headline` to be more assertive (larger + heavier) so
+ * section headers read at a glance. Large type also carries tighter tracking.
+ *
+ * - `display`  56px / thin     / tighter — dominates the screen (allowance amount)
+ * - `title`    30px / semibold / tight   — screen and major section titles
+ * - `headline` 21px / semibold / tight   — sub-section headings (assertive)
+ * - `body`     15px / regular  / normal  — general content (matches globals.css body)
+ * - `caption`  12px / medium   / normal  — secondary labels and hints
+ * - `overline` 11px / semibold / wide, uppercase — eyebrow / section labels
  */
 export const typography: Record<TypeScaleName, TypeStyle> = {
   display: {
@@ -137,19 +149,19 @@ export const typography: Record<TypeScaleName, TypeStyle> = {
     fontSize: pxToRem(56),
     fontWeight: fontWeights.thin,
     lineHeight: 1.05,
-    letterSpacing: letterSpacing.tight,
+    letterSpacing: letterSpacing.tighter,
   },
   title: {
     fontFamily: FONT_FAMILY,
-    fontSize: pxToRem(28),
-    fontWeight: fontWeights.medium,
-    lineHeight: 1.2,
+    fontSize: pxToRem(30),
+    fontWeight: fontWeights.semibold,
+    lineHeight: 1.15,
     letterSpacing: letterSpacing.tight,
   },
   headline: {
     fontFamily: FONT_FAMILY,
-    fontSize: pxToRem(20),
-    fontWeight: fontWeights.medium,
+    fontSize: pxToRem(21),
+    fontWeight: fontWeights.semibold,
     lineHeight: 1.3,
     letterSpacing: letterSpacing.tight,
   },
@@ -169,7 +181,7 @@ export const typography: Record<TypeScaleName, TypeStyle> = {
   },
   overline: {
     fontFamily: FONT_FAMILY,
-    fontSize: pxToRem(10),
+    fontSize: pxToRem(11),
     fontWeight: fontWeights.semibold,
     lineHeight: 1.4,
     letterSpacing: letterSpacing.wide,
@@ -254,6 +266,27 @@ export type SpacingValue = (typeof spacing)[SpacingName]
  */
 export function space(name: SpacingName): string {
   return `${spacing[name]}px`
+}
+
+// ============================================================================
+// Numeric typography (Phase 6 — task 238.3)
+// ============================================================================
+
+/**
+ * Style partial for financial/numeric amounts.
+ *
+ * Ensures all numbers use Inter with `tabular-nums` so digits align in columns,
+ * without resorting to a monospace typeface. Spread into any style block that
+ * renders monetary values or statistics.
+ *
+ * Usage:
+ * ```ts
+ * <span style={{ ...TABULAR_NUMS, fontSize: pxToRem(18) }}>$1,234.56</span>
+ * ```
+ */
+export const TABULAR_NUMS: Pick<CSSProperties, 'fontFamily' | 'fontVariantNumeric'> = {
+  fontFamily: FONT_FAMILY,
+  fontVariantNumeric: 'tabular-nums',
 }
 
 // ============================================================================

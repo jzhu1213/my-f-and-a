@@ -30,7 +30,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   borderRadius,
   dangerZone,
 } from "@/styles/shared"
@@ -174,7 +174,7 @@ export function PrivacyDataScreen({
       <section aria-labelledby="privacy-stored-heading" style={{ marginBottom: 28 }}>
         <h3
           id="privacy-stored-heading"
-          style={{ ...sectionHeadingStrong, marginBottom: 12 }}
+          style={{ ...sectionHeader, marginBottom: 12 }}
         >
           What&apos;s stored
         </h3>
@@ -258,7 +258,7 @@ export function PrivacyDataScreen({
       <section aria-labelledby="privacy-export-heading" style={{ marginBottom: 28 }}>
         <h3
           id="privacy-export-heading"
-          style={{ ...sectionHeadingStrong, marginBottom: 12 }}
+          style={{ ...sectionHeader, marginBottom: 12 }}
         >
           Take a copy
         </h3>
@@ -309,7 +309,7 @@ export function PrivacyDataScreen({
       <section aria-labelledby="privacy-delete-heading">
         <h3
           id="privacy-delete-heading"
-          style={{ ...sectionHeadingStrong, marginBottom: 12, color: "var(--error, #f87171)" }}
+          style={{ ...sectionHeader, marginBottom: 12, color: "var(--error, #f87171)" }}
         >
           Delete everything
         </h3>

@@ -346,7 +346,10 @@ input[type="date"] {
 /* ── Category pill ───────────────────────────────────────────────── */
 .cat-pill {
   @apply flex flex-col items-center justify-center gap-2 transition-all duration-150;
-  border: 0.5px solid var(--border);
+  /* Phase 6 (task 237.2): drop the resting hairline outline — the filled
+   * surface + spacing already separate the pills. The border only returns to
+   * carry real meaning on hover/selection below. */
+  border: 0.5px solid transparent;
   background: var(--surface);
   border-radius: var(--radius-md);
   min-height: 80px;
@@ -371,7 +374,10 @@ input[type="date"] {
 /* ── Amount chip ─────────────────────────────────────────────────── */
 .amount-chip {
   @apply flex-shrink-0 px-4 py-2 text-sm font-mono transition-all duration-150;
-  border: 0.5px solid var(--border);
+  /* Phase 6 (task 237.2): resting chips have no outline; the border only
+   * appears on hover/active to signal selection. */
+  border: 0.5px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
   color: var(--sub);
   border-radius: var(--radius-md);
 }
@@ -411,7 +417,11 @@ input[type="date"] {
 /* ── List rows ───────────────────────────────────────────────────── */
 .t-row {
   @apply flex items-center w-full transition-colors;
-  border-bottom: 1px solid var(--border);
+  /* Phase 6 (task 237.2): soften the row divider from the hard --border to a
+   * faint hairline so long lists read as calm, spaced rows rather than a
+   * heavily ruled table. Separation stays clear via row padding + the whisper
+   * line; the hover fill reinforces it on interaction. */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .t-row:hover { background: rgba(255,255,255,0.02); }
@@ -1297,7 +1307,12 @@ input[type="date"] {
   /* Clear the fixed top bar (56px + safe-area) and the floating dock. */
   padding-top: calc(56px + var(--safe-top) + 16px);
   padding-bottom: calc(72px + var(--safe-bottom) + 24px);
-  padding-inline: 16px;
+  /* Phase 6 (task 237.3): honor left/right safe-area insets too, so content
+   * clears the notch / rounded corners in landscape while keeping a generous
+   * 16px minimum gutter in portrait. */
+  padding-inline:
+    max(16px, env(safe-area-inset-left))
+    max(16px, env(safe-area-inset-right));
   max-width: 560px;
   margin-inline: auto;
 }

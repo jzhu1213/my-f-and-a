@@ -28,7 +28,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   borderRadius,
 } from "@/styles/shared"
 import { getPools, createPool, type HouseholdPool } from "@/lib/householdPool"
@@ -276,7 +276,7 @@ function IntroStep({
       {/* Prior invites (warm follow-up list) */}
       {sentInvites.length > 0 && (
         <div>
-          <p style={{ ...sectionHeadingStrong, marginBottom: 10 }}>People you&apos;ve invited</p>
+          <p style={{ ...sectionHeader, marginBottom: 10 }}>People you&apos;ve invited</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {sentInvites.map((inv) => (
               <GlassCard key={inv.id} elevation="low" style={{ padding: "12px 14px" }}>
@@ -352,7 +352,7 @@ function PickTargetStep({
       {/* Existing pools */}
       {pools.length > 0 && (
         <div>
-          <p style={{ ...sectionHeadingStrong, marginBottom: 10 }}>Shared pools</p>
+          <p style={{ ...sectionHeader, marginBottom: 10 }}>Shared pools</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {pools.map((pool) => (
               <TargetCard
@@ -372,7 +372,7 @@ function PickTargetStep({
       {/* Existing shared goals */}
       {sharedGoals.length > 0 && (
         <div>
-          <p style={{ ...sectionHeadingStrong, marginBottom: 10 }}>Shared goals</p>
+          <p style={{ ...sectionHeader, marginBottom: 10 }}>Shared goals</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {sharedGoals.map((goal) => {
               const token = goal.shareToken ?? getShareTokenForGoal(goal.id) ?? ""
@@ -406,7 +406,7 @@ function PickTargetStep({
 
       {/* Create a new pool inline */}
       <div>
-        <p style={{ ...sectionHeadingStrong, marginBottom: 10 }}>Start something new</p>
+        <p style={{ ...sectionHeader, marginBottom: 10 }}>Start something new</p>
         <AnimatePresence mode="wait">
           {showCreate ? (
             <CreatePoolInline

@@ -6,7 +6,7 @@ import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
-  sectionHeadingStrong,
+  sectionHeader,
   borderRadius,
   segmentedControl,
   segmentedButtonBase,
@@ -195,7 +195,7 @@ export function SmartNotificationSettings() {
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-      <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+      <p style={{ ...sectionHeader, marginBottom: 6 }}>
         Smart Alerts
       </p>
       <p

@@ -7,7 +7,7 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import type { Debt } from "@/types/folio"
 import { DEBT_TYPES } from "@/types/folio"
 import { FONT_FAMILY, pxToRem } from "@/styles/typography"
-import { sectionHeadingStrong, borderRadius } from "@/styles/shared"
+import { sectionHeader, borderRadius } from "@/styles/shared"
 import { compareStrategies, type StrategyComparison, type StrategyResult, type StrategyName } from "@/lib/debtUtils"
 
 // ============================================================================
@@ -123,7 +123,7 @@ export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-      <p style={sectionHeadingStrong}>Payoff Strategy Comparison</p>
+      <p style={sectionHeader}>Payoff Strategy Comparison</p>
       <p style={{ fontSize: pxToRem(13), color: "var(--sub)", margin: "0 0 16px" }}>
         Both strategies work &mdash; here&apos;s how they compare for your {activeDebts.length} debts
       </p>

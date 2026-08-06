@@ -12,7 +12,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   listRow,
   borderRadius,
 } from "@/styles/shared"
@@ -245,7 +245,7 @@ export function IncomeStreamsScreen({
         </button>
       </div>
 
-      <h2 style={{ ...sectionHeadingStrong, marginBottom: 4 }}>Income Sources</h2>
+      <h2 style={{ ...sectionHeader, marginBottom: 4 }}>Income Sources</h2>
       <p style={{ fontSize: 13, color: "var(--sub)", fontFamily: FONT_FAMILY, marginBottom: 20, lineHeight: 1.4 }}>
         Your income sources — the app combines them into your daily number.
       </p>

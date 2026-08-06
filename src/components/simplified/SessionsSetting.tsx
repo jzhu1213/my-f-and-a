@@ -6,7 +6,7 @@ import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { useAuth } from "@/contexts/AuthContext"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeadingStrong, borderRadius } from "@/styles/shared"
+import { sectionHeader, borderRadius } from "@/styles/shared"
 import {
   describeCurrentDevice,
   formatLastSeen,
@@ -126,7 +126,7 @@ export function SessionsSetting() {
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
-      <p style={{ ...sectionHeadingStrong }}>Where you&rsquo;re signed in</p>
+      <p style={{ ...sectionHeader }}>Where you&rsquo;re signed in</p>
 
       <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, marginBottom: 16 }}>
         The devices with Folio open on your account. Sign out any you don&rsquo;t recognise —

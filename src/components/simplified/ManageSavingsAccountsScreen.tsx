@@ -18,7 +18,7 @@ import {
 } from "@/lib/savingsContributionHistory"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
-  sectionHeadingStrong,
+  sectionHeader,
   listRow,
   borderRadius,
 } from "@/styles/shared"
@@ -162,7 +162,7 @@ export function ManageSavingsAccountsScreen({
     if (items.length === 0) return null
     return (
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={sectionHeadingStrong}>Total Savings &amp; Investments</p>
+        <p style={sectionHeader}>Total Savings &amp; Investments</p>
         <p
           style={{
             fontSize: 22,

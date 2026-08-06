@@ -9,7 +9,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   borderRadius,
   progressTrack,
 } from "@/styles/shared"
@@ -560,7 +560,7 @@ function PoolDetailView({ poolId, onDeleted }: { poolId: string; onDeleted: () =
             exit={{ opacity: 0, y: 10 }}
           >
             <GlassCard elevation="low" style={{ padding: 16 }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 8 }}>Share this pool</p>
+              <p style={{ ...sectionHeader, marginBottom: 8 }}>Share this pool</p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 12, lineHeight: 1.4 }}>
                 Send this link to your roommates so they can view and log expenses.
               </p>
@@ -590,7 +590,7 @@ function PoolDetailView({ poolId, onDeleted }: { poolId: string; onDeleted: () =
 
       {/* Members list */}
       <div>
-        <p style={{ ...sectionHeadingStrong, marginBottom: 10 }}>Members</p>
+        <p style={{ ...sectionHeader, marginBottom: 10 }}>Members</p>
         <GlassCard elevation="low" style={{ padding: "12px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0" }}>
             <span style={{ fontSize: 14, color: "var(--text)" }}>You</span>
@@ -616,7 +616,7 @@ function PoolDetailView({ poolId, onDeleted }: { poolId: string; onDeleted: () =
 
       {/* Recent Expenses */}
       <div>
-        <p style={{ ...sectionHeadingStrong, marginBottom: 10 }}>Recent Expenses</p>
+        <p style={{ ...sectionHeader, marginBottom: 10 }}>Recent Expenses</p>
         {expenses.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--sub)", textAlign: "center", padding: "20px 0" }}>
             No expenses logged yet. Tap &quot;Log Expense&quot; to get started!
@@ -694,7 +694,7 @@ function AddExpenseForm({
       exit={{ opacity: 0, y: 10 }}
     >
       <GlassCard elevation="low" style={{ padding: 16 }}>
-        <p style={{ ...sectionHeadingStrong, marginBottom: 12 }}>Log a shared expense</p>
+        <p style={{ ...sectionHeader, marginBottom: 12 }}>Log a shared expense</p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Amount */}
@@ -818,7 +818,7 @@ function AddMemberForm({ poolId, onDone }: { poolId: string; onDone: () => void 
       exit={{ opacity: 0, y: 10 }}
     >
       <GlassCard elevation="low" style={{ padding: 16 }}>
-        <p style={{ ...sectionHeadingStrong, marginBottom: 12 }}>Add a roommate</p>
+        <p style={{ ...sectionHeader, marginBottom: 12 }}>Add a roommate</p>
         <div style={{ display: "flex", gap: 8 }}>
           <input
             type="text"

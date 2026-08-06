@@ -5,7 +5,7 @@ import type { DailyAllowance } from "@/types/folio"
 import type { FundingSource } from "@/lib/fundingSources"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing } from "@/styles/typography"
 import { HistoryView } from "@/components/accounting/HistoryView"
 import { InsightTrendCard } from "./InsightTrendCard"
 import { InsightBreakdownCard } from "./InsightBreakdownCard"
@@ -64,18 +64,26 @@ export function HistoryScreen({
   onBulkRecategorize,
   onBulkTag,
 }: HistoryScreenProps) {
-  const { prefersReducedMotion } = useReducedMotion()
+  const { prefersReducedMotion, listContainer, listItem } = useReducedMotion()
   return (
-    <div className="history-screen">
+    <motion.div
+      className="history-screen"
+      variants={listContainer}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Compact daily allowance reinforcement — keeps the core identity visible (Task 117.1) */}
       {allowance && (
+        <motion.div variants={listItem}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            padding: "10px 16px 2px",
+            // Phase 6 (task 237.1): a touch more breathing room above the
+            // stacked insight cards for a calmer top-of-screen rhythm.
+            padding: `${spacing.md}px 16px ${spacing.xxs}px`,
             fontFamily: FONT_FAMILY,
           }}
           aria-label={`Today's remaining: $${Math.round(allowance.amount)}`}
@@ -100,17 +108,19 @@ export function HistoryScreen({
             ${Math.round(allowance.amount)}
           </span>
         </div>
+        </motion.div>
       )}
       {/* Month-over-month trend insight (Requirement 9.4) */}
-      <div style={{ padding: "12px 16px 0" }}>
+      <motion.div variants={listItem} style={{ padding: `${spacing.md}px 16px 0` }}>
         <InsightTrendCard transactions={transactions} />
-      </div>
+      </motion.div>
 
       {/* Spending breakdown insight (Requirement 9.4) */}
-      <div style={{ padding: "8px 16px 0" }}>
+      <motion.div variants={listItem} style={{ padding: `${spacing.sm}px 16px 0` }}>
         <InsightBreakdownCard transactions={transactions} />
-      </div>
+      </motion.div>
 
+      <motion.div variants={listItem}>
       <HistoryView
         transactions={transactions}
         isLoading={isLoading}
@@ -122,6 +132,7 @@ export function HistoryScreen({
         onBulkRecategorize={onBulkRecategorize}
         onBulkTag={onBulkTag}
       />
+      </motion.div>
 
       {/* Floating Action Button — log new expense */}
       <motion.button
@@ -147,6 +158,6 @@ export function HistoryScreen({
           <path d="M5 12h14" />
         </svg>
       </motion.button>
-    </div>
+    </motion.div>
   )
 }

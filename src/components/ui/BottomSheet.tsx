@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useCallback, useRef, type ReactNode } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { timings, useReducedMotion } from "@/lib/animations"
+import { motion, AnimatePresence, type PanInfo } from "framer-motion"
+import { timings, sheetSpring, useReducedMotion } from "@/lib/animations"
 
 // ============================================================================
 // Types
@@ -35,15 +35,18 @@ export interface BottomSheetProps {
 // ============================================================================
 
 /**
- * Critically-damped sheet spring — no overshoot so the sheet doesn't bounce
- * past its resting position. Damping ratio ≥ 1 eliminates the "too high" flash.
+ * Polished sheet spring — slightly under-damped for native-feeling liveliness
+ * without visible overshoot. Uses the shared `sheetSpring` from animations.ts.
  */
-const SHEET_SPRING = { type: "spring", stiffness: 400, damping: 40 } as const
+
+/** Drag-to-dismiss thresholds */
+const DRAG_DISMISS_DISTANCE = 100 // px
+const DRAG_DISMISS_VELOCITY = 500 // px/s
 
 const sheetVariantsFull = {
   hidden: { y: "100%" },
-  visible: { y: "0%", transition: SHEET_SPRING },
-  exit: { y: "100%", transition: timings.normal },
+  visible: { y: "0%", transition: sheetSpring },
+  exit: { y: "100%", transition: { type: "tween" as const, duration: 0.25, ease: "easeIn" as const } },
 }
 
 const sheetVariantsReduced = {
@@ -53,9 +56,9 @@ const sheetVariantsReduced = {
 }
 
 const backdropVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: timings.fast },
-  exit: { opacity: 0, transition: timings.fast },
+  hidden: { opacity: 0, backdropFilter: "blur(0px)" },
+  visible: { opacity: 1, backdropFilter: "blur(4px)", transition: timings.fast },
+  exit: { opacity: 0, backdropFilter: "blur(0px)", transition: timings.fast },
 }
 
 // ============================================================================
@@ -177,6 +180,18 @@ export function BottomSheet({
 
   const sheetVars = prefersReducedMotion ? sheetVariantsReduced : sheetVariantsFull
 
+  // ── Drag-to-dismiss handler ─────────────────────────────────────────────
+  const handleDragEnd = useCallback(
+    (_: unknown, info: PanInfo) => {
+      if (preventClose || prefersReducedMotion) return
+      const { offset, velocity } = info
+      if (offset.y > DRAG_DISMISS_DISTANCE || velocity.y > DRAG_DISMISS_VELOCITY) {
+        onClose()
+      }
+    },
+    [onClose, preventClose, prefersReducedMotion]
+  )
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -210,6 +225,10 @@ export function BottomSheet({
             initial="hidden"
             animate="visible"
             exit="exit"
+            drag={prefersReducedMotion || preventClose ? undefined : "y"}
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.1}
+            onDragEnd={handleDragEnd}
             className={className}
             style={{
               position: "fixed",

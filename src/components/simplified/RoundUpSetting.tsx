@@ -12,7 +12,7 @@ import {
   setRoundUpTargetGoal,
 } from "@/lib/roundUpSavings"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeadingStrong } from "@/styles/shared"
+import { sectionHeader } from "@/styles/shared"
 import type { Transaction, Goal } from "@/types"
 
 // ============================================================================
@@ -66,7 +66,7 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-      <p style={{ ...sectionHeadingStrong }}>Round-Up Savings</p>
+      <p style={{ ...sectionHeader }}>Round-Up Savings</p>
 
       {/* Description */}
       <p

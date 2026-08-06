@@ -15,7 +15,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeading,
+  sectionHeader,
   borderRadius,
 } from '@/styles/shared'
 
@@ -107,7 +107,7 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
       {latest && (
         <GlassCard elevation="high" glow="healthy">
           <div style={{ padding: 24, textAlign: 'center' }}>
-            <p style={{ ...sectionHeading, marginBottom: 8 }}>Your latest score</p>
+            <p style={{ ...sectionHeader, marginBottom: 8 }}>Your latest score</p>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
               <span
                 style={{
@@ -140,7 +140,7 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
       <div style={{ marginTop: 24 }}>
         <GlassCard elevation="medium">
           <form onSubmit={handleSubmit} style={{ padding: 20 }}>
-            <p style={{ ...sectionHeading, marginBottom: 12 }}>
+            <p style={{ ...sectionHeader, marginBottom: 12 }}>
               {latest ? 'Update your score' : 'Log your first score'}
             </p>
 
@@ -247,7 +247,7 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
       <div style={{ marginTop: 24 }}>
         <GlassCard elevation="low">
           <div style={{ padding: 16 }}>
-            <p style={{ ...sectionHeading, marginBottom: 12 }}>Score ranges</p>
+            <p style={{ ...sectionHeader, marginBottom: 12 }}>Score ranges</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
                 { label: 'Excellent', range: '800–850', color: 'var(--success)' },
@@ -274,7 +274,7 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
       {/* History */}
       {history.length > 1 && (
         <div style={{ marginTop: 24 }}>
-          <p style={{ ...sectionHeading, marginBottom: 12 }}>History</p>
+          <p style={{ ...sectionHeader, marginBottom: 12 }}>History</p>
           <GlassCard elevation="low">
             <div style={{ padding: 16 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

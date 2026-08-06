@@ -11,7 +11,7 @@ import type { FixedExpense } from "@/lib/fixedExpenses"
 import { getTotalFixedMonthly } from "@/lib/fixedExpenses"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
-  sectionHeadingStrong,
+  sectionHeader,
   listRow,
   borderRadius,
 } from "@/styles/shared"
@@ -107,8 +107,8 @@ export function RecurringBillsScreen({
   function renderSummary() {
     return (
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={sectionHeadingStrong}>Monthly Fixed Costs</p>
-        <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+        <p style={sectionHeader}>Monthly Fixed Costs</p>
+        <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
           ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
           <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
             /mo

@@ -1,8 +1,8 @@
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { motion, AnimatePresence } from "framer-motion"
+import { springs, layoutTransition, listContainerVariants, listItemVariants, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
 import { getPeerContextEnabled } from "@/lib/peerContextPreferences"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { Icon } from "@/components/ui/Icon"
@@ -12,8 +12,9 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
+  SECTION_SPACING,
   borderRadius,
-  sectionHeadingStrong,
+  sectionHeader,
 } from "@/styles/shared"
 import { SourceBalancesView } from "./SourceBalancesView"
 import { ObligationsSummary } from "./ObligationsSummary"
@@ -197,6 +198,7 @@ export function ToolsScreen({
   contributeToGoal,
 }: ToolsScreenProps) {
   const { flags } = useFeatureFlags()
+  const { listContainer, listItem, prefersReducedMotion } = useReducedMotion()
 
   // Peer context (task 186.1) is opt-in and OFF by default — gate its tool card
   // on the user's Settings preference rather than a feature flag. Re-read on
@@ -478,13 +480,23 @@ export function ToolsScreen({
       )}
 
       {/* ── Grouped Sections ───────────────────────────────────────────── */}
-      {visibleSections.map((section) => {
+      <motion.div
+        variants={listContainer}
+        initial="hidden"
+        animate="visible"
+      >
+      {visibleSections.map((section, sectionIdx) => {
         const sectionTools = getVisibleToolsForSection(section)
 
         return (
-          <div key={section.id} style={{ marginBottom: 24 }}>
+          <motion.div
+            key={section.id}
+            variants={listItem}
+            custom={sectionIdx}
+            style={{ marginBottom: SECTION_SPACING }}
+          >
             {/* Section heading */}
-            <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+            <p style={{ ...sectionHeader, marginBottom: 14 }}>
               {section.label}
             </p>
 
@@ -507,70 +519,74 @@ export function ToolsScreen({
 
             {/* Tool Cards */}
             {sectionTools.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {sectionTools.map((tool) => (
-                  <motion.div
-                    key={tool.id}
-                    whileTap={{ scale: 0.98 }}
-                    transition={springs.snappy}
-                  >
-                    <GlassCard
-                      elevation="low"
-                      style={{
-                        padding: "16px 18px",
-                        cursor: tool.onOpen ? "pointer" : "default",
-                        opacity: tool.onOpen ? 1 : 0.5,
-                      }}
-                      onClick={tool.onOpen}
+              <AnimatePresence initial={false}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {sectionTools.map((tool) => (
+                    <motion.div
+                      key={tool.id}
+                      layout={!prefersReducedMotion ? "position" : false}
+                      transition={layoutTransition}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                        <ToolIconChip name={tool.iconName} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p
-                            style={{
-                              fontSize: 15,
-                              fontWeight: 600,
-                              color: "var(--text)",
-                              marginBottom: 4,
-                            }}
-                          >
-                            {tool.title}
-                          </p>
-                          <p
-                            style={{
-                              fontSize: 13,
-                              color: "var(--sub)",
-                              lineHeight: 1.4,
-                            }}
-                          >
-                            {tool.description}
-                          </p>
+                      <GlassCard
+                        elevation="low"
+                        style={{
+                          padding: "16px 18px",
+                          cursor: tool.onOpen ? "pointer" : "default",
+                          opacity: tool.onOpen ? 1 : 0.5,
+                        }}
+                        onClick={tool.onOpen}
+                      >
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                          <ToolIconChip name={tool.iconName} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p
+                              style={{
+                                fontSize: 15,
+                                fontWeight: 600,
+                                color: "var(--text)",
+                                marginBottom: 4,
+                              }}
+                            >
+                              {tool.title}
+                            </p>
+                            <p
+                              style={{
+                                fontSize: 13,
+                                color: "var(--sub)",
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              {tool.description}
+                            </p>
+                          </div>
+                          {tool.onOpen && (
+                            <span
+                              style={{
+                                color: "var(--muted)",
+                                marginTop: 4,
+                                flexShrink: 0,
+                                display: "inline-flex",
+                              }}
+                            >
+                              <Icon name="action:forward" size={18} />
+                            </span>
+                          )}
                         </div>
-                        {tool.onOpen && (
-                          <span
-                            style={{
-                              color: "var(--muted)",
-                              marginTop: 4,
-                              flexShrink: 0,
-                              display: "inline-flex",
-                            }}
-                          >
-                            <Icon name="action:forward" size={18} />
-                          </span>
-                        )}
-                      </div>
-                    </GlassCard>
-                  </motion.div>
-                ))}
-              </div>
+                      </GlassCard>
+                    </motion.div>
+                  ))}
+                </div>
+              </AnimatePresence>
             )}
-          </div>
+          </motion.div>
         )
       })}
+      </motion.div>
 
       {/* ── Savings Automation ─────────────────────────────────────────── */}
-      <div style={{ marginTop: 28 }}>
-        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+      <div style={{ marginTop: SECTION_SPACING }}>
+        <p style={{ ...sectionHeader, marginBottom: 14 }}>
           Savings Automation
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

@@ -11,7 +11,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   borderRadius,
   segmentedControl,
   segmentedButtonBase,
@@ -251,7 +251,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
 
       {/* ── Reasons to keep vs. cancel (gentle, shame-free) ────────── */}
       <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
-        <p style={sectionHeadingStrong}>No wrong answer</p>
+        <p style={sectionHeader}>No wrong answer</p>
         <p style={{ fontSize: 13, color: "var(--sub)", marginTop: -4, marginBottom: 14, lineHeight: 1.5 }}>
           A quick gut-check before you decide — whatever feels right is the right call.
         </p>
@@ -304,7 +304,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
       {/* ── Negotiate path ─────────────────────────────────────────── */}
       {mode === "negotiate" && (
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-          <p style={sectionHeadingStrong}>A friendly script to use</p>
+          <p style={sectionHeader}>A friendly script to use</p>
           <p style={{ fontSize: 13, color: "var(--sub)", marginTop: -4, marginBottom: 14, lineHeight: 1.5 }}>
             Read it on a call or paste it into their chat. Companies would rather keep you than lose you,
             so it&apos;s very normal to just ask.
@@ -357,7 +357,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
       {/* ── Cancel path ────────────────────────────────────────────── */}
       {mode === "cancel" && (
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-          <p style={sectionHeadingStrong}>Step-by-step cancel</p>
+          <p style={sectionHeader}>Step-by-step cancel</p>
           <p style={{ fontSize: 13, color: "var(--sub)", marginTop: -4, marginBottom: 16, lineHeight: 1.5 }}>
             These steps work for just about any service. Take your time — you can always resubscribe later.
           </p>

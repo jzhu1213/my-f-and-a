@@ -9,7 +9,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   borderRadius,
 } from "@/styles/shared"
 import {
@@ -223,7 +223,7 @@ export function PortfolioAllocationScreen({
         transition={{ ...springs.gentle, delay: 0.05 }}
         style={{ marginBottom: 24 }}
       >
-        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+        <p style={{ ...sectionHeader, marginBottom: 14 }}>
           Allocation by Type
         </p>
 
@@ -327,7 +327,7 @@ export function PortfolioAllocationScreen({
         transition={{ ...springs.gentle, delay: 0.1 }}
         style={{ marginBottom: 24 }}
       >
-        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+        <p style={{ ...sectionHeader, marginBottom: 14 }}>
           Growth vs. Contributions
         </p>
 
@@ -483,7 +483,7 @@ export function PortfolioAllocationScreen({
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...springs.gentle, delay: 0.15 }}
       >
-        <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>
+        <p style={{ ...sectionHeader, marginBottom: 14 }}>
           Per-Account Breakdown
         </p>
 

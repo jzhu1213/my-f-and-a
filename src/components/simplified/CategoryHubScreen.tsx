@@ -9,7 +9,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   borderRadius,
   linkButton,
 } from "@/styles/shared"
@@ -413,7 +413,7 @@ export function CategoryHubScreen({
             style={{ overflow: "hidden", marginBottom: 16 }}
           >
             <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 12 }}>New Category</p>
+              <p style={{ ...sectionHeader, marginBottom: 12 }}>New Category</p>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}>
                 <button
                   onClick={() => setEmojiPickerTarget("__new__")}
@@ -496,7 +496,7 @@ export function CategoryHubScreen({
       </AnimatePresence>
 
       {/* ── Active Categories ─────────────────────────────────── */}
-      <p style={{ ...sectionHeadingStrong, marginBottom: 12 }}>
+      <p style={{ ...sectionHeader, marginBottom: 12 }}>
         Active ({activeItems.length})
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
@@ -662,7 +662,7 @@ export function CategoryHubScreen({
       {/* ── Archived Categories ───────────────────────────────── */}
       {archivedItems.length > 0 && (
         <>
-          <p style={{ ...sectionHeadingStrong, marginBottom: 12 }}>
+          <p style={{ ...sectionHeader, marginBottom: 12 }}>
             Archived ({archivedItems.length})
           </p>
           <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12, lineHeight: 1.4 }}>

@@ -11,7 +11,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   listRow,
   borderRadius,
 } from "@/styles/shared"
@@ -230,11 +230,11 @@ export function DebtScreen({
 
       {/* ── Summary Card ───────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={sectionHeadingStrong}>Total Balance</p>
-        <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+        <p style={sectionHeader}>Total Balance</p>
+        <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
           ${totalBalance.toLocaleString("en-US", { maximumFractionDigits: 0 })}
         </p>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
           ${totalMinimum.toLocaleString("en-US", { maximumFractionDigits: 0 })}
           <span style={{ marginLeft: 3 }}>/mo minimum</span>
         </p>
@@ -242,7 +242,7 @@ export function DebtScreen({
 
       {/* ── Debts List ─────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={sectionHeadingStrong}>Your Debts</p>
+        <p style={sectionHeader}>Your Debts</p>
 
         {debts.length === 0 && !showAddForm && (
           <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>

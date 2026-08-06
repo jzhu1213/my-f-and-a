@@ -27,7 +27,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   listRow,
   borderRadius,
 } from "@/styles/shared"
@@ -276,8 +276,8 @@ export function SinkingFundsScreen({
       {/* ── Summary Card ───────────────────────────────────────────────────── */}
       {funds.length > 0 && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <p style={sectionHeadingStrong}>Total Monthly Reserve</p>
-          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+          <p style={sectionHeader}>Total Monthly Reserve</p>
+          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
             ${summary.totalMonthlyReserve.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
               /mo set aside
@@ -292,7 +292,7 @@ export function SinkingFundsScreen({
 
       {/* ── Funds List ─────────────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={sectionHeadingStrong}>Your Funds</p>
+        <p style={sectionHeader}>Your Funds</p>
 
         {funds.length === 0 && !showAddForm && (
           <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
@@ -385,7 +385,7 @@ export function SinkingFundsScreen({
       {/* ── Presets ─────────────────────────────────────────────────────────── */}
       {!showAddForm && !editingId && (
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-          <p style={sectionHeadingStrong}>Quick Start</p>
+          <p style={sectionHeader}>Quick Start</p>
           <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
             Common funds for students — tap to pre-fill.
           </p>

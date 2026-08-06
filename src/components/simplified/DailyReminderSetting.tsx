@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeadingStrong, borderRadius, segmentedControl, segmentedButtonBase, segmentedButtonActive, segmentedButtonInactive } from "@/styles/shared"
+import { sectionHeader, borderRadius, segmentedControl, segmentedButtonBase, segmentedButtonActive, segmentedButtonInactive } from "@/styles/shared"
 import {
   getReminderPreferences,
   setReminderPreferences,
@@ -101,7 +101,7 @@ export function DailyReminderSetting() {
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-      <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+      <p style={{ ...sectionHeader, marginBottom: 6 }}>
         Daily Reminder
       </p>
       <p

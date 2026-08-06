@@ -7,7 +7,7 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { getMinBalanceBuffer, setMinBalanceBuffer } from "@/lib/minBalanceBuffer"
 import { DEFAULT_MIN_BALANCE_BUFFER } from "@/lib/paySchedule"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeadingStrong } from "@/styles/shared"
+import { sectionHeader } from "@/styles/shared"
 
 // ============================================================================
 // Constants
@@ -53,7 +53,7 @@ export function MinBalanceBufferSetting() {
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-      <p style={{ ...sectionHeadingStrong }}>Low-balance buffer</p>
+      <p style={{ ...sectionHeader }}>Low-balance buffer</p>
 
       {/* Description */}
       <p

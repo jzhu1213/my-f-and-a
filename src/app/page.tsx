@@ -1,8 +1,8 @@
 "use client"
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { timings } from '@/lib/animations'
+import { timings, NAV_ORDER, navScreenVariants, navScreenVariantsReduced, useReducedMotion } from '@/lib/animations'
 import {
   Toast,
   AppShell,
@@ -198,6 +198,19 @@ export default function FolioApp() {
   // ── Routing & UI State ─────────────────────────────────────────
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('loading')
   const [activeNav, setActiveNav] = useState<AppNavKey>('home')
+  const prevNavRef = useRef<AppNavKey>('home')
+  const [navDirection, setNavDirection] = useState(0)
+
+  // Wrap setActiveNav to compute directional transition
+  const handleNavChange = useCallback((next: AppNavKey) => {
+    const prev = prevNavRef.current
+    const dir = (NAV_ORDER[next] ?? 0) > (NAV_ORDER[prev] ?? 0) ? 1 : -1
+    setNavDirection(dir)
+    prevNavRef.current = next
+    setActiveNav(next)
+  }, [])
+
+  const { prefersReducedMotion } = useReducedMotion()
 
   // Single overlay/sheet state machine (replaces ~20 individual boolean flags)
   const overlay = useOverlayRouter()
@@ -1454,8 +1467,8 @@ export default function FolioApp() {
     }
 
     // Return to home after opening the relevant step
-    setActiveNav('home')
-  }, [overlay, user?.id, setCelebrationEvent, setActiveNav])
+    handleNavChange('home')
+  }, [overlay, user?.id, setCelebrationEvent, handleNavChange])
 
   // ── Update Count Credit Immediately ────────────────────────────
   const handleUpdateCountCreditImmediately = async (value: boolean) => {
@@ -2121,8 +2134,8 @@ export default function FolioApp() {
     <>
       <AppShell
         activeNav={activeNav}
-        onNavChange={setActiveNav}
-        onOpenSettings={() => setActiveNav('settings')}
+        onNavChange={handleNavChange}
+        onOpenSettings={() => handleNavChange('settings')}
         avatarUrl={undefined}
         avatarInitial={user?.email?.charAt(0)}
         meshVariant="home"
@@ -2139,13 +2152,14 @@ export default function FolioApp() {
             />
           </div>
         )}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={navDirection}>
           <motion.div
             key={activeNav}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={timings.normal}
+            custom={navDirection}
+            variants={prefersReducedMotion ? navScreenVariantsReduced : navScreenVariants}
+            initial="initial"
+            animate="enter"
+            exit="exit"
           >
             {activeNav === 'home' && (
               <HomeScreen
@@ -2173,12 +2187,12 @@ export default function FolioApp() {
                   ...(typeof window !== 'undefined' && localStorage.getItem('folio-income-anchor-offered') !== 'true' ? ['income-anchor'] : []),
                 ]}
                 onResumeSetupStep={handleResumeSetupStep}
-                onHeroTapDetails={() => setActiveNav('history')}
+                onHeroTapDetails={() => handleNavChange('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => overlay.openSheet('income')}
                 onRepeatLog={handleRepeatLog}
                 onViewTransaction={handleEditTransaction}
-                onViewAllHistory={() => setActiveNav('history')}
+                onViewAllHistory={() => handleNavChange('history')}
                 onDeleteTransaction={handleDeleteTransaction}
                 onEditTransaction={handleInlineSaveTransaction}
                 onRefresh={refresh}
@@ -2262,7 +2276,7 @@ export default function FolioApp() {
                 onUpdateCountCreditImmediately={handleUpdateCountCreditImmediately}
                 onOpenBudgetSettings={() => overlay.openOverlay('budgetSettings')}
                 onOpenGoals={() => overlay.openOverlay('goals')}
-                onOpenTools={() => setActiveNav('tools')}
+                onOpenTools={() => handleNavChange('tools')}
                 onOpenProfile={handleOpenProfile}
                 onOpenFundingSources={() => overlay.openOverlay('fundingSources')}
                 onOpenLinkedAccounts={() => overlay.openOverlay('linkedAccounts')}

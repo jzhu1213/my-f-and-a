@@ -23,7 +23,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   linkButton,
   borderRadius,
 } from "@/styles/shared"
@@ -202,7 +202,7 @@ export function SharingScreen({
       {/* Active share links */}
       {activeLinks.length > 0 && (
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>Active links</p>
+          <p style={{ ...sectionHeader }}>Active links</p>
           {activeLinks.map((link, idx) => (
             <div
               key={link.id}
@@ -307,7 +307,7 @@ export function SharingScreen({
 
       {/* Create new link */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={{ ...sectionHeadingStrong }}>
+        <p style={{ ...sectionHeader }}>
           {activeLinks.length > 0 ? "Share with someone else" : "Create a share link"}
         </p>
         <p

@@ -12,7 +12,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
 } from "@/styles/shared"
 
 // ============================================================================
@@ -153,7 +153,7 @@ export function SubscriptionAuditScreen({
 
       {/* ── Monthly total card ─────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={{ ...sectionHeadingStrong }}>Monthly total</p>
+        <p style={{ ...sectionHeader }}>Monthly total</p>
         <p
           style={{
             fontSize: 28,
@@ -173,7 +173,7 @@ export function SubscriptionAuditScreen({
       {/* ── Renewing soon / trial ending heads-up ──────────────────── */}
       {alerts.length > 0 && (
         <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>Coming up soon</p>
+          <p style={{ ...sectionHeader }}>Coming up soon</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
             {alerts.map((alert) => {
               const { emoji, text } = alertCopy(alert)
@@ -191,7 +191,7 @@ export function SubscriptionAuditScreen({
       {/* ── Student savings opportunities ──────────────────────────── */}
       {savingsOpportunities.length > 0 && (
         <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
-          <p style={{ ...sectionHeadingStrong }}>Student perks worth a peek</p>
+          <p style={{ ...sectionHeader }}>Student perks worth a peek</p>
           <p style={{ fontSize: 13, color: "var(--sub)", marginTop: 6, lineHeight: 1.5 }}>
             {savingsOpportunities.length === 1
               ? "One of these offers a student rate — a quick switch could free up a little room."

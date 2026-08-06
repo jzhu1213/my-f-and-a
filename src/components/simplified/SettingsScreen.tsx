@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, listContainerVariants, listItemVariants, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
@@ -18,7 +18,7 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeadingStrong,
+  sectionHeader,
   linkButton,
   listRow,
   borderRadius,
@@ -341,7 +341,9 @@ function CollapsibleSection({
           padding: "14px 0",
           background: "none",
           border: "none",
-          borderBottom: "1px solid var(--border)",
+          // Phase 6 (task 237.2): softer hairline than the hard --border so the
+          // stack of section headers reads as calm dividers, not a ruled table.
+          borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
           cursor: "pointer",
           fontFamily: FONT_FAMILY,
         }}
@@ -454,6 +456,7 @@ export function SettingsScreen({
   onResumeSetupStep,
 }: SettingsScreenProps) {
   const { theme, setTheme } = useTheme()
+  const { listContainer, listItem } = useReducedMotion()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const { flags, setFlag, resetFlags } = useFeatureFlags()
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
@@ -620,7 +623,9 @@ export function SettingsScreen({
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION: Spending style                                             */}
       {/* ════════════════════════════════════════════════════════════════════ */}
+      <motion.div variants={listContainer} initial="hidden" animate="visible">
       {isSectionVisible('spending-style') && (
+        <motion.div variants={listItem}>
         <CollapsibleSection
           title="Spending style"
           isOpen={isSectionOpen('spending-style')}
@@ -629,7 +634,7 @@ export function SettingsScreen({
           {/* ── How do you want to manage spending? ────────────────────────── */}
           {onSetSpendingMode && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+              <p style={{ ...sectionHeader, marginBottom: 6 }}>
                 How do you want to manage spending?
               </p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
@@ -674,7 +679,7 @@ export function SettingsScreen({
           {/* ── When you go over, what should happen? ──────────────────────── */}
           {onSetOverLimitResponse && spendingMode !== 'tracker' && (
             <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 4 }}>
+              <p style={{ ...sectionHeader, marginBottom: 4 }}>
                 When you go over, what should happen?
               </p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
@@ -697,7 +702,8 @@ export function SettingsScreen({
                         padding: "12px 0",
                         background: "transparent",
                         border: "none",
-                        borderBottom: idx < OVER_LIMIT_RESPONSE_OPTIONS.length - 1 ? "1px solid var(--border)" : "none",
+                        // Phase 6 (task 237.2): faint row divider instead of --border.
+                        borderBottom: idx < OVER_LIMIT_RESPONSE_OPTIONS.length - 1 ? "1px solid rgba(255, 255, 255, 0.06)" : "none",
                         cursor: "pointer",
                         textAlign: "left",
                         width: "100%",
@@ -768,7 +774,7 @@ export function SettingsScreen({
           {/* ── My goal (task 222.3) ────────────────────────────────────────── */}
           {onGoalChange && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 4 }}>
+              <p style={{ ...sectionHeader, marginBottom: 4 }}>
                 My focus
               </p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
@@ -850,12 +856,14 @@ export function SettingsScreen({
             </GlassCard>
           )}
         </CollapsibleSection>
+        </motion.div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION: Hero & display                                             */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       {isSectionVisible('hero-display') && (
+        <motion.div variants={listItem}>
         <CollapsibleSection
           title="Hero & display"
           isOpen={isSectionOpen('hero-display')}
@@ -864,7 +872,7 @@ export function SettingsScreen({
           {/* ── What does the big number show? ─────────────────────────────── */}
           {onSetHeroMeaning && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 4 }}>
+              <p style={{ ...sectionHeader, marginBottom: 4 }}>
                 What does the big number show?
               </p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
@@ -957,7 +965,7 @@ export function SettingsScreen({
 
           {/* ── Feature Visibility ──────────────────────────────────────── */}
           <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-            <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+            <p style={{ ...sectionHeader, marginBottom: 6 }}>
               Feature Visibility
             </p>
             <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
@@ -1048,7 +1056,7 @@ export function SettingsScreen({
 
           {/* ── Home screen extras (task 159.2) ─────────────────────────── */}
           <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
-            <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>
+            <p style={{ ...sectionHeader, marginBottom: 6 }}>
               Home screen extras
             </p>
             <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 8, lineHeight: 1.5 }}>
@@ -1104,12 +1112,14 @@ export function SettingsScreen({
             </div>
           </GlassCard>
         </CollapsibleSection>
+        </motion.div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION: Budget & income                                            */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       {isSectionVisible('budget-income') && (
+        <motion.div variants={listItem}>
         <CollapsibleSection
           title="Budget & income"
           isOpen={isSectionOpen('budget-income')}
@@ -1117,7 +1127,7 @@ export function SettingsScreen({
         >
           {/* ── Budget Limits ──────────────────────────────────────────────── */}
           <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-            <p style={{ ...sectionHeadingStrong }}>
+            <p style={{ ...sectionHeader }}>
               Budget Limits
             </p>
 
@@ -1178,7 +1188,7 @@ export function SettingsScreen({
           {/* ── Category Hub (task 138.1) ─────────────────────────────────── */}
           {onOpenCategoryHub && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeadingStrong }}>Categories</p>
+              <p style={{ ...sectionHeader }}>Categories</p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
                 Add, rename, reorder, or archive your spending categories.
               </p>
@@ -1197,7 +1207,7 @@ export function SettingsScreen({
           {/* ── Income Calculation ────────────────────────────────────────── */}
           {onSetIncomeSmoothing && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>Income</p>
+              <p style={{ ...sectionHeader, marginBottom: 6 }}>Income</p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
                 How should your daily budget be calculated when income varies?
               </p>
@@ -1233,7 +1243,7 @@ export function SettingsScreen({
           {/* ── Academic Term (task 121.1) ─────────────────────────────────── */}
           {onSetTermSchedule && (hasTermBudget || termSchedule) && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>📚 Academic Term</p>
+              <p style={{ ...sectionHeader, marginBottom: 6 }}>📚 Academic Term</p>
 
               {termSchedule && isTermActive(termSchedule, new Date()) ? (
                 <>
@@ -1419,7 +1429,7 @@ export function SettingsScreen({
           {/* ── Spend-Down Plans (task 122.1) ─────────────────────────────── */}
           {onAddSpendDownPlan && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>💰 Spend-Down Plans</p>
+              <p style={{ ...sectionHeader, marginBottom: 6 }}>💰 Spend-Down Plans</p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 12, lineHeight: 1.5 }}>
                 Got a lump sum? Set a target date and we'll show you a safe daily amount.
               </p>
@@ -1619,7 +1629,7 @@ export function SettingsScreen({
           {/* ── Smart Categorization (task 113.3) ───────────────────── */}
           {onAddCategorizationRule && onDeleteCategorizationRule && (
             <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 6 }}>Smart Categorization</p>
+              <p style={{ ...sectionHeader, marginBottom: 6 }}>Smart Categorization</p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
                 Custom rules that always categorize certain notes for you.
               </p>
@@ -1789,12 +1799,14 @@ export function SettingsScreen({
             </GlassCard>
           )}
         </CollapsibleSection>
+        </motion.div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION: Payment methods                                            */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       {isSectionVisible('payment-methods') && (onOpenFundingSources || onOpenLinkedAccounts) && (
+        <motion.div variants={listItem}>
         <CollapsibleSection
           title="Payment methods"
           isOpen={isSectionOpen('payment-methods')}
@@ -1826,12 +1838,14 @@ export function SettingsScreen({
             )}
           </GlassCard>
         </CollapsibleSection>
+        </motion.div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION: Appearance                                                 */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       {isSectionVisible('appearance') && (
+        <motion.div variants={listItem}>
         <CollapsibleSection
           title="Appearance"
           isOpen={isSectionOpen('appearance')}
@@ -1839,7 +1853,7 @@ export function SettingsScreen({
         >
           {/* Theme toggle */}
           <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-            <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>Theme</p>
+            <p style={{ ...sectionHeader, marginBottom: 14 }}>Theme</p>
             <div style={segmentedControl}>
               {THEME_OPTIONS.map(opt => {
                 const isActive = theme === opt.key
@@ -1868,7 +1882,7 @@ export function SettingsScreen({
 
           {/* Preferences */}
           <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-            <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>Preferences</p>
+            <p style={{ ...sectionHeader, marginBottom: 14 }}>Preferences</p>
 
             {/* Show daily insights toggle */}
             <div
@@ -2053,12 +2067,14 @@ export function SettingsScreen({
             )}
           </GlassCard>
         </CollapsibleSection>
+        </motion.div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION: Notifications                                              */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       {isSectionVisible('notifications') && (
+        <motion.div variants={listItem}>
         <CollapsibleSection
           title="Notifications"
           isOpen={isSectionOpen('notifications')}
@@ -2069,12 +2085,14 @@ export function SettingsScreen({
             <MinBalanceBufferSetting />
           </div>
         </CollapsibleSection>
+        </motion.div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION: Privacy & security                                         */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       {isSectionVisible('privacy-security') && (
+        <motion.div variants={listItem}>
         <CollapsibleSection
           title="Privacy & security"
           isOpen={isSectionOpen('privacy-security')}
@@ -2088,7 +2106,7 @@ export function SettingsScreen({
           {/* Privacy & data dashboard (task 191.1) */}
           {onOpenPrivacyDashboard && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
-              <p style={{ ...sectionHeadingStrong }}>Privacy &amp; data</p>
+              <p style={{ ...sectionHeader }}>Privacy &amp; data</p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
                 See what&apos;s stored, take a copy, or erase everything — your call, anytime.
               </p>
@@ -2104,12 +2122,14 @@ export function SettingsScreen({
             </GlassCard>
           )}
         </CollapsibleSection>
+        </motion.div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION: Data & account                                             */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       {isSectionVisible('data-account') && (
+        <motion.div variants={listItem}>
         <CollapsibleSection
           title="Data & account"
           isOpen={isSectionOpen('data-account')}
@@ -2117,7 +2137,7 @@ export function SettingsScreen({
         >
           {/* Account */}
           <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-            <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>Account</p>
+            <p style={{ ...sectionHeader, marginBottom: 14 }}>Account</p>
             <motion.button
               onClick={onOpenProfile}
               whileTap={{ scale: 0.97 }}
@@ -2132,7 +2152,7 @@ export function SettingsScreen({
           {/* Sharing (task 115.1) */}
           {onOpenSharing && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeadingStrong }}>Sharing</p>
+              <p style={{ ...sectionHeader }}>Sharing</p>
               <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
                 {activeShareCount > 0
                   ? `Sharing a snapshot with ${activeShareCount} ${activeShareCount === 1 ? "person" : "people"}`
@@ -2153,7 +2173,7 @@ export function SettingsScreen({
           {/* Export options */}
           {(onExportData || onExportCSV || onOpenReports) && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeadingStrong, marginBottom: 14 }}>Export</p>
+              <p style={{ ...sectionHeader, marginBottom: 14 }}>Export</p>
               {onOpenReports && (
                 <motion.button
                   onClick={onOpenReports}
@@ -2192,7 +2212,7 @@ export function SettingsScreen({
 
           {/* Goals */}
           <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-            <p style={{ ...sectionHeadingStrong }}>Goals</p>
+            <p style={{ ...sectionHeader }}>Goals</p>
             {activeGoals.length > 0 ? (
               <div style={{ marginBottom: 14 }}>
                 {activeGoals.map(goal => {
@@ -2244,7 +2264,9 @@ export function SettingsScreen({
             </motion.button>
           </GlassCard>
         </CollapsibleSection>
+        </motion.div>
       )}
+      </motion.div>
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* DANGER ZONE: Delete account (always visible, not collapsible)       */}
@@ -2254,7 +2276,7 @@ export function SettingsScreen({
           <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
             {!showDeleteConfirm ? (
               <>
-                <p style={{ ...sectionHeadingStrong, marginBottom: 8, color: "var(--error, #f87171)" }}>
+                <p style={{ ...sectionHeader, marginBottom: 8, color: "var(--error, #f87171)" }}>
                   Danger zone
                 </p>
                 <motion.button

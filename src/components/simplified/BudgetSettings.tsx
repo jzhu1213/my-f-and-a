@@ -415,6 +415,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
             fontWeight: 700,
             color: "var(--text)",
             fontFamily: FONT_FAMILY,
+            fontVariantNumeric: "tabular-nums",
             lineHeight: 1.1,
           }}
         >
@@ -429,6 +430,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
             color: "var(--sub)",
             marginTop: 6,
             fontFamily: FONT_FAMILY,
+            fontVariantNumeric: "tabular-nums",
           }}
         >
           ≈ ${dailyBudget.toFixed(0)}/day

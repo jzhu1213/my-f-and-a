@@ -6,7 +6,7 @@ import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
-  sectionHeadingStrong,
+  sectionHeader,
   borderRadius,
   segmentedControl,
   segmentedButtonBase,
@@ -135,7 +135,7 @@ export function AppLockSetting() {
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-      <p style={{ ...sectionHeadingStrong }}>App lock</p>
+      <p style={{ ...sectionHeader }}>App lock</p>
 
       <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, marginBottom: 16 }}>
         Ask for a PIN or your device biometrics when Folio reopens. It stays on your

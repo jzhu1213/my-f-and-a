@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeadingStrong } from "@/styles/shared"
+import { sectionHeader } from "@/styles/shared"
 import {
   REGION_LIST,
   getRegion,
@@ -47,7 +47,7 @@ export function RegionSettings() {
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-      <p style={{ ...sectionHeadingStrong, marginBottom: 4 }}>Region</p>
+      <p style={{ ...sectionHeader, marginBottom: 4 }}>Region</p>
       <p
         style={{
           fontSize: 13,

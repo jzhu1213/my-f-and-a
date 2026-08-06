@@ -15,7 +15,7 @@ import {
 } from "@/lib/autoEarmarkSavings"
 import type { SweepFrequency } from "@/lib/autoEarmarkSavings"
 import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeadingStrong } from "@/styles/shared"
+import { sectionHeader } from "@/styles/shared"
 import type { Transaction, Goal, Budget } from "@/types"
 
 // ============================================================================
@@ -162,7 +162,7 @@ export function AutoSaveSetting({
 
   return (
     <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-      <p style={{ ...sectionHeadingStrong }}>Auto-Save Earmark</p>
+      <p style={{ ...sectionHeader }}>Auto-Save Earmark</p>
 
       {/* Description */}
       <p

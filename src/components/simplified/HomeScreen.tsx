@@ -29,14 +29,15 @@ import { recordLastActive } from "@/lib/reminderPreferences"
 import { getInsightsEnabled } from "@/lib/insightPreferences"
 import { getSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
 import { motion, AnimatePresence } from "framer-motion"
-import { springs, timings, STAGGER_STEP, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
+import { springs, timings, STAGGER_STEP, layoutTransition, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
+import { FONT_FAMILY, spacing } from "@/styles/typography"
 import type { SpendingMode } from "@/lib/spendingModes"
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  sectionHeading,
+  SECTION_SPACING,
+  sectionHeader,
   emptyStateContainer,
   emptyStateTitle,
   emptyStateSubtitle,
@@ -422,7 +423,7 @@ export function HomeScreen({
     setEstimateNudgeDismissed(true)
     localStorage.setItem('folio-estimate-nudge-dismissed', 'true')
   }, [])
-  const { prefersReducedMotion } = useAppReducedMotion()
+  const { prefersReducedMotion, homeContainer, homeSection } = useAppReducedMotion()
   useEffect(() => {
     if (typeof window === "undefined") return
     try {
@@ -701,16 +702,21 @@ export function HomeScreen({
     <FadeInContent>
     <PullToRefresh onRefresh={handleRefresh} disabled={isLoading}>
     <div className="home-screen" style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-      <div
+      <motion.div
         className="home-screen__content"
+        variants={homeContainer}
+        initial="hidden"
+        animate="visible"
         style={{
           width: "100%",
           maxWidth: CONTENT_MAX_WIDTH,
           padding: `0 ${HORIZONTAL_PADDING}px`,
           display: "flex",
           flexDirection: "column",
-          gap: 28,
-          paddingTop: 24,
+          // Phase 6 (task 237.1): generous, consistent major-section rhythm
+          // (hero → quick actions → recent → tip) via the shared token.
+          gap: SECTION_SPACING,
+          paddingTop: spacing.lg,
           paddingBottom: DOCK_PADDING_BOTTOM,
         }}
       >
@@ -852,7 +858,7 @@ export function HomeScreen({
             Validates: Requirements 8.1, 8.4
             ══════════════════════════════════════════════════════════════════ */}
         {/* ── 1. Hero: Daily Allowance ────────────────────────────── */}
-        <section aria-label="Daily allowance" style={{ position: "relative" }}>
+        <motion.section variants={homeSection} aria-label="Daily allowance" style={{ position: "relative" }}>
           {/* Stale data indicator — only shown when cache is outdated */}
           {isStale && (
             <div
@@ -1087,9 +1093,9 @@ export function HomeScreen({
               </span>
             </motion.div>
           )}
-        </section>
+        </motion.section>
 
-        {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}        <section aria-label="Quick actions">
+        {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}        <motion.section variants={homeSection} aria-label="Quick actions">
           <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
             {/* Primary: Log expense — larger pill with warm gradient */}
             <motion.button
@@ -1180,11 +1186,12 @@ export function HomeScreen({
               🤔 Can I afford this?
             </button>
           </div>
-        </section>
+        </motion.section>
 
         {/* ── Outstanding Splits Summary (task 5.3 + 123.1 — one-tap settle) ── */}
         {outstandingSplits && outstandingSplits.length > 0 && (
-          <div
+          <motion.div
+            variants={homeSection}
             style={{
               width: '100%',
               marginTop: 4,
@@ -1269,7 +1276,7 @@ export function HomeScreen({
                 View all ({outstandingSplits.length}) →
               </button>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* ══════════════════════════════════════════════════════════
@@ -1300,7 +1307,7 @@ export function HomeScreen({
 
         {/* ── 2.5. Log Again — Quick Repeat (max 3 items for cleanliness) ────────────────────── */}
         {repeats.length > 0 && (
-          <section aria-label="Log again">
+          <motion.section variants={homeSection} aria-label="Log again">
             <div
               style={{
                 display: "flex",
@@ -1330,7 +1337,7 @@ export function HomeScreen({
                 )
               })}
             </div>
-          </section>
+          </motion.section>
         )}
 
         {/* ── 2.6. Welcome-back badge (task 77) — below fold ───── */}
@@ -1369,7 +1376,7 @@ export function HomeScreen({
         </AnimatePresence>
 
         {/* ── 3. Category Budget Cards (top 4 only for cleanliness) ────────────────────────────── */}
-        <section aria-label="Budget categories">
+        <motion.section variants={homeSection} aria-label="Budget categories">
           <div
             style={{
               display: "flex",
@@ -1378,7 +1385,7 @@ export function HomeScreen({
               marginBottom: 12,
             }}
           >
-            <h2 style={sectionHeading}>
+            <h2 style={sectionHeader}>
               Categories
             </h2>
             {categoryRows.length > 4 && (
@@ -1556,10 +1563,10 @@ export function HomeScreen({
               })}
             </div>
           )}
-        </section>
+        </motion.section>
 
         {/* ── 4. Recent Transactions ──────────────────────────────── */}
-        <section aria-label="Recent transactions">
+        <motion.section variants={homeSection} aria-label="Recent transactions">
           <div
             style={{
               display: "flex",
@@ -1568,7 +1575,7 @@ export function HomeScreen({
               marginBottom: 12,
             }}
           >
-            <h2 style={sectionHeading}>
+            <h2 style={sectionHeader}>
               Recent
             </h2>
             {recentTransactions.length > 0 && (
@@ -1660,6 +1667,7 @@ export function HomeScreen({
                     </p>
 
                     {/* Transaction rows */}
+                    <AnimatePresence initial={false}>
                     {group.txs.map((tx, txIdx) => {
                       const catInfo = BUDGET_CATEGORIES.find(
                         (c) => c.category === tx.category
@@ -1670,7 +1678,11 @@ export function HomeScreen({
                         txIdx === group.txs.length - 1
 
                       return (
-                        <div key={tx.id}>
+                        <motion.div
+                          key={tx.id}
+                          layout={!prefersReducedMotion ? "position" : false}
+                          transition={layoutTransition}
+                        >
                           <SwipeableTransactionRow
                             id={tx.id}
                             onDelete={(id) => onDeleteTransaction?.(id)}
@@ -1678,7 +1690,9 @@ export function HomeScreen({
                             onEdit={onEditTransaction ? (id) => setInlineEditId(id) : undefined}
                             showBorder={!isLast && inlineEditId !== tx.id}
                           >
-                            <div
+                            <motion.div
+                              layoutId={!prefersReducedMotion ? `tx-row-${tx.id}` : undefined}
+                              transition={layoutTransition}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -1728,7 +1742,7 @@ export function HomeScreen({
                                 {tx.type === "income" ? "+" : "−"}$
                                 {tx.amount.toFixed(2)}
                               </span>
-                            </div>
+                            </motion.div>
                           </SwipeableTransactionRow>
                           {inlineEditId === tx.id && onEditTransaction && (
                             <InlineTransactionEditor
@@ -1737,16 +1751,17 @@ export function HomeScreen({
                               onClose={() => setInlineEditId(null)}
                             />
                           )}
-                        </div>
+                        </motion.div>
                       )
                     })}
+                    </AnimatePresence>
                   </div>
                 ))
               })()}
             </GlassCard>
           )}
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
 
       {/* ── Category Detail Sheet ───────────────────────────────── */}
       <CategoryDetailSheet
