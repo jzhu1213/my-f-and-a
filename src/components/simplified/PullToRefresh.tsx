@@ -1,18 +1,22 @@
 "use client"
 
-import { useState, useRef, type ReactNode } from "react"
-import { motion, useMotionValue, useTransform, animate } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { useState, useRef, useMemo, type ReactNode } from "react"
+import { motion, useMotionValue, useTransform, animate, type MotionValue } from "framer-motion"
+import { springs, useReducedMotion } from "@/lib/animations"
 
 /**
  * PullToRefresh — a mobile-first pull-to-refresh wrapper.
  *
  * Wraps scrollable content and detects a downward drag gesture at the top
  * of the scroll container. When the user pulls past a threshold and releases,
- * it triggers a refetch callback and shows a subtle spinner.
+ * it triggers a refetch callback and shows a branded accent-ring indicator.
  *
- * Uses framer-motion's drag gesture for smooth, spring-physics interaction.
- * The spinner fades and scales in gently, keeping the interaction warm.
+ * The indicator is a ring of dots that progressively fill as the user pulls,
+ * then pulse/breathe while refreshing — cohesive with Folio's warm purple
+ * mesh aesthetic. Respects prefers-reduced-motion.
+ *
+ * Uses framer-motion's spring physics for smooth, bouncy interaction.
+ * GPU-composited (transform + opacity only).
  *
  * Requirements: 13.1
  */
@@ -30,6 +34,8 @@ export interface PullToRefreshProps {
 const PULL_THRESHOLD = 64
 /** Maximum pull distance before rubber-banding */
 const MAX_PULL = 120
+/** Number of dots in the accent ring */
+const DOT_COUNT = 8
 
 export function PullToRefresh({ onRefresh, children, disabled = false }: PullToRefreshProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -37,11 +43,15 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
   const pullY = useMotionValue(0)
   const isDragging = useRef(false)
   const startY = useRef(0)
+  const { prefersReducedMotion } = useReducedMotion()
 
-  // Transform pull distance to spinner opacity and scale
-  const spinnerOpacity = useTransform(pullY, [0, PULL_THRESHOLD * 0.5, PULL_THRESHOLD], [0, 0.4, 1])
-  const spinnerScale = useTransform(pullY, [0, PULL_THRESHOLD], [0.4, 1])
-  const spinnerRotation = useTransform(pullY, [0, MAX_PULL], [0, 360])
+  // Transform pull distance to indicator opacity and scale
+  const indicatorOpacity = useTransform(pullY, [0, PULL_THRESHOLD * 0.5, PULL_THRESHOLD], [0, 0.4, 1])
+  const indicatorScale = useTransform(pullY, [0, PULL_THRESHOLD], [0.4, 1])
+  // Progress 0→1 representing how much of the ring is "filled"
+  const pullProgress = useTransform(pullY, [0, PULL_THRESHOLD], [0, 1])
+  // Glow intensity increases with pull distance
+  const glowOpacity = useTransform(pullY, [PULL_THRESHOLD * 0.5, PULL_THRESHOLD, MAX_PULL], [0, 0.3, 0.6])
 
   const isAtTop = (): boolean => {
     const el = containerRef.current
@@ -93,9 +103,11 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
     const currentPull = pullY.get()
 
     if (currentPull >= PULL_THRESHOLD && !isRefreshing) {
-      // Trigger refresh
+      // Trigger refresh with bouncy settle
       setIsRefreshing(true)
-      animate(pullY, PULL_THRESHOLD * 0.6, { ...springs.gentle })
+      animate(pullY, PULL_THRESHOLD * 0.6, {
+        ...springs.bouncy,
+      })
 
       try {
         await onRefresh()
@@ -104,7 +116,7 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
         animate(pullY, 0, { ...springs.gentle })
       }
     } else {
-      // Snap back
+      // Snap back with snappy spring
       animate(pullY, 0, { ...springs.snappy })
     }
   }
@@ -138,22 +150,20 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
           pointerEvents: "none",
           zIndex: 10,
           y: useTransform(pullY, [0, PULL_THRESHOLD], [-PULL_THRESHOLD, 0]),
-          opacity: spinnerOpacity,
+          opacity: indicatorOpacity,
         }}
       >
         <motion.div
           style={{
-            scale: spinnerScale,
-            rotate: isRefreshing ? undefined : spinnerRotation,
+            scale: indicatorScale,
           }}
-          animate={isRefreshing ? { rotate: 360 } : undefined}
-          transition={
-            isRefreshing
-              ? { repeat: Infinity, duration: 0.8, ease: "linear" }
-              : undefined
-          }
         >
-          <RefreshSpinner isRefreshing={isRefreshing} />
+          <AccentRingIndicator
+            pullProgress={pullProgress}
+            glowOpacity={glowOpacity}
+            isRefreshing={isRefreshing}
+            prefersReducedMotion={prefersReducedMotion}
+          />
         </motion.div>
       </motion.div>
 
@@ -165,37 +175,136 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
   )
 }
 
-// ── Spinner icon ────────────────────────────────────────────────────────────
+// ── Branded Accent Ring Indicator ───────────────────────────────────────────
 
-function RefreshSpinner({ isRefreshing }: { isRefreshing: boolean }) {
+interface AccentRingIndicatorProps {
+  pullProgress: MotionValue<number>
+  glowOpacity: MotionValue<number>
+  isRefreshing: boolean
+  prefersReducedMotion: boolean
+}
+
+function AccentRingIndicator({
+  pullProgress,
+  glowOpacity,
+  isRefreshing,
+  prefersReducedMotion,
+}: AccentRingIndicatorProps) {
+  // Pre-compute dot positions
+  const dots = useMemo(() => {
+    const radius = 14
+    return Array.from({ length: DOT_COUNT }, (_, i) => {
+      const angle = (i / DOT_COUNT) * Math.PI * 2 - Math.PI / 2
+      return {
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+        index: i,
+      }
+    })
+  }, [])
+
   return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      style={{ display: "block" }}
+    <div
+      style={{
+        position: "relative",
+        width: 40,
+        height: 40,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
       aria-hidden="true"
     >
-      <path
-        d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8 8-3.58 8-8"
-        stroke={isRefreshing ? "var(--success)" : "rgba(255,255,255,0.5)"}
-        strokeWidth="2"
-        strokeLinecap="round"
+      {/* Glow backdrop — a soft accent blur behind the ring */}
+      <motion.div
         style={{
-          transition: "stroke 0.2s ease",
+          position: "absolute",
+          inset: -4,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, var(--accent) 0%, transparent 70%)",
+          opacity: glowOpacity,
+          filter: "blur(6px)",
         }}
       />
-      <path
-        d="M20 4v4h-4"
-        stroke={isRefreshing ? "var(--success)" : "rgba(255,255,255,0.5)"}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{
-          transition: "stroke 0.2s ease",
-        }}
-      />
-    </svg>
+
+      {/* Dot ring */}
+      {dots.map((dot) => (
+        <AccentDot
+          key={dot.index}
+          x={dot.x}
+          y={dot.y}
+          index={dot.index}
+          pullProgress={pullProgress}
+          isRefreshing={isRefreshing}
+          prefersReducedMotion={prefersReducedMotion}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ── Individual Dot ──────────────────────────────────────────────────────────
+
+interface AccentDotProps {
+  x: number
+  y: number
+  index: number
+  pullProgress: MotionValue<number>
+  isRefreshing: boolean
+  prefersReducedMotion: boolean
+}
+
+function AccentDot({
+  x,
+  y,
+  index,
+  pullProgress,
+  isRefreshing,
+  prefersReducedMotion,
+}: AccentDotProps) {
+  // Each dot becomes visible when pull progress reaches its threshold
+  const dotThreshold = index / DOT_COUNT
+  const dotOpacity = useTransform(pullProgress, [dotThreshold, dotThreshold + 0.12], [0.15, 1])
+
+  // Alternate between accent purple and secondary purple for depth
+  const isSecondary = index % 2 === 1
+  const color = isSecondary ? "#a78bfa" : "#818cf8"
+
+  // During refresh: dots pulse/breathe. With reduced motion: just steady opacity.
+  const refreshAnimation = prefersReducedMotion
+    ? { opacity: 0.8 }
+    : {
+        opacity: [0.4, 1, 0.4],
+        scale: [0.8, 1.2, 0.8],
+      }
+
+  const refreshTransition = prefersReducedMotion
+    ? { duration: 0.3 }
+    : {
+        repeat: Infinity,
+        duration: 1.2,
+        ease: "easeInOut" as const,
+        delay: index * 0.1,
+      }
+
+  return (
+    <motion.div
+      style={{
+        position: "absolute",
+        width: 5,
+        height: 5,
+        borderRadius: "50%",
+        background: color,
+        left: "50%",
+        top: "50%",
+        marginLeft: -2.5,
+        marginTop: -2.5,
+        x,
+        y,
+        ...(isRefreshing ? {} : { opacity: dotOpacity }),
+      }}
+      animate={isRefreshing ? refreshAnimation : undefined}
+      transition={isRefreshing ? refreshTransition : undefined}
+    />
   )
 }
