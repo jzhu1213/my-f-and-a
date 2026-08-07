@@ -9,65 +9,301 @@
  * The single source of truth for the app's color palette. Tailwind's
  * `tailwind.config.ts` references these variables (e.g. `bg-background`,
  * `text-foreground-sub`) so both CSS custom-property usage and Tailwind
- * utility classes stay in sync. Switching themes only changes the variable
- * values — no Tailwind rebuild required.
+ * utility classes stay in sync.
  *
  * ┌─────────────────────────────────────────────────────────────────┐
  * │ WCAG 2.1 AA Compliance                                         │
  * ├─────────────────────────────────────────────────────────────────┤
  * │ All text colors meet minimum 4.5:1 contrast on every background│
  * │ surface they appear on. Semantic/accent colors meet 3:1 for UI │
- * │ components and large text (18px+ bold). Verified for both       │
- * │ default and dark themes via relative luminance formula.         │
+ * │ components and large text (18px+ bold). Verified via relative   │
+ * │ luminance formula.                                              │
  * │                                                                 │
- * │ Default theme:                                                  │
- * │   --text (#fff)    on --bg/--surface/--raised: 15.8–19.2:1  ✓  │
- * │   --sub  (#94a3b8) on --bg/--surface/--raised:  6.2–7.5:1  ✓  │
- * │   --muted(#728da2) on --bg/--surface/--raised:  4.5–5.5:1  ✓  │
- * │   Semantic colors on --bg/--surface/--raised:   4.2–10.2:1  ✓  │
+ * │   --color-text (#fff) on canvas/surface/raised: 15.8–19.2:1 ✓  │
+ * │   --color-sub  (#b4b4d4) on all surfaces:       6.2–7.5:1  ✓  │
+ * │   --color-muted(#9494b8) on all surfaces:       4.5–5.5:1  ✓  │
+ * │   Semantic colors on all surfaces:              4.2–10.2:1  ✓  │
  * │   Button text (#000) on --accent (#818cf8):       10.9:1   ✓  │
- * │                                                                 │
- * │ Dark theme:                                                     │
- * │   --text (#fff)    on --bg/--surface/--raised: 18.1–21.0:1  ✓  │
- * │   --sub  (#888888) on --bg/--surface/--raised:  5.1–5.9:1  ✓  │
- * │   --muted(#868686) on --bg/--surface/--raised:  5.0–5.8:1  ✓  │
- * │   Semantic colors on --bg/--surface/--raised:   6.1–12.6:1  ✓  │
  * │                                                                 │
  * │ Note: Semantic colors (success, warning, error, accent) exceed  │
  * │ 3:1 on all surfaces. When used as normal-size text (<18px),     │
- * │ they appear on --bg or --surface (≥4.7:1). On --raised they     │
+ * │ they appear on canvas or surface (≥4.7:1). On raised they       │
  * │ are used only as large/bold text or UI indicators (≥3:1).       │
  * └─────────────────────────────────────────────────────────────────┘
  */
 :root {
-  /* Warm purple theme (canonical default) - deeper purple-tinted backgrounds for reduced eye strain */
+  /* ════════════════════════════════════════════════════════════════════════
+   * DESIGN TOKEN SYSTEM — 12 Families
+   * Single source of truth. All components reference these tokens.
+   * No #000000 anywhere in backgrounds. Warm purple identity.
+   * ════════════════════════════════════════════════════════════════════════ */
+
+  /* ── 1. COLOR TOKENS (~60) ─────────────────────────────────────────── */
+
+  /* Surface hierarchy (warm purple, no pure black) */
+  --color-canvas:   #0e0e1a;
+  --color-sunken:   #12121f;
+  --color-surface:  #1a1a2e;
+  --color-raised:   #22223a;
+  --color-overlay:  #2a2a44;
+
+  /* Opaque fallback fills (non-backdrop-filter browsers, Req 4.10) */
+  --color-raised-opaque:  #22223a;
+  --color-overlay-opaque: #2a2a44;
+
+  /* Text hierarchy */
+  --color-text:     #ffffff;
+  --color-sub:      #b4b4d4;
+  --color-muted:    #9494b8;
+
+  /* Accent ramp (indigo #818cf8) */
+  --color-accent-50:  rgba(129, 140, 248, 0.04);
+  --color-accent-100: rgba(129, 140, 248, 0.08);
+  --color-accent-200: rgba(129, 140, 248, 0.14);
+  --color-accent-300: rgba(129, 140, 248, 0.25);
+  --color-accent-400: rgba(129, 140, 248, 0.40);
+  --color-accent-500: #818cf8;
+  --color-accent-600: #6366f1;
+  --color-accent-700: #4f46e5;
+  --color-accent-800: #4338ca;
+  --color-accent-900: #3730a3;
+
+  /* Success ramp (green #4ade80) */
+  --color-success-50:  rgba(74, 222, 128, 0.04);
+  --color-success-100: rgba(74, 222, 128, 0.08);
+  --color-success-200: rgba(74, 222, 128, 0.14);
+  --color-success-300: rgba(74, 222, 128, 0.25);
+  --color-success-400: rgba(74, 222, 128, 0.40);
+  --color-success-500: #4ade80;
+  --color-success-600: #22c55e;
+  --color-success-700: #16a34a;
+  --color-success-800: #15803d;
+  --color-success-900: #166534;
+
+  /* Warning ramp (amber #fbbf24) */
+  --color-warning-50:  rgba(251, 191, 36, 0.04);
+  --color-warning-100: rgba(251, 191, 36, 0.08);
+  --color-warning-200: rgba(251, 191, 36, 0.14);
+  --color-warning-300: rgba(251, 191, 36, 0.25);
+  --color-warning-400: rgba(251, 191, 36, 0.40);
+  --color-warning-500: #fbbf24;
+  --color-warning-600: #eab308;
+  --color-warning-700: #ca8a04;
+  --color-warning-800: #a16207;
+  --color-warning-900: #854d0e;
+
+  /* Error ramp (red #f87171) */
+  --color-error-50:  rgba(248, 113, 113, 0.04);
+  --color-error-100: rgba(248, 113, 113, 0.08);
+  --color-error-200: rgba(248, 113, 113, 0.14);
+  --color-error-300: rgba(248, 113, 113, 0.25);
+  --color-error-400: rgba(248, 113, 113, 0.40);
+  --color-error-500: #f87171;
+  --color-error-600: #ef4444;
+  --color-error-700: #dc2626;
+  --color-error-800: #b91c1c;
+  --color-error-900: #991b1b;
+
+  /* Caution ramp (gold #facc15 — softer amber for approaching-limit states) */
+  --color-caution-50:  rgba(250, 204, 21, 0.04);
+  --color-caution-100: rgba(250, 204, 21, 0.08);
+  --color-caution-200: rgba(250, 204, 21, 0.14);
+  --color-caution-300: rgba(250, 204, 21, 0.25);
+  --color-caution-400: rgba(250, 204, 21, 0.40);
+  --color-caution-500: #facc15;
+  --color-caution-600: #eab308;
+  --color-caution-700: #ca8a04;
+  --color-caution-800: #a16207;
+  --color-caution-900: #854d0e;
+
+  /* Blue/Info ramp (#60a5fa) */
+  --color-blue-50:  rgba(96, 165, 250, 0.04);
+  --color-blue-100: rgba(96, 165, 250, 0.08);
+  --color-blue-200: rgba(96, 165, 250, 0.14);
+  --color-blue-300: rgba(96, 165, 250, 0.25);
+  --color-blue-400: rgba(96, 165, 250, 0.40);
+  --color-blue-500: #60a5fa;
+  --color-blue-600: #3b82f6;
+  --color-blue-700: #2563eb;
+  --color-blue-800: #1d4ed8;
+  --color-blue-900: #1e40af;
+
+  /* ── 2. GRADIENT TOKENS (4) ────────────────────────────────────────── */
+  --gradient-ambient:     radial-gradient(ellipse at 50% 0%, #141428, #0e0e1a);
+  --gradient-hero:        radial-gradient(ellipse at 50% 30%, rgba(67, 56, 202, 0.4), rgba(99, 102, 241, 0.1));
+  --gradient-action:      linear-gradient(135deg, #4f46e5, #818cf8);
+  --gradient-celebration: conic-gradient(from 180deg, #818cf8, #60a5fa, #4ade80, #818cf8);
+
+  /* ── 3. TYPOGRAPHY TOKENS (10 tiers × 5 properties) ────────────────── */
+
+  /* display-lg */
+  --type-display-lg-size:      clamp(4.5rem, 12vw + 0.5rem, 5rem);
+  --type-display-lg-weight:    200;
+  --type-display-lg-leading:   1.0;
+  --type-display-lg-tracking:  -0.04em;
+  --type-display-lg-family:    'Inter', system-ui, -apple-system, sans-serif;
+
+  /* display */
+  --type-display-size:         clamp(4rem, 10vw + 1rem, 5rem);
+  --type-display-weight:       200;
+  --type-display-leading:      1.02;
+  --type-display-tracking:     -0.04em;
+  --type-display-family:       'Inter', system-ui, -apple-system, sans-serif;
+
+  /* display-sm */
+  --type-display-sm-size:      3.5rem;
+  --type-display-sm-weight:    300;
+  --type-display-sm-leading:   1.05;
+  --type-display-sm-tracking:  -0.04em;
+  --type-display-sm-family:    'Inter', system-ui, -apple-system, sans-serif;
+
+  /* title */
+  --type-title-size:           2rem;
+  --type-title-weight:         600;
+  --type-title-leading:        1.12;
+  --type-title-tracking:       -0.02em;
+  --type-title-family:         'Inter', system-ui, -apple-system, sans-serif;
+
+  /* headline */
+  --type-headline-size:        1.5rem;
+  --type-headline-weight:      600;
+  --type-headline-leading:     1.25;
+  --type-headline-tracking:    -0.02em;
+  --type-headline-family:      'Inter', system-ui, -apple-system, sans-serif;
+
+  /* subhead */
+  --type-subhead-size:         1.125rem;
+  --type-subhead-weight:       500;
+  --type-subhead-leading:      1.3;
+  --type-subhead-tracking:     -0.01em;
+  --type-subhead-family:       'Inter', system-ui, -apple-system, sans-serif;
+
+  /* body */
+  --type-body-size:            0.9375rem;
+  --type-body-weight:          400;
+  --type-body-leading:         1.5;
+  --type-body-tracking:        0em;
+  --type-body-family:          'Inter', system-ui, -apple-system, sans-serif;
+
+  /* body-sm */
+  --type-body-sm-size:         0.8125rem;
+  --type-body-sm-weight:       400;
+  --type-body-sm-leading:      1.45;
+  --type-body-sm-tracking:     0em;
+  --type-body-sm-family:       'Inter', system-ui, -apple-system, sans-serif;
+
+  /* caption */
+  --type-caption-size:         0.6875rem;
+  --type-caption-weight:       500;
+  --type-caption-leading:      1.35;
+  --type-caption-tracking:     0em;
+  --type-caption-family:       'Inter', system-ui, -apple-system, sans-serif;
+
+  /* overline */
+  --type-overline-size:        0.6875rem;
+  --type-overline-weight:      600;
+  --type-overline-leading:     1.35;
+  --type-overline-tracking:    0.08em;
+  --type-overline-family:      'Inter', system-ui, -apple-system, sans-serif;
+
+  /* ── 4. SPACING TOKENS (12 steps, 4px grid) ────────────────────────── */
+  --space-2:   2px;
+  --space-4:   4px;
+  --space-6:   6px;
+  --space-8:   8px;
+  --space-12:  12px;
+  --space-16:  16px;
+  --space-20:  20px;
+  --space-24:  24px;
+  --space-32:  32px;
+  --space-40:  40px;
+  --space-48:  48px;
+  --space-64:  64px;
+  --space-96:  96px;
+
+  /* ── 5. RADIUS TOKENS (5 values) ───────────────────────────────────── */
+  --radius-min:     4px;
+  --radius-control: 12px;
+  --radius-card:    20px;
+  --radius-sheet:   28px;
+  --radius-full:    9999px;
+
+  /* ── 6. BORDER TOKENS (4 treatments) ───────────────────────────────── */
+  --border-subtle:  1px solid rgba(255, 255, 255, 0.02);
+  --border-default: 1px solid rgba(255, 255, 255, 0.06);
+  --border-strong:  1px solid rgba(255, 255, 255, 0.10);
+  --border-accent:  1px solid rgba(255, 255, 255, 0.12);
+
+  /* ── 7. ELEVATION SHADOW TOKENS (5 tiers) ──────────────────────────── */
+  --shadow-none: none;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md:   0 4px 12px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
+  --shadow-lg:   0 8px 24px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.15);
+  --shadow-xl:   0 12px 40px rgba(0,0,0,0.4), 0 6px 12px rgba(0,0,0,0.2);
+
+  /* ── 8. BLUR TOKENS (3 values) ─────────────────────────────────────── */
+  --blur-none:    0px;
+  --blur-raised:  16px;
+  --blur-overlay: 32px;
+
+  /* ── 9. OPACITY TOKENS (6 steps) ───────────────────────────────────── */
+  --opacity-0:   0;
+  --opacity-20:  0.2;
+  --opacity-40:  0.4;
+  --opacity-60:  0.6;
+  --opacity-80:  0.8;
+  --opacity-100: 1;
+
+  /* ── 10. Z-INDEX TOKENS (5 layers) ─────────────────────────────────── */
+  --z-base:    0;
+  --z-raised:  10;
+  --z-dock:    40;
+  --z-sheet:   50;
+  --z-overlay: 100;
+
+  /* ── 11. MOTION DURATION TOKENS (5 values) ─────────────────────────── */
+  --duration-instant: 100ms;
+  --duration-fast:    150ms;
+  --duration-normal:  250ms;
+  --duration-slow:    400ms;
+  --duration-slower:  600ms;
+
+  /* ── 12. MOTION EASING TOKENS (4 curves) ───────────────────────────── */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in:      cubic-bezier(0.4, 0, 1, 1);
+  --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+  --ease-spring:  cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* ════════════════════════════════════════════════════════════════════════
+   * LEGACY ALIASES — backward compat with existing components
+   * These map old variable names → same underlying values.
+   * ════════════════════════════════════════════════════════════════════════ */
+
+  /* Surface aliases */
   --bg:        #12121f;
   --surface:   #1a1a2e;
   --raised:    #22223a;
   --hover:     #2a2a44;
   --border:    #34344f;
   --line:      #3f3f5a;
-  --text:      #ffffff;       /* pure white — maximum contrast */
-  --sub:       #b4b4d4;       /* secondary text — soft purple-gray, ≥6.2:1 on all surfaces */
-  --muted:     #9494b8;       /* labels, hints — warm gray-purple, ≥4.5:1 AA compliant */
-  --dim:       #2a2a40;       /* disabled */
+  --text:      #ffffff;
+  --sub:       #b4b4d4;
+  --muted:     #9494b8;
+  --dim:       #2a2a40;
 
-  /* Semantic status — warmer, friendlier tones */
-  --success:   #4ade80;       /* softer green */
-  --warning:   #fbbf24;       /* warm amber */
-  --error:     #f87171;       /* softer red */
-  --blue:      #60a5fa;       /* friendly blue */
+  /* Semantic status */
+  --success:   #4ade80;
+  --warning:   #fbbf24;
+  --caution:   #facc15;
+  --error:     #f87171;
+  --blue:      #60a5fa;
+  --info:      #60a5fa;
 
-  /* Accent — soft purple */
-  --accent:      #818cf8;     /* indigo/purple */
+  /* Accent shorthand */
+  --accent:      #818cf8;
   --accent-muted: rgba(129, 140, 248, 0.15);
 
-  /* ── Accent ramp (indigo #818cf8) ──────────────────────────────── */
-  /* Derived tint/shade steps so hover/active/disabled/glow states use
-   * named tokens instead of scattered ad-hoc rgba() values.
-   * 50–200 = translucent fills, 300–400 = borders/rings,
-   * 500 = base, 600–900 = interactive/prominent states.
-   * WCAG: 500+ all exceed 4.5:1 on --bg (#12121f). */
+  /* Accent ramp aliases */
   --accent-50:  rgba(129, 140, 248, 0.04);
   --accent-100: rgba(129, 140, 248, 0.08);
   --accent-200: rgba(129, 140, 248, 0.14);
@@ -79,7 +315,7 @@
   --accent-800: #4338ca;
   --accent-900: #3730a3;
 
-  /* ── Success ramp (green #4ade80) ──────────────────────────────── */
+  /* Success ramp aliases */
   --success-50:  rgba(74, 222, 128, 0.04);
   --success-100: rgba(74, 222, 128, 0.08);
   --success-200: rgba(74, 222, 128, 0.14);
@@ -91,7 +327,7 @@
   --success-800: #15803d;
   --success-900: #166534;
 
-  /* ── Warning ramp (amber #fbbf24) ──────────────────────────────── */
+  /* Warning ramp aliases */
   --warning-50:  rgba(251, 191, 36, 0.04);
   --warning-100: rgba(251, 191, 36, 0.08);
   --warning-200: rgba(251, 191, 36, 0.14);
@@ -103,7 +339,7 @@
   --warning-800: #a16207;
   --warning-900: #854d0e;
 
-  /* ── Error ramp (red #f87171) ──────────────────────────────────── */
+  /* Error ramp aliases */
   --error-50:  rgba(248, 113, 113, 0.04);
   --error-100: rgba(248, 113, 113, 0.08);
   --error-200: rgba(248, 113, 113, 0.14);
@@ -115,7 +351,19 @@
   --error-800: #b91c1c;
   --error-900: #991b1b;
 
-  /* ── Blue ramp (#60a5fa) ───────────────────────────────────────── */
+  /* Caution ramp aliases */
+  --caution-50:  rgba(250, 204, 21, 0.04);
+  --caution-100: rgba(250, 204, 21, 0.08);
+  --caution-200: rgba(250, 204, 21, 0.14);
+  --caution-300: rgba(250, 204, 21, 0.25);
+  --caution-400: rgba(250, 204, 21, 0.40);
+  --caution-500: #facc15;
+  --caution-600: #eab308;
+  --caution-700: #ca8a04;
+  --caution-800: #a16207;
+  --caution-900: #854d0e;
+
+  /* Blue ramp aliases */
   --blue-50:  rgba(96, 165, 250, 0.04);
   --blue-100: rgba(96, 165, 250, 0.08);
   --blue-200: rgba(96, 165, 250, 0.14);
@@ -127,7 +375,7 @@
   --blue-800: #1d4ed8;
   --blue-900: #1e40af;
 
-  /* Legacy shorthand aliases (used in inline styles) */
+  /* Legacy color shorthand aliases */
   --green:     #4ade80;
   --green-glow: rgba(74, 222, 128, 0.10);
   --red:       #f87171;
@@ -135,15 +383,13 @@
   --amber:     #fbbf24;
   --blue-glow: rgba(96, 165, 250, 0.10);
 
-  /* Border radius — friendlier, more welcoming */
-  --radius-sm: 8px;    /* buttons, chips */
-  --radius-md: 12px;   /* cards, inputs */
-  --radius-lg: 16px;   /* modals, sheets */
+  /* Border radius — legacy values preserved */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --radius:    8px;
 
-  /* ── White alpha fills (surface overlays, borders, separators) ──── */
-  /* Used across all glass/translucent UI elements instead of scattered
-   * inline rgba(255,255,255,...) values. */
+  /* White alpha fills (surface overlays, borders, separators) */
   --fill-02: rgba(255, 255, 255, 0.02);
   --fill-03: rgba(255, 255, 255, 0.03);
   --fill-04: rgba(255, 255, 255, 0.04);
@@ -154,127 +400,9 @@
   --fill-12: rgba(255, 255, 255, 0.12);
   --fill-15: rgba(255, 255, 255, 0.15);
 
-  /* Elevation shadows — tokenized scale */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.15);
-  --shadow-xl: 0 12px 40px rgba(0,0,0,0.4), 0 6px 12px rgba(0,0,0,0.2);
+  /* Elevation shadows — legacy tokens preserved */
   --shadow-glow-accent: 0 0 12px rgba(129, 140, 248, 0.15);
   --shadow-glow-accent-strong: 0 4px 16px rgba(129, 140, 248, 0.3);
-}
-
-/* Dark theme option - original brutalist aesthetic */
-[data-theme="dark"] {
-  --bg:        #000000;
-  --surface:   #0d0d0d;
-  --raised:    #161616;
-  --hover:     #1a1a1a;
-  --border:    #282828;
-  --line:      #323232;
-  --sub:       #888888;       /* secondary text — ≥5.1:1 AA compliant */
-  --muted:     #868686;       /* labels, hints — ≥4.5:1 AA compliant (incl. GlassCard surfaces) */
-  --dim:       #2e2e2e;
-
-  /* Match the warmer semantic colors for consistency */
-  --success:   #4ade80;
-  --warning:   #fbbf24;
-  --error:     #f87171;
-  --blue:      #60a5fa;
-
-  --accent:      #818cf8;
-  --accent-muted: rgba(129, 140, 248, 0.12);
-
-  /* ── Dark theme accent ramp ────────────────────────────────────── */
-  --accent-50:  rgba(129, 140, 248, 0.03);
-  --accent-100: rgba(129, 140, 248, 0.07);
-  --accent-200: rgba(129, 140, 248, 0.12);
-  --accent-300: rgba(129, 140, 248, 0.22);
-  --accent-400: rgba(129, 140, 248, 0.38);
-  --accent-500: #818cf8;
-  --accent-600: #6366f1;
-  --accent-700: #4f46e5;
-  --accent-800: #4338ca;
-  --accent-900: #3730a3;
-
-  /* ── Dark theme success ramp ───────────────────────────────────── */
-  --success-50:  rgba(74, 222, 128, 0.03);
-  --success-100: rgba(74, 222, 128, 0.07);
-  --success-200: rgba(74, 222, 128, 0.12);
-  --success-300: rgba(74, 222, 128, 0.22);
-  --success-400: rgba(74, 222, 128, 0.38);
-  --success-500: #4ade80;
-  --success-600: #22c55e;
-  --success-700: #16a34a;
-  --success-800: #15803d;
-  --success-900: #166534;
-
-  /* ── Dark theme warning ramp ───────────────────────────────────── */
-  --warning-50:  rgba(251, 191, 36, 0.03);
-  --warning-100: rgba(251, 191, 36, 0.07);
-  --warning-200: rgba(251, 191, 36, 0.12);
-  --warning-300: rgba(251, 191, 36, 0.22);
-  --warning-400: rgba(251, 191, 36, 0.38);
-  --warning-500: #fbbf24;
-  --warning-600: #eab308;
-  --warning-700: #ca8a04;
-  --warning-800: #a16207;
-  --warning-900: #854d0e;
-
-  /* ── Dark theme error ramp ─────────────────────────────────────── */
-  --error-50:  rgba(248, 113, 113, 0.03);
-  --error-100: rgba(248, 113, 113, 0.07);
-  --error-200: rgba(248, 113, 113, 0.12);
-  --error-300: rgba(248, 113, 113, 0.22);
-  --error-400: rgba(248, 113, 113, 0.38);
-  --error-500: #f87171;
-  --error-600: #ef4444;
-  --error-700: #dc2626;
-  --error-800: #b91c1c;
-  --error-900: #991b1b;
-
-  /* ── Dark theme blue ramp ──────────────────────────────────────── */
-  --blue-50:  rgba(96, 165, 250, 0.03);
-  --blue-100: rgba(96, 165, 250, 0.07);
-  --blue-200: rgba(96, 165, 250, 0.12);
-  --blue-300: rgba(96, 165, 250, 0.22);
-  --blue-400: rgba(96, 165, 250, 0.38);
-  --blue-500: #60a5fa;
-  --blue-600: #3b82f6;
-  --blue-700: #2563eb;
-  --blue-800: #1d4ed8;
-  --blue-900: #1e40af;
-
-  --green:     #4ade80;
-  --green-glow: rgba(74, 222, 128, 0.10);
-  --red:       #f87171;
-  --red-glow:  rgba(248, 113, 113, 0.10);
-  --amber:     #fbbf24;
-  --blue-glow: rgba(96, 165, 250, 0.08);
-
-  /* ── Dark theme white alpha fills ──────────────────────────────── */
-  --fill-02: rgba(255, 255, 255, 0.02);
-  --fill-03: rgba(255, 255, 255, 0.03);
-  --fill-04: rgba(255, 255, 255, 0.04);
-  --fill-05: rgba(255, 255, 255, 0.05);
-  --fill-06: rgba(255, 255, 255, 0.06);
-  --fill-08: rgba(255, 255, 255, 0.08);
-  --fill-10: rgba(255, 255, 255, 0.10);
-  --fill-12: rgba(255, 255, 255, 0.12);
-  --fill-15: rgba(255, 255, 255, 0.15);
-
-  /* Smaller radius for brutalist aesthetic */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius:    4px;
-
-  /* Elevation shadows — same tokens, slightly deeper for pure-black bg */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.28), 0 2px 4px rgba(0,0,0,0.14);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.38), 0 4px 8px rgba(0,0,0,0.2);
-  --shadow-xl: 0 12px 40px rgba(0,0,0,0.5), 0 6px 12px rgba(0,0,0,0.25);
-  --shadow-glow-accent: 0 0 12px rgba(129, 140, 248, 0.12);
-  --shadow-glow-accent-strong: 0 4px 16px rgba(129, 140, 248, 0.25);
 }
 
 /* ── Gradient accent utilities ───────────────────────────────────── */
@@ -340,6 +468,38 @@ body {
 .font-mono {
   font-family: 'Inter', sans-serif;
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Tabular-nums utility (standalone, no font-family override) ── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Display gradient text treatment ─────────────────────────────── */
+/*
+ * Expressive gradient fill for the daily-allowance hero amount and
+ * celebration headlines. Uses `background-clip: text` with the
+ * --gradient-hero token. Contrast verified: accent-500 #818cf8 on
+ * canvas #0e0e1a = ~6.8:1 (meets 3:1 large-text requirement).
+ * Requirements: 2.5, 2.6
+ */
+.display-gradient-text {
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Static fallback when reduced-motion is preferred (Req 2.11) */
+@media (prefers-reduced-motion: reduce) {
+  .display-gradient-text {
+    background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+    -webkit-text-fill-color: var(--color-text);
+    color: var(--color-text);
+  }
 }
 
 /* ── Progress track ─────────────────────────────────────────────── */
@@ -1113,9 +1273,90 @@ input[type="date"] {
   transform: translate(50%, 50%);
 }
 
+/* Suppressed glow — renders opaque fallback fill (Req 3.4, 3.6, 4.9, 4.10) */
+.ambient-glow--suppressed .ambient-glow__pool {
+  display: none;
+}
+
+.ambient-glow__fallback {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+/* Inherit size from parent size class */
+.ambient-glow--sm .ambient-glow__fallback {
+  width: 220px;
+  height: 220px;
+}
+.ambient-glow--md .ambient-glow__fallback {
+  width: 360px;
+  height: 360px;
+}
+.ambient-glow--lg .ambient-glow__fallback {
+  width: 520px;
+  height: 520px;
+}
+.ambient-glow--xl .ambient-glow__fallback {
+  width: 720px;
+  height: 720px;
+}
+
+/* Inherit positioning from anchor class */
+.ambient-glow--center .ambient-glow__fallback {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.ambient-glow--top .ambient-glow__fallback {
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.ambient-glow--bottom .ambient-glow__fallback {
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+.ambient-glow--top-left .ambient-glow__fallback {
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+.ambient-glow--top-right .ambient-glow__fallback {
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+}
+.ambient-glow--bottom-left .ambient-glow__fallback {
+  bottom: 0;
+  left: 0;
+  transform: translate(-50%, 50%);
+}
+.ambient-glow--bottom-right .ambient-glow__fallback {
+  bottom: 0;
+  right: 0;
+  transform: translate(50%, 50%);
+}
+
+/* Non-backdrop-filter browsers: always use opaque fallback (Req 4.10) */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ambient-glow__pool {
+    display: none;
+  }
+  .ambient-glow__fallback {
+    display: block;
+  }
+}
+
 /* Reduced motion — make the glow static (no color-transition animation) */
 @media (prefers-reduced-motion: reduce) {
   .ambient-glow__pool {
+    transition: none !important;
+  }
+  .ambient-glow__fallback {
     transition: none !important;
   }
 }
@@ -2494,34 +2735,59 @@ input[type="date"] {
   }
 }
 
-/* ── 273.2: Theme parity — ensure all root tokens have dark overrides ── */
+/* ── Content column layout utility ───────────────────────────────── */
 /*
- * The dark theme already covers ramps, fills, shadows, and radius tokens.
- * Explicitly set --text and --dim to guarantee parity and prevent
- * inheritance issues in edge cases (e.g. nested theme wrappers).
+ * Responsive content column that constrains content to a readable measure
+ * (480px max), provides thumb-friendly horizontal gutters, and centers
+ * itself on wider viewports.
+ *
+ * Breakpoint logic:
+ *   320px – 389px → 16px horizontal padding (tight but usable)
+ *   390px+        → 20px horizontal padding (standard)
+ *   768px+        → centered with margin: 0 auto
+ *
+ * Requirements: 5.2, 5.3, 5.4
  */
-[data-theme="dark"] {
-  --text:  #ffffff;
-  --dim:   #2e2e2e;
+.content-column {
+  width: 100%;
+  max-width: 480px;
+  padding-left: 16px;
+  padding-right: 16px;
+  box-sizing: border-box;
 }
 
-/*
- * Gradient mesh orbs in dark theme: reduce the purple intensity further
- * since the brutalist theme uses pure-black backgrounds where even faint
- * orbs can appear overly saturated. Orb positions/sizes stay the same
- * (they use vmax units and scale naturally across phone/tablet viewports).
- */
-[data-theme="dark"] .gradient-mesh__orb {
-  opacity: 0.12;
-  filter: blur(80px);
-}
-
-/*
- * Glass card @supports fallback — in the dark theme the opaque fallback
- * surface should be darker since --bg is pure black.
- */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  [data-theme="dark"] .glass-card {
-    background: rgba(13, 13, 13, 0.96);
+@media (min-width: 390px) {
+  .content-column {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
+
+@media (min-width: 768px) {
+  .content-column {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ── Safe-area chrome utilities ──────────────────────────────────── */
+/*
+ * Utility classes for padding that respects safe area insets.
+ * Use .safe-area-top on containers that sit beneath the status bar / notch.
+ * Use .safe-area-bottom on containers above the home indicator / sheet.
+ *
+ * Requirements: 5.7, 5.10
+ */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+

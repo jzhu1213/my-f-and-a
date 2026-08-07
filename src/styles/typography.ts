@@ -2,19 +2,16 @@
  * Premium typography and spacing system for Folio.
  *
  * A pure constants/types module (no side effects, no JSX). Provides a refined
- * type scale, variable font-weight constants with a smooth transition helper,
- * letter-spacing refinements, and a 4px vertical-rhythm spacing grid.
+ * 10-tier type scale, variable font-weight constants with a smooth transition
+ * helper, letter-spacing refinements, and a 4px vertical-rhythm spacing grid.
  *
- * The scale is intentionally designed to create clear visual hierarchy: the
- * Display style dominates (used for the daily allowance amount) while smaller
- * styles keep sections distinct and calm.
+ * The scale creates clear visual hierarchy: display tiers dominate (used for
+ * the daily allowance amount) while smaller styles keep sections distinct.
  *
  * All style objects are `React.CSSProperties`-compatible so they can be spread
- * directly into inline styles or CSS-in-JS alongside the existing Tailwind
- * usage across the app.
+ * directly into inline styles or CSS-in-JS.
  *
- * Requirements: 8.2 (Inter font family), 8.4 (friendlier visual hierarchy),
- * 15.5 (scalable text via rem-based sizing).
+ * Requirements: 1.2, 1.7, 2.1, 2.2, 2.4, 2.9, 5.1
  */
 
 import type { CSSProperties } from 'react'
@@ -24,23 +21,18 @@ import type { CSSProperties } from 'react'
 // ============================================================================
 
 /**
- * Body/display font stack. Matches `body` in `globals.css` (Requirement 8.2).
+ * Body/display font stack. Matches `body` in `globals.css`.
  * Inter — highly legible, designed for UI, friendly and modern.
- * 
+ *
  * Use with `fontVariantNumeric: 'tabular-nums'` for aligned numeric columns.
  */
 export const FONT_FAMILY =
   "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" as const
 
-// NOTE (Phase 6 — task 238.3): there is intentionally no monospace font stack.
-// Project rule: never use monospace for financial amounts or UI text. Numbers
-// use FONT_FAMILY with `fontVariantNumeric: 'tabular-nums'` for aligned,
-// column-friendly digits with a warm, welcoming look.
-
 /**
  * Root font size (px) used to convert the design's px values into `rem`.
  * Using `rem` keeps text scalable when the user changes their browser/OS base
- * font size (Requirement 15.5).
+ * font size.
  */
 export const ROOT_FONT_SIZE_PX = 16 as const
 
@@ -76,13 +68,8 @@ export type FontWeightValue = (typeof fontWeights)[FontWeightName]
 // ============================================================================
 
 /**
- * Letter-spacing tokens. Progressively tighter tracking for larger type
- * (large type reads better with negative tracking), neutral for body, and
- * wider (tracked) for overlines / section labels (Requirement 8.4).
- *
- * Phase 6 (task 238.1): the tokens now carry *distinct* values so large type
- * (`display`) tracks noticeably tighter than headings, giving the scale a
- * crisper, more intentional feel at a glance.
+ * Letter-spacing tokens. Progressively tighter tracking for larger type,
+ * neutral for body, and wider (tracked) for overlines / section labels.
  */
 export const letterSpacing = {
   /** Very large display type (the daily-allowance number). */
@@ -108,7 +95,7 @@ export type LetterSpacingName = keyof typeof letterSpacing
  */
 export interface TypeStyle {
   fontFamily: string
-  /** Font size as a scalable `rem` string. */
+  /** Font size as a scalable `rem` string or `clamp()` expression. */
   fontSize: string
   fontWeight: FontWeightValue
   lineHeight: number
@@ -118,72 +105,106 @@ export interface TypeStyle {
 
 /**
  * The named tiers of the type scale, ordered from most to least prominent.
+ * Expanded to 10 tiers for the design overhaul.
  */
 export type TypeScaleName =
+  | 'display-lg'
   | 'display'
+  | 'display-sm'
   | 'title'
   | 'headline'
+  | 'subhead'
   | 'body'
+  | 'body-sm'
   | 'caption'
   | 'overline'
 
 /**
- * The refined Folio type scale.
+ * The refined Folio 10-tier type scale.
  *
- * Phase 6 (task 238.1) — *widen the hierarchy jumps*: the previous scale
- * clustered around 13/14/15px, so adjacent tiers were hard to tell apart.
- * The steps below open the gaps between tiers (≈1.4× between the upper tiers)
- * and push `title`/`headline` to be more assertive (larger + heavier) so
- * section headers read at a glance. Large type also carries tighter tracking.
+ * - `display-lg` 80px / thin    / tighter — Hero allowance (large values)
+ * - `display`    72px / thin    / tighter — Hero allowance (standard), fluid clamp
+ * - `display-sm` 56px / light   / tighter — Celebration headlines
+ * - `title`      32px / semibold/ tight   — Screen titles
+ * - `headline`   24px / semibold/ tight   — Section headings
+ * - `subhead`    18px / medium  / snug    — Card titles, emphasis text
+ * - `body`       15px / regular / normal  — General content
+ * - `body-sm`    13px / regular / normal  — Dense list secondary text
+ * - `caption`    11px / medium  / normal  — Labels, hints
+ * - `overline`   11px / semibold/ wide, uppercase — Section labels
  *
- * - `display`  56px / thin     / tighter — dominates the screen (allowance amount)
- * - `title`    30px / semibold / tight   — screen and major section titles
- * - `headline` 21px / semibold / tight   — sub-section headings (assertive)
- * - `body`     15px / regular  / normal  — general content (matches globals.css body)
- * - `caption`  12px / medium   / normal  — secondary labels and hints
- * - `overline` 11px / semibold / wide, uppercase — eyebrow / section labels
+ * Display tiers use fluid `clamp()` for responsive sizing between 320–430px.
+ * All fontSize values reference `var(--type-{tier}-size)` CSS custom properties.
  */
 export const typography: Record<TypeScaleName, TypeStyle> = {
+  'display-lg': {
+    fontFamily: FONT_FAMILY,
+    fontSize: 'var(--type-display-lg-size)',
+    fontWeight: fontWeights.thin,
+    lineHeight: 1.0,
+    letterSpacing: letterSpacing.tighter,
+  },
   display: {
     fontFamily: FONT_FAMILY,
-    fontSize: pxToRem(56),
+    fontSize: 'var(--type-display-size)',
     fontWeight: fontWeights.thin,
+    lineHeight: 1.02,
+    letterSpacing: letterSpacing.tighter,
+  },
+  'display-sm': {
+    fontFamily: FONT_FAMILY,
+    fontSize: 'var(--type-display-sm-size)',
+    fontWeight: fontWeights.light,
     lineHeight: 1.05,
     letterSpacing: letterSpacing.tighter,
   },
   title: {
     fontFamily: FONT_FAMILY,
-    fontSize: pxToRem(30),
+    fontSize: 'var(--type-title-size)',
     fontWeight: fontWeights.semibold,
-    lineHeight: 1.15,
+    lineHeight: 1.12,
     letterSpacing: letterSpacing.tight,
   },
   headline: {
     fontFamily: FONT_FAMILY,
-    fontSize: pxToRem(21),
+    fontSize: 'var(--type-headline-size)',
     fontWeight: fontWeights.semibold,
-    lineHeight: 1.3,
+    lineHeight: 1.25,
     letterSpacing: letterSpacing.tight,
+  },
+  subhead: {
+    fontFamily: FONT_FAMILY,
+    fontSize: 'var(--type-subhead-size)',
+    fontWeight: fontWeights.medium,
+    lineHeight: 1.3,
+    letterSpacing: letterSpacing.snug,
   },
   body: {
     fontFamily: FONT_FAMILY,
-    fontSize: pxToRem(15),
+    fontSize: 'var(--type-body-size)',
     fontWeight: fontWeights.regular,
     lineHeight: 1.5,
     letterSpacing: letterSpacing.normal,
   },
+  'body-sm': {
+    fontFamily: FONT_FAMILY,
+    fontSize: 'var(--type-body-sm-size)',
+    fontWeight: fontWeights.regular,
+    lineHeight: 1.45,
+    letterSpacing: letterSpacing.normal,
+  },
   caption: {
     fontFamily: FONT_FAMILY,
-    fontSize: pxToRem(12),
+    fontSize: 'var(--type-caption-size)',
     fontWeight: fontWeights.medium,
-    lineHeight: 1.4,
+    lineHeight: 1.35,
     letterSpacing: letterSpacing.normal,
   },
   overline: {
     fontFamily: FONT_FAMILY,
-    fontSize: pxToRem(11),
+    fontSize: 'var(--type-overline-size)',
     fontWeight: fontWeights.semibold,
-    lineHeight: 1.4,
+    lineHeight: 1.35,
     letterSpacing: letterSpacing.wide,
     textTransform: 'uppercase',
   },
@@ -206,14 +227,6 @@ export const FONT_WEIGHT_TRANSITION_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)' as c
 /**
  * Build a CSS `transition` value for smoothly animating `font-weight` between
  * variable-font axis values (e.g. as a number ticks up or down).
- *
- * Example:
- * ```ts
- * const style: CSSProperties = {
- *   fontWeight: fontWeights.medium,
- *   transition: fontWeightTransition(),
- * }
- * ```
  */
 export function fontWeightTransition(
   durationMs: number = FONT_WEIGHT_TRANSITION_MS,
@@ -224,8 +237,7 @@ export function fontWeightTransition(
 
 /**
  * Produce a `React.CSSProperties` object that sets a font weight and the
- * transition needed to animate to a different weight smoothly. Useful for
- * numeric values that shift weight based on status or emphasis.
+ * transition needed to animate to a different weight smoothly.
  */
 export function animatedFontWeight(
   weight: FontWeightValue,
@@ -269,23 +281,46 @@ export function space(name: SpacingName): string {
 }
 
 // ============================================================================
-// Numeric typography (Phase 6 — task 238.3)
+// Numeric typography
 // ============================================================================
 
 /**
  * Style partial for financial/numeric amounts.
  *
  * Ensures all numbers use Inter with `tabular-nums` so digits align in columns,
- * without resorting to a monospace typeface. Spread into any style block that
- * renders monetary values or statistics.
- *
- * Usage:
- * ```ts
- * <span style={{ ...TABULAR_NUMS, fontSize: pxToRem(18) }}>$1,234.56</span>
- * ```
+ * without resorting to a monospace typeface.
  */
 export const TABULAR_NUMS: Pick<CSSProperties, 'fontFamily' | 'fontVariantNumeric'> = {
   fontFamily: FONT_FAMILY,
+  fontVariantNumeric: 'tabular-nums',
+}
+
+// ============================================================================
+// Expressive display typography
+// ============================================================================
+
+/**
+ * CSS class name for the gradient text fill treatment applied to display-tier
+ * elements (daily-allowance hero, celebration headlines).
+ *
+ * Apply via `className` — the gradient is CSS-only, defined in globals.css.
+ * Automatically falls back to plain text under `prefers-reduced-motion: reduce`.
+ *
+ * Requirements: 2.5, 2.6, 2.11
+ */
+export const DISPLAY_GRADIENT_CLASS = 'display-gradient-text' as const
+
+/**
+ * Expressive display style object combining the display tier with tabular-nums.
+ *
+ * Use this for monetary hero amounts ($X.XX) that need aligned digits and
+ * the expressive gradient treatment. Pair with `DISPLAY_GRADIENT_CLASS` on the
+ * element's className for the full visual effect.
+ *
+ * Requirements: 2.3, 2.5, 2.6
+ */
+export const expressiveDisplay: CSSProperties = {
+  ...typography.display,
   fontVariantNumeric: 'tabular-nums',
 }
 

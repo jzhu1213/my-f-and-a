@@ -1,9 +1,9 @@
 /**
  * Shared style objects for reuse across simplified screens.
  *
- * Extracts commonly repeated inline style patterns from HomeScreen and
- * SettingsScreen into named, typed constants. All objects are
- * `React.CSSProperties`-compatible.
+ * This file serves as a backward-compatible barrel re-export. It preserves all
+ * existing exports that components depend on, while also re-exporting from the
+ * new token modules introduced in the design overhaul.
  *
  * Requirements: 8.2, 8.4
  */
@@ -11,6 +11,26 @@
 import type { CSSProperties } from "react"
 import type { TransactionCategory } from "@/types"
 import { FONT_FAMILY, spacing, pxToRem } from "./typography"
+
+// ============================================================================
+// Re-exports from new token modules
+// ============================================================================
+
+export type { TokenAccessor } from './tokens'
+export { opacity, zIndex } from './tokens'
+export type { OpacityStep, ZIndexLayer } from './tokens'
+
+export { surfaceColors, textColors, gradients, semanticColors } from './colors'
+export type { SurfaceColorName, TextColorName, GradientName } from './colors'
+
+export { elevations, radius } from './surfaces'
+export type { ElevationTier, ElevationDefinition, RadiusName } from './surfaces'
+
+export { spacingScale, safeArea, safeAreaPadding, safeAreaBottom } from './layout'
+export type { SpacingStep } from './layout'
+
+export { springPresets, durations, easings } from './motion'
+export type { SpringPreset, SpringPresetName, DurationName, EasingName } from './motion'
 
 // ============================================================================
 // Color ramp tokens (Phase 6 — task 260.2)
@@ -47,24 +67,6 @@ function buildRamp(prefix: string): ColorRamp {
  * Semantic color ramps referencing the CSS custom properties defined in
  * globals.css `:root`. Use these in inline styles instead of ad-hoc
  * `rgba(129, 140, 248, ...)` values.
- *
- * Example:
- * ```ts
- * <div style={{ background: colorRamp.accent[100], border: `1px solid ${colorRamp.accent[300]}` }} />
- * ```
- *
- * | Step | Typical use |
- * |------|-------------|
- * | 50 | Barely-visible bg (disabled, faint) |
- * | 100 | Subtle bg fill (selected rows, hover) |
- * | 200 | Medium bg fill (accent-muted, chips) |
- * | 300 | Border/ring (focus, selection ring) |
- * | 400 | Stronger border (active selection) |
- * | 500 | Base color (text, icons, badges) |
- * | 600 | Hover state (buttons, links) |
- * | 700 | Active/pressed state |
- * | 800 | Strong/prominent |
- * | 900 | Near-opaque (dark accent use) |
  */
 export const colorRamp = {
   accent: buildRamp('accent'),
@@ -79,20 +81,7 @@ export const colorRamp = {
 // ============================================================================
 
 /**
- * Per-`TransactionCategory` accent color used for the tinted icon-chip that
- * sits behind a category's icon. Single source of truth so every surface
- * (QuickLogArea, budget cards, transaction rows, CategoryDetailSheet) shows the
- * same color for a given category instead of scattering ad-hoc rgba values.
- *
- * Colors are drawn from the existing warm-purple palette / semantic tokens in
- * `globals.css` where they map naturally (transport→`--blue`, school→`--amber`,
- * health/income→`--green`, rent/fallback→the purple accents) and extended with
- * a few harmonizing hues for the remaining categories. All values are bright
- * enough to clear the WCAG 2.1 AA 3:1 non-text contrast ratio against the warm
- * dark background (`--bg` #12121f), and the icon itself inherits the color via
- * `currentColor`.
- *
- * The `fallback` entry backs unknown/custom categories.
+ * Per-`TransactionCategory` accent color used for the tinted icon-chip.
  */
 export const CATEGORY_ACCENTS: Record<TransactionCategory | "fallback", string> = {
   food: "#fb923c", // warm orange
@@ -109,8 +98,7 @@ export const CATEGORY_ACCENTS: Record<TransactionCategory | "fallback", string> 
 }
 
 /**
- * Resolve a category (built-in or arbitrary custom string) to its accent color,
- * falling back to the purple accent for unknown/custom categories.
+ * Resolve a category to its accent color, falling back to purple accent.
  */
 export function getCategoryAccent(category: TransactionCategory | string): string {
   return (CATEGORY_ACCENTS as Record<string, string>)[category] ?? CATEGORY_ACCENTS.fallback
@@ -123,23 +111,6 @@ export function getCategoryAccent(category: TransactionCategory | string): strin
 /**
  * White alpha fill tokens used for translucent surface backgrounds and borders.
  * Maps to CSS custom properties defined in globals.css (--fill-02 through --fill-15).
- *
- * Use these instead of scattered inline `rgba(255, 255, 255, ...)` values:
- * ```ts
- * <div style={{ background: fills[4], border: `1px solid ${fills[8]}` }} />
- * ```
- *
- * | Token | Typical use |
- * |-------|-------------|
- * | 2 | Barely-visible hover bg, faint separator |
- * | 3 | Glass surface default fill |
- * | 4 | Subtle chip/input bg, inactive surface |
- * | 5 | Slightly stronger chip bg |
- * | 6 | Active chip bg, round buttons, borders |
- * | 8 | Selected states, progress tracks, stronger borders |
- * | 10 | Hover-selected, prominent fills |
- * | 12 | Active/selected, toggle tracks |
- * | 15 | Dashed borders, strong overlay strokes |
  */
 export const fills = {
   2: "var(--fill-02)",
@@ -159,12 +130,6 @@ export const fills = {
 
 /**
  * Maximum content width used by all simplified screens.
- *
- * Tuned for comfortable reading (~60–70 characters per line at the body size)
- * and one-thumb reach on phones. Folio is phone-first, so this cap only takes
- * effect on tablet / desktop / installed-PWA widths — keeping the primary
- * column calm and centered rather than stretching edge-to-edge. Kept at 560 so
- * the hero number, cards, and copy stay in a single, easily-scanned column.
  */
 export const CONTENT_MAX_WIDTH = 560
 
@@ -173,21 +138,11 @@ export const DOCK_PADDING_BOTTOM = 120
 
 /**
  * Standard horizontal page padding (side gutters) for the simplified screens.
- *
- * 20px gives a generous, thumb-friendly edge margin without squeezing content
- * on narrow phones. Sits just inside `AppShell`'s own safe-area-aware inline
- * padding, so notch / rounded-corner insets are always cleared underneath it.
  */
 export const HORIZONTAL_PADDING = 20
 
 /**
- * Major-section vertical rhythm (Phase 6 — task 237.1, "let it breathe").
- *
- * The single source of truth for the gap between top-level sections on the
- * primary screens (e.g. hero → quick actions → recent → tip on Home, and the
- * grouped sections on Tools). Maps to the `spacing.xl` (32px) grid step for a
- * generous, consistent rhythm that reduces perceived clunkiness. Dense areas
- * (chip rows, list rows) intentionally stay tighter and are not driven by this.
+ * Major-section vertical rhythm.
  */
 export const SECTION_SPACING = spacing.xl
 
@@ -197,14 +152,6 @@ export const SECTION_SPACING = spacing.xl
 
 /**
  * Unified section header treatment (Phase 6 — task 238.2).
- *
- * ONE reusable overline-style label used everywhere section headings appear:
- * "Budget Limits", "Goals", "Categories", "Recent", card titles, etc.
- * Replaces the previous two ad-hoc variants (`sectionHeading` / `sectionHeadingStrong`).
- *
- * The style uses the `overline` tier from the type scale — small, uppercase,
- * wide-tracked — to create a clear, lightweight section label that contrasts
- * with the heavier `headline` / `title` levels used for actual content headings.
  */
 export const sectionHeader: CSSProperties = {
   fontFamily: FONT_FAMILY,
@@ -218,12 +165,12 @@ export const sectionHeader: CSSProperties = {
 }
 
 /**
- * @deprecated Use {@link sectionHeader} instead. Kept temporarily for gradual migration.
+ * @deprecated Use {@link sectionHeader} instead.
  */
 export const sectionHeading: CSSProperties = sectionHeader
 
 /**
- * @deprecated Use {@link sectionHeader} instead. Kept temporarily for gradual migration.
+ * @deprecated Use {@link sectionHeader} instead.
  */
 export const sectionHeadingStrong: CSSProperties = sectionHeader
 
@@ -243,14 +190,12 @@ export const linkButton: CSSProperties = {
 
 /**
  * Empty state container — centered flex column with generous spacing.
- * Phase 6 (task 264): increased gap and padding for a warmer, more spacious
- * feel when an area has no content.
  */
 export const emptyStateContainer: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  gap: spacing.sm, // 12px — slightly more generous
+  gap: spacing.sm,
   maxWidth: 280,
   margin: "0 auto",
 }
@@ -280,8 +225,7 @@ export const emptyStateSubtitle: CSSProperties = {
 }
 
 /**
- * Empty state action button — accent pill for the primary CTA inside an empty state.
- * Phase 6 (task 264): standard pill styling so every empty state drives the user forward.
+ * Empty state action button — accent pill for the primary CTA.
  */
 export const emptyStateAction: CSSProperties = {
   marginTop: 4,
@@ -297,7 +241,7 @@ export const emptyStateAction: CSSProperties = {
 }
 
 /**
- * List row — flex row with space-between, used for category/goal lists.
+ * List row — flex row with space-between.
  */
 export const listRow: CSSProperties = {
   display: "flex",
@@ -310,7 +254,6 @@ export const listRow: CSSProperties = {
 
 /**
  * Ghost pill button — transparent background with rounded border.
- * Used for "Log income" style secondary actions.
  */
 export const pillButton: CSSProperties = {
   background: "transparent",
@@ -350,8 +293,7 @@ export const chipButton: CSSProperties = {
 // ============================================================================
 
 /**
- * Named border-radius tokens used across all surfaces and controls.
- * Maps to CSS variables defined in globals.css (--radius-sm, --radius-md, etc.)
+ * Named border-radius tokens (numeric px values for backward compatibility).
  */
 export const borderRadius = {
   sm: 8,
@@ -366,17 +308,7 @@ export const borderRadius = {
 // ============================================================================
 
 /**
- * Tokenized shadow scale referencing the CSS custom properties defined in
- * globals.css `:root`. Use these in inline styles instead of raw rgba values.
- *
- * | Token | Use case |
- * |-------|----------|
- * | sm | Toggle knobs, small UI controls |
- * | md | Cards, segmented controls |
- * | lg | Elevated panels, toasts, sheets |
- * | xl | Overlays, hero glass, dropdowns |
- * | glowAccent | Selected states, subtle accent glow |
- * | glowAccentStrong | CTA buttons, prominent accent glow |
+ * Tokenized shadow scale referencing CSS custom properties.
  */
 export const shadows = {
   sm: "var(--shadow-sm)",
@@ -392,27 +324,7 @@ export const shadows = {
 // ============================================================================
 
 /**
- * ## Surface Hierarchy (Phase 6 — task 243)
- *
- * Folio uses three surface tiers to create clear visual hierarchy:
- *
- * | Tier | Component | When to use | Example |
- * |------|-----------|-------------|---------|
- * | 1 — Hero/Overlay | `GlassCard elevation="high"` | Single focal hero, celebration overlays, bottom sheets | DailyAllowanceHero, CelebrationOverlay |
- * | 2 — Primary Card | `GlassCard elevation="low"\|"medium"` | Featured insight cards, contextual tips, growth outlook | ContextualTipCard, CombinedGrowthOutlook |
- * | 3 — List/Dense | `Card` | Goal items, debt rows, category rows, settings, funding sources | GoalsScreen items, DebtScreen list |
- *
- * **Rules:**
- * - Never use `GlassCard` for repeating list items — the blur/shadow stacks
- *   create visual noise and collapse hierarchy.
- * - `Card` uses `var(--surface)` (opaque), no `backdrop-filter`, quiet shadow.
- * - Both share `var(--radius-md)` (12px) for consistent rounding.
- * - Glass is reserved for surfaces that need to "float" above the mesh.
- */
-
-/**
- * Glass surface — translucent background with backdrop blur, used for
- * secondary surfaces that sit over the mesh (e.g. inline forms, overlays).
+ * Glass surface — translucent background with backdrop blur.
  */
 export const glassSurface: CSSProperties = {
   background: fills[3],
@@ -423,22 +335,19 @@ export const glassSurface: CSSProperties = {
 }
 
 /**
- * Segmented control container — wraps a row of toggle buttons.
+ * Segmented control container.
  */
 export const segmentedControl: CSSProperties = {
   display: "flex",
   gap: 6,
   padding: 4,
   borderRadius: borderRadius.md,
-  // Phase 6 (task 237.2): the filled track already defines the control; soften
-  // the outline to a faint hairline instead of the hard --border so it reads as
-  // a calm surface. Selection is carried by the active button's fill + shadow.
   background: fills[4],
   border: `1px solid ${fills[6]}`,
 }
 
 /**
- * Segmented control button (active state applied conditionally).
+ * Segmented control button base.
  */
 export const segmentedButtonBase: CSSProperties = {
   flex: 1,

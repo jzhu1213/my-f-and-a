@@ -4,6 +4,7 @@ import { AuthProvider } from '../contexts/AuthContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { ToastProvider } from '../contexts/ToastContext'
 import { I18nProvider } from '../contexts/I18nContext'
+import { AmbientGlowProvider } from '../contexts/AmbientGlowContext'
 
 export const metadata: Metadata = {
   title: 'Folio',
@@ -50,7 +51,9 @@ export default function RootLayout({
           <I18nProvider>
             <AuthProvider>
               <ToastProvider>
-                {children}
+                <AmbientGlowProvider>
+                  {children}
+                </AmbientGlowProvider>
               </ToastProvider>
             </AuthProvider>
           </I18nProvider>

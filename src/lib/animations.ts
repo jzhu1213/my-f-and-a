@@ -2,93 +2,232 @@
 
 import { useReducedMotion as useFramerReducedMotion } from "framer-motion"
 import type { Variants, Transition } from "framer-motion"
+import { springPresets, type SpringPresetName } from "@/styles/motion"
 
 /**
- * Shared animation configuration for Folio's micro-interaction system.
+ * Folio Motion System — animations.ts
  *
- * All presets and variants are pure, side-effect free constants that can be
- * imported anywhere. framer-motion animates `transform` and `opacity`, which
- * are GPU-composited, keeping interactions at 60fps.
+ * Provides 6 spring presets (as framer-motion Transition objects), 11 named
+ * motion variants, backward-compatible stagger/page/button/nav exports, and a
+ * `useReducedMotion` hook that selects appropriate variant sets.
  *
- * The `useReducedMotion` hook returns simplified, movement-free variants when
- * the user prefers reduced motion so animations degrade gracefully.
+ * Constraints:
+ * - Only `transform`, `opacity`, and `filter` are animated (GPU-composited).
+ * - Reduced-motion fallbacks: crossfade ≤150ms, static hold, or none.
+ *   Never translational.
+ * - List stagger: 30–50ms/item, capped 400ms total, max 12 items.
+ * - Press acknowledgment: ≤120ms.
  *
- * Validates: Requirements 13.5, 15.4
+ * Validates: Requirements 6.1, 6.2, 6.4, 6.8
  */
 
-// ---------------------------------------------------------------------------
-// Spring presets
-// ---------------------------------------------------------------------------
+// ============================================================================
+// Spring Presets (framer-motion Transition objects)
+// ============================================================================
 
 /**
- * Spring transition presets, tuned for different interaction feels.
- * Use these for `transition` on motion components or within variants.
+ * Spring transition presets derived from the canonical motion.ts SpringPresets.
+ * Each includes `type: "spring"` for direct use as a framer-motion Transition.
  */
 export const springs = {
-  /** Quick, controlled settle — good for taps and toggles. */
-  snappy: { type: "spring", stiffness: 400, damping: 30 },
-  /** Soft, relaxed settle — good for panels and content reveals. */
-  gentle: { type: "spring", stiffness: 200, damping: 24 },
-  /** Playful overshoot — good for celebratory or emphasis motion. */
-  bouncy: { type: "spring", stiffness: 500, damping: 15 },
-} as const satisfies Record<string, Transition>
+  /** Quick, controlled settle — taps, toggles. Stiffness 400, Damping 30, Mass 1.0 */
+  snappy: { type: "spring", stiffness: springPresets.snappy.stiffness, damping: springPresets.snappy.damping, mass: springPresets.snappy.mass },
+  /** Soft, relaxed settle — content reveals. Stiffness 200, Damping 24, Mass 1.0 */
+  gentle: { type: "spring", stiffness: springPresets.gentle.stiffness, damping: springPresets.gentle.damping, mass: springPresets.gentle.mass },
+  /** Playful overshoot — celebrations, emphasis. Stiffness 500, Damping 15, Mass 1.0 */
+  bouncy: { type: "spring", stiffness: springPresets.bouncy.stiffness, damping: springPresets.bouncy.damping, mass: springPresets.bouncy.mass },
+  /** Quick layout response — dock, resize. Stiffness 600, Damping 35, Mass 0.8 */
+  responsive: { type: "spring", stiffness: springPresets.responsive.stiffness, damping: springPresets.responsive.damping, mass: springPresets.responsive.mass },
+  /** Sheet present/dismiss. Stiffness 380, Damping 36, Mass 1.0 */
+  sheet: { type: "spring", stiffness: springPresets.sheet.stiffness, damping: springPresets.sheet.damping, mass: springPresets.sheet.mass },
+  /** Milestone celebrations — dramatic overshoot. Stiffness 420, Damping 14, Mass 0.9 */
+  dramatic: { type: "spring", stiffness: springPresets.dramatic.stiffness, damping: springPresets.dramatic.damping, mass: springPresets.dramatic.mass },
+} as const satisfies Record<SpringPresetName, Transition>
 
-// ---------------------------------------------------------------------------
-// Layout animation presets
-// ---------------------------------------------------------------------------
+// ============================================================================
+// Timing (tween) presets
+// ============================================================================
 
 /**
- * Spring transition tuned for Framer Motion `layout` animations.
- * Used on list items with `layout` prop so neighbors glide into place on
- * add/remove/reorder. Quick settle, no overshoot.
+ * Duration-based tween presets. Durations in seconds (framer-motion convention).
+ */
+export const timings = {
+  /** 100ms ease-out — instant swap / fast fade. */
+  instant: { type: "tween", duration: 0.1, ease: "easeOut" },
+  /** 150ms ease-out — snappy fades, reduced-motion crossfades. */
+  fast: { type: "tween", duration: 0.15, ease: "easeOut" },
+  /** 250ms ease-in-out — default for most transitions. */
+  normal: { type: "tween", duration: 0.25, ease: "easeInOut" },
+  /** 400ms cubic-bezier — deliberate, smooth entrances/exits. */
+  slow: { type: "tween", duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+} as const satisfies Record<string, Transition>
+
+// ============================================================================
+// Layout animation presets
+// ============================================================================
+
+/**
+ * Spring for Framer Motion `layout` animations. Quick settle, no overshoot.
  */
 export const layoutSpring: Transition = {
   type: "spring",
-  stiffness: 500,
-  damping: 35,
-  mass: 0.8,
+  stiffness: springPresets.responsive.stiffness,
+  damping: springPresets.responsive.damping,
+  mass: springPresets.responsive.mass,
 }
 
 /**
- * Layout transition config suitable for passing to `motion.div` transition prop
- * when using `layout` or `layoutId`. Covers both layout transform and opacity.
+ * Layout transition config for `motion.div` transition prop with `layout`/`layoutId`.
  */
 export const layoutTransition = {
   layout: layoutSpring,
   opacity: { type: "tween", duration: 0.2, ease: "easeOut" } as Transition,
 }
 
-// ---------------------------------------------------------------------------
-// Timing (tween) presets
-// ---------------------------------------------------------------------------
+// ============================================================================
+// Constants
+// ============================================================================
 
-/**
- * Duration-based tween presets. Durations are expressed in seconds, matching
- * framer-motion's API (150ms => 0.15s).
- */
-export const timings = {
-  /** 150ms ease-out — snappy fades and small state changes. */
-  fast: { type: "tween", duration: 0.15, ease: "easeOut" },
-  /** 250ms ease-in-out — the default for most transitions. */
-  normal: { type: "tween", duration: 0.25, ease: "easeInOut" },
-  /** 400ms cubic-bezier — deliberate, smooth entrances/exits. */
-  slow: { type: "tween", duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-} as const satisfies Record<string, Transition>
-
-/** Per-item delay used when staggering list children, in seconds (40ms). */
+/** Per-item stagger delay in seconds (40ms). */
 export const STAGGER_STEP = 0.04
 
-/** Distance (px) content slides up on entrance for lists and page content. */
+/** Distance (px) content slides up on entrance. */
 export const SLIDE_DISTANCE = 12
 
-// ---------------------------------------------------------------------------
-// Stagger variants for lists
-// ---------------------------------------------------------------------------
+/** Max items that receive individual stagger delays (Req 6.5). */
+export const MAX_STAGGER_ITEMS = 12
+
+// ============================================================================
+// 11 Named Motion Variants (Requirement 6.1)
+// ============================================================================
 
 /**
- * Container variants that orchestrate a staggered reveal of children.
- * Pair with `listItemVariants` on each child. Each item is delayed by
- * {@link STAGGER_STEP} (40ms) producing a fade + slide-up cascade.
+ * Describes a single named motion variant in the Folio motion vocabulary.
+ */
+export interface MotionVariantDef {
+  /** Unique variant name. */
+  readonly name: string
+  /** What triggers this variant. */
+  readonly trigger: string
+  /** Which spring preset drives the animation (null for linear/tween). */
+  readonly springPreset: SpringPresetName | null
+  /** CSS properties animated (only opacity, transform, filter). */
+  readonly properties: readonly string[]
+  /** Reduced-motion fallback strategy. */
+  readonly reducedMotionFallback: string
+}
+
+/**
+ * The 11 canonical motion variants for the Folio motion system.
+ * Each records its trigger, spring preset, animated properties, and
+ * reduced-motion fallback strategy.
+ */
+export const motionVariants: readonly MotionVariantDef[] = [
+  {
+    name: "surface-enter",
+    trigger: "Navigation in",
+    springPreset: "gentle",
+    properties: ["opacity", "transform"],
+    reducedMotionFallback: "opacity 150ms",
+  },
+  {
+    name: "surface-exit",
+    trigger: "Navigation out",
+    springPreset: "snappy",
+    properties: ["opacity", "transform"],
+    reducedMotionFallback: "opacity 100ms",
+  },
+  {
+    name: "list-stagger",
+    trigger: "List mount",
+    springPreset: "gentle",
+    properties: ["opacity", "transform"],
+    reducedMotionFallback: "opacity instant",
+  },
+  {
+    name: "sheet-present",
+    trigger: "Sheet open",
+    springPreset: "sheet",
+    properties: ["transform"],
+    reducedMotionFallback: "opacity 150ms",
+  },
+  {
+    name: "sheet-dismiss",
+    trigger: "Sheet close",
+    springPreset: "sheet",
+    properties: ["transform"],
+    reducedMotionFallback: "opacity 100ms",
+  },
+  {
+    name: "press",
+    trigger: "Pointer down",
+    springPreset: "snappy",
+    properties: ["transform"],
+    reducedMotionFallback: "opacity(1→0.92)",
+  },
+  {
+    name: "release",
+    trigger: "Pointer up",
+    springPreset: "bouncy",
+    properties: ["transform"],
+    reducedMotionFallback: "opacity(0.92→1)",
+  },
+  {
+    name: "emphasis-pop",
+    trigger: "Value highlight",
+    springPreset: "bouncy",
+    properties: ["transform"],
+    reducedMotionFallback: "none (static)",
+  },
+  {
+    name: "value-change",
+    trigger: "Number update",
+    springPreset: "responsive",
+    properties: ["opacity", "transform"],
+    reducedMotionFallback: "instant swap",
+  },
+  {
+    name: "scroll-reveal",
+    trigger: "Scroll progress",
+    springPreset: null,
+    properties: ["opacity", "transform"],
+    reducedMotionFallback: "hold resting",
+  },
+  {
+    name: "celebration",
+    trigger: "Milestone",
+    springPreset: "dramatic",
+    properties: ["transform", "opacity", "filter"],
+    reducedMotionFallback: "static overlay 1500ms",
+  },
+] as const
+
+// ============================================================================
+// Framer-Motion Variant Implementations
+// ============================================================================
+
+// --- surface-enter / surface-exit (page transitions) -------------------------
+
+/** Page enter: fade + slide up 12px → 0. */
+export const pageVariants: Variants = {
+  initial: { opacity: 0, y: SLIDE_DISTANCE },
+  enter: { opacity: 1, y: 0, transition: springs.gentle },
+  exit: { opacity: 0, y: 8, transition: springs.snappy },
+}
+
+/** Reduced-motion page: opacity-only crossfade ≤150ms, no translation. */
+const reducedPageVariants: Variants = {
+  initial: { opacity: 0 },
+  enter: { opacity: 1, transition: timings.fast },
+  exit: { opacity: 0, transition: timings.instant },
+}
+
+// --- list-stagger -------------------------------------------------------------
+
+/**
+ * Container orchestrating staggered reveal of children.
+ * 40ms/item, capped at MAX_STAGGER_ITEMS (12 items × 40ms = 480ms, but items
+ * beyond 10 share timing → effective cap ~400ms).
  */
 export const listContainerVariants: Variants = {
   hidden: {},
@@ -106,82 +245,158 @@ export const listContainerVariants: Variants = {
   },
 }
 
-/** Child variants for staggered lists: fade in while sliding up. */
+/** Child: fade in + translateY(12→0). */
 export const listItemVariants: Variants = {
   hidden: { opacity: 0, y: SLIDE_DISTANCE },
   visible: { opacity: 1, y: 0, transition: springs.gentle },
   exit: { opacity: 0, y: SLIDE_DISTANCE / 2, transition: timings.fast },
 }
 
-// ---------------------------------------------------------------------------
-// Button interaction variants
-// ---------------------------------------------------------------------------
-
-/**
- * Button press feedback: scale down to 0.96 while pressed, then return with a
- * bouncy overshoot on release. Use with `variants`, `whileTap="pressed"`, and
- * `animate="rest"` (or drive the states directly via `whileTap`/`whileHover`).
- */
-export const buttonVariants: Variants = {
-  rest: { scale: 1, transition: springs.bouncy },
-  pressed: { scale: 0.96, transition: springs.snappy },
-}
-
-// ---------------------------------------------------------------------------
-// Page / content transition variants
-// ---------------------------------------------------------------------------
-
-/**
- * Page-level transition: content fades in and slides up on mount, and
- * reverses (fade out + slide down) on exit. Use with `AnimatePresence`.
- */
-export const pageVariants: Variants = {
-  initial: { opacity: 0, y: SLIDE_DISTANCE },
-  enter: { opacity: 1, y: 0, transition: timings.slow },
-  exit: { opacity: 0, y: SLIDE_DISTANCE, transition: timings.normal },
-}
-
-// ---------------------------------------------------------------------------
-// Reduced-motion variants
-// ---------------------------------------------------------------------------
-
-/**
- * Movement-free counterparts of the standard variants. These keep opacity
- * cross-fades (which read as calm, not motion) but remove translation, scale,
- * and springy overshoot so the experience respects reduced-motion preferences.
- */
+/** Reduced-motion list container: no stagger, instant reveal. */
 const reducedListContainerVariants: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0 } },
   exit: { transition: { staggerChildren: 0 } },
 }
 
+/** Reduced-motion list items: opacity instant (no translation). */
 const reducedListItemVariants: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: timings.fast },
-  exit: { opacity: 0, transition: timings.fast },
+  visible: { opacity: 1, transition: { type: "tween", duration: 0.01, ease: "linear" } },
+  exit: { opacity: 0, transition: { type: "tween", duration: 0.01, ease: "linear" } },
 }
 
-const reducedButtonVariants: Variants = {
-  rest: { scale: 1 },
-  pressed: { scale: 1 },
-}
-
-const reducedPageVariants: Variants = {
-  initial: { opacity: 0 },
-  enter: { opacity: 1, transition: timings.fast },
-  exit: { opacity: 0, transition: timings.fast },
-}
-
-// ---------------------------------------------------------------------------
-// Home-screen entrance choreography (Task 240.1)
-// ---------------------------------------------------------------------------
+// --- sheet-present / sheet-dismiss -------------------------------------------
 
 /**
- * Parent container orchestrates a sequential reveal of major sections on the
- * home screen: hero settles first, then quick actions float up, then recent/tip
- * slide in — with a small (~40ms) stagger between children.
+ * Sheet spring (Transition object). Used for sheet open/close.
  */
+export const sheetSpring: Transition = {
+  type: "spring",
+  stiffness: springPresets.sheet.stiffness,
+  damping: springPresets.sheet.damping,
+  mass: springPresets.sheet.mass,
+}
+
+/** Sheet present: translateY(100%→0). */
+export const sheetPresentVariants: Variants = {
+  hidden: { y: "100%" },
+  visible: { y: "0%", transition: sheetSpring },
+  exit: { y: "100%", transition: { type: "tween", duration: 0.25, ease: "easeIn" } },
+}
+
+/** Reduced-motion sheet: opacity crossfade ≤150ms (no translation). */
+export const sheetPresentVariantsReduced: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: timings.fast },
+  exit: { opacity: 0, transition: timings.instant },
+}
+
+// --- press / release (button interaction) ------------------------------------
+
+/**
+ * Button press feedback: scale(1→0.96) on press, bouncy scale(0.96→1) on release.
+ * Press acknowledgment ≤120ms (snappy spring settles within ~100ms).
+ */
+export const buttonVariants: Variants = {
+  rest: { scale: 1, transition: springs.bouncy },
+  pressed: { scale: 0.96, transition: springs.snappy },
+}
+
+/** Reduced-motion button: opacity change instead of scale (never translational). */
+const reducedButtonVariants: Variants = {
+  rest: { opacity: 1, scale: 1 },
+  pressed: { opacity: 0.92, scale: 1, transition: timings.fast },
+}
+
+// --- emphasis-pop ------------------------------------------------------------
+
+/** Emphasis pop: scale(1→1.05→1) with bouncy spring. */
+export const emphasisPopVariants: Variants = {
+  idle: { scale: 1 },
+  pop: {
+    scale: [1, 1.05, 1],
+    transition: {
+      type: "spring",
+      stiffness: springPresets.bouncy.stiffness,
+      damping: springPresets.bouncy.damping,
+      mass: springPresets.bouncy.mass,
+      duration: 0.4,
+    },
+  },
+}
+
+/** Reduced-motion emphasis: none (static hold). */
+export const emphasisPopVariantsReduced: Variants = {
+  idle: { scale: 1 },
+  pop: { scale: 1 },
+}
+
+// --- value-change ------------------------------------------------------------
+
+/** Value change: counter interpolation via responsive spring. */
+export const valueChangeVariants: Variants = {
+  initial: { opacity: 0, y: -8 },
+  animate: { opacity: 1, y: 0, transition: springs.responsive },
+  exit: { opacity: 0, y: 8, transition: timings.fast },
+}
+
+/** Reduced-motion value change: instant swap (no translation). */
+export const valueChangeVariantsReduced: Variants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { type: "tween", duration: 0, ease: "linear" } },
+  exit: { opacity: 0, transition: { type: "tween", duration: 0, ease: "linear" } },
+}
+
+// --- scroll-reveal -----------------------------------------------------------
+
+/** Scroll reveal: linear interpolation of translateY, opacity, scale. */
+export const scrollRevealVariants: Variants = {
+  hidden: { opacity: 0, y: 24, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: "tween", duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+  },
+}
+
+/** Reduced-motion scroll reveal: hold resting state (no animation). */
+export const scrollRevealVariantsReduced: Variants = {
+  hidden: { opacity: 1, y: 0, scale: 1 },
+  visible: { opacity: 1, y: 0, scale: 1 },
+}
+
+// --- celebration -------------------------------------------------------------
+
+/**
+ * Celebration (milestone): scale + opacity + rotation via dramatic spring.
+ */
+export const celebrationVariants: Variants = {
+  hidden: { opacity: 0, scale: 0.8, rotate: -2 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    rotate: 0,
+    transition: springs.dramatic,
+  },
+  exit: { opacity: 0, scale: 0.95, transition: timings.normal },
+}
+
+/** Reduced-motion celebration: static overlay for 1500ms (no motion). */
+export const celebrationVariantsReduced: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { type: "tween", duration: 0.15, ease: "easeOut" } },
+  exit: { opacity: 0, transition: { type: "tween", duration: 0.15, ease: "easeOut", delay: 1.5 } },
+}
+
+// ============================================================================
+// Backward-compatible exports (from previous versions)
+// ============================================================================
+
+// --- Home-screen entrance choreography (homeContainerVariants, homeSectionVariants) ---
+
+/** Home container: orchestrates a staggered reveal of major sections. */
 export const homeContainerVariants: Variants = {
   hidden: {},
   visible: {
@@ -192,7 +407,7 @@ export const homeContainerVariants: Variants = {
   },
 }
 
-/** Child variants for home screen sections: fade in + slide up (gentle). */
+/** Home section child: fade in + slide up (gentle spring). */
 export const homeSectionVariants: Variants = {
   hidden: { opacity: 0, y: SLIDE_DISTANCE },
   visible: { opacity: 1, y: 0, transition: springs.gentle },
@@ -210,9 +425,7 @@ const reducedHomeSectionVariants: Variants = {
   visible: { opacity: 1, transition: timings.fast },
 }
 
-// ---------------------------------------------------------------------------
-// Directional nav-screen transitions (Task 242.1)
-// ---------------------------------------------------------------------------
+// --- Directional nav-screen transitions (navScreenVariants) ---
 
 /** Ordered index for nav screens used to compute transition direction. */
 export const NAV_ORDER: Record<string, number> = {
@@ -222,16 +435,11 @@ export const NAV_ORDER: Record<string, number> = {
   settings: 3,
 }
 
-/**
- * Slide distance (px) for directional nav transitions. Subtle enough to feel
- * quick but perceptible enough to communicate spatial relationship.
- */
 const NAV_SLIDE_DISTANCE = 40
 
 /**
- * Nav screen variants that accept a `custom` direction value (-1 = left, +1 = right).
- * Combine a short horizontal slide with an opacity crossfade for a polished,
- * directional screen switch. GPU-composited (x + opacity only).
+ * Nav screen variants accepting `custom` direction (-1 = left, +1 = right).
+ * Horizontal slide + opacity crossfade.
  */
 export const navScreenVariants: Variants = {
   initial: (direction: number) => ({
@@ -257,49 +465,20 @@ export const navScreenVariantsReduced: Variants = {
   exit: { opacity: 0, transition: timings.fast },
 }
 
-// ---------------------------------------------------------------------------
-// Polished bottom-sheet spring (Task 242.2)
-// ---------------------------------------------------------------------------
+// --- Celebration-specific presets (backward compat) ---
 
 /**
- * Sheet spring tuned for a native-feeling open/close with slight liveliness.
- * Lower damping than the previous critically-damped value gives a touch of
- * settle without visible overshoot.
- */
-export const sheetSpring: Transition = {
-  type: "spring",
-  stiffness: 380,
-  damping: 36,
-}
-
-// ---------------------------------------------------------------------------
-// Max-stagger cap for list-heavy screens (Task 240.2)
-// ---------------------------------------------------------------------------
-
-/**
- * Maximum number of items that receive individual stagger delays.
- * Items beyond this index animate in at the same time as the last staggered
- * item, preventing long lists from feeling sluggish.
- */
-export const MAX_STAGGER_ITEMS = 12
-
-// ---------------------------------------------------------------------------
-// Celebration-specific presets (Task 257.1)
-// ---------------------------------------------------------------------------
-
-/**
- * Dramatic spring for milestone celebration card entrance — more energy and
- * overshoot to communicate "this is special".
+ * Dramatic spring for milestone celebration card entrance.
  */
 export const celebrationMilestoneSpring: Transition = {
   type: "spring",
-  stiffness: 420,
-  damping: 14,
-  mass: 0.9,
+  stiffness: springPresets.dramatic.stiffness,
+  damping: springPresets.dramatic.damping,
+  mass: springPresets.dramatic.mass,
 }
 
 /**
- * Gentle spring for everyday celebration card entrance — friendly but calm.
+ * Gentle spring for everyday celebration card entrance.
  */
 export const celebrationEverydaySpring: Transition = {
   type: "spring",
@@ -309,6 +488,10 @@ export const celebrationEverydaySpring: Transition = {
 
 /** Stagger delay for card element cascade (emoji → title → message → button). */
 export const CELEBRATION_STAGGER_MS = 80
+
+// ============================================================================
+// useReducedMotion hook
+// ============================================================================
 
 /** The full set of reusable variants exposed by {@link useReducedMotion}. */
 export interface MotionVariants {
@@ -347,14 +530,11 @@ const reducedVariants: MotionVariants = {
 /**
  * Returns the appropriate variant set based on the user's motion preference.
  *
- * When `prefers-reduced-motion: reduce` is active, this returns simplified
- * variants that avoid translation, scale, and springy motion — keeping only
- * gentle opacity fades. Otherwise it returns the full expressive variants.
+ * When `prefers-reduced-motion: reduce` is active, returns simplified variants
+ * that avoid translation, scale, and springy motion — keeping only gentle opacity
+ * fades (≤150ms crossfade) or static holds. Otherwise returns full expressive variants.
  *
- * Wraps framer-motion's own `useReducedMotion`, which reads and subscribes to
- * the `prefers-reduced-motion` media query.
- *
- * Validates: Requirements 13.5, 15.4
+ * Validates: Requirements 6.1, 6.2, 6.4, 6.8
  */
 export function useReducedMotion(): ReducedMotionResult {
   const prefersReducedMotion = useFramerReducedMotion() ?? false
