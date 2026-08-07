@@ -848,7 +848,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   />
                   {/* Main row */}
                   <motion.div
-                    className="flex items-center justify-between gap-4 py-3 cursor-pointer transition-colors"
+                    className="flex items-center justify-between gap-4 py-3 cursor-pointer transition-colors hover:bg-white/[0.03]"
                     style={{
                       paddingLeft: 36,
                       paddingRight: 16,
@@ -862,7 +862,6 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         setExpandedId(expanded ? null : tx.id)
                       }
                     }}
-                    whileHover={{ background: isSelected ? 'rgba(129, 140, 248, 0.12)' : 'rgba(255,255,255,0.03)' }}
                     whileTap={{ scale: 0.98 }}
                     transition={springs.snappy}
                   >

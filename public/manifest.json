@@ -4,6 +4,7 @@
   "description": "Simple budgeting for college students and young adults",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#12121f",
   "theme_color": "#12121f",
   "icons": [

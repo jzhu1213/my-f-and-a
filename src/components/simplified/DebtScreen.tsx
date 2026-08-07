@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, useReducedMotion } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
 import type { Debt, DebtType } from "@/types/folio"
 import { DEBT_TYPES } from "@/types/folio"
@@ -110,6 +110,7 @@ export function DebtScreen({
   onDeleteDebt,
   onClose,
 }: DebtScreenProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [form, setForm] = useState<DebtFormData>(DEFAULT_FORM)
@@ -197,7 +198,7 @@ export function DebtScreen({
       >
         <motion.button
           onClick={onClose}
-          whileTap={{ scale: 0.92 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.92 }}
           transition={springs.snappy}
           style={{
             background: "rgba(255,255,255,0.06)",
@@ -311,7 +312,7 @@ export function DebtScreen({
                   </div>
                   <motion.button
                     onClick={() => handleDelete(debt.id)}
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
                     transition={springs.snappy}
                     style={{
                       background: "none",
@@ -357,7 +358,7 @@ export function DebtScreen({
         {!showAddForm && !editingId && (
           <motion.button
             onClick={openAddForm}
-            whileTap={{ scale: 0.97 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
             transition={springs.snappy}
             style={{
               marginTop: 14,
@@ -399,6 +400,8 @@ interface DebtFormProps {
 }
 
 function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormProps) {
+  const { prefersReducedMotion } = useReducedMotion()
+
   return (
     <div
       style={{
@@ -432,7 +435,7 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
               <motion.button
                 key={dt.type}
                 onClick={() => setForm(prev => ({ ...prev, type: dt.type }))}
-                whileTap={{ scale: 0.95 }}
+                whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
                 transition={springs.snappy}
                 style={{
                   padding: "8px 14px",
@@ -504,7 +507,7 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
       <div style={{ display: "flex", gap: 8 }}>
         <motion.button
           onClick={onCancel}
-          whileTap={{ scale: 0.97 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
           transition={springs.snappy}
           style={{
             flex: 1,
@@ -524,7 +527,7 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
         </motion.button>
         <motion.button
           onClick={onSave}
-          whileTap={{ scale: 0.97 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
           transition={springs.snappy}
           disabled={saving || !form.name.trim() || form.balance <= 0}
           style={{

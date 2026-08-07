@@ -222,6 +222,73 @@ checkSection(
   'Semantic/accent colors on GlassCard surfaces'
 );
 
+// ── Phase 6 Surfaces: Category icon chips, FAB gradient, Section headers ──
+console.log('┌─────────────────────────────────────────────────────────────┐');
+console.log('│ PHASE 6 SURFACES (Category chips, FAB, Sections)           │');
+console.log('└─────────────────────────────────────────────────────────────┘\n');
+
+// Category accent colors used as icon-on-tint chip fills.
+// The icon inherits the accent color via currentColor and sits on a ~10% alpha
+// tint of that color over --bg or --surface. We verify the accent color as text
+// against the effective tint background (alpha-blended over --bg).
+const categoryAccents = {
+  'food (#fb923c)': '#fb923c',
+  'rent (#a78bfa)': '#a78bfa',
+  'transport (#60a5fa)': '#60a5fa',
+  'school (#fbbf24)': '#fbbf24',
+  'fun (#f472b6)': '#f472b6',
+  'health (#4ade80)': '#4ade80',
+  'subscriptions (#22d3ee)': '#22d3ee',
+  'gig (#c084fc)': '#c084fc',
+  'other (#94a3b8)': '#94a3b8',
+};
+
+// Category chip tint backgrounds: accent color at ~14% alpha blended over --surface
+console.log('Category icon colors on tinted chip backgrounds (need 3:1):');
+console.log('─'.repeat(65));
+for (const [name, hex] of Object.entries(categoryAccents)) {
+  const { r, g, b } = hexToRGB(hex);
+  const tintBg = blendOver('#1a1a2e', r, g, b, 0.14);
+  const ratio = contrastRatio(hex, tintBg);
+  const pass = ratio >= UI_COMPONENT_MIN;
+  if (!pass) allPass = false;
+  console.log(`  ${pass ? '✓' : '✗'} ${name} on tint (${tintBg}): ${ratio.toFixed(2)}:1 ${pass ? '' : '⚠️ FAIL'}`);
+}
+console.log('');
+
+// FAB gradient: white icon/text on the darkest stop of the FAB gradient (#6d28d9)
+console.log('FAB white icon on gradient (darkest stop #6d28d9) (need 4.5:1):');
+console.log('─'.repeat(65));
+const fabRatio = contrastRatio('#ffffff', '#6d28d9');
+const fabPass = fabRatio >= NORMAL_TEXT_MIN;
+if (!fabPass) allPass = false;
+console.log(`  ${fabPass ? '✓' : '✗'} #fff on #6d28d9: ${fabRatio.toFixed(2)}:1 ${fabPass ? '' : '⚠️ FAIL'}`);
+// Also check lightest stop
+const fabLightRatio = contrastRatio('#ffffff', '#9b7af8');
+const fabLightPass = fabLightRatio >= UI_COMPONENT_MIN;
+if (!fabLightPass) allPass = false;
+console.log(`  ${fabLightPass ? '✓' : '✗'} #fff on #9b7af8 (lightest): ${fabLightRatio.toFixed(2)}:1 ${fabLightPass ? '' : '⚠️ FAIL'}`);
+console.log('');
+
+// Section header overline text (--muted on --bg) — already covered above but called out
+console.log('Section header overline (--muted on --bg) (need 4.5:1):');
+console.log('─'.repeat(65));
+const sectionRatio = contrastRatio('#9494b8', '#12121f');
+const sectionPass = sectionRatio >= NORMAL_TEXT_MIN;
+if (!sectionPass) allPass = false;
+console.log(`  ${sectionPass ? '✓' : '✗'} --muted on --bg: ${sectionRatio.toFixed(2)}:1 ${sectionPass ? '' : '⚠️ FAIL'}`);
+console.log('');
+
+// Toast surface: white text on blurred glass (rgba(26,26,46,0.85) ≈ #1a1a2e at 85% over #12121f)
+const toastBg = blendOver('#12121f', 26, 26, 46, 0.85);
+console.log(`Toast text on glass surface (${toastBg}) (need 4.5:1):`);
+console.log('─'.repeat(65));
+const toastTextRatio = contrastRatio('#ffffff', toastBg);
+const toastPass = toastTextRatio >= NORMAL_TEXT_MIN;
+if (!toastPass) allPass = false;
+console.log(`  ${toastPass ? '✓' : '✗'} #fff on toast bg: ${toastTextRatio.toFixed(2)}:1 ${toastPass ? '' : '⚠️ FAIL'}`);
+console.log('');
+
 // ── Summary ──
 console.log('═══════════════════════════════════════════════════════════════');
 if (allPass) {

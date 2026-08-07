@@ -2,7 +2,7 @@
 
 import { useState, useCallback, type ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -139,6 +139,7 @@ export function ManagedListScreen<T extends ManagedItem>({
   renderSummary,
   listLayout = "single-card",
 }: ManagedListScreenProps<T>) {
+  const { prefersReducedMotion } = useReducedMotion()
   // ── State ──────────────────────────────────────────────────────────────────
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -244,7 +245,7 @@ export function ManagedListScreen<T extends ManagedItem>({
       {showAddButton && (
         <motion.button
           onClick={openAddForm}
-          whileTap={{ scale: 0.97 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
           transition={springs.snappy}
           style={{
             marginTop: 14,
@@ -287,7 +288,7 @@ export function ManagedListScreen<T extends ManagedItem>({
       >
         <motion.button
           onClick={onBack}
-          whileTap={{ scale: 0.92 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.92 }}
           transition={springs.snappy}
           style={{
             background: "rgba(255,255,255,0.06)",

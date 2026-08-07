@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
@@ -103,6 +103,7 @@ const secondaryButton: React.CSSProperties = {
  * Task 170.1
  */
 export function HouseholdPoolScreen({ onClose }: HouseholdPoolScreenProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   const [view, setView] = useState<View>("list")
   const [pools, setPools] = useState<HouseholdPool[]>([])
   const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null)
@@ -267,12 +268,13 @@ function PoolListView({
 // ============================================================================
 
 function PoolCard({ pool, onOpen }: { pool: HouseholdPool; onOpen: () => void }) {
+  const { prefersReducedMotion } = useReducedMotion()
   const summary = getPoolSummary(pool.id)
   const spent = summary?.spentThisMonth ?? 0
   const pct = pool.monthlyLimit > 0 ? Math.min(1, spent / pool.monthlyLimit) : 0
 
   return (
-    <motion.div whileTap={{ scale: 0.98 }} transition={springs.snappy}>
+    <motion.div whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }} transition={springs.snappy}>
       <GlassCard
         elevation="low"
         style={{ padding: "16px 18px", cursor: "pointer" }}

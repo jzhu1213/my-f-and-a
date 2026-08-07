@@ -172,7 +172,7 @@ function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
       <motion.button
         type="button"
         onClick={onLogIncome}
-        whileTap={{ scale: 0.95 }}
+        whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
         transition={springs.bouncy}
         aria-label="Log income to top up your budget"
         style={{
@@ -1116,7 +1116,7 @@ export function HomeScreen({
             <motion.button
               type="button"
               onClick={() => onLogExpense()}
-              whileTap={{ scale: 0.96 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
               transition={springs.bouncy}
               style={{
                 flex: 1.6,
@@ -1140,7 +1140,7 @@ export function HomeScreen({
             <motion.button
               type="button"
               onClick={onLogIncome}
-              whileTap={{ scale: 0.96 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
               transition={springs.bouncy}
               style={{
                 flex: 1,
@@ -1343,7 +1343,7 @@ export function HomeScreen({
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * STAGGER_STEP, ...timings.normal }}
-                    whileTap={{ scale: 0.95 }}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
                     style={chipButton}
                   >
                     <CategoryIcon category={repeat.category} size={26} />
@@ -1455,7 +1455,7 @@ export function HomeScreen({
                     key={row.category}
                     type="button"
                     onClick={() => setSelectedRow(row)}
-                    whileTap={{ scale: 0.97 }}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
                     transition={springs.bouncy}
                     aria-label={budgetLabel}
                     style={{

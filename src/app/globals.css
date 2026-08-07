@@ -1889,8 +1889,8 @@ input[type="date"] {
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  /* Refined warm purple gradient — slightly richer for more pop */
-  background: linear-gradient(135deg, #b49aff 0%, #8b5cf6 40%, #6d28d9 100%);
+  /* Refined warm purple gradient — richer tones ensuring WCAG AA white icon contrast */
+  background: linear-gradient(135deg, #9b7af8 0%, #8b5cf6 40%, #6d28d9 100%);
   color: #fff;
   /* Core shadow + outer glow ring */
   box-shadow:
@@ -2429,5 +2429,99 @@ input[type="date"] {
 @media (prefers-reduced-motion: reduce) {
   .history-screen__fab {
     transition: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Phase 6 Task 273: Cross-device & visual QA
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 273.1: Responsive & device sweep fixes ─────────────────────── */
+
+/*
+ * Small phones (≤360px viewport): Reduce category pill width so the grid
+ * wraps correctly without horizontal overflow. At 320px with 20px gutters,
+ * usable width is 280px. Four 72px pills (288px + 3×8px gap = 312px) would
+ * overflow, so we shrink pills to 64px (4×64 + 3×8 = 280px — exact fit).
+ */
+@media (max-width: 360px) {
+  .cat-pill {
+    width: 64px;
+    min-height: 76px;
+    padding: 12px 4px 8px;
+  }
+
+  /* Tighten the hero amount on very small phones */
+  .hero-amount {
+    font-size: clamp(2rem, 10vw, 2.875rem) !important;
+  }
+
+  /* Slightly narrow dock padding for cramped viewports */
+  .app-dock {
+    padding: 6px;
+  }
+
+  .app-dock__item {
+    width: 46px;
+    height: 42px;
+  }
+}
+
+/*
+ * Bottom sheet: add safe-area-inset-bottom padding so content clears the
+ * iOS home indicator when the sheet is open. This was previously missing
+ * from the .sheet class (only the legacy .t-tab-nav had safe-area handling).
+ */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .sheet {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/*
+ * Tablet / larger viewports (≥600px): ensure the 560px max-width content
+ * column is visually centered with generous padding. The gradient mesh orbs
+ * already use vmax so they scale naturally.
+ */
+@media (min-width: 600px) {
+  .app-content {
+    padding-inline: max(32px, env(safe-area-inset-left, 0px));
+  }
+
+  /* Give the dock a bit more breathing room on tablets */
+  .app-dock {
+    padding: 10px 14px;
+  }
+}
+
+/* ── 273.2: Theme parity — ensure all root tokens have dark overrides ── */
+/*
+ * The dark theme already covers ramps, fills, shadows, and radius tokens.
+ * Explicitly set --text and --dim to guarantee parity and prevent
+ * inheritance issues in edge cases (e.g. nested theme wrappers).
+ */
+[data-theme="dark"] {
+  --text:  #ffffff;
+  --dim:   #2e2e2e;
+}
+
+/*
+ * Gradient mesh orbs in dark theme: reduce the purple intensity further
+ * since the brutalist theme uses pure-black backgrounds where even faint
+ * orbs can appear overly saturated. Orb positions/sizes stay the same
+ * (they use vmax units and scale naturally across phone/tablet viewports).
+ */
+[data-theme="dark"] .gradient-mesh__orb {
+  opacity: 0.12;
+  filter: blur(80px);
+}
+
+/*
+ * Glass card @supports fallback — in the dark theme the opaque fallback
+ * surface should be darker since --bg is pure black.
+ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-theme="dark"] .glass-card {
+    background: rgba(13, 13, 13, 0.96);
   }
 }

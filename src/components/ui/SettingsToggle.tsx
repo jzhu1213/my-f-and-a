@@ -15,7 +15,7 @@
  */
 
 import { motion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, useReducedMotion } from "@/lib/animations"
 import { shadows } from "@/styles/shared"
 
 export interface SettingsToggleProps {
@@ -35,6 +35,8 @@ export function SettingsToggle({
   ariaLabel,
   disabled = false,
 }: SettingsToggleProps) {
+  const { prefersReducedMotion } = useReducedMotion()
+
   return (
     <motion.button
       type="button"
@@ -43,7 +45,7 @@ export function SettingsToggle({
       aria-label={ariaLabel}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      whileTap={{ scale: disabled ? 1 : 0.92 }}
+      whileTap={prefersReducedMotion ? undefined : { scale: disabled ? 1 : 0.92 }}
       transition={springs.snappy}
       style={{
         flexShrink: 0,

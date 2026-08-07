@@ -88,6 +88,21 @@ export function SwipeableTransactionRow({
     }
   }
 
+  /** Keyboard alternative for swipe gestures (accessibility) */
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault()
+      setIsDeleting(true)
+      onDelete(id)
+    } else if ((e.key === "e" || e.key === "E") && onEdit) {
+      e.preventDefault()
+      onEdit(id)
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      onTap()
+    }
+  }
+
   return (
     <AnimatePresence mode="popLayout">
       {!isDeleting && (
@@ -186,12 +201,18 @@ export function SwipeableTransactionRow({
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleTap}
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
+            role="button"
+            aria-label="Transaction row. Press Enter to view, Delete to remove, E to edit."
             style={{
               x: dragX,
               cursor: "pointer",
               touchAction: "pan-y",
               background: "transparent",
+              outline: "none",
             }}
+            className="focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:rounded-lg"
             whileTap={{ scale: isDragging.current ? 1 : 0.98 }}
             transition={springs.snappy}
           >

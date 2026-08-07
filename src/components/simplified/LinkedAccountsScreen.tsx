@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
@@ -70,6 +70,7 @@ export function LinkedAccountsScreen({
   linkedAccounts = [],
   onBack,
 }: LinkedAccountsScreenProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   const [linkMessage, setLinkMessage] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState(false)
 
@@ -207,7 +208,7 @@ export function LinkedAccountsScreen({
             return (
               <motion.div
                 key={account.id}
-                whileTap={{ scale: 0.98 }}
+                whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
                 transition={springs.snappy}
               >
                 <GlassCard elevation="low" style={{ padding: "14px 16px" }}>
@@ -293,7 +294,7 @@ export function LinkedAccountsScreen({
         <motion.button
           onClick={handleStartLink}
           disabled={isChecking}
-          whileTap={{ scale: 0.97 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
           transition={springs.snappy}
           aria-label="Link an account"
           style={{

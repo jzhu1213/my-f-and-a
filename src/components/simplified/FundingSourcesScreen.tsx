@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, useReducedMotion } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
@@ -87,6 +87,7 @@ export function FundingSourcesScreen({
   onRemove,
   onBack,
 }: FundingSourcesScreenProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(DEFAULT_FORM)
@@ -513,7 +514,7 @@ export function FundingSourcesScreen({
           {fundingSources.map((source) => (
             <motion.div
               key={source.id}
-              whileTap={{ scale: 0.98 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
               transition={springs.snappy}
             >
               <Card style={{ padding: "14px 16px" }}>

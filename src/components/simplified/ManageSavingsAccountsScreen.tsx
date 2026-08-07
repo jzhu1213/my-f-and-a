@@ -126,6 +126,7 @@ export function ManageSavingsAccountsScreen({
   onDeleteAccount,
   onBack,
 }: ManageSavingsAccountsScreenProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   // ── Computed summary values ──────────────────────────────────────────────
   const totalBalance = computeTotalSavingsBalance(savingsAccounts)
   const monthlyContributions = computeMonthlyContributions(savingsAccounts)
@@ -240,7 +241,7 @@ export function ManageSavingsAccountsScreen({
               return next
             })
           }
-          whileTap={{ scale: 0.9 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
           transition={springs.snappy}
           style={{
             background: "none",
@@ -265,7 +266,7 @@ export function ManageSavingsAccountsScreen({
               return next
             })
           }
-          whileTap={{ scale: 0.9 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
           transition={springs.snappy}
           style={{
             background: "none",
@@ -285,7 +286,7 @@ export function ManageSavingsAccountsScreen({
           <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
             <motion.button
               onClick={confirmDelete}
-              whileTap={{ scale: 0.9 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
               transition={springs.snappy}
               style={{
                 background: "rgba(239, 68, 68, 0.15)",
@@ -304,7 +305,7 @@ export function ManageSavingsAccountsScreen({
             </motion.button>
             <motion.button
               onClick={cancelDelete}
-              whileTap={{ scale: 0.9 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
               transition={springs.snappy}
               style={{
                 background: "none",
@@ -322,7 +323,7 @@ export function ManageSavingsAccountsScreen({
         ) : (
           <motion.button
             onClick={requestDelete}
-            whileTap={{ scale: 0.9 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
             transition={springs.snappy}
             style={{
               background: "none",
@@ -622,7 +623,7 @@ function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelP
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <motion.button
             onClick={onCancel}
-            whileTap={{ scale: 0.97 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
             transition={springs.snappy}
             style={{
               flex: 1,
@@ -642,7 +643,7 @@ function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelP
           </motion.button>
           <motion.button
             onClick={handleSave}
-            whileTap={{ scale: 0.97 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
             transition={springs.snappy}
             disabled={!canSave}
             style={{
@@ -695,6 +696,7 @@ function SavingsAccountFormWrapper({
   onDone,
   onCancel,
 }: SavingsAccountFormWrapperProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   const [form, setForm] = useState<SavingsAccountFormData>(
     item
       ? {
@@ -845,7 +847,7 @@ function SavingsAccountFormWrapper({
       <div style={{ display: "flex", gap: 8 }}>
         <motion.button
           onClick={onCancel}
-          whileTap={{ scale: 0.97 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
           transition={springs.snappy}
           style={{
             flex: 1,
@@ -865,7 +867,7 @@ function SavingsAccountFormWrapper({
         </motion.button>
         <motion.button
           onClick={handleSave}
-          whileTap={{ scale: 0.97 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
           transition={springs.snappy}
           disabled={!canSave}
           style={{

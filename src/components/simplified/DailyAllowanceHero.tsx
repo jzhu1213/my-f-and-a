@@ -263,7 +263,7 @@ function AnimatedAmount({
       className={prefersReducedMotion ? undefined : "hero-amount"}
       style={{
         ...typography.display,
-        fontSize: pxToRem(46),
+        fontSize: "clamp(2rem, 10vw, 2.875rem)",
         lineHeight: 1.05,
         display: "block",
         textAlign: "center",

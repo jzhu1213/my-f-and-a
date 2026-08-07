@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, useReducedMotion } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
 import { FONT_FAMILY } from "@/styles/typography"
 import { sectionHeader, borderRadius, segmentedControl, segmentedButtonBase, segmentedButtonActive, segmentedButtonInactive, shadows, fills, colorRamp } from "@/styles/shared"
@@ -52,6 +52,7 @@ const TIME_OPTIONS: TimeOption[] = [
  * Validates: Task 77 — Gentle re-engagement without nagging
  */
 export function DailyReminderSetting() {
+  const { prefersReducedMotion } = useReducedMotion()
   const [prefs, setPrefs] = useState<ReminderPreferences>(getReminderPreferences)
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionStatus>("default")
 
@@ -130,7 +131,7 @@ export function DailyReminderSetting() {
         <motion.button
           type="button"
           onClick={handleToggle}
-          whileTap={{ scale: 0.92 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.92 }}
           transition={springs.snappy}
           role="switch"
           aria-checked={prefs.enabled}
@@ -192,7 +193,7 @@ export function DailyReminderSetting() {
                   key={opt.key}
                   type="button"
                   onClick={() => handleTimeChange(opt.value)}
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
                   transition={springs.snappy}
                   style={{
                     ...segmentedButtonBase,
@@ -215,7 +216,7 @@ export function DailyReminderSetting() {
             <motion.button
               type="button"
               onClick={handleRequestPermission}
-              whileTap={{ scale: 0.97 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
               transition={springs.snappy}
               style={{
                 width: "100%",
