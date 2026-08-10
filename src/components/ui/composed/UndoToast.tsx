@@ -113,6 +113,7 @@ export function UndoToast({
             type="button"
             onClick={handleUndo}
             aria-label="Undo delete"
+            className="focus-ring"
             style={{
               fontFamily: FONT_FAMILY,
               fontSize: typography["body-sm"].fontSize,

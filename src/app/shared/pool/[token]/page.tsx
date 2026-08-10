@@ -3,25 +3,24 @@
 /**
  * Shared Pool View Page
  *
- * The page a roommate lands on when they accept a pool invite (task 201.1).
- * It reuses the household pool share token (task 170.1): the roommate can
- * join the pool by name, view the shared spend, and log a shared expense.
+ * The page a roommate lands on when they accept a pool invite.
+ * They can join the pool by name, view the shared spend, and log a shared expense.
  *
- * Pool data is completely separate from anyone's personal budget or daily
- * number — this view never shows a personal allowance.
+ * All visual values sourced from the Design_Token_System — zero page-local
+ * overrides. Section heading + shared value + supporting labels render
+ * immediately in the shell (badge visible before data loads).
+ * Invalid/expired link renders explanatory state immediately (no partial content).
  *
- * For MVP, reads from localStorage keyed by token (same pattern as the
- * shared goal page). In production this would fetch from Supabase with RLS.
+ * For MVP, reads from localStorage keyed by token. In production this would
+ * fetch from Supabase with RLS.
  *
- * Task 201.1 — Invite-a-roommate loop (pairs with task 170.1)
- * Phase 6, Task 269.1 — Premium design system styling
+ * Requirements: 15.8, 15.9, 15.10
  */
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/primitives/Card"
 import { Icon } from "@/components/ui/Icon"
-import { progressTrack } from "@/styles/shared"
 import {
   getPoolByShareToken,
   addMember,
@@ -46,14 +45,14 @@ import {
   footerAttribution,
   sharedInput,
   sharedActionButton,
+  progressTrack,
   colorRamp,
-  fills,
-  shadows,
   typography,
   TABULAR_NUMS,
-  FONT_FAMILY,
-  spacing,
-  borderRadius,
+  spacingScale,
+  textColors,
+  radius,
+  elevations,
 } from "../../sharedPageStyles"
 
 // ============================================================================
@@ -124,16 +123,19 @@ export default function SharedPoolViewPage() {
     setTimeout(() => setLogged(false), 2500)
   }, [pool, myName, amount, note, refresh])
 
-  // Loading
+  // Loading — badge renders immediately
   if (loading) {
     return (
       <div style={sharedPageContainer}>
+        <div style={headerBadgeRow}>
+          <span style={headerBadge}>SHARED POOL</span>
+        </div>
         <p style={loadingText}>Loading…</p>
       </div>
     )
   }
 
-  // Not found / revoked
+  // Not found / revoked — rendered immediately, no partial content
   if (notFound || !pool) {
     return (
       <div style={sharedPageContainer}>
@@ -167,29 +169,29 @@ export default function SharedPoolViewPage() {
       </div>
 
       {/* Pool header */}
-      <div style={{ textAlign: "center", marginBottom: spacing.md }}>
+      <div style={{ textAlign: "center", marginBottom: spacingScale["16"] }}>
         <span style={{ fontSize: 40 }} aria-hidden="true">{pool.emoji}</span>
-        <h1 style={{ ...typography.title, color: "var(--text)", marginTop: 8 }}>
+        <h1 style={{ ...typography.title, color: textColors.text, marginTop: spacingScale["8"] }}>
           {pool.name}
         </h1>
-        <p style={{ ...typography.caption, color: "var(--sub)", marginTop: 4, ...TABULAR_NUMS }}>
+        <p style={{ ...typography.caption, color: textColors.sub, marginTop: spacingScale["4"], ...TABULAR_NUMS }}>
           ${pool.monthlyLimit}/month shared budget
         </p>
       </div>
 
       {/* Summary */}
       {summary && (
-        <GlassCard elevation="medium" style={{ padding: spacing.md, marginBottom: spacing.md }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: spacing.sm }}>
+        <Card elevation="raised" style={{ padding: spacingScale["16"], marginBottom: spacingScale["16"] }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: spacingScale["12"] }}>
             <div>
-              <p style={{ ...typography.caption, color: "var(--sub)" }}>Spent this month</p>
-              <p style={{ ...typography.title, fontSize: typography.headline.fontSize, color: "var(--text)", ...TABULAR_NUMS }}>
+              <p style={{ ...typography.caption, color: textColors.sub }}>Spent this month</p>
+              <p style={{ ...typography.headline, color: textColors.text, ...TABULAR_NUMS }}>
                 ${summary.spentThisMonth.toFixed(2)}
               </p>
             </div>
             <div style={{ textAlign: "right" }}>
-              <p style={{ ...typography.caption, color: "var(--sub)" }}>Remaining</p>
-              <p style={{ ...typography.title, fontSize: typography.headline.fontSize, color: colorRamp.success[500], ...TABULAR_NUMS }}>
+              <p style={{ ...typography.caption, color: textColors.sub }}>Remaining</p>
+              <p style={{ ...typography.headline, color: colorRamp.success[500], ...TABULAR_NUMS }}>
                 ${summary.remainingThisMonth.toFixed(2)}
               </p>
             </div>
@@ -199,30 +201,30 @@ export default function SharedPoolViewPage() {
               style={{
                 width: `${pct * 100}%`,
                 height: "100%",
-                borderRadius: 2,
+                borderRadius: radius.min,
                 background: pct >= 0.9 ? colorRamp.warning[500] : colorRamp.accent[500],
                 transition: "width 0.3s ease",
               }}
             />
           </div>
           {summary.expenseCount > 0 && (
-            <p style={{ ...typography.caption, color: "var(--sub)", marginTop: 8, ...TABULAR_NUMS }}>
+            <p style={{ ...typography.caption, color: textColors.sub, marginTop: spacingScale["8"], ...TABULAR_NUMS }}>
               {summary.expenseCount} expense{summary.expenseCount !== 1 ? "s" : ""} · ~${summary.perPersonShare.toFixed(2)}/person
             </p>
           )}
-        </GlassCard>
+        </Card>
       )}
 
       {/* Join or log */}
       {!myName ? (
-        <GlassCard elevation="low" style={{ padding: 20, marginBottom: spacing.md }}>
-          <p style={{ ...typography.body, fontWeight: 500, color: "var(--text)", marginBottom: 6 }}>
+        <Card elevation="resting" style={{ padding: spacingScale["20"], marginBottom: spacingScale["16"] }}>
+          <p style={{ ...typography.body, fontWeight: 500, color: textColors.text, marginBottom: spacingScale["6"] }}>
             Join this pool
           </p>
-          <p style={{ ...typography.caption, color: "var(--sub)", lineHeight: 1.5, marginBottom: 14 }}>
+          <p style={{ ...typography.caption, color: textColors.sub, lineHeight: 1.5, marginBottom: spacingScale["16"] }}>
             Add your name so shared expenses show who logged them. This won&apos;t touch your personal budget.
           </p>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: spacingScale["8"] }}>
             <input
               type="text"
               value={joinName}
@@ -237,18 +239,18 @@ export default function SharedPoolViewPage() {
               Join
             </button>
           </div>
-        </GlassCard>
+        </Card>
       ) : (
-        <GlassCard elevation="low" style={{ padding: 20, marginBottom: spacing.md }}>
-          <p style={{ ...typography.body, fontWeight: 500, color: "var(--text)", marginBottom: 6 }}>
+        <Card elevation="resting" style={{ padding: spacingScale["20"], marginBottom: spacingScale["16"] }}>
+          <p style={{ ...typography.body, fontWeight: 500, color: textColors.text, marginBottom: spacingScale["6"] }}>
             Log a shared expense
           </p>
-          <p style={{ ...typography.caption, color: "var(--sub)", marginBottom: 14 }}>
+          <p style={{ ...typography.caption, color: textColors.sub, marginBottom: spacingScale["16"] }}>
             You&apos;re in as {myName}. Add something the group spent together.
           </p>
-          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <div style={{ display: "flex", gap: spacingScale["8"], marginBottom: spacingScale["8"] }}>
             <div style={{ position: "relative", flex: 1 }}>
-              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", ...typography.body, color: "var(--muted)" }}>
+              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", ...typography.body, color: textColors.muted }}>
                 $
               </span>
               <input
@@ -275,28 +277,28 @@ export default function SharedPoolViewPage() {
             aria-label="Expense note"
             maxLength={80}
           />
-        </GlassCard>
+        </Card>
       )}
 
       {/* Recent shared expenses */}
       {expenses.length > 0 && (
         <div>
           <p style={sectionLabel}>Recent shared expenses</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
             {expenses.slice(0, 15).map((exp) => (
-              <GlassCard key={exp.id} elevation="low" style={{ padding: "12px 14px" }}>
+              <Card key={exp.id} elevation="resting" style={{ padding: `${spacingScale["12"]} ${spacingScale["16"]}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <p style={{ ...typography.body, color: "var(--text)", fontWeight: 500, ...TABULAR_NUMS }}>
+                    <p style={{ ...typography.body, color: textColors.text, fontWeight: 500, ...TABULAR_NUMS }}>
                       ${exp.amount.toFixed(2)}
-                      {exp.note && <span style={{ color: "var(--sub)", fontWeight: 400 }}> · {exp.note}</span>}
+                      {exp.note && <span style={{ color: textColors.sub, fontWeight: 400 }}> · {exp.note}</span>}
                     </p>
-                    <p style={{ ...typography.caption, color: "var(--muted)", marginTop: 2 }}>
+                    <p style={{ ...typography.caption, color: textColors.muted, marginTop: 2 }}>
                       {exp.loggedBy} · {exp.date}
                     </p>
                   </div>
                 </div>
-              </GlassCard>
+              </Card>
             ))}
           </div>
         </div>

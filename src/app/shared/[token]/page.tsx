@@ -1,24 +1,27 @@
 "use client"
 
 /**
- * Shared View Page
+ * Shared View Page — Spending Summary
  *
  * A read-only page that displays a spending summary for a given share token.
  * Shows high-level budget health without individual transaction details.
  *
+ * All visual values sourced from the Design_Token_System — zero page-local
+ * overrides. Section heading + shared value + supporting labels render
+ * immediately in the shell (badge, heading visible before data loads).
+ * Invalid/expired link renders explanatory state immediately (no partial content).
+ *
  * For MVP, reads from localStorage keyed by token. In production, this would
  * fetch from a Supabase endpoint so it works cross-device.
  *
- * Task 115.1 — Optional read-only sharing
- * Phase 6, Task 269.1 — Premium design system styling
+ * Requirements: 15.8, 15.9, 15.10
  */
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/primitives/Card"
 import { Icon } from "@/components/ui/Icon"
 import { getSharedSummary, type SharedSummary } from "@/lib/sharingUtils"
-import { progressTrack } from "@/styles/shared"
 import type { AllowanceStatus } from "@/types/folio"
 import {
   sharedPageContainer,
@@ -33,12 +36,14 @@ import {
   sectionLabel,
   footerText,
   footerAttribution,
+  progressTrack,
   colorRamp,
-  fills,
   typography,
   TABULAR_NUMS,
-  FONT_FAMILY,
-  spacing,
+  spacingScale,
+  textColors,
+  radius,
+  elevations,
 } from "../sharedPageStyles"
 
 // ============================================================================
@@ -90,16 +95,19 @@ export default function SharedViewPage() {
     setSummary(data)
   }, [token])
 
-  // Loading state
+  // Loading state — shell (badge, heading) renders immediately
   if (summary === undefined) {
     return (
       <div style={sharedPageContainer}>
+        <div style={headerBadgeRow}>
+          <span style={headerBadge}>SHARED VIEW</span>
+        </div>
         <p style={loadingText}>Loading…</p>
       </div>
     )
   }
 
-  // Invalid or revoked link
+  // Invalid or revoked link — rendered immediately, no partial content
   if (summary === null) {
     return (
       <div style={sharedPageContainer}>
@@ -135,17 +143,13 @@ export default function SharedViewPage() {
 
       {/* Budget health status */}
       {showStatus && (
-        <GlassCard
-          elevation="medium"
-          glow={summary.status === "healthy" ? "healthy" : summary.status === "over" ? "over" : "none"}
-          style={{ padding: "20px", marginBottom: spacing.md }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+        <Card elevation="raised" style={{ padding: spacingScale["20"], marginBottom: spacingScale["16"] }}>
+          <div style={{ display: "flex", alignItems: "center", gap: spacingScale["12"], marginBottom: spacingScale["12"] }}>
             <span
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: "50%",
+                borderRadius: radius.full,
                 background: statusConfig.bg,
                 display: "flex",
                 alignItems: "center",
@@ -158,14 +162,14 @@ export default function SharedViewPage() {
             <div>
               <p
                 style={{
-                  ...typography.headline,
-                  fontSize: typography.body.fontSize,
+                  ...typography.body,
+                  fontWeight: 500,
                   color: statusConfig.color,
                 }}
               >
                 {statusConfig.label}
               </p>
-              <p style={{ ...typography.caption, color: "var(--sub)" }}>
+              <p style={{ ...typography.caption, color: textColors.sub }}>
                 Daily budget health
               </p>
             </div>
@@ -175,19 +179,19 @@ export default function SharedViewPage() {
           <div
             style={{
               display: "flex",
-              gap: spacing.md,
-              padding: `${spacing.sm}px 0 0`,
-              borderTop: `1px solid ${fills[8]}`,
+              gap: spacingScale["16"],
+              padding: `${spacingScale["12"]} 0 0`,
+              borderTop: elevations.resting.border,
             }}
           >
             <div>
-              <p style={{ ...typography.caption, color: "var(--muted)", marginBottom: 2 }}>
+              <p style={{ ...typography.caption, color: textColors.muted, marginBottom: 2 }}>
                 Safe to spend today
               </p>
               <p
                 style={{
                   ...typography.headline,
-                  color: "var(--text)",
+                  color: textColors.text,
                   ...TABULAR_NUMS,
                 }}
               >
@@ -195,13 +199,13 @@ export default function SharedViewPage() {
               </p>
             </div>
             <div>
-              <p style={{ ...typography.caption, color: "var(--muted)", marginBottom: 2 }}>
+              <p style={{ ...typography.caption, color: textColors.muted, marginBottom: 2 }}>
                 Daily budget
               </p>
               <p
                 style={{
                   ...typography.headline,
-                  color: "var(--sub)",
+                  color: textColors.sub,
                   ...TABULAR_NUMS,
                 }}
               >
@@ -209,34 +213,34 @@ export default function SharedViewPage() {
               </p>
             </div>
           </div>
-        </GlassCard>
+        </Card>
       )}
 
       {/* Week spending */}
       {showWeek && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.md }}>
+        <Card elevation="resting" style={{ padding: `${spacingScale["20"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
           <p style={sectionLabel}>This week&apos;s spending</p>
           <p
             style={{
               ...typography.title,
-              color: "var(--text)",
+              color: textColors.text,
               ...TABULAR_NUMS,
             }}
           >
             ${summary.weekSpendingTotal.toFixed(0)}
           </p>
-        </GlassCard>
+        </Card>
       )}
 
       {/* Category breakdown */}
       {showCategories && summary.categoryBreakdown.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.md }}>
+        <Card elevation="resting" style={{ padding: `${spacingScale["20"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
           <p style={sectionLabel}>Budget categories</p>
           {summary.categoryBreakdown.map((cat, idx) => (
             <div
               key={cat.category}
               style={{
-                marginBottom: idx < summary.categoryBreakdown.length - 1 ? 12 : 0,
+                marginBottom: idx < summary.categoryBreakdown.length - 1 ? spacingScale["12"] : 0,
               }}
             >
               <div
@@ -244,16 +248,16 @@ export default function SharedViewPage() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: 4,
+                  marginBottom: spacingScale["4"],
                 }}
               >
-                <span style={{ ...typography.body, color: "var(--text)", fontSize: typography.caption.fontSize }}>
+                <span style={{ ...typography.caption, color: textColors.text }}>
                   {cat.emoji} {cat.label}
                 </span>
                 <span
                   style={{
                     ...typography.caption,
-                    color: cat.percentUsed >= 100 ? colorRamp.error[500] : "var(--sub)",
+                    color: cat.percentUsed >= 100 ? colorRamp.error[500] : textColors.sub,
                     ...TABULAR_NUMS,
                   }}
                 >
@@ -266,7 +270,7 @@ export default function SharedViewPage() {
                   style={{
                     width: `${Math.min(cat.percentUsed, 100)}%`,
                     height: "100%",
-                    borderRadius: 2,
+                    borderRadius: radius.min,
                     background:
                       cat.percentUsed >= 100
                         ? colorRamp.error[500]
@@ -279,7 +283,7 @@ export default function SharedViewPage() {
               </div>
             </div>
           ))}
-        </GlassCard>
+        </Card>
       )}
 
       {/* Footer */}

@@ -241,7 +241,7 @@ function AnimatedAmount({
       }}
     >
       <p
-        className={DISPLAY_GRADIENT_CLASS}
+        className={`${DISPLAY_GRADIENT_CLASS}${onClick ? ' focus-ring' : ''}`}
         style={amountStyle}
         aria-live="polite"
         onClick={onClick}
@@ -347,6 +347,7 @@ function CalculationBreakdown({
       }}
       role="region"
       aria-label="Allowance calculation breakdown"
+      className="focus-ring"
       onClick={onDismiss}
       onKeyDown={(e) => { if (e.key === "Escape" || e.key === "Enter" || e.key === " ") { e.preventDefault(); onDismiss() } }}
       tabIndex={0}

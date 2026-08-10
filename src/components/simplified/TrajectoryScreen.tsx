@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { ChartFrame } from "@/components/ui/primitives/ChartFrame"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -886,148 +887,155 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
   const monthLabels = ["Now", "3mo", "6mo", "9mo", "12mo"]
 
   return (
-    <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 18 }} aria-hidden="true">📈</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
-            Progress Score
-          </span>
+    <ChartFrame
+      type="line"
+      state="loaded"
+      height={chartHeight + 100}
+      aria-label={`Progress curve showing your combined savings and debt progress trending upward from ${Math.round(currentScore)} to ${Math.round(projectedScore)} over 12 months`}
+    >
+      <div style={{ padding: "16px 18px" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 18 }} aria-hidden="true">📈</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+              Progress Score
+            </span>
+          </div>
+          {progressGain > 0 && (
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--success)",
+                background: "rgba(74, 222, 128, 0.1)",
+                padding: "3px 8px",
+                borderRadius: 10,
+              }}
+            >
+              +{progressGain} pts projected
+            </span>
+          )}
         </div>
-        {progressGain > 0 && (
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--success)",
-              background: "rgba(74, 222, 128, 0.1)",
-              padding: "3px 8px",
-              borderRadius: 10,
-            }}
-          >
-            +{progressGain} pts projected
-          </span>
-        )}
-      </div>
 
-      {/* SVG Area Chart */}
-      <div
-        style={{
-          width: "100%",
-          marginBottom: 6,
-        }}
-        role="img"
-        aria-label={`Progress curve showing your combined savings and debt progress trending upward from ${Math.round(currentScore)} to ${Math.round(projectedScore)} over 12 months`}
-      >
-        <svg
-          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          width="100%"
-          height={chartHeight}
-          preserveAspectRatio="none"
-          style={{ display: "block" }}
+        {/* SVG Area Chart */}
+        <div
+          style={{
+            width: "100%",
+            marginBottom: 6,
+          }}
+          role="img"
+          aria-label={`Progress curve from ${Math.round(currentScore)} to ${Math.round(projectedScore)} over 12 months`}
         >
-          {/* Gradient fill */}
-          <defs>
-            <linearGradient id={`${CHART_GRADIENT_PREFIX}-progress`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={chartColors.primary} stopOpacity="0.28" />
-              <stop offset="100%" stopColor={chartColors.primary} stopOpacity="0.02" />
-            </linearGradient>
-          </defs>
-
-          {/* Area fill */}
-          <path
-            d={areaPath}
-            fill={`url(#${CHART_GRADIENT_PREFIX}-progress)`}
-          />
-
-          {/* Line */}
-          <path
-            d={linePath}
-            fill="none"
-            stroke={chartColors.primary}
-            strokeWidth={chartStrokes.lineWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ filter: "drop-shadow(0 1px 3px rgba(74, 222, 128, 0.3))" }}
-          />
-
-          {/* Current position dot */}
-          <circle
-            cx={points[0].x}
-            cy={points[0].y}
-            r={chartStrokes.dotRadius}
-            fill={chartColors.dot}
-            stroke={chartColors.dotStroke}
-            strokeWidth={chartStrokes.dotStrokeWidth}
-          />
-
-          {/* Projected position dot */}
-          <circle
-            cx={points[points.length - 1].x}
-            cy={points[points.length - 1].y}
-            r={chartStrokes.dotRadius}
-            fill={chartColors.primary}
-            stroke={chartColors.dot}
-            strokeWidth={chartStrokes.dotStrokeWidth * 0.75}
-          />
-        </svg>
-      </div>
-
-      {/* Month labels */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-        {monthLabels.map((ml) => (
-          <span
-            key={ml}
-            style={chartLabel}
+          <svg
+            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+            width="100%"
+            height={chartHeight}
+            preserveAspectRatio="none"
+            style={{ display: "block" }}
           >
-            {ml}
-          </span>
-        ))}
-      </div>
+            {/* Gradient fill */}
+            <defs>
+              <linearGradient id={`${CHART_GRADIENT_PREFIX}-progress`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={chartColors.primary} stopOpacity="0.28" />
+                <stop offset="100%" stopColor={chartColors.primary} stopOpacity="0.02" />
+              </linearGradient>
+            </defs>
 
-      {/* Warm copy */}
-      <p
-        style={{
-          fontSize: 12,
-          color: "var(--sub)",
-          lineHeight: 1.5,
-          marginBottom: 10,
-        }}
-      >
-        Your combined savings + debt progress over the next year
-      </p>
+            {/* Area fill */}
+            <path
+              d={areaPath}
+              fill={`url(#${CHART_GRADIENT_PREFIX}-progress)`}
+            />
 
-      {/* Breakdown text */}
-      <div
-        style={{
-          padding: "8px 0 0",
-          borderTop: "1px solid var(--border, rgba(255,255,255,0.04))",
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-        }}
-      >
-        {hasSavingsSignal && (
-          <p style={{ fontSize: 12, color: "var(--sub)" }}>
-            <span style={{ color: "var(--success)", fontWeight: 600 }}>Savings</span>{" "}
-            projected to reach{" "}
-            <span style={{ color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-              {formatDollars(projectedSavings)}
+            {/* Line */}
+            <path
+              d={linePath}
+              fill="none"
+              stroke={chartColors.primary}
+              strokeWidth={chartStrokes.lineWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ filter: "drop-shadow(0 1px 3px rgba(74, 222, 128, 0.3))" }}
+            />
+
+            {/* Current position dot */}
+            <circle
+              cx={points[0].x}
+              cy={points[0].y}
+              r={chartStrokes.dotRadius}
+              fill={chartColors.dot}
+              stroke={chartColors.dotStroke}
+              strokeWidth={chartStrokes.dotStrokeWidth}
+            />
+
+            {/* Projected position dot */}
+            <circle
+              cx={points[points.length - 1].x}
+              cy={points[points.length - 1].y}
+              r={chartStrokes.dotRadius}
+              fill={chartColors.primary}
+              stroke={chartColors.dot}
+              strokeWidth={chartStrokes.dotStrokeWidth * 0.75}
+            />
+          </svg>
+        </div>
+
+        {/* Month labels */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+          {monthLabels.map((ml) => (
+            <span
+              key={ml}
+              style={chartLabel}
+            >
+              {ml}
             </span>
-          </p>
-        )}
-        {hasDebtSignal && (
-          <p style={{ fontSize: 12, color: "var(--sub)" }}>
-            <span style={{ color: "var(--accent, #818cf8)", fontWeight: 600 }}>Debt</span>{" "}
-            projected to drop to{" "}
-            <span style={{ color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-              {formatDollars(projectedDebt)}
-            </span>
-          </p>
-        )}
+          ))}
+        </div>
+
+        {/* Warm copy */}
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--sub)",
+            lineHeight: 1.5,
+            marginBottom: 10,
+          }}
+        >
+          Your combined savings + debt progress over the next year
+        </p>
+
+        {/* Breakdown text */}
+        <div
+          style={{
+            padding: "8px 0 0",
+            borderTop: "1px solid var(--border, rgba(255,255,255,0.04))",
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          {hasSavingsSignal && (
+            <p style={{ fontSize: 12, color: "var(--sub)" }}>
+              <span style={{ color: "var(--success)", fontWeight: 600 }}>Savings</span>{" "}
+              projected to reach{" "}
+              <span style={{ color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                {formatDollars(projectedSavings)}
+              </span>
+            </p>
+          )}
+          {hasDebtSignal && (
+            <p style={{ fontSize: 12, color: "var(--sub)" }}>
+              <span style={{ color: "var(--accent, #818cf8)", fontWeight: 600 }}>Debt</span>{" "}
+              projected to drop to{" "}
+              <span style={{ color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                {formatDollars(projectedDebt)}
+              </span>
+            </p>
+          )}
+        </div>
       </div>
-    </GlassCard>
+    </ChartFrame>
   )
 }
 

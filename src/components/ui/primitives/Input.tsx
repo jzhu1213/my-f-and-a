@@ -116,9 +116,11 @@ export const Input: React.FC<InputProps> = ({
     outline: 'none',
     opacity: disabled ? 0.5 : 1,
     cursor: disabled ? 'not-allowed' : 'text',
-    transition: 'border-color 150ms ease-out',
+    transition: 'border-color 150ms ease-out, box-shadow 150ms ease-out',
     WebkitTapHighlightColor: 'transparent',
     boxSizing: 'border-box',
+    // Focus ring via box-shadow (≥2px, ≥3:1 contrast) when focused
+    boxShadow: isFocused && !disabled ? '0 0 0 2px var(--focus-ring-color)' : 'none',
   }
 
   return (

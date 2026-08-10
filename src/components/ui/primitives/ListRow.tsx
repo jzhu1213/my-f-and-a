@@ -275,7 +275,7 @@ export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(function ListRow
       <motion.div
         ref={ref}
         style={baseStyle}
-        className={className}
+        className={`focus-ring${className ? ` ${className}` : ''}`}
         variants={pressVariants}
         initial="rest"
         whileTap={onPress ? "pressed" : undefined}
@@ -372,6 +372,7 @@ export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(function ListRow
         onClick={isRevealed ? handleClose : onPress}
         role={onPress ? "button" : undefined}
         tabIndex={onPress ? 0 : undefined}
+        className={onPress ? "focus-ring" : undefined}
       >
         {children}
       </motion.div>

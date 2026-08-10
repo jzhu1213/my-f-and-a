@@ -156,7 +156,6 @@ export const Button: React.FC<ButtonProps> = ({
     whiteSpace: 'nowrap',
     userSelect: 'none',
     WebkitTapHighlightColor: 'transparent',
-    outline: 'none',
     position: 'relative',
     overflow: 'hidden',
     ...(fullWidth ? { width: '100%' } : {}),
@@ -172,6 +171,7 @@ export const Button: React.FC<ButtonProps> = ({
       aria-label={ariaLabel}
       aria-disabled={isDisabled}
       aria-busy={loading}
+      className="focus-ring"
       style={baseStyles}
       whileTap={isDisabled ? undefined : { scale: 0.98 }}
       transition={{

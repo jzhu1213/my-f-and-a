@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { ChartFrame } from "@/components/ui/primitives/ChartFrame"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -12,6 +13,7 @@ import {
   sectionHeader,
   borderRadius,
 } from "@/styles/shared"
+import { chartMotion } from "@/styles/chartTokens"
 import {
   computeAllocationByType,
   computeGrowthVsContribution,
@@ -227,97 +229,104 @@ export function PortfolioAllocationScreen({
           Allocation by Type
         </p>
 
-        <GlassCard elevation="medium" style={{ padding: "16px 18px" }}>
-          {/* Stacked allocation bar */}
-          <div
-            style={{
-              display: "flex",
-              height: 12,
-              borderRadius: 6,
-              overflow: "hidden",
-              marginBottom: 16,
-              background: "rgba(255, 255, 255, 0.04)",
-            }}
-            role="img"
-            aria-label="Allocation breakdown bar"
-          >
-            {allocations.map((alloc) => (
-              <div
-                key={alloc.type}
-                style={{
-                  width: `${Math.max(alloc.percentage, 1)}%`,
-                  background: getTypeColor(alloc.type),
-                  transition: "width 0.3s ease",
-                }}
-                title={`${alloc.label}: ${alloc.percentage.toFixed(1)}%`}
-              />
-            ))}
-          </div>
+        <ChartFrame
+          type="bar"
+          state="loaded"
+          height={allocations.length * 44 + 60}
+          aria-label="Portfolio allocation breakdown by account type"
+        >
+          <div style={{ padding: "16px 18px" }}>
+            {/* Stacked allocation bar */}
+            <div
+              style={{
+                display: "flex",
+                height: 12,
+                borderRadius: 6,
+                overflow: "hidden",
+                marginBottom: 16,
+                background: "rgba(255, 255, 255, 0.04)",
+              }}
+              role="img"
+              aria-label="Allocation breakdown bar"
+            >
+              {allocations.map((alloc) => (
+                <div
+                  key={alloc.type}
+                  style={{
+                    width: `${Math.max(alloc.percentage, 1)}%`,
+                    background: getTypeColor(alloc.type),
+                    transition: chartMotion.barGrow,
+                  }}
+                  title={`${alloc.label}: ${alloc.percentage.toFixed(1)}%`}
+                />
+              ))}
+            </div>
 
-          {/* Per-type rows */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {allocations.map((alloc) => (
-              <div
-                key={alloc.type}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "4px 0",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  {/* Color dot */}
-                  <div
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: "50%",
-                      background: getTypeColor(alloc.type),
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ fontSize: 15 }} aria-hidden="true">
-                    {alloc.emoji}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                      color: "var(--text)",
-                    }}
-                  >
-                    {alloc.label}
-                  </span>
+            {/* Per-type rows */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {allocations.map((alloc) => (
+                <div
+                  key={alloc.type}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "4px 0",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    {/* Color dot */}
+                    <div
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        background: getTypeColor(alloc.type),
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ fontSize: 15 }} aria-hidden="true">
+                      {alloc.emoji}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: "var(--text)",
+                      }}
+                    >
+                      {alloc.label}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: "var(--text)",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {formatDollars(alloc.totalBalance)}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: "var(--muted)",
+                        minWidth: 40,
+                        textAlign: "right",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {alloc.percentage.toFixed(1)}%
+                    </span>
+                  </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "var(--text)",
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {formatDollars(alloc.totalBalance)}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: "var(--muted)",
-                      minWidth: 40,
-                      textAlign: "right",
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {alloc.percentage.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </GlassCard>
+        </ChartFrame>
       </motion.div>
 
       {/* ── Growth vs. Contribution Summary ────────────────────────── */}
@@ -331,150 +340,157 @@ export function PortfolioAllocationScreen({
           Growth vs. Contributions
         </p>
 
-        <GlassCard elevation="medium" style={{ padding: "16px 18px" }}>
-          {/* Summary stats */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 12,
-              marginBottom: 14,
-            }}
-          >
+        <ChartFrame
+          type="bar"
+          state="loaded"
+          height={160}
+          aria-label="Growth vs. contributions breakdown chart"
+        >
+          <div style={{ padding: "16px 18px" }}>
+            {/* Summary stats */}
             <div
               style={{
-                padding: "12px 14px",
-                borderRadius: borderRadius.sm,
-                background: "rgba(255, 255, 255, 0.04)",
-                textAlign: "center",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+                marginBottom: 14,
               }}
             >
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: "var(--muted)",
-                  marginBottom: 4,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.03em",
-                }}
-              >
-                Contributed
-              </p>
-              <p
-                style={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: "var(--text)",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {formatDollars(growthSummary.totalContributions)}
-              </p>
-            </div>
-            <div
-              style={{
-                padding: "12px 14px",
-                borderRadius: borderRadius.sm,
-                background: "rgba(255, 255, 255, 0.04)",
-                textAlign: "center",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: "var(--muted)",
-                  marginBottom: 4,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.03em",
-                }}
-              >
-                Est. Growth
-              </p>
-              <p
-                style={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: growthSummary.totalEstimatedGrowth >= 0
-                    ? "var(--success)"
-                    : "var(--text)",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {growthSummary.totalEstimatedGrowth >= 0 ? "+" : "-"}
-                {formatDollars(growthSummary.totalEstimatedGrowth)}
-              </p>
-            </div>
-          </div>
-
-          {/* Split bar visualization */}
-          {growthSummary.totalContributions > 0 && (
-            <div>
               <div
                 style={{
-                  display: "flex",
-                  height: 8,
-                  borderRadius: 4,
-                  overflow: "hidden",
+                  padding: "12px 14px",
+                  borderRadius: borderRadius.sm,
                   background: "rgba(255, 255, 255, 0.04)",
+                  textAlign: "center",
                 }}
-                role="img"
-                aria-label={`Contributions: ${formatDollars(growthSummary.totalContributions)}, Growth: ${formatDollars(growthSummary.totalEstimatedGrowth)}`}
               >
+                <p
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--muted)",
+                    marginBottom: 4,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  Contributed
+                </p>
+                <p
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: "var(--text)",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {formatDollars(growthSummary.totalContributions)}
+                </p>
+              </div>
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: borderRadius.sm,
+                  background: "rgba(255, 255, 255, 0.04)",
+                  textAlign: "center",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--muted)",
+                    marginBottom: 4,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  Est. Growth
+                </p>
+                <p
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: growthSummary.totalEstimatedGrowth >= 0
+                      ? "var(--success)"
+                      : "var(--text)",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {growthSummary.totalEstimatedGrowth >= 0 ? "+" : "-"}
+                  {formatDollars(growthSummary.totalEstimatedGrowth)}
+                </p>
+              </div>
+            </div>
+
+            {/* Split bar visualization */}
+            {growthSummary.totalContributions > 0 && (
+              <div>
                 <div
                   style={{
-                    width: `${Math.max(
-                      (growthSummary.totalContributions / growthSummary.totalBalance) * 100,
-                      2
-                    )}%`,
-                    background: "rgba(129, 140, 248, 0.6)",
-                    transition: "width 0.3s ease",
+                    display: "flex",
+                    height: 8,
+                    borderRadius: 4,
+                    overflow: "hidden",
+                    background: "rgba(255, 255, 255, 0.04)",
                   }}
-                />
-                {growthSummary.totalEstimatedGrowth > 0 && (
+                  role="img"
+                  aria-label={`Contributions: ${formatDollars(growthSummary.totalContributions)}, Growth: ${formatDollars(growthSummary.totalEstimatedGrowth)}`}
+                >
                   <div
                     style={{
                       width: `${Math.max(
-                        (growthSummary.totalEstimatedGrowth / growthSummary.totalBalance) * 100,
+                        (growthSummary.totalContributions / growthSummary.totalBalance) * 100,
                         2
                       )}%`,
-                      background: "rgba(6, 214, 160, 0.6)",
-                      transition: "width 0.3s ease",
+                      background: "rgba(129, 140, 248, 0.6)",
+                      transition: chartMotion.barGrow,
                     }}
                   />
-                )}
+                  {growthSummary.totalEstimatedGrowth > 0 && (
+                    <div
+                      style={{
+                        width: `${Math.max(
+                          (growthSummary.totalEstimatedGrowth / growthSummary.totalBalance) * 100,
+                          2
+                        )}%`,
+                        background: "rgba(6, 214, 160, 0.6)",
+                        transition: chartMotion.barGrow,
+                      }}
+                    />
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginTop: 6,
+                  }}
+                >
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                    💰 Contributed
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                    📈 Growth
+                  </span>
+                </div>
               </div>
-              <div
+            )}
+
+            {growthSummary.totalContributions === 0 && (
+              <p
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginTop: 6,
+                  fontSize: 12,
+                  color: "var(--sub)",
+                  lineHeight: 1.5,
+                  textAlign: "center",
                 }}
               >
-                <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                  💰 Contributed
-                </span>
-                <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                  📈 Growth
-                </span>
-              </div>
-            </div>
-          )}
-
-          {growthSummary.totalContributions === 0 && (
-            <p
-              style={{
-                fontSize: 12,
-                color: "var(--sub)",
-                lineHeight: 1.5,
-                textAlign: "center",
-              }}
-            >
-              Log contributions to your accounts to see how much is growth vs. what you put in.
-            </p>
-          )}
-        </GlassCard>
+                Log contributions to your accounts to see how much is growth vs. what you put in.
+              </p>
+            )}
+          </div>
+        </ChartFrame>
       </motion.div>
 
       {/* ── Per-Account Detail Cards ───────────────────────────────── */}

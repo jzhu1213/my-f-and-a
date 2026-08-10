@@ -7,6 +7,8 @@ import {
   Toast,
   AppShell,
 } from '@/components'
+import { DepthSurfaceTransition } from '@/components/ui/DepthSurfaceTransition'
+import { DepthSurfaceLoadGuard } from '@/components/ui/DepthSurfaceLoadGuard'
 import type { AppNavKey } from '@/components/ui/AppShell'
 import { HomeScreen } from '@/components/simplified/HomeScreen'
 import { HistoryScreen } from '@/components/simplified/HistoryScreen'
@@ -33,134 +35,138 @@ import { shadows } from '@/styles/shared'
 // ── Code-split: heavy/advanced features loaded on demand ─────────────────────
 // These screens are behind progressive disclosure (Tools tab, settings overlays)
 // and should not bloat the initial bundle. (Improvement 4.4)
+// Each uses DepthSurfaceSkeleton as the loading fallback so the transition
+// container animates in immediately while the skeleton fills until the chunk loads.
+
+import { DepthSurfaceSkeleton } from '@/components/ui/DepthSurfaceSkeleton'
 
 const BudgetSettings = dynamic(
   () => import('@/components/simplified/BudgetSettings').then(m => ({ default: m.BudgetSettings })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const GoalsScreen = dynamic(
   () => import('@/components/simplified/GoalsScreen').then(m => ({ default: m.GoalsScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const SinkingFundsScreen = dynamic(
   () => import('@/components/simplified/SinkingFundsScreen').then(m => ({ default: m.SinkingFundsScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const SubscriptionAuditScreen = dynamic(
   () => import('@/components/simplified/SubscriptionAuditScreen').then(m => ({ default: m.SubscriptionAuditScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const CategorizationRulesScreen = dynamic(
   () => import('@/components/simplified/CategorizationRulesScreen').then(m => ({ default: m.CategorizationRulesScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const RecurringBillsScreen = dynamic(
   () => import('@/components/simplified/RecurringBillsScreen').then(m => ({ default: m.RecurringBillsScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const CancelNegotiateHelper = dynamic(
   () => import('@/components/simplified/CancelNegotiateHelper').then(m => ({ default: m.CancelNegotiateHelper })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const ReimbursementLedger = dynamic(
   () => import('@/components/simplified/ReimbursementLedger').then(m => ({ default: m.ReimbursementLedger })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const DebtScreen = dynamic(
   () => import('@/components/simplified/DebtScreen').then(m => ({ default: m.DebtScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const OnboardingTutorial = dynamic(
   () => import('@/components/simplified/OnboardingTutorial').then(m => ({ default: m.OnboardingTutorial })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const ProfileSheet = dynamic(
   () => import('@/components/ui/ProfileSheet').then(m => ({ default: m.ProfileSheet })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const LessonsScreen = dynamic(
   () => import('@/components/finance/LessonsScreen').then(m => ({ default: m.LessonsScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const CompoundGrowthCalculator = dynamic(
   () => import('@/components/finance/CompoundGrowthCalculator').then(m => ({ default: m.CompoundGrowthCalculator })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const CreditPayoffCalculator = dynamic(
   () => import('@/components/finance/CreditPayoffCalculator').then(m => ({ default: m.CreditPayoffCalculator })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const FundingSourcesScreen = dynamic(
   () => import('@/components/simplified/FundingSourcesScreen').then(m => ({ default: m.FundingSourcesScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const LinkedAccountsScreen = dynamic(
   () => import('@/components/simplified/LinkedAccountsScreen').then(m => ({ default: m.LinkedAccountsScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const BackfillSheet = dynamic(
   () => import('@/components/simplified/BackfillSheet').then(m => ({ default: m.BackfillSheet })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const BulkRepeatSheet = dynamic(
   () => import('@/components/simplified/BulkRepeatSheet').then(m => ({ default: m.BulkRepeatSheet })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const TermReviewScreen = dynamic(
   () => import('@/components/simplified/TermReviewScreen').then(m => ({ default: m.TermReviewScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const YearInReviewScreen = dynamic(
   () => import('@/components/simplified/YearInReviewScreen').then(m => ({ default: m.YearInReviewScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const ReportsScreen = dynamic(
   () => import('@/components/simplified/ReportsScreen').then(m => ({ default: m.ReportsScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const PeerContextScreen = dynamic(
   () => import('@/components/simplified/PeerContextScreen').then(m => ({ default: m.PeerContextScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const TrajectoryScreen = dynamic(
   () => import('@/components/simplified/TrajectoryScreen').then(m => ({ default: m.TrajectoryScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const RoommateInviteScreen = dynamic(
   () => import('@/components/simplified/RoommateInviteScreen').then(m => ({ default: m.RoommateInviteScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const SharingScreen = dynamic(
   () => import('@/components/simplified/SharingScreen').then(m => ({ default: m.SharingScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const CategoryHubScreen = dynamic(
   () => import('@/components/simplified/CategoryHubScreen').then(m => ({ default: m.CategoryHubScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const SavingsProjectionsScreen = dynamic(
   () => import('@/components/simplified/SavingsProjectionsScreen').then(m => ({ default: m.SavingsProjectionsScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const ManageSavingsAccountsScreen = dynamic(
   () => import('@/components/simplified/ManageSavingsAccountsScreen').then(m => ({ default: m.ManageSavingsAccountsScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const CashFlowForecastScreen = dynamic(
   () => import('@/components/simplified/CashFlowForecastScreen').then(m => ({ default: m.CashFlowForecastScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const PortfolioAllocationScreen = dynamic(
   () => import('@/components/simplified/PortfolioAllocationScreen').then(m => ({ default: m.PortfolioAllocationScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const InvestmentExplorerScreen = dynamic(
   () => import('@/components/simplified/InvestmentExplorerScreen').then(m => ({ default: m.InvestmentExplorerScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const PrivacyDataScreen = dynamic(
   () => import('@/components/simplified/PrivacyDataScreen').then(m => ({ default: m.PrivacyDataScreen })),
-  { ssr: false }
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
@@ -217,6 +223,12 @@ export default function FolioApp() {
 
   // Single overlay/sheet state machine (replaces ~20 individual boolean flags)
   const overlay = useOverlayRouter()
+
+  // ── Depth surface transition origin tracking (task 19.3) ───────
+  // When a depth surface is opened from a visible Tools item, store the
+  // tool ID so the transition can use shared-element continuity.
+  // When null, standard surface entrance is used instead.
+  const [overlayOriginToolId, setOverlayOriginToolId] = useState<string | null>(null)
 
   // ── Tutorial Setup State ───────────────────────────────────────
   const [tutorialSetupState, setTutorialSetupState] = useState<TutorialSetupState>({
@@ -376,6 +388,14 @@ export default function FolioApp() {
     [lessonProgress]
   )
 
+  // ── Depth surface transition helpers (task 19.3) ─────────────────
+  // Opens an overlay and records the origin tool ID so that the depth
+  // surface can use shared-element continuity when the origin is visible.
+  const handleCloseDepthSurface = useCallback(() => {
+    overlay.closeOverlay()
+    setOverlayOriginToolId(null)
+  }, [overlay])
+
   // ── Debts (loaded on demand when DebtScreen opens) ─────────────
   const [debts, setDebts] = useState<Debt[]>([])
   const [debtsLoaded, setDebtsLoaded] = useState(false)
@@ -390,6 +410,7 @@ export default function FolioApp() {
       setDebts(data)
       setDebtsLoaded(true)
     }
+    setOverlayOriginToolId('debt')
     overlay.openOverlay('debt')
   }, [debtsLoaded, user?.id, overlay])
 
@@ -1929,36 +1950,52 @@ export default function FolioApp() {
   // ── Financial Trajectory (full-screen overlay, task 111.1) ─────
   if (flags.financialTrajectory && overlay.activeOverlay === 'trajectory') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <TrajectoryScreen
-          transactions={transactions}
-          goals={goals}
-          debts={debts}
-          savingsRate={savingsRate}
-          savingsAccounts={savingsAccounts}
-          totalSetAside={totalSetAside}
-          sinkingFunds={sinkingFunds}
-          fundingSources={fundingSources}
-          onBack={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'trajectory' ? 'tool-trajectory' : undefined}
+        aria-label="Financial Trajectory"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <TrajectoryScreen
+            transactions={transactions}
+            goals={goals}
+            debts={debts}
+            savingsRate={savingsRate}
+            savingsAccounts={savingsAccounts}
+            totalSetAside={totalSetAside}
+            sinkingFunds={sinkingFunds}
+            fundingSources={fundingSources}
+            onBack={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
   // ── Cash Flow Forecast (full-screen overlay, task 148.1) ────────
   if (flags.cashFlowForecast && overlay.activeOverlay === 'cashFlowForecast') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <CashFlowForecastScreen
-          currentBalance={allowance?.amount ?? 0}
-          paySchedule={paySchedule}
-          bills={recurringBills}
-          sinkingFunds={sinkingFunds}
-          transactions={transactions}
-          disbursements={disbursements}
-          onBack={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'cash-flow-forecast' ? 'tool-cash-flow-forecast' : undefined}
+        aria-label="Cash Flow Forecast"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <CashFlowForecastScreen
+            currentBalance={allowance?.amount ?? 0}
+            paySchedule={paySchedule}
+            bills={recurringBills}
+            sinkingFunds={sinkingFunds}
+            transactions={transactions}
+            disbursements={disbursements}
+            onBack={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
@@ -2067,72 +2104,120 @@ export default function FolioApp() {
   // ── Compound Growth Calculator (full-screen overlay, Tools tab) ─
   if (flags.compoundGrowthCalculator && overlay.activeOverlay === 'compoundGrowth') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <CompoundGrowthCalculator onBack={() => overlay.closeOverlay()} savingsAccounts={savingsAccounts} />
-      </div>
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'compound-growth' ? 'tool-compound-growth' : undefined}
+        aria-label="Compound Growth Calculator"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <CompoundGrowthCalculator onBack={handleCloseDepthSurface} savingsAccounts={savingsAccounts} />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
   // ── Credit Payoff Calculator (full-screen overlay, Tools tab) ──
   if (flags.creditPayoffCalculator && overlay.activeOverlay === 'creditPayoff') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <CreditPayoffCalculator onBack={() => overlay.closeOverlay()} />
-      </div>
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'credit-payoff' ? 'tool-credit-payoff' : undefined}
+        aria-label="Credit Payoff Calculator"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <CreditPayoffCalculator onBack={handleCloseDepthSurface} />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
   // ── Savings Projections (full-screen overlay, task 156) ────────
   if (flags.savingsProjections && overlay.activeOverlay === 'savingsProjections') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <SavingsProjectionsScreen
-          savingsAccounts={savingsAccounts}
-          totalBalance={totalSavingsBalance}
-          onCreateAccount={createSavingsAccount}
-          onUpdateAccount={updateSavingsAccount}
-          onDeleteAccount={deleteSavingsAccount}
-          onBack={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'savings-projections' ? 'tool-savings-projections' : undefined}
+        aria-label="Savings Projections"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <SavingsProjectionsScreen
+            savingsAccounts={savingsAccounts}
+            totalBalance={totalSavingsBalance}
+            onCreateAccount={createSavingsAccount}
+            onUpdateAccount={updateSavingsAccount}
+            onDeleteAccount={deleteSavingsAccount}
+            onBack={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
   // ── Manage Savings Accounts (full CRUD overlay, task 158.1) ────
   if (flags.savingsProjections && overlay.activeOverlay === 'manageSavings') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <ManageSavingsAccountsScreen
-          savingsAccounts={savingsAccounts}
-          onCreateAccount={createSavingsAccount}
-          onUpdateAccount={updateSavingsAccount}
-          onDeleteAccount={deleteSavingsAccount}
-          onBack={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'manage-savings' ? 'tool-manage-savings' : undefined}
+        aria-label="Manage Savings Accounts"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <ManageSavingsAccountsScreen
+            savingsAccounts={savingsAccounts}
+            onCreateAccount={createSavingsAccount}
+            onUpdateAccount={updateSavingsAccount}
+            onDeleteAccount={deleteSavingsAccount}
+            onBack={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
   // ── Portfolio Allocation (full-screen overlay, task 172.1) ─────
   if (flags.savingsProjections && overlay.activeOverlay === 'portfolioAllocation') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <PortfolioAllocationScreen
-          savingsAccounts={savingsAccounts}
-          onBack={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'portfolio-allocation' ? 'tool-portfolio-allocation' : undefined}
+        aria-label="Portfolio Allocation"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <PortfolioAllocationScreen
+            savingsAccounts={savingsAccounts}
+            onBack={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
   // ── Investment Explorer (full-screen overlay, task 173.1) ──────
   if (flags.savingsProjections && overlay.activeOverlay === 'investmentExplorer') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <InvestmentExplorerScreen
-          onBack={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'investment-explorer' ? 'tool-investment-explorer' : undefined}
+        aria-label="Investment Explorer"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <InvestmentExplorerScreen
+            onBack={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
@@ -2238,27 +2323,28 @@ export default function FolioApp() {
             )}
             {activeNav === 'tools' && (
               <ToolsScreen
-                onOpenCompoundGrowth={() => overlay.openOverlay('compoundGrowth')}
-                onOpenCreditPayoff={() => overlay.openOverlay('creditPayoff')}
-                onOpenSubscriptions={() => overlay.openOverlay('subscriptionAudit')}
+                onOpenCompoundGrowth={() => { setOverlayOriginToolId('compound-growth'); overlay.openOverlay('compoundGrowth') }}
+                onOpenCreditPayoff={() => { setOverlayOriginToolId('credit-payoff'); overlay.openOverlay('creditPayoff') }}
+                onOpenSubscriptions={() => { setOverlayOriginToolId('subscriptions'); overlay.openOverlay('subscriptionAudit') }}
                 onOpenCancelNegotiate={() => {
+                  setOverlayOriginToolId('cancel-negotiate')
                   overlay.openOverlay('cancelNegotiate', { target: null })
                 }}
-                onOpenSinkingFunds={() => overlay.openOverlay('sinkingFunds')}
-                onOpenLearn={() => overlay.openOverlay('learn', { initialLessonId: null })}
-                onOpenSavingsProjections={() => overlay.openOverlay('savingsProjections')}
-                onOpenManageSavings={() => overlay.openOverlay('manageSavings')}
+                onOpenSinkingFunds={() => { setOverlayOriginToolId('sinking-funds'); overlay.openOverlay('sinkingFunds') }}
+                onOpenLearn={() => { setOverlayOriginToolId('learn'); overlay.openOverlay('learn', { initialLessonId: null }) }}
+                onOpenSavingsProjections={() => { setOverlayOriginToolId('savings-projections'); overlay.openOverlay('savingsProjections') }}
+                onOpenManageSavings={() => { setOverlayOriginToolId('manage-savings'); overlay.openOverlay('manageSavings') }}
                 onOpenDebt={handleOpenDebt}
-                onOpenRecurringBills={() => overlay.openOverlay('recurringBills')}
-                onOpenReimbursements={() => overlay.openOverlay('reimbursements')}
-                onOpenTrajectory={() => overlay.openOverlay('trajectory')}
-                onOpenCashFlowForecast={() => overlay.openOverlay('cashFlowForecast')}
-                onOpenPortfolioAllocation={() => overlay.openOverlay('portfolioAllocation')}
-                onOpenInvestmentExplorer={() => overlay.openOverlay('investmentExplorer')}
-                onOpenYearInReview={() => overlay.openOverlay('yearInReview')}
-                onOpenTermReview={() => overlay.openOverlay('termReview')}
-                onOpenPeerContext={() => overlay.openOverlay('peerContext')}
-                onOpenInviteRoommate={() => overlay.openOverlay('inviteRoommate')}
+                onOpenRecurringBills={() => { setOverlayOriginToolId('recurring-bills'); overlay.openOverlay('recurringBills') }}
+                onOpenReimbursements={() => { setOverlayOriginToolId('reimbursements'); overlay.openOverlay('reimbursements') }}
+                onOpenTrajectory={() => { setOverlayOriginToolId('trajectory'); overlay.openOverlay('trajectory') }}
+                onOpenCashFlowForecast={() => { setOverlayOriginToolId('cash-flow-forecast'); overlay.openOverlay('cashFlowForecast') }}
+                onOpenPortfolioAllocation={() => { setOverlayOriginToolId('portfolio-allocation'); overlay.openOverlay('portfolioAllocation') }}
+                onOpenInvestmentExplorer={() => { setOverlayOriginToolId('investment-explorer'); overlay.openOverlay('investmentExplorer') }}
+                onOpenYearInReview={() => { setOverlayOriginToolId('year-in-review'); overlay.openOverlay('yearInReview') }}
+                onOpenTermReview={() => { setOverlayOriginToolId('term-review'); overlay.openOverlay('termReview') }}
+                onOpenPeerContext={() => { setOverlayOriginToolId('peer-context'); overlay.openOverlay('peerContext') }}
+                onOpenInviteRoommate={() => { setOverlayOriginToolId('invite-roommate'); overlay.openOverlay('inviteRoommate') }}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}

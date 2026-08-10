@@ -739,8 +739,32 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   }, [userId])
   
   // ── Transaction Mutations ──────────────────────────────────────
+  
+  /** Persistence timeout — treat as failure if DB doesn't respond within 10s (Requirement 17.5) */
+  const PERSIST_TIMEOUT_MS = 10_000
+  
   /**
-   * Add a new transaction with optimistic updates
+   * Wraps a promise with a timeout. Rejects if the promise doesn't resolve within `ms`.
+   */
+  function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error('PERSIST_TIMEOUT')), ms)
+      ),
+    ])
+  }
+  
+  /**
+   * Add a new transaction with optimistic updates (Requirement 17.4, 17.5)
+   *
+   * Flow:
+   * 1. Immediately insert an optimistic transaction with a temporary ID into state
+   *    → visible within 100ms (same React frame).
+   * 2. Persist to Supabase (with 10s timeout).
+   * 3. On success → reconcile: swap temp ID with real ID within 200ms of persistence.
+   * 4. On failure/timeout → rollback: remove optimistic transaction within 300ms,
+   *    queue to offline queue for background retry, return null so caller can show error.
    */
   const addTransaction = useCallback(async (data: {
     amount: number
@@ -751,23 +775,45 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   }) => {
     if (!userId) return null
     
+    // 1. Optimistic insert — generate temp ID and insert immediately
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const optimisticTx: Transaction = {
+      id: tempId,
+      userId,
+      date: data.date,
+      amount: data.amount,
+      type: data.type,
+      category: data.category,
+      note: data.note,
+      accountType: 'personal',
+      createdAt: new Date().toISOString(),
+    }
+    
+    setTransactions(prev => [optimisticTx, ...prev])
+    
     try {
-      const result = await insertTransaction(userId, {
-        ...data,
-        accountType: 'personal',
-      })
+      // 2. Persist to Supabase with timeout
+      const result = await withTimeout(
+        insertTransaction(userId, {
+          ...data,
+          accountType: 'personal',
+        }),
+        PERSIST_TIMEOUT_MS
+      )
       
       if (result) {
-        // Update local state with new transaction
-        setTransactions(prev => [result, ...prev])
+        // 3. Reconcile — swap temp ID with real server-assigned ID
+        setTransactions(prev => prev.map(t => t.id === tempId ? result : t))
         
         // Recalculate budget spent if it's an expense
         if (data.type === 'expense') {
           await recalculateBudgetSpentForCategory(data.category)
         }
+        
+        return result
       } else {
-        // Persistence failed — queue locally for background retry so it is
-        // not silently lost. Supports both expense and income. (Requirements 10.2, 13.7)
+        // Persistence returned null — rollback optimistic insert and queue
+        setTransactions(prev => prev.filter(t => t.id !== tempId))
         addToOfflineQueue(userId, {
           kind: 'create',
           payload: {
@@ -778,17 +824,30 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
             note: data.note,
           },
         })
+        return null
       }
-      
-      return result
     } catch (err) {
+      // 4. Failure or timeout — rollback optimistic insert
       console.error('Error adding transaction:', err)
+      setTransactions(prev => prev.filter(t => t.id !== tempId))
+      
+      // Queue for background retry (Requirements 10.2, 13.7)
+      addToOfflineQueue(userId, {
+        kind: 'create',
+        payload: {
+          category: data.category,
+          amount: data.amount,
+          type: data.type,
+          date: data.date,
+          note: data.note,
+        },
+      })
       return null
     }
   }, [userId])
   
   /**
-   * Update an existing transaction
+   * Update an existing transaction with optimistic-first pattern (Requirement 17.4, 17.5)
    *
    * RETROACTIVE RECOMPUTATION (Task 89.2):
    * When a transaction's date is edited (e.g., backdated to last week), this
@@ -806,6 +865,12 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
    *
    * The batch-compute approach (sum expected vs actual over a date range) ensures
    * that even large retroactive edits spanning many days remain performant.
+   *
+   * Optimistic flow:
+   * 1. Immediately update local state with new values → visible within 100ms.
+   * 2. Persist to Supabase (with 10s timeout).
+   * 3. On success → reconcile with server result within 200ms of persistence.
+   * 4. On failure/timeout → rollback to prior state within 300ms, queue to offline.
    */
   const updateTransactionFn = useCallback(async (
     id: string,
@@ -819,14 +884,21 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   ) => {
     if (!userId) return null
     
+    // Find the old transaction to know what to rollback to
+    const oldTx = transactions.find(t => t.id === id)
+    
+    // 1. Optimistic update — immediately apply changes to local state
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
+    
     try {
-      // Find the old transaction to know what category to recalculate
-      const oldTx = transactions.find(t => t.id === id)
-      
-      const result = await updateTransaction(userId, id, data)
+      // 2. Persist to Supabase with timeout
+      const result = await withTimeout(
+        updateTransaction(userId, id, data),
+        PERSIST_TIMEOUT_MS
+      )
       
       if (result) {
-        // Update local state
+        // 3. Reconcile — replace with authoritative server result
         setTransactions(prev => prev.map(t => t.id === id ? result : t))
         
         // Recalculate budgets for affected categories
@@ -836,8 +908,13 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
         if (data.type === 'expense' && data.category !== oldTx?.category) {
           await recalculateBudgetSpentForCategory(data.category)
         }
+        
+        return result
       } else {
-        // Persistence failed — queue the edit for background retry (Requirements 10.2)
+        // Persistence returned null — rollback and queue
+        if (oldTx) {
+          setTransactions(prev => prev.map(t => t.id === id ? oldTx : t))
+        }
         addToOfflineQueue(userId, {
           kind: 'update',
           payload: {
@@ -849,60 +926,106 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
             note: data.note,
           },
         })
-        // Optimistically update local state so the user sees their change
-        if (oldTx) {
-          setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
-        }
+        return null
+      }
+    } catch (err) {
+      // 4. Failure or timeout — rollback to prior state
+      console.error('Error updating transaction:', err)
+      if (oldTx) {
+        setTransactions(prev => prev.map(t => t.id === id ? oldTx : t))
       }
       
-      return result
-    } catch (err) {
-      console.error('Error updating transaction:', err)
+      // Queue for background retry (Requirements 10.2)
+      addToOfflineQueue(userId, {
+        kind: 'update',
+        payload: {
+          transactionId: id,
+          amount: data.amount,
+          category: data.category,
+          type: data.type,
+          date: data.date,
+          note: data.note,
+        },
+      })
       return null
     }
   }, [userId, transactions])
   
   /**
-   * Delete a transaction
+   * Delete a transaction with optimistic-first pattern (Requirement 17.4, 17.5)
+   *
+   * Flow:
+   * 1. Immediately remove from local state → visible within 100ms.
+   * 2. Persist to Supabase (with 10s timeout).
+   * 3. On success → no further action needed (already removed).
+   * 4. On failure/timeout → rollback: restore the transaction, queue for retry.
    */
   const deleteTransactionFn = useCallback(async (id: string) => {
     if (!userId) return false
     
+    // Capture the transaction before removal for potential rollback
+    const tx = transactions.find(t => t.id === id)
+    
+    // 1. Optimistic remove — immediately filter from local state
+    setTransactions(prev => prev.filter(t => t.id !== id))
+    
+    // Recalculate budget spent eagerly if it was an expense
+    if (tx?.type === 'expense') {
+      await recalculateBudgetSpentForCategory(tx.category)
+    }
+    
     try {
-      const tx = transactions.find(t => t.id === id)
-      const success = await deleteTransaction(userId, id)
+      // 2. Persist to Supabase with timeout
+      const success = await withTimeout(
+        deleteTransaction(userId, id),
+        PERSIST_TIMEOUT_MS
+      )
       
       if (success) {
-        // Update local state
-        setTransactions(prev => prev.filter(t => t.id !== id))
-        
-        // Recalculate budget spent if it was an expense
-        if (tx?.type === 'expense') {
-          await recalculateBudgetSpentForCategory(tx.category)
-        }
+        // 3. Success — state is already correct, nothing more to do
+        return true
       } else {
-        // Persistence failed — queue the delete for background retry (Requirements 10.2)
+        // Persistence returned false — rollback and queue
+        if (tx) {
+          setTransactions(prev => [tx, ...prev])
+          if (tx.type === 'expense') {
+            await recalculateBudgetSpentForCategory(tx.category)
+          }
+        }
         addToOfflineQueue(userId, {
           kind: 'delete',
           payload: { transactionId: id },
         })
-        // Optimistically remove from local state
-        setTransactions(prev => prev.filter(t => t.id !== id))
-        if (tx?.type === 'expense') {
+        return false
+      }
+    } catch (err) {
+      // 4. Failure or timeout — rollback: restore the transaction
+      console.error('Error deleting transaction:', err)
+      if (tx) {
+        setTransactions(prev => [tx, ...prev])
+        if (tx.type === 'expense') {
           await recalculateBudgetSpentForCategory(tx.category)
         }
       }
       
-      return success
-    } catch (err) {
-      console.error('Error deleting transaction:', err)
+      // Queue for background retry (Requirements 10.2)
+      addToOfflineQueue(userId, {
+        kind: 'delete',
+        payload: { transactionId: id },
+      })
       return false
     }
   }, [userId, transactions])
   
   // ── Budget Mutations ───────────────────────────────────────────
   /**
-   * Update or create a budget limit
+   * Update or create a budget limit with optimistic-first pattern (Requirement 17.4, 17.5)
+   *
+   * Flow:
+   * 1. Immediately update local budget state with the new limit.
+   * 2. Persist to Supabase (with 10s timeout).
+   * 3. On success → reconcile with server result.
+   * 4. On failure/timeout → rollback to prior state, return null.
    */
   const updateBudgetFn = useCallback(async (
     category: TransactionCategory,
@@ -910,28 +1033,63 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   ) => {
     if (!userId) return null
     
+    // Capture prior state for rollback
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    const oldBudgets = [...budgets]
+    
+    // 1. Optimistic update — immediately show new limit in state
+    const optimisticBudget: Budget = {
+      id: `temp-budget-${category}-${currentMonth}`,
+      userId,
+      category,
+      monthlyLimit: limit,
+      spent: budgets.find(b => b.category === category && b.month === currentMonth)?.spent ?? 0,
+      month: currentMonth,
+    }
+    setBudgets(prev => {
+      const existing = prev.find(b => b.category === category && b.month === currentMonth)
+      if (existing) {
+        return prev.map(b =>
+          b.category === category && b.month === currentMonth
+            ? { ...b, monthlyLimit: limit }
+            : b
+        )
+      }
+      return [...prev, optimisticBudget]
+    })
+    
     try {
-      const result = await upsertBudget(userId, category, limit)
+      // 2. Persist with timeout
+      const result = await withTimeout(
+        upsertBudget(userId, category, limit),
+        PERSIST_TIMEOUT_MS
+      )
       
       if (result) {
-        // Update local state
+        // 3. Reconcile — replace with authoritative server result
         setBudgets(prev => {
-          const existing = prev.find(
-            b => b.category === category && b.month === result.month
-          )
+          const existing = prev.find(b => b.id === result.id)
           if (existing) {
             return prev.map(b => b.id === result.id ? result : b)
           }
-          return [...prev, result]
+          // Replace the optimistic temp entry
+          return prev.map(b =>
+            b.category === category && b.month === result.month ? result : b
+          )
         })
+        return result
+      } else {
+        // Persistence returned null — rollback
+        setBudgets(oldBudgets)
+        return null
       }
-      
-      return result
     } catch (err) {
+      // 4. Failure or timeout — rollback
       console.error('Error updating budget:', err)
+      setBudgets(oldBudgets)
       return null
     }
-  }, [userId])
+  }, [userId, budgets])
   
   /**
    * Helper to recalculate budget spent for a specific category

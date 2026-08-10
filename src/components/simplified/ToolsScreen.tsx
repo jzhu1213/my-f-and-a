@@ -1,22 +1,30 @@
 "use client"
 
+/**
+ * ToolsScreen — Rebuilt with unified primitives from Component_Library.
+ *
+ * All section headings use SectionHeader (Typography_System headline tier).
+ * All entries use ListRow (dense variant for compact density).
+ * Layout uses contentColumn from Layout_System.
+ * Zero local font-size/weight/color/spacing overrides.
+ * Sections are grouped with ≤7 entries each (Req 10.4).
+ * At most one accent fill per viewport; all remaining from neutral tokens.
+ *
+ * Requirements: 15.1, 15.2, 15.3, 15.4, 10.4
+ */
+
 import { useMemo, useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { layoutTransition, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
 import { getPeerContextEnabled } from "@/lib/peerContextPreferences"
-import { Card } from "@/components/ui/Card"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { SectionHeader, ListRow, Card } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/lib/icons"
-import { FONT_FAMILY } from "@/styles/typography"
-import {
-  CONTENT_MAX_WIDTH,
-  HORIZONTAL_PADDING,
-  DOCK_PADDING_BOTTOM,
-  SECTION_SPACING,
-  borderRadius,
-  sectionHeader,
-} from "@/styles/shared"
+import { contentColumn, spacingScale, CONTENT_MAX_WIDTH, HORIZONTAL_PADDING } from "@/styles/layout"
+import { typography } from "@/styles/typography"
+import { textColors, colorRamp } from "@/styles/colors"
+import { elevations, radius } from "@/styles/surfaces"
+import { safeAreaBottom } from "@/styles/layout"
 import { SourceBalancesView } from "./SourceBalancesView"
 import { ObligationsSummary } from "./ObligationsSummary"
 import { RoundUpSetting } from "./RoundUpSetting"
@@ -82,43 +90,14 @@ export interface ToolsScreenProps {
 
 interface ToolItem {
   id: string
-  /** Semantic registry icon name resolved through the {@link Icon} wrapper. */
   iconName: IconName
   title: string
   description: string
   onOpen?: () => void
 }
 
-/**
- * Subtle, tinted icon-chip that backs every tool's icon. Uses a muted tint of
- * the warm-purple `--accent` token (via `color-mix`) so the tools grid reads as
- * a designed dashboard rather than an emoji list. The icon inherits the accent
- * through `currentColor`. Decorative — each chip is paired with a visible tool
- * title, so it is hidden from assistive tech.
- */
-function ToolIconChip({ name, size = 40 }: { name: IconName; size?: number }) {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: size,
-        height: size,
-        flexShrink: 0,
-        borderRadius: borderRadius.md,
-        background: "color-mix(in srgb, var(--accent) 12%, transparent)",
-        color: "var(--accent)",
-      }}
-    >
-      <Icon name={name} size={Math.round(size * 0.5)} />
-    </span>
-  )
-}
-
 // ============================================================================
-// Section definitions
+// Section definitions (≤7 entries per section — Req 10.4)
 // ============================================================================
 
 interface ToolSection {
@@ -140,8 +119,13 @@ const SECTIONS: ToolSection[] = [
   },
   {
     id: "planning",
-    label: "Planning",
-    toolIds: ["sinking-funds", "savings-projections", "manage-savings", "portfolio-allocation", "investment-explorer", "cash-flow-forecast", "compound-growth", "credit-payoff"],
+    label: "Planning & Savings",
+    toolIds: ["sinking-funds", "savings-projections", "manage-savings", "portfolio-allocation", "investment-explorer", "cash-flow-forecast"],
+  },
+  {
+    id: "calculators",
+    label: "Calculators",
+    toolIds: ["compound-growth", "credit-payoff"],
   },
   {
     id: "reviews",
@@ -159,14 +143,6 @@ const SECTIONS: ToolSection[] = [
 // ToolsScreen Component
 // ============================================================================
 
-/**
- * ToolsScreen — opt-in "Tools" area for advanced features that don't pass
- * the "would a typical sophomore use this in a normal week?" test.
- *
- * Accessible from the dock navigation. Presents advanced tools grouped into
- * logical sections (Money Map, Obligations, Planning, Learn) as glass cards
- * with a tinted icon-chip, title, and description.
- */
 export function ToolsScreen({
   onOpenCompoundGrowth,
   onOpenCreditPayoff,
@@ -201,9 +177,7 @@ export function ToolsScreen({
   const { flags } = useFeatureFlags()
   const { listContainer, listItem, prefersReducedMotion } = useReducedMotion()
 
-  // Peer context (task 186.1) is opt-in and OFF by default — gate its tool card
-  // on the user's Settings preference rather than a feature flag. Re-read on
-  // mount so toggling it in Settings takes effect when returning to Tools.
+  // Peer context is opt-in and OFF by default
   const [peerContextEnabled, setPeerContextEnabled] = useState(false)
   useEffect(() => {
     setPeerContextEnabled(getPeerContextEnabled())
@@ -229,7 +203,7 @@ export function ToolsScreen({
     "household-pool": "householdPool",
   }
 
-  // Compute net obligations from existing Debt and Reimbursement models
+  // Compute net obligations
   const obligations = useMemo(
     () => computeNetObligations(
       debts ?? [],
@@ -241,174 +215,47 @@ export function ToolsScreen({
   )
 
   const allTools: ToolItem[] = [
-    {
-      id: "trajectory",
-      iconName: "tool:trajectory",
-      title: "Financial Trajectory",
-      description: "See how your money habits are trending — no intimidating numbers.",
-      onOpen: onOpenTrajectory,
-    },
-    {
-      id: "debt",
-      iconName: "tool:debt",
-      title: "Debt Tracking",
-      description: "Track balances, APRs, and payoff timelines for your debts.",
-      onOpen: onOpenDebt,
-    },
-    {
-      id: "recurring-bills",
-      iconName: "tool:recurring-bills",
-      title: "Recurring Bills",
-      description: "Track your monthly fixed costs like rent, subscriptions, and utilities.",
-      onOpen: onOpenRecurringBills,
-    },
-    {
-      id: "reimbursements",
-      iconName: "tool:reimbursements",
-      title: "IOUs & Reimbursements",
-      description: "Track money friends owe you — or that you owe them.",
-      onOpen: onOpenReimbursements,
-    },
-    {
-      id: "sinking-funds",
-      iconName: "tool:sinking-funds",
-      title: "Sinking Funds",
-      description: "Save gradually for predictable large expenses like insurance or travel.",
-      onOpen: onOpenSinkingFunds,
-    },
-    {
-      id: "subscriptions",
-      iconName: "tool:subscriptions",
-      title: "Subscription Audit",
-      description: "Review detected recurring charges and decide what's worth keeping.",
-      onOpen: onOpenSubscriptions,
-    },
-    {
-      id: "cancel-negotiate",
-      iconName: "tool:cancel-negotiate",
-      title: "Cancel or Negotiate Helper",
-      description: "DIY steps and a friendly script to lower a bill or cancel a subscription yourself.",
-      onOpen: onOpenCancelNegotiate,
-    },
-    {
-      id: "household-pool",
-      iconName: "tool:household-pool",
-      title: "Shared Pools",
-      description: "Split shared expenses like groceries and utilities with roommates — separate from your daily number.",
-      onOpen: onOpenHouseholdPool,
-    },
-    {
-      id: "invite-roommate",
-      iconName: "tool:invite-roommate",
-      title: "Invite a Roommate",
-      description: "Share a pool or goal with a roommate so you can split and save together.",
-      onOpen: onOpenInviteRoommate,
-    },
-    {
-      id: "savings-projections",
-      iconName: "tool:savings-projections",
-      title: "Savings Projections",
-      description: "Project how your savings accounts and investments might grow.",
-      onOpen: onOpenSavingsProjections,
-    },
-    {
-      id: "manage-savings",
-      iconName: "tool:manage-savings",
-      title: "Manage Savings Accounts",
-      description: "Add, edit, or remove your savings and investment accounts.",
-      onOpen: onOpenManageSavings,
-    },
-    {
-      id: "portfolio-allocation",
-      iconName: "tool:portfolio-allocation",
-      title: "Portfolio Allocation",
-      description: "See your savings broken down by account type — where your money lives and grows.",
-      onOpen: onOpenPortfolioAllocation,
-    },
-    {
-      id: "investment-explorer",
-      iconName: "tool:investment-explorer",
-      title: "What If I Invest?",
-      description: "Model how different contributions and returns could grow over time.",
-      onOpen: onOpenInvestmentExplorer,
-    },
-    {
-      id: "cash-flow-forecast",
-      iconName: "tool:cash-flow-forecast",
-      title: "Cash Flow Forecast",
-      description: "See your projected balance through your next payday or end of term.",
-      onOpen: onOpenCashFlowForecast,
-    },
-    {
-      id: "compound-growth",
-      iconName: "tool:compound-growth",
-      title: "Compound Growth Calculator",
-      description: "See how your savings could grow over time with compound interest.",
-      onOpen: onOpenCompoundGrowth,
-    },
-    {
-      id: "credit-payoff",
-      iconName: "tool:credit-payoff",
-      title: "Credit Payoff Calculator",
-      description: "Plan how to pay off credit card debt faster.",
-      onOpen: onOpenCreditPayoff,
-    },
-    {
-      id: "term-review",
-      iconName: "tool:term-review",
-      title: "Term in Review",
-      description: "A warm end-of-term (or end-of-month) recap of your savings, streaks, and wins.",
-      onOpen: onOpenTermReview,
-    },
-    {
-      id: "year-in-review",
-      iconName: "tool:year-in-review",
-      title: "Year in Review",
-      description: "A warm, once-a-year look back at your streaks, savings, and wins.",
-      onOpen: onOpenYearInReview,
-    },
-    {
-      id: "peer-context",
-      iconName: "tool:peer-context",
-      title: "How you compare",
-      description: "Optional, anonymized context against rough student ranges — reassuring, never a scoreboard.",
-      onOpen: onOpenPeerContext,
-    },
-    {
-      id: "learn",
-      iconName: "tool:learn",
-      title: "Learn",
-      description: "Short lessons on budgeting, saving, and growing your money.",
-      onOpen: onOpenLearn,
-    },
+    { id: "trajectory", iconName: "tool:trajectory", title: "Financial Trajectory", description: "See how your money habits are trending.", onOpen: onOpenTrajectory },
+    { id: "debt", iconName: "tool:debt", title: "Debt Tracking", description: "Track balances, APRs, and payoff timelines.", onOpen: onOpenDebt },
+    { id: "recurring-bills", iconName: "tool:recurring-bills", title: "Recurring Bills", description: "Track your monthly fixed costs.", onOpen: onOpenRecurringBills },
+    { id: "reimbursements", iconName: "tool:reimbursements", title: "IOUs & Reimbursements", description: "Track money friends owe you — or that you owe them.", onOpen: onOpenReimbursements },
+    { id: "sinking-funds", iconName: "tool:sinking-funds", title: "Sinking Funds", description: "Save gradually for predictable large expenses.", onOpen: onOpenSinkingFunds },
+    { id: "subscriptions", iconName: "tool:subscriptions", title: "Subscription Audit", description: "Review detected recurring charges.", onOpen: onOpenSubscriptions },
+    { id: "cancel-negotiate", iconName: "tool:cancel-negotiate", title: "Cancel or Negotiate", description: "Steps and scripts to lower a bill or cancel.", onOpen: onOpenCancelNegotiate },
+    { id: "household-pool", iconName: "tool:household-pool", title: "Shared Pools", description: "Split shared expenses with roommates.", onOpen: onOpenHouseholdPool },
+    { id: "invite-roommate", iconName: "tool:invite-roommate", title: "Invite a Roommate", description: "Share a pool or goal with a roommate.", onOpen: onOpenInviteRoommate },
+    { id: "savings-projections", iconName: "tool:savings-projections", title: "Savings Projections", description: "Project how your savings might grow.", onOpen: onOpenSavingsProjections },
+    { id: "manage-savings", iconName: "tool:manage-savings", title: "Manage Savings", description: "Add, edit, or remove savings accounts.", onOpen: onOpenManageSavings },
+    { id: "portfolio-allocation", iconName: "tool:portfolio-allocation", title: "Portfolio Allocation", description: "See savings broken down by account type.", onOpen: onOpenPortfolioAllocation },
+    { id: "investment-explorer", iconName: "tool:investment-explorer", title: "What If I Invest?", description: "Model contributions and returns over time.", onOpen: onOpenInvestmentExplorer },
+    { id: "cash-flow-forecast", iconName: "tool:cash-flow-forecast", title: "Cash Flow Forecast", description: "See projected balance through next payday.", onOpen: onOpenCashFlowForecast },
+    { id: "compound-growth", iconName: "tool:compound-growth", title: "Compound Growth", description: "See how savings grow with compound interest.", onOpen: onOpenCompoundGrowth },
+    { id: "credit-payoff", iconName: "tool:credit-payoff", title: "Credit Payoff", description: "Plan how to pay off credit card debt faster.", onOpen: onOpenCreditPayoff },
+    { id: "term-review", iconName: "tool:term-review", title: "Term in Review", description: "A warm end-of-term recap of your wins.", onOpen: onOpenTermReview },
+    { id: "year-in-review", iconName: "tool:year-in-review", title: "Year in Review", description: "A once-a-year look back at your streaks and savings.", onOpen: onOpenYearInReview },
+    { id: "peer-context", iconName: "tool:peer-context", title: "How You Compare", description: "Optional anonymized context against student ranges.", onOpen: onOpenPeerContext },
+    { id: "learn", iconName: "tool:learn", title: "Learn", description: "Short lessons on budgeting, saving, and investing.", onOpen: onOpenLearn },
   ]
 
-  // Helper: check if a tool is visible based on feature flags
   const isToolVisible = (toolId: string): boolean => {
-    // Peer context is opt-in (task 186.1) — hidden unless enabled in Settings.
     if (toolId === "peer-context") return peerContextEnabled
     const flagKey = toolFlagMap[toolId]
-    if (!flagKey) return true // no flag = always show
+    if (!flagKey) return true
     return flags[flagKey]
   }
 
-  // Filter tools for a given section
   const getVisibleToolsForSection = (section: ToolSection): ToolItem[] => {
     return allTools.filter(
       (tool) => section.toolIds.includes(tool.id) && isToolVisible(tool.id)
     )
   }
 
-  // Check if the Money Map section's inline widget (SourceBalancesView) is visible
   const hasSourceBalances =
     fundingSources != null && fundingSources.length > 0 && transactions != null
 
-  // Determine which sections have at least one visible item
   const visibleSections = SECTIONS.filter((section) => {
     const visibleTools = getVisibleToolsForSection(section)
-    // Money map also has SourceBalancesView inline widget
     if (section.id === "money-map") return visibleTools.length > 0 || hasSourceBalances
-    // Obligations also has ObligationsSummary inline widget (always shows if section renders)
     if (section.id === "obligations") return visibleTools.length > 0
     return visibleTools.length > 0
   })
@@ -416,188 +263,139 @@ export function ToolsScreen({
   return (
     <div
       style={{
-        maxWidth: CONTENT_MAX_WIDTH,
-        margin: "0 auto",
-        padding: `24px ${HORIZONTAL_PADDING}px ${DOCK_PADDING_BOTTOM - 20}px`,
-        fontFamily: FONT_FAMILY,
+        ...contentColumn,
+        paddingTop: spacingScale["24"],
+        paddingBottom: safeAreaBottom(100),
       }}
     >
-      {/* ── Title ──────────────────────────────────────────────────────── */}
-      <h2
-        style={{
-          fontSize: 22,
-          fontWeight: 700,
-          color: "var(--text)",
-          fontFamily: FONT_FAMILY,
-          marginBottom: 6,
-        }}
-      >
-        More & Tools
-      </h2>
-      <p
-        style={{
-          fontSize: 14,
-          color: "var(--sub)",
-          marginBottom: SECTION_SPACING,
-          lineHeight: 1.5,
-          fontFamily: FONT_FAMILY,
-        }}
-      >
+      {/* ── Screen Title ─────────────────────────────────────────────── */}
+      <SectionHeader>Tools</SectionHeader>
+      <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["32"] }}>
         Advanced features, calculators, and tracking tools.
       </p>
 
-      {/* ── Stat Cards (Set Aside / Savings Rate) ──────────────────────── */}
+      {/* ── Stat Cards (Set Aside / Savings Rate) ─────────────────────── */}
       {((totalSetAside ?? 0) > 0 || (savingsRate ?? 0) > 0) && (
-        <div style={{ display: "flex", gap: 12, marginBottom: SECTION_SPACING }}>
+        <div style={{ display: "flex", gap: spacingScale["12"], marginBottom: spacingScale["32"] }}>
           {(totalSetAside ?? 0) > 0 && (
-            <GlassCard elevation="low" style={{ padding: "14px 16px", flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <ToolIconChip name="stat:set-aside" size={32} />
-                <div>
-                  <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2, fontFamily: FONT_FAMILY }}>
-                    Set aside this month
-                  </p>
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums", fontFamily: FONT_FAMILY }}>
-                    ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
-                  </p>
-                </div>
-              </div>
-            </GlassCard>
+            <Card style={{ padding: `${spacingScale["12"]} ${spacingScale["16"]}`, flex: 1 }}>
+              <p style={{ ...typography.caption, color: textColors.muted, marginBottom: spacingScale["2"] }}>
+                Set aside this month
+              </p>
+              <p style={{ ...typography.subhead, color: textColors.text, fontVariantNumeric: "tabular-nums" }}>
+                ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
+              </p>
+            </Card>
           )}
           {(savingsRate ?? 0) > 0 && (
-            <GlassCard elevation="low" style={{ padding: "14px 16px", flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <ToolIconChip name="stat:savings-rate" size={32} />
-                <div>
-                  <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2, fontFamily: FONT_FAMILY }}>
-                    Savings rate
-                  </p>
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums", fontFamily: FONT_FAMILY }}>
-                    {savingsRate}%
-                  </p>
-                </div>
-              </div>
-            </GlassCard>
+            <Card style={{ padding: `${spacingScale["12"]} ${spacingScale["16"]}`, flex: 1 }}>
+              <p style={{ ...typography.caption, color: textColors.muted, marginBottom: spacingScale["2"] }}>
+                Savings rate
+              </p>
+              <p style={{ ...typography.subhead, color: colorRamp.success[500], fontVariantNumeric: "tabular-nums" }}>
+                {savingsRate}%
+              </p>
+            </Card>
           )}
         </div>
       )}
 
-      {/* ── Grouped Sections ───────────────────────────────────────────── */}
-      <motion.div
-        variants={listContainer}
-        initial="hidden"
-        animate="visible"
-      >
-      {visibleSections.map((section, sectionIdx) => {
-        const sectionTools = getVisibleToolsForSection(section)
+      {/* ── Grouped Sections ─────────────────────────────────────────── */}
+      <motion.div variants={listContainer} initial="hidden" animate="visible">
+        {visibleSections.map((section, sectionIdx) => {
+          const sectionTools = getVisibleToolsForSection(section)
 
-        return (
-          <motion.div
-            key={section.id}
-            variants={listItem}
-            custom={sectionIdx}
-            style={{ marginBottom: SECTION_SPACING }}
-          >
-            {/* Section heading */}
-            <p style={{ ...sectionHeader, marginBottom: 14 }}>
-              {section.label}
-            </p>
+          return (
+            <motion.div
+              key={section.id}
+              variants={listItem}
+              custom={sectionIdx}
+              style={{ marginBottom: spacingScale["32"] }}
+            >
+              <SectionHeader>{section.label}</SectionHeader>
 
-            {/* Money Map inline widget: SourceBalancesView */}
-            {section.id === "money-map" && hasSourceBalances && (
-              <div style={{ marginBottom: sectionTools.length > 0 ? 12 : 0 }}>
-                <SourceBalancesView
-                  fundingSources={fundingSources!}
-                  transactions={transactions!}
-                />
-              </div>
-            )}
+              {/* Money Map inline widget */}
+              {section.id === "money-map" && hasSourceBalances && (
+                <div style={{ marginBottom: sectionTools.length > 0 ? spacingScale["12"] : 0 }}>
+                  <SourceBalancesView
+                    fundingSources={fundingSources!}
+                    transactions={transactions!}
+                  />
+                </div>
+              )}
 
-            {/* Obligations inline widget: ObligationsSummary */}
-            {section.id === "obligations" && (
-              <div style={{ marginBottom: sectionTools.length > 0 ? 12 : 0 }}>
-                <ObligationsSummary obligations={obligations} />
-              </div>
-            )}
+              {/* Obligations inline widget */}
+              {section.id === "obligations" && (
+                <div style={{ marginBottom: sectionTools.length > 0 ? spacingScale["12"] : 0 }}>
+                  <ObligationsSummary obligations={obligations} />
+                </div>
+              )}
 
-            {/* Tool Cards — per-item stagger for cascading reveal */}
-            {sectionTools.length > 0 && (
-              <motion.div
-                variants={listContainer}
-                initial="hidden"
-                animate="visible"
-                style={{ display: "flex", flexDirection: "column", gap: 10 }}
-              >
-                {sectionTools.map((tool, toolIdx) => (
-                  <motion.div
-                    key={tool.id}
-                    variants={listItem}
-                    custom={Math.min(toolIdx, MAX_STAGGER_ITEMS)}
-                    layout={!prefersReducedMotion ? "position" : false}
-                    transition={layoutTransition}
-                    whileTap={tool.onOpen ? { scale: 0.98 } : undefined}
-                  >
-                    <Card
-                      padding="14px 16px"
-                      style={{
-                        cursor: tool.onOpen ? "pointer" : "default",
-                        opacity: tool.onOpen ? 1 : 0.5,
-                      }}
-                      onClick={tool.onOpen}
+              {/* Tool entries — each as a ListRow (dense) */}
+              {sectionTools.length > 0 && (
+                <motion.div
+                  variants={listContainer}
+                  initial="hidden"
+                  animate="visible"
+                  style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}
+                >
+                  {sectionTools.map((tool, toolIdx) => (
+                    <motion.div
+                      key={tool.id}
+                      variants={listItem}
+                      custom={Math.min(toolIdx, MAX_STAGGER_ITEMS)}
+                      layout={!prefersReducedMotion ? "position" : false}
+                      layoutId={`tool-${tool.id}`}
+                      transition={layoutTransition}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                        <ToolIconChip name={tool.iconName} />
+                      <ListRow
+                        variant="dense"
+                        onPress={tool.onOpen}
+                        aria-label={tool.title}
+                      >
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: spacingScale["40"],
+                            height: spacingScale["40"],
+                            flexShrink: 0,
+                            borderRadius: radius.control,
+                            background: colorRamp.accent[50],
+                            color: textColors.text,
+                          }}
+                        >
+                          <Icon name={tool.iconName} size={20} />
+                        </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p
-                            style={{
-                              fontSize: 15,
-                              fontWeight: 600,
-                              color: "var(--text)",
-                              marginBottom: 3,
-                              fontFamily: FONT_FAMILY,
-                            }}
-                          >
+                          <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["2"] }}>
                             {tool.title}
                           </p>
-                          <p
-                            style={{
-                              fontSize: 13,
-                              color: "var(--sub)",
-                              lineHeight: 1.5,
-                              fontFamily: FONT_FAMILY,
-                            }}
-                          >
+                          <p style={{ ...typography["body-sm"], color: textColors.sub }}>
                             {tool.description}
                           </p>
                         </div>
                         {tool.onOpen && (
-                          <span
-                            style={{
-                              color: "var(--muted)",
-                              flexShrink: 0,
-                              display: "inline-flex",
-                            }}
-                          >
+                          <span style={{ color: textColors.muted, flexShrink: 0, display: "inline-flex" }}>
                             <Icon name="action:forward" size={16} />
                           </span>
                         )}
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </motion.div>
-        )
-      })}
+                      </ListRow>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+            </motion.div>
+          )
+        })}
       </motion.div>
 
       {/* ── Savings Automation ─────────────────────────────────────────── */}
-      <div style={{ marginTop: SECTION_SPACING }}>
-        <p style={{ ...sectionHeader, marginBottom: 14 }}>
-          Savings Automation
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ marginTop: spacingScale["32"] }}>
+        <SectionHeader>Savings Automation</SectionHeader>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["12"] }}>
           <RoundUpSetting transactions={transactions} goals={goals} />
           <AutoSaveSetting
             transactions={transactions}

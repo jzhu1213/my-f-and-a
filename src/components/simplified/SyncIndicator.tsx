@@ -207,7 +207,9 @@ export function SyncIndicator({
               fontWeight: 400,
             }}
           >
-            {isOnline ? 'Syncing your changes…' : 'Waiting to sync — changes saved locally'}
+            {isOnline
+              ? `Syncing ${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'}…`
+              : `${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'} saved — will sync when online`}
           </p>
         </motion.div>
       )}

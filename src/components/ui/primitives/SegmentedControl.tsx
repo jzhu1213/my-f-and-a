@@ -70,7 +70,6 @@ const segmentStyles: React.CSSProperties = {
   borderRadius: radius.min,
   cursor: "pointer",
   userSelect: "none",
-  outline: "none",
   border: "none",
   background: "transparent",
   zIndex: 1,
@@ -141,6 +140,7 @@ export function SegmentedControl({
             tabIndex={isSelected ? 0 : -1}
             onClick={() => handleSelect(index)}
             onKeyDown={(e) => handleKeyDown(e, index)}
+            className="focus-ring"
             whileTap={disabled ? undefined : { scale: 0.96 }}
             transition={springs.snappy}
             style={{

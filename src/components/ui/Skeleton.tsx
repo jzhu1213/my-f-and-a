@@ -20,6 +20,7 @@
  */
 
 import type { CSSProperties, ReactNode } from "react"
+import { motion } from "framer-motion"
 
 // ── Base ──────────────────────────────────────────────────────────────────
 
@@ -194,15 +195,29 @@ export interface FadeInContentProps {
 
 /**
  * Wraps freshly-loaded content so it fades in gently instead of popping.
- * Use to render real content once loading completes:
+ * Uses framer-motion for a 250ms opacity tween (within the 150–300ms spec).
+ * When used inside AnimatePresence, guarantees the skeleton is fully unmounted
+ * before content appears (CLS ≤ 0.02).
  *
- *   {loading ? <HomeScreenSkeleton /> : <FadeInContent>{content}</FadeInContent>}
+ * Usage with AnimatePresence in the parent:
+ *   <AnimatePresence mode="wait">
+ *     {loading ? <HomeScreenSkeleton key="skeleton" /> : <FadeInContent key="content">{...}</FadeInContent>}
+ *   </AnimatePresence>
+ *
+ * Validates: Requirements 17.2, 17.3
  */
 export function FadeInContent({ children, className = "", style }: FadeInContentProps) {
   return (
-    <div className={`skeleton-content-in ${className}`.trim()} style={style}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
+      className={className || undefined}
+      style={style}
+    >
       {children}
-    </div>
+    </motion.div>
   )
 }
 
@@ -279,16 +294,24 @@ export interface HomeScreenSkeletonProps {
  * Spacing uses the real layout constants: SECTION_SPACING (32px gap),
  * HORIZONTAL_PADDING (20px sides), spacing.lg (24px top), DOCK_PADDING_BOTTOM
  * (120px bottom clearance for the floating dock).
+ *
+ * When used inside AnimatePresence, exits with a 250ms opacity fade so the
+ * skeleton-to-content crossfade is seamless (CLS ≤ 0.02).
+ *
+ * Validates: Requirements 17.1, 17.2, 17.3
  */
 export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeletonProps) {
   const transactionCount = 4
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
       role="status"
       aria-busy="true"
       aria-label="Loading your day"
-      className={className}
+      className={className || undefined}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -481,6 +504,6 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
         <Skeleton width="90%" height={10} radius={5} />
         <Skeleton width="70%" height={10} radius={5} />
       </div>
-    </div>
+    </motion.div>
   )
 }

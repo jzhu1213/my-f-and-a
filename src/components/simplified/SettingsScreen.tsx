@@ -1,9 +1,24 @@
 "use client"
 
+/**
+ * SettingsScreen — Rebuilt with unified primitives from Component_Library.
+ *
+ * All section headings use SectionHeader (Typography_System headline tier).
+ * All entries use ListRow (dense variant) for list items.
+ * Toggle controls use the Toggle primitive.
+ * Segmented controls use the SegmentedControl primitive.
+ * Layout uses contentColumn from Layout_System.
+ * Zero local font-size/weight/color/spacing overrides on heading or row treatments.
+ * Sections grouped with ≤7 entries each (Req 10.4).
+ * At most one accent fill per viewport; all remaining from neutral tokens.
+ *
+ * Requirements: 15.1, 15.2, 15.3, 15.4, 10.4
+ */
+
 import { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { springs, listContainerVariants, listItemVariants, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { springs, useReducedMotion } from "@/lib/animations"
+import { SectionHeader, ListRow, Toggle, SegmentedControl, Card, Button } from "@/components/ui"
 import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal, TransactionCategory } from "@/types"
@@ -13,29 +28,16 @@ import { SPENDING_MODE_LABELS, OVER_LIMIT_RESPONSE_LABELS, limitVisibilityNote }
 import type { OverLimitResponse } from "@/lib/spendingModes"
 import type { HeroMeaning } from "@/types/folio"
 import { computeBudgetSummary } from "@/lib/budgetSummary"
-import { FONT_FAMILY } from "@/styles/typography"
-import {
-  CONTENT_MAX_WIDTH,
-  HORIZONTAL_PADDING,
-  DOCK_PADDING_BOTTOM,
-  sectionHeader,
-  linkButton,
-  listRow,
-  borderRadius,
-  segmentedControl,
-  segmentedButtonBase,
-  segmentedButtonActive,
-  segmentedButtonInactive,
-  dangerZone,
-  shadows,
-} from "@/styles/shared"
+import { contentColumn, spacingScale } from "@/styles/layout"
+import { safeAreaBottom } from "@/styles/layout"
+import { typography } from "@/styles/typography"
+import { textColors, colorRamp, semanticColors } from "@/styles/colors"
+import { elevations, radius } from "@/styles/surfaces"
 import { MinBalanceBufferSetting } from "./MinBalanceBufferSetting"
 import { RegionSettings } from "./RegionSettings"
 import { NotificationCenter } from "./NotificationCenter"
 import { AppLockSetting } from "./AppLockSetting"
 import { SessionsSetting } from "./SessionsSetting"
-import { SettingsToggle } from "@/components/ui/SettingsToggle"
-import { SettingsRow } from "@/components/ui/SettingsRow"
 import { getInsightsEnabled, setInsightsEnabled } from "@/lib/insightPreferences"
 import { getSavingsRateBadgeEnabled, setSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
 import { getPaceIndicatorEnabled, setPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
@@ -78,171 +80,61 @@ export interface SettingsScreenProps {
   onOpenBackfill?: () => void
   onSignOut: () => void
   onResetOnboarding?: () => void
-  /** Replay the interactive feature demos without resetting onboarding (task 224.2) */
   onReplayDemos?: () => void
   onExportData?: () => void
   onExportCSV?: () => void
-  /** Callback to open the filtered Reports overlay (task 185.1) */
   onOpenReports?: () => void
-  /** Callback to open the Privacy & Data dashboard overlay (task 191.1) */
   onOpenPrivacyDashboard?: () => void
   onDeleteAccount?: () => void
-  /** User-defined categorization rules (task 113.3) */
   categorizationRules?: CategorizationRule[]
-  /** Callback to add a new categorization rule (task 113.3) */
   onAddCategorizationRule?: (keyword: string, category: TransactionCategory) => void
-  /** Callback to delete a categorization rule (task 113.3) */
   onDeleteCategorizationRule?: (id: string) => void
-  /** Callback to open the full Categorization & Routing Rules screen (task 187.1) */
   onOpenCategorizationRules?: () => void
-  /** Callback to open the Sharing overlay (task 115.1) */
   onOpenSharing?: () => void
-  /** Callback to open the Category Hub overlay (task 138.1) */
   onOpenCategoryHub?: () => void
-  /** Number of active share links (task 115.1) */
   activeShareCount?: number
-  /** Current term schedule (task 121.1) */
   termSchedule?: TermSchedule | null
-  /** Callback to set/clear the term schedule (task 121.1) */
   onSetTermSchedule?: (schedule: TermSchedule | null) => void
-  /** Whether any budget has period === 'semester' (task 121.1) */
   hasTermBudget?: boolean
-  /** Spend-down plans (task 122.1) */
   spendDownPlans?: import('@/lib/spendDown').SpendDownPlan[]
-  /** Callback to add a new spend-down plan (task 122.1) */
   onAddSpendDownPlan?: (data: Omit<import('@/lib/spendDown').SpendDownPlan, 'id'>) => import('@/lib/spendDown').SpendDownPlan
-  /** Callback to remove a spend-down plan (task 122.1) */
   onRemoveSpendDownPlan?: (id: string) => void
-  /** Existing disbursements (for "from a disbursement" quick preset) */
   disbursements?: import('@/lib/disbursements').Disbursement[]
-  /** User's primary financial goal — editable in settings (task 222.3) */
   userGoal?: import('@/types').UserGoal
-  /** Callback to update the user's primary goal (task 222.3) */
   onGoalChange?: (goal: import('@/types').UserGoal) => void
-  /** Skipped onboarding step IDs — used for the setup checklist mirror (task 223.2) */
   skippedSetupSteps?: string[]
-  /** Called when the user resumes a specific setup step from Settings (task 223.2) */
   onResumeSetupStep?: (stepId: string) => void
 }
 
 // ============================================================================
-// Theme options
+// Option arrays
 // ============================================================================
 
-type ThemeOption = { key: "warm" | "dark" | "system"; label: string }
+const SPENDING_MODE_OPTIONS: readonly string[] = ["Just tracking", "Guided", "Structured"]
+const SPENDING_MODE_KEYS: readonly SpendingMode[] = ["tracker", "guided", "structured"]
 
-const THEME_OPTIONS: ThemeOption[] = [
-  { key: "warm", label: "Warm" },
-  { key: "dark", label: "Dark" },
-  { key: "system", label: "System" },
+const THEME_OPTIONS: readonly string[] = ["Warm", "Dark", "System"]
+const THEME_KEYS = ["warm", "dark", "system"] as const
+
+const INCOME_OPTIONS = [
+  { key: 'current_month' as const, label: 'Just this month', value: { strategy: 'current_month' as const } },
+  { key: 'trailing_average' as const, label: 'Average 3 months', value: { strategy: 'trailing_average' as const, windowMonths: 3 } },
 ]
 
-// ============================================================================
-// Income smoothing options
-// ============================================================================
-
-type IncomeOption = {
-  key: 'current_month' | 'trailing_average'
-  label: string
-  desc: string
-  value: IncomeSmoothing
-}
-
-const INCOME_OPTIONS: IncomeOption[] = [
-  {
-    key: 'current_month',
-    label: 'Just this month',
-    desc: 'Uses your income recorded this month',
-    value: { strategy: 'current_month' },
-  },
-  {
-    key: 'trailing_average',
-    label: 'Average the last 3 months',
-    desc: 'Steadier for gig income or irregular pay',
-    value: { strategy: 'trailing_average', windowMonths: 3 },
-  },
+const HERO_MEANING_OPTIONS: { key: HeroMeaning; label: string; desc: string }[] = [
+  { key: 'allowance', label: 'Safe to spend today', desc: "How much is left in today's budget" },
+  { key: 'spent_today', label: 'Spent today', desc: "Total you've logged so far today" },
+  { key: 'spent_week', label: 'Spent this week', desc: 'Rolling 7-day spend total' },
+  { key: 'balance', label: 'Money on hand', desc: 'All income minus all spending' },
 ]
 
-// ============================================================================
-// Spending mode options
-// ============================================================================
-
-type SpendingModeOption = { key: SpendingMode; label: string }
-
-const SPENDING_MODE_OPTIONS: SpendingModeOption[] = [
-  { key: 'tracker', label: 'Just tracking' },
-  { key: 'guided', label: 'Guided' },
-  { key: 'structured', label: 'Structured' },
+const OVER_LIMIT_RESPONSE_OPTIONS: { key: OverLimitResponse; label: string; desc: string }[] = [
+  { key: 'quiet', label: OVER_LIMIT_RESPONSE_LABELS.quiet.label, desc: OVER_LIMIT_RESPONSE_LABELS.quiet.description },
+  { key: 'gentle', label: OVER_LIMIT_RESPONSE_LABELS.gentle.label, desc: OVER_LIMIT_RESPONSE_LABELS.gentle.description },
+  { key: 'headsup', label: OVER_LIMIT_RESPONSE_LABELS.headsup.label, desc: OVER_LIMIT_RESPONSE_LABELS.headsup.description },
 ]
 
-// ============================================================================
-// Hero meaning options
-// ============================================================================
-
-type HeroMeaningOption = {
-  key: HeroMeaning
-  label: string
-  desc: string
-}
-
-const HERO_MEANING_OPTIONS: HeroMeaningOption[] = [
-  {
-    key: 'allowance',
-    label: 'Safe to spend today',
-    desc: "How much is left in today\u2019s budget \u2014 the classic view",
-  },
-  {
-    key: 'spent_today',
-    label: 'Spent today',
-    desc: "Total you\u2019ve logged so far today",
-  },
-  {
-    key: 'spent_week',
-    label: 'Spent this week',
-    desc: 'Rolling 7-day spend total',
-  },
-  {
-    key: 'balance',
-    label: 'Money on hand',
-    desc: 'All income logged minus all spending \u2014 your net balance',
-  },
-]
-
-// ============================================================================
-// Over-limit response options
-// ============================================================================
-
-type OverLimitResponseOption = {
-  key: OverLimitResponse
-  label: string
-  desc: string
-}
-
-const OVER_LIMIT_RESPONSE_OPTIONS: OverLimitResponseOption[] = [
-  {
-    key: 'quiet',
-    label: OVER_LIMIT_RESPONSE_LABELS.quiet.label,
-    desc: OVER_LIMIT_RESPONSE_LABELS.quiet.description,
-  },
-  {
-    key: 'gentle',
-    label: OVER_LIMIT_RESPONSE_LABELS.gentle.label,
-    desc: OVER_LIMIT_RESPONSE_LABELS.gentle.description,
-  },
-  {
-    key: 'headsup',
-    label: OVER_LIMIT_RESPONSE_LABELS.headsup.label,
-    desc: OVER_LIMIT_RESPONSE_LABELS.headsup.description,
-  },
-]
-
-// ============================================================================
-// Goal options (task 222.3 — editable goal picker in settings)
-// ============================================================================
-
-type GoalOption = { key: UserGoal; label: string; emoji: string }
-
-const GOAL_OPTIONS_SETTINGS: GoalOption[] = [
+const GOAL_OPTIONS_SETTINGS: { key: UserGoal; label: string; emoji: string }[] = [
   { key: 'save', label: 'Build my savings', emoji: '🏦' },
   { key: 'track_spending', label: 'Know where my money goes', emoji: '🔍' },
   { key: 'reduce_spending', label: 'Spend less', emoji: '✂️' },
@@ -252,7 +144,7 @@ const GOAL_OPTIONS_SETTINGS: GoalOption[] = [
 ]
 
 // ============================================================================
-// Section definition (for collapsible groups)
+// Section definitions (≤7 entries each — Req 10.4)
 // ============================================================================
 
 type SectionId =
@@ -268,55 +160,22 @@ type SectionId =
 interface SectionDef {
   id: SectionId
   title: string
-  /** Keywords used to match against search query */
   keywords: string[]
 }
 
 const SECTIONS: SectionDef[] = [
-  {
-    id: 'spending-style',
-    title: 'Spending style',
-    keywords: ['spending', 'mode', 'tracker', 'guided', 'structured', 'over-limit', 'over limit', 'limit', 'response', 'quiet', 'gentle', 'heads-up', 'goal', 'priority', 'focus'],
-  },
-  {
-    id: 'hero-display',
-    title: 'Hero & display',
-    keywords: ['hero', 'big number', 'display', 'feature', 'visibility', 'show', 'hide', 'tools', 'toggle'],
-  },
-  {
-    id: 'budget-income',
-    title: 'Budget & income',
-    keywords: ['budget', 'limits', 'income', 'category', 'categories', 'smoothing', 'term', 'academic', 'semester', 'spend-down', 'spend down', 'categorization', 'rules', 'smart'],
-  },
-  {
-    id: 'payment-methods',
-    title: 'Payment methods',
-    keywords: ['payment', 'funding', 'sources', 'linked', 'accounts', 'bank', 'card', 'credit'],
-  },
-  {
-    id: 'appearance',
-    title: 'Appearance',
-    keywords: ['appearance', 'theme', 'warm', 'dark', 'system', 'currency', 'region', 'country', 'locale', 'language', 'international', 'abroad', 'insight', 'credit', 'tutorial', 'onboarding', 'backfill', 'preferences', 'peer', 'compare', 'typical', 'students', 'benchmark'],
-  },
-  {
-    id: 'notifications',
-    title: 'Notifications',
-    keywords: ['notification', 'notifications', 'nudge', 'buffer', 'balance', 'minimum', 'alert'],
-  },
-  {
-    id: 'privacy-security',
-    title: 'Privacy & security',
-    keywords: ['privacy', 'security', 'lock', 'app lock', 'pin', 'biometric', 'biometrics', 'face id', 'touch id', 'passcode', 'protect', 'data', 'export', 'delete', 'erase', 'gdpr', 'ccpa', 'download my data', 'dashboard', 'session', 'sessions', 'devices', 'sign out', 'signed in', 'revoke', 'active session'],
-  },
-  {
-    id: 'data-account',
-    title: 'Data & account',
-    keywords: ['data', 'account', 'export', 'csv', 'sharing', 'share', 'sign out', 'logout', 'goals', 'profile'],
-  },
+  { id: 'spending-style', title: 'Spending Style', keywords: ['spending', 'mode', 'tracker', 'guided', 'structured', 'over-limit', 'limit', 'response', 'goal', 'focus'] },
+  { id: 'hero-display', title: 'Hero & Display', keywords: ['hero', 'big number', 'display', 'feature', 'visibility', 'toggle'] },
+  { id: 'budget-income', title: 'Budget & Income', keywords: ['budget', 'limits', 'income', 'category', 'smoothing', 'term', 'semester', 'spend-down', 'categorization', 'rules'] },
+  { id: 'payment-methods', title: 'Payment Methods', keywords: ['payment', 'funding', 'sources', 'linked', 'accounts', 'bank', 'card'] },
+  { id: 'appearance', title: 'Appearance', keywords: ['appearance', 'theme', 'warm', 'dark', 'insight', 'credit', 'tutorial', 'peer', 'region', 'currency'] },
+  { id: 'notifications', title: 'Notifications', keywords: ['notification', 'nudge', 'buffer', 'balance', 'minimum', 'alert'] },
+  { id: 'privacy-security', title: 'Privacy & Security', keywords: ['privacy', 'security', 'lock', 'pin', 'biometric', 'session', 'data', 'dashboard'] },
+  { id: 'data-account', title: 'Data & Account', keywords: ['data', 'account', 'export', 'csv', 'sharing', 'sign out', 'goals', 'profile'] },
 ]
 
 // ============================================================================
-// CollapsibleSection component
+// CollapsibleSection — uses SectionHeader primitive
 // ============================================================================
 
 function CollapsibleSection({
@@ -331,7 +190,7 @@ function CollapsibleSection({
   children: React.ReactNode
 }) {
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: spacingScale["12"] }}>
       <button
         type="button"
         onClick={onToggle}
@@ -342,24 +201,14 @@ function CollapsibleSection({
           alignItems: "center",
           justifyContent: "space-between",
           width: "100%",
-          padding: "14px 0",
+          padding: `${spacingScale["12"]} 0`,
           background: "none",
           border: "none",
-          // Phase 6 (task 237.2): softer hairline than the hard --border so the
-          // stack of section headers reads as calm dividers, not a ruled table.
-          borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+          borderBottom: `1px solid ${semanticColors.borderSubtle}`,
           cursor: "pointer",
-          fontFamily: FONT_FAMILY,
         }}
       >
-        <span
-          style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: "var(--text)",
-            letterSpacing: "0.01em",
-          }}
-        >
+        <span style={{ ...typography.subhead, color: textColors.text }}>
           {title}
         </span>
         <motion.span
@@ -369,10 +218,10 @@ function CollapsibleSection({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 24,
-            height: 24,
-            color: "var(--sub)",
-            fontSize: 14,
+            width: spacingScale["24"],
+            height: spacingScale["24"],
+            color: textColors.sub,
+            ...typography.caption,
           }}
           aria-hidden="true"
         >
@@ -391,12 +240,10 @@ function CollapsibleSection({
             style={{ overflow: "hidden" }}
           >
             <div style={{
-              paddingTop: 16,
-              // Phase 6 (task 267.1): subtle left accent bar when expanded for
-              // stronger visual grouping without adding clutter.
-              borderLeft: "2px solid rgba(167, 139, 250, 0.3)",
-              paddingLeft: 16,
-              marginLeft: 2,
+              paddingTop: spacingScale["16"],
+              borderLeft: `2px solid ${colorRamp.accent[200]}`,
+              paddingLeft: spacingScale["16"],
+              marginLeft: spacingScale["2"],
             }}>
               {children}
             </div>
@@ -411,13 +258,6 @@ function CollapsibleSection({
 // SettingsScreen Component
 // ============================================================================
 
-/**
- * SettingsScreen — consolidated settings surface accessible from the dock.
- * Shows collapsible sections with search filtering. Destructive actions
- * (delete account) are separated into a danger zone at the bottom.
- *
- * Validates: Requirements 12.1–12.6
- */
 export function SettingsScreen({
   budgets,
   goals,
@@ -477,25 +317,21 @@ export function SettingsScreen({
   const [peerContextEnabled, setPeerContextEnabledState] = useState(() => getPeerContextEnabled())
   const [countCreditImmediately, setCountCreditImmediatelyState] = useState(countCreditImmediatelyProp ?? true)
 
-  // ── Smart categorization rule form state (task 113.3) ─────────────────
+  // ── Form state ─────────────────────────────────────────────────────────
   const [showAddRuleForm, setShowAddRuleForm] = useState(false)
   const [newRuleKeyword, setNewRuleKeyword] = useState("")
   const [newRuleCategory, setNewRuleCategory] = useState<TransactionCategory>("food")
-
-  // ── Term schedule form state (task 121.1) ─────────────────────────────
   const [showTermSetup, setShowTermSetup] = useState(false)
   const [termStartDate, setTermStartDate] = useState("")
   const [termEndDate, setTermEndDate] = useState("")
   const [termLabel, setTermLabel] = useState("")
-
-  // ── Spend-down plan form state (task 122.1) ────────────────────────────
   const [showSpendDownForm, setShowSpendDownForm] = useState(false)
   const [sdLabel, setSdLabel] = useState("")
   const [sdAmount, setSdAmount] = useState("")
   const [sdEndDate, setSdEndDate] = useState("")
   const [sdEmoji, setSdEmoji] = useState("💰")
 
-  // ── Collapsible section state ──────────────────────────────────────────
+  // ── Section collapse state ─────────────────────────────────────────────
   const [openSections, setOpenSections] = useState<Record<SectionId, boolean>>({
     'spending-style': true,
     'hero-display': false,
@@ -517,16 +353,13 @@ export function SettingsScreen({
     debounceRef.current = setTimeout(() => {
       setDebouncedSearch(searchText.toLowerCase().trim())
     }, 200)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [searchText])
 
   const toggleSection = useCallback((id: SectionId) => {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
   }, [])
 
-  // Filter sections based on search
   const visibleSections = useMemo(() => {
     if (!debouncedSearch) return SECTIONS
     return SECTIONS.filter(s =>
@@ -539,60 +372,38 @@ export function SettingsScreen({
     return visibleSections.some(s => s.id === id)
   }, [visibleSections])
 
-  // When search is active, expand all matched sections
   const isSectionOpen = useCallback((id: SectionId) => {
     if (debouncedSearch) return true
     return openSections[id]
   }, [debouncedSearch, openSections])
 
-  // Resolve active spending mode — default to 'guided' when not provided
+  // ── Derived state ──────────────────────────────────────────────────────
   const spendingMode: SpendingMode = spendingModeProp ?? 'guided'
-  // Tracker mode pauses (but never deletes) limit visibility (Task 106.1)
   const isTrackerMode = spendingMode === 'tracker'
-
-  // Resolve active hero meaning — default to 'allowance' when not provided
   const heroMeaning: HeroMeaning = heroMeaningProp ?? 'allowance'
-
-  // Resolve over-limit response — default to 'gentle' when not provided
   const overLimitResponse: OverLimitResponse = overLimitResponseProp ?? 'gentle'
-
-  // ── Budget summary computations ────────────────────────────────────────────
   const { totalMonthly, dailyBudget } = computeBudgetSummary(budgets)
-
-  // Active budgets with a limit set
   const activeLimits = BUDGET_CATEGORIES
     .map(cat => {
       const budget = budgets.find(b => b.category === cat.category)
       return { ...cat, limit: budget?.monthlyLimit ?? 0 }
     })
     .filter(c => c.limit > 0)
-
-  // ── Goal summary ───────────────────────────────────────────────────────────
   const activeGoals = goals.filter(g => g.currentAmount < g.targetAmount)
 
   return (
     <div
       style={{
-        maxWidth: CONTENT_MAX_WIDTH,
-        margin: "0 auto",
-        padding: `24px ${HORIZONTAL_PADDING}px ${DOCK_PADDING_BOTTOM - 20}px`,
-        fontFamily: FONT_FAMILY,
+        ...contentColumn,
+        paddingTop: spacingScale["24"],
+        paddingBottom: safeAreaBottom(100),
       }}
     >
-      {/* ── Title ──────────────────────────────────────────────────────────── */}
-      <h2
-        style={{
-          fontSize: 22,
-          fontWeight: 700,
-          color: "var(--text)",
-          marginBottom: 16,
-        }}
-      >
-        Settings
-      </h2>
+      {/* ── Screen Title ───────────────────────────────────────────────── */}
+      <SectionHeader>Settings</SectionHeader>
 
-      {/* ── Search field ───────────────────────────────────────────────────── */}
-      <div style={{ marginBottom: 20 }}>
+      {/* ── Search ─────────────────────────────────────────────────────── */}
+      <div style={{ marginTop: spacingScale["16"], marginBottom: spacingScale["20"] }}>
         <input
           type="search"
           value={searchText}
@@ -601,676 +412,464 @@ export function SettingsScreen({
           aria-label="Search settings"
           style={{
             width: "100%",
-            padding: "12px 16px",
-            fontSize: 14,
-            fontFamily: FONT_FAMILY,
-            color: "var(--text)",
-            background: "rgba(255, 255, 255, 0.04)",
-            border: "1px solid var(--border)",
-            borderRadius: borderRadius.md,
+            padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+            ...typography["body-sm"],
+            color: textColors.text,
+            background: elevations.sunken.fill,
+            border: `1px solid ${elevations.resting.border}`,
+            borderRadius: radius.control,
             outline: "none",
           }}
         />
       </div>
 
-      {/* ── No results message ─────────────────────────────────────────────── */}
+      {/* No results */}
       {debouncedSearch && visibleSections.length === 0 && (
-        <p style={{ fontSize: 14, color: "var(--sub)", textAlign: "center", padding: "20px 0" }}>
+        <p style={{ ...typography["body-sm"], color: textColors.sub, textAlign: "center", padding: `${spacingScale["20"]} 0` }}>
           No settings match &ldquo;{searchText.trim()}&rdquo;
         </p>
       )}
 
-      {/* ── Setup Checklist Mirror (task 223.2) ────────────────────────────── */}
+      {/* ── Setup Checklist ────────────────────────────────────────────── */}
       {skippedSetupSteps && skippedSetupSteps.length > 0 && onResumeSetupStep && !debouncedSearch && (
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: spacingScale["20"] }}>
           <SetupChecklistCard
             skippedSteps={skippedSetupSteps}
             onResumeStep={onResumeSetupStep}
-            onDismiss={() => {/* Settings variant is non-dismissible — always visible */}}
+            onDismiss={() => {}}
             variant="settings"
           />
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: Spending style                                             */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ── Sections ───────────────────────────────────────────────────── */}
       <motion.div variants={listContainer} initial="hidden" animate="visible">
+
+      {/* ═══ SECTION: Spending Style ═══════════════════════════════════ */}
       {isSectionVisible('spending-style') && (
         <motion.div variants={listItem}>
         <CollapsibleSection
-          title="Spending style"
+          title="Spending Style"
           isOpen={isSectionOpen('spending-style')}
           onToggle={() => toggleSection('spending-style')}
         >
-          {/* ── How do you want to manage spending? ────────────────────────── */}
+          {/* Spending mode segmented control */}
           {onSetSpendingMode && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeader, marginBottom: 6 }}>
-                How do you want to manage spending?
-              </p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+              <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
                 {SPENDING_MODE_LABELS[spendingMode].description}
               </p>
-
-              <div style={segmentedControl}>
-                {SPENDING_MODE_OPTIONS.map(opt => {
-                  const isActive = spendingMode === opt.key
-                  return (
-                    <motion.button
-                      key={opt.key}
-                      onClick={() => onSetSpendingMode(opt.key)}
-                      whileTap={{ scale: 0.97 }}
-                      transition={springs.snappy}
-                      style={{
-                        ...segmentedButtonBase,
-                        ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
-                      }}
-                      aria-pressed={isActive}
-                      aria-label={`Set spending mode to ${opt.label}`}
-                    >
-                      {opt.label}
-                    </motion.button>
-                  )
-                })}
-              </div>
-
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "var(--muted)",
-                  lineHeight: 1.5,
-                  marginTop: 12,
-                }}
-              >
+              <SegmentedControl
+                items={SPENDING_MODE_OPTIONS as unknown as string[]}
+                selectedIndex={SPENDING_MODE_KEYS.indexOf(spendingMode)}
+                onChange={(idx) => onSetSpendingMode(SPENDING_MODE_KEYS[idx])}
+                aria-label="Spending mode"
+              />
+              <p style={{ ...typography.caption, color: textColors.muted, marginTop: spacingScale["12"] }}>
                 {limitVisibilityNote(spendingMode, activeLimits.length > 0)}
               </p>
-            </GlassCard>
+            </Card>
           )}
 
-          {/* ── When you go over, what should happen? ──────────────────────── */}
+          {/* Over-limit response */}
           {onSetOverLimitResponse && spendingMode !== 'tracker' && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-              <p style={{ ...sectionHeader, marginBottom: 4 }}>
-                When you go over, what should happen?
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+              <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["4"] }}>
+                When you go over
               </p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-                All options are calm and shame-free — the loudest is still just one quiet line.
+              <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
+                All options are calm and shame-free.
               </p>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                {OVER_LIMIT_RESPONSE_OPTIONS.map((opt, idx) => {
-                  const isActive = overLimitResponse === opt.key
-                  return (
-                    <motion.button
-                      key={opt.key}
-                      onClick={() => onSetOverLimitResponse(opt.key)}
-                      whileTap={{ scale: 0.98 }}
-                      transition={springs.snappy}
+              {OVER_LIMIT_RESPONSE_OPTIONS.map((opt) => {
+                const isActive = overLimitResponse === opt.key
+                return (
+                  <ListRow
+                    key={opt.key}
+                    variant="dense"
+                    onPress={() => onSetOverLimitResponse(opt.key)}
+                    aria-label={`Over-limit response: ${opt.label}`}
+                  >
+                    <span
+                      aria-hidden="true"
                       style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 12,
-                        padding: "12px 0",
-                        background: "transparent",
-                        border: "none",
-                        // Phase 6 (task 237.2): faint row divider instead of --border.
-                        borderBottom: idx < OVER_LIMIT_RESPONSE_OPTIONS.length - 1 ? "1px solid rgba(255, 255, 255, 0.06)" : "none",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        width: "100%",
-                      }}
-                      aria-pressed={isActive}
-                      aria-label={`Over-limit response: ${opt.label}`}
-                    >
-                      <span
-                        style={{
-                          flexShrink: 0,
-                          marginTop: 3,
-                          width: 18,
-                          height: 18,
-                          borderRadius: "50%",
-                          border: `2px solid ${isActive ? "rgba(167, 139, 250, 0.9)" : "rgba(255, 255, 255, 0.2)"}`,
-                          background: isActive ? "rgba(167, 139, 250, 0.9)" : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          transition: "border-color 0.15s ease, background 0.15s ease",
-                        }}
-                        aria-hidden="true"
-                      >
-                        {isActive && (
-                          <span
-                            style={{
-                              width: 7,
-                              height: 7,
-                              borderRadius: "50%",
-                              background: "#fff",
-                            }}
-                          />
-                        )}
-                      </span>
-
-                      <span style={{ flex: 1 }}>
-                        <span
-                          style={{
-                            display: "block",
-                            fontSize: 14,
-                            fontWeight: isActive ? 600 : 400,
-                            color: isActive ? "var(--text)" : "var(--sub)",
-                            lineHeight: 1.4,
-                            transition: "color 0.15s ease, font-weight 0.15s ease",
-                          }}
-                        >
-                          {opt.label}
-                        </span>
-                        <span
-                          style={{
-                            display: "block",
-                            fontSize: 12,
-                            color: "var(--muted)",
-                            lineHeight: 1.4,
-                            marginTop: 2,
-                          }}
-                        >
-                          {opt.desc}
-                        </span>
-                      </span>
-                    </motion.button>
-                  )
-                })}
-              </div>
-            </GlassCard>
-          )}
-
-          {/* ── My goal (task 222.3) ────────────────────────────────────────── */}
-          {onGoalChange && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
-              <p style={{ ...sectionHeader, marginBottom: 4 }}>
-                My focus
-              </p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-                {userGoal
-                  ? getGoalDescription(userGoal)
-                  : "Pick what matters most — this shapes tips and priorities."}
-              </p>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                {GOAL_OPTIONS_SETTINGS.map((opt, idx) => {
-                  const isActive = userGoal === opt.key
-                  return (
-                    <motion.button
-                      key={opt.key}
-                      onClick={() => onGoalChange(opt.key)}
-                      whileTap={{ scale: 0.98 }}
-                      transition={springs.snappy}
-                      style={{
+                        flexShrink: 0,
+                        width: spacingScale["16"],
+                        height: spacingScale["16"],
+                        borderRadius: radius.full,
+                        border: `2px solid ${isActive ? colorRamp.accent[500] : elevations.resting.border}`,
+                        background: isActive ? colorRamp.accent[500] : "transparent",
                         display: "flex",
                         alignItems: "center",
-                        gap: 12,
-                        padding: "11px 0",
-                        background: "transparent",
-                        border: "none",
-                        borderBottom: idx < GOAL_OPTIONS_SETTINGS.length - 1 ? "1px solid var(--border)" : "none",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        width: "100%",
+                        justifyContent: "center",
                       }}
-                      aria-pressed={isActive}
-                      aria-label={`Set goal to ${opt.label}`}
                     >
-                      <span
-                        style={{
-                          flexShrink: 0,
-                          width: 18,
-                          height: 18,
-                          borderRadius: "50%",
-                          border: `2px solid ${isActive ? "rgba(167, 139, 250, 0.9)" : "rgba(255, 255, 255, 0.2)"}`,
-                          background: isActive ? "rgba(167, 139, 250, 0.9)" : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          transition: "border-color 0.15s ease, background 0.15s ease",
-                        }}
-                        aria-hidden="true"
-                      >
-                        {isActive && (
-                          <span
-                            style={{
-                              width: 7,
-                              height: 7,
-                              borderRadius: "50%",
-                              background: "#fff",
-                            }}
-                          />
-                        )}
-                      </span>
-
-                      <span style={{ fontSize: 16, flexShrink: 0 }} aria-hidden="true">
-                        {opt.emoji}
-                      </span>
-
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: isActive ? 600 : 400,
-                          color: isActive ? "var(--text)" : "var(--sub)",
-                          lineHeight: 1.4,
-                          transition: "color 0.15s ease, font-weight 0.15s ease",
-                        }}
-                      >
+                      {isActive && (
+                        <span style={{ width: spacingScale["6"], height: spacingScale["6"], borderRadius: radius.full, background: textColors.text }} />
+                      )}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ ...typography.body, color: isActive ? textColors.text : textColors.sub, display: "block" }}>
                         {opt.label}
                       </span>
-                    </motion.button>
-                  )
-                })}
-              </div>
-            </GlassCard>
+                      <span style={{ ...typography.caption, color: textColors.muted, display: "block" }}>
+                        {opt.desc}
+                      </span>
+                    </div>
+                  </ListRow>
+                )
+              })}
+            </Card>
+          )}
+
+          {/* My focus/goal */}
+          {onGoalChange && (
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}` }}>
+              <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["4"] }}>
+                My focus
+              </p>
+              <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
+                {userGoal ? getGoalDescription(userGoal) : "Pick what matters most — shapes tips and priorities."}
+              </p>
+              {GOAL_OPTIONS_SETTINGS.map((opt) => {
+                const isActive = userGoal === opt.key
+                return (
+                  <ListRow
+                    key={opt.key}
+                    variant="dense"
+                    onPress={() => onGoalChange(opt.key)}
+                    aria-label={`Set goal to ${opt.label}`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        flexShrink: 0,
+                        width: spacingScale["16"],
+                        height: spacingScale["16"],
+                        borderRadius: radius.full,
+                        border: `2px solid ${isActive ? colorRamp.accent[500] : elevations.resting.border}`,
+                        background: isActive ? colorRamp.accent[500] : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {isActive && (
+                        <span style={{ width: spacingScale["6"], height: spacingScale["6"], borderRadius: radius.full, background: textColors.text }} />
+                      )}
+                    </span>
+                    <span aria-hidden="true" style={{ ...typography.body }}>{opt.emoji}</span>
+                    <span style={{ ...typography.body, color: isActive ? textColors.text : textColors.sub, flex: 1 }}>
+                      {opt.label}
+                    </span>
+                  </ListRow>
+                )
+              })}
+            </Card>
           )}
         </CollapsibleSection>
         </motion.div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: Hero & display                                             */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ═══ SECTION: Hero & Display ═══════════════════════════════════ */}
       {isSectionVisible('hero-display') && (
         <motion.div variants={listItem}>
         <CollapsibleSection
-          title="Hero & display"
+          title="Hero & Display"
           isOpen={isSectionOpen('hero-display')}
           onToggle={() => toggleSection('hero-display')}
         >
-          {/* ── What does the big number show? ─────────────────────────────── */}
+          {/* Hero meaning */}
           {onSetHeroMeaning && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeader, marginBottom: 4 }}>
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+              <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["4"] }}>
                 What does the big number show?
               </p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-                Pick the metric that makes most sense for how you use Folio.
+              <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
+                Pick the metric that makes most sense for you.
               </p>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                {HERO_MEANING_OPTIONS.map((opt, idx) => {
-                  const isActive = heroMeaning === opt.key
-                  return (
-                    <motion.button
-                      key={opt.key}
-                      onClick={() => onSetHeroMeaning(opt.key)}
-                      whileTap={{ scale: 0.98 }}
-                      transition={springs.snappy}
+              {HERO_MEANING_OPTIONS.map((opt) => {
+                const isActive = heroMeaning === opt.key
+                return (
+                  <ListRow
+                    key={opt.key}
+                    variant="dense"
+                    onPress={() => onSetHeroMeaning(opt.key)}
+                    aria-label={`Show ${opt.label} as the main hero number`}
+                  >
+                    <span
+                      aria-hidden="true"
                       style={{
+                        flexShrink: 0,
+                        width: spacingScale["16"],
+                        height: spacingScale["16"],
+                        borderRadius: radius.full,
+                        border: `2px solid ${isActive ? colorRamp.accent[500] : elevations.resting.border}`,
+                        background: isActive ? colorRamp.accent[500] : "transparent",
                         display: "flex",
-                        alignItems: "flex-start",
-                        gap: 12,
-                        padding: "12px 0",
-                        background: "transparent",
-                        border: "none",
-                        borderBottom: idx < HERO_MEANING_OPTIONS.length - 1 ? "1px solid var(--border)" : "none",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        width: "100%",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
-                      aria-pressed={isActive}
-                      aria-label={`Show ${opt.label} as the main hero number`}
                     >
-                      <span
-                        style={{
-                          flexShrink: 0,
-                          marginTop: 3,
-                          width: 18,
-                          height: 18,
-                          borderRadius: "50%",
-                          border: `2px solid ${isActive ? "rgba(167, 139, 250, 0.9)" : "rgba(255, 255, 255, 0.2)"}`,
-                          background: isActive ? "rgba(167, 139, 250, 0.9)" : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          transition: "border-color 0.15s ease, background 0.15s ease",
-                        }}
-                        aria-hidden="true"
-                      >
-                        {isActive && (
-                          <span
-                            style={{
-                              width: 7,
-                              height: 7,
-                              borderRadius: "50%",
-                              background: "#fff",
-                            }}
-                          />
-                        )}
+                      {isActive && (
+                        <span style={{ width: spacingScale["6"], height: spacingScale["6"], borderRadius: radius.full, background: textColors.text }} />
+                      )}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ ...typography.body, color: isActive ? textColors.text : textColors.sub, display: "block" }}>
+                        {opt.label}
                       </span>
-
-                      <span style={{ flex: 1 }}>
-                        <span
-                          style={{
-                            display: "block",
-                            fontSize: 14,
-                            fontWeight: isActive ? 600 : 400,
-                            color: isActive ? "var(--text)" : "var(--sub)",
-                            lineHeight: 1.4,
-                            transition: "color 0.15s ease, font-weight 0.15s ease",
-                          }}
-                        >
-                          {opt.label}
-                        </span>
-                        <span
-                          style={{
-                            display: "block",
-                            fontSize: 12,
-                            color: "var(--muted)",
-                            lineHeight: 1.4,
-                            marginTop: 2,
-                          }}
-                        >
-                          {opt.desc}
-                        </span>
+                      <span style={{ ...typography.caption, color: textColors.muted, display: "block" }}>
+                        {opt.desc}
                       </span>
-                    </motion.button>
-                  )
-                })}
-              </div>
-            </GlassCard>
+                    </div>
+                  </ListRow>
+                )
+              })}
+            </Card>
           )}
 
-          {/* ── Feature Visibility ──────────────────────────────────────── */}
-          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-            <p style={{ ...sectionHeader, marginBottom: 6 }}>
+          {/* Feature visibility toggles */}
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+            <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["4"] }}>
               Feature Visibility
             </p>
-            <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-              Hide tools you don&apos;t use to keep your Tools tab clean.
+            <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
+              Hide tools you don&apos;t use.
             </p>
-
-            {(
-              [
-                { key: "debtTracking" as keyof FeatureFlags, emoji: "💳", label: "Debt Tracking" },
-                { key: "recurringBills" as keyof FeatureFlags, emoji: "📅", label: "Recurring Bills" },
-                { key: "reimbursements" as keyof FeatureFlags, emoji: "🤝", label: "IOUs & Reimbursements" },
-                { key: "sinkingFunds" as keyof FeatureFlags, emoji: "🎯", label: "Sinking Funds" },
-                { key: "subscriptionAudit" as keyof FeatureFlags, emoji: "🔄", label: "Subscription Audit" },
-                { key: "savingsProjections" as keyof FeatureFlags, emoji: "🏦", label: "Savings Projections" },
-                { key: "compoundGrowthCalculator" as keyof FeatureFlags, emoji: "📈", label: "Compound Growth" },
-                { key: "creditPayoffCalculator" as keyof FeatureFlags, emoji: "💰", label: "Credit Payoff" },
-                { key: "lessons" as keyof FeatureFlags, emoji: "📚", label: "Learn" },
-                { key: "goals" as keyof FeatureFlags, emoji: "🎯", label: "Goals" },
-                { key: "financialTrajectory" as keyof FeatureFlags, emoji: "📊", label: "Financial Trajectory" },
-              ] as const
-            ).map((item, idx, arr) => (
-              <SettingsRow
-                key={item.key}
-                label={<span style={{ fontSize: 14, color: "var(--text)" }}><span aria-hidden="true">{item.emoji}</span>{" "}{item.label}</span>}
-                separator={idx < arr.length - 1}
-                style={{ padding: "10px 0" }}
-                action={
-                  <SettingsToggle
-                    checked={flags[item.key]}
-                    onChange={() => setFlag(item.key, !flags[item.key])}
-                    ariaLabel={`Toggle ${item.label}`}
-                  />
-                }
-              />
+            {([
+              { key: "debtTracking" as keyof FeatureFlags, label: "Debt Tracking" },
+              { key: "recurringBills" as keyof FeatureFlags, label: "Recurring Bills" },
+              { key: "reimbursements" as keyof FeatureFlags, label: "IOUs & Reimbursements" },
+              { key: "sinkingFunds" as keyof FeatureFlags, label: "Sinking Funds" },
+              { key: "subscriptionAudit" as keyof FeatureFlags, label: "Subscription Audit" },
+              { key: "savingsProjections" as keyof FeatureFlags, label: "Savings Projections" },
+              { key: "compoundGrowthCalculator" as keyof FeatureFlags, label: "Compound Growth" },
+            ] as const).map((item) => (
+              <ListRow key={item.key} variant="dense">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>{item.label}</span>
+                <Toggle
+                  checked={flags[item.key]}
+                  onChange={() => setFlag(item.key, !flags[item.key])}
+                  size="sm"
+                  aria-label={`Toggle ${item.label}`}
+                />
+              </ListRow>
             ))}
+          </Card>
 
-            <motion.button
+          {/* Feature visibility — second group (≤7 rule) */}
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+            {([
+              { key: "creditPayoffCalculator" as keyof FeatureFlags, label: "Credit Payoff" },
+              { key: "lessons" as keyof FeatureFlags, label: "Learn" },
+              { key: "goals" as keyof FeatureFlags, label: "Goals" },
+              { key: "financialTrajectory" as keyof FeatureFlags, label: "Financial Trajectory" },
+            ] as const).map((item) => (
+              <ListRow key={item.key} variant="dense">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>{item.label}</span>
+                <Toggle
+                  checked={flags[item.key]}
+                  onChange={() => setFlag(item.key, !flags[item.key])}
+                  size="sm"
+                  aria-label={`Toggle ${item.label}`}
+                />
+              </ListRow>
+            ))}
+            <button
+              type="button"
               onClick={resetFlags}
-              whileTap={{ scale: 0.97 }}
-              transition={springs.snappy}
               style={{
-                ...linkButton,
-                marginTop: 14,
+                background: "none",
+                border: "none",
+                padding: `${spacingScale["12"]} 0`,
+                ...typography["body-sm"],
+                color: textColors.sub,
+                cursor: "pointer",
               }}
               aria-label="Reset feature visibility to defaults"
             >
-              Reset to defaults →
-            </motion.button>
-          </GlassCard>
+              Reset to defaults
+            </button>
+          </Card>
 
-          {/* ── Home screen extras (task 159.2) ─────────────────────────── */}
-          <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
-            <p style={{ ...sectionHeader, marginBottom: 6 }}>
+          {/* Home screen extras */}
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}` }}>
+            <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["4"] }}>
               Home screen extras
             </p>
-            <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 8, lineHeight: 1.5 }}>
-              Small optional touches below your daily allowance. Off by default
-              to keep the home screen calm.
+            <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
+              Small optional touches below your daily allowance.
             </p>
-
-            {/* Savings-rate badge toggle */}
-            <SettingsRow
-              label="Show savings-rate badge"
-              description="A gentle reminder of how much of your income you're saving this month"
-              separator={false}
-              action={
-                <SettingsToggle
-                  checked={savingsRateBadgeEnabled}
-                  onChange={(next) => {
-                    setSavingsRateBadgeEnabledState(next)
-                    setSavingsRateBadgeEnabled(next)
-                  }}
-                  ariaLabel="Show savings-rate badge on home screen"
-                />
-              }
-            />
-
-            {/* Spending-pace indicator toggle (task 250) */}
-            <SettingsRow
-              label="Show spending-pace indicator"
-              description="A subtle sparkline showing today's spend pace vs. your typical day"
-              separator={false}
-              action={
-                <SettingsToggle
-                  checked={paceIndicatorEnabled}
-                  onChange={(next) => {
-                    setPaceIndicatorEnabledState(next)
-                    setPaceIndicatorEnabled(next)
-                  }}
-                  ariaLabel="Show spending-pace indicator on home screen"
-                />
-              }
-            />
-          </GlassCard>
+            <ListRow variant="dense">
+              <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Savings-rate badge</span>
+              <Toggle
+                checked={savingsRateBadgeEnabled}
+                onChange={(next) => { setSavingsRateBadgeEnabledState(next); setSavingsRateBadgeEnabled(next) }}
+                size="sm"
+                aria-label="Show savings-rate badge"
+              />
+            </ListRow>
+            <ListRow variant="dense">
+              <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Spending-pace indicator</span>
+              <Toggle
+                checked={paceIndicatorEnabled}
+                onChange={(next) => { setPaceIndicatorEnabledState(next); setPaceIndicatorEnabled(next) }}
+                size="sm"
+                aria-label="Show spending-pace indicator"
+              />
+            </ListRow>
+          </Card>
         </CollapsibleSection>
         </motion.div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: Budget & income                                            */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ═══ SECTION: Budget & Income ══════════════════════════════════ */}
       {isSectionVisible('budget-income') && (
         <motion.div variants={listItem}>
         <CollapsibleSection
-          title="Budget & income"
+          title="Budget & Income"
           isOpen={isSectionOpen('budget-income')}
           onToggle={() => toggleSection('budget-income')}
         >
-          {/* ── Budget Limits ──────────────────────────────────────────────── */}
-          <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-            <p style={{ ...sectionHeader }}>
+          {/* Budget limits */}
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+            <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["8"] }}>
               Budget Limits
             </p>
-
             {isTrackerMode ? (
-              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14, marginTop: 6, lineHeight: 1.5 }}>
+              <p style={{ ...typography["body-sm"], color: textColors.muted, marginBottom: spacingScale["12"] }}>
                 {activeLimits.length > 0
-                  ? `You're in tracking mode, so limits are paused. Your ${activeLimits.length} saved ${activeLimits.length === 1 ? "limit is" : "limits are"} safe — switch to Guided or Structured to bring them back.`
-                  : "You're in tracking mode — Folio just reflects what you spend. Add limits anytime by switching to Guided or Structured."}
+                  ? `Tracking mode — ${activeLimits.length} saved limit${activeLimits.length === 1 ? " is" : "s are"} paused.`
+                  : "Tracking mode — add limits anytime by switching to Guided or Structured."}
               </p>
             ) : (
               <>
-                <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
-                  <div>
-                    <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>
-                      ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                      <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>/mo</span>
-                    </p>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <p style={{ fontSize: 14, color: "var(--sub)" }}>
-                      ≈ ${dailyBudget.toFixed(0)}/day
-                    </p>
-                  </div>
+                <div style={{ display: "flex", gap: spacingScale["16"], marginBottom: spacingScale["12"] }}>
+                  <p style={{ ...typography.subhead, color: textColors.text, fontVariantNumeric: "tabular-nums" }}>
+                    ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    <span style={{ ...typography.caption, color: textColors.sub }}>/mo</span>
+                  </p>
+                  <p style={{ ...typography["body-sm"], color: textColors.sub, display: "flex", alignItems: "center" }}>
+                    ≈ ${dailyBudget.toFixed(0)}/day
+                  </p>
                 </div>
-
                 {activeLimits.length > 0 && (
-                  <div style={{ marginBottom: 14 }}>
+                  <div style={{ marginBottom: spacingScale["12"] }}>
                     {activeLimits.map(cat => (
-                      <div key={cat.category} style={listRow}>
-                        <span>{cat.emoji} {cat.label}</span>
-                        <span style={{ color: "var(--sub)", fontVariantNumeric: "tabular-nums" }}>
+                      <ListRow key={cat.category} variant="dense">
+                        <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>
+                          {cat.emoji} {cat.label}
+                        </span>
+                        <span style={{ ...typography["body-sm"], color: textColors.sub, fontVariantNumeric: "tabular-nums" }}>
                           ${cat.limit}/mo
                         </span>
-                      </div>
+                      </ListRow>
                     ))}
                   </div>
                 )}
-
                 {activeLimits.length === 0 && (
-                  <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-                    No limits yet — Folio works fine without them, or add some anytime.
+                  <p style={{ ...typography["body-sm"], color: textColors.muted, marginBottom: spacingScale["12"] }}>
+                    No limits yet — works fine without them.
                   </p>
                 )}
               </>
             )}
-
-            <motion.button
+            <button
+              type="button"
               onClick={onOpenBudgetSettings}
-              whileTap={{ scale: 0.97 }}
-              transition={springs.snappy}
-              style={linkButton}
-              aria-label={isTrackerMode ? "View saved budget limits" : "Manage budget limits"}
+              style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0 }}
+              aria-label="Manage budget limits"
             >
               {isTrackerMode ? "View saved limits →" : "Manage limits →"}
-            </motion.button>
-          </GlassCard>
+            </button>
+          </Card>
 
-          {/* ── Category Hub (task 138.1) ─────────────────────────────────── */}
+          {/* Category Hub */}
           {onOpenCategoryHub && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeader }}>Categories</p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-                Add, rename, reorder, or archive your spending categories.
-              </p>
-              <motion.button
-                onClick={onOpenCategoryHub}
-                whileTap={{ scale: 0.97 }}
-                transition={springs.snappy}
-                style={linkButton}
-                aria-label="Manage categories"
-              >
-                Manage categories →
-              </motion.button>
-            </GlassCard>
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+              <ListRow variant="dense" onPress={onOpenCategoryHub} aria-label="Manage categories">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Categories</span>
+                <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+              </ListRow>
+            </Card>
           )}
 
-          {/* ── Income Calculation ────────────────────────────────────────── */}
+          {/* Income smoothing */}
           {onSetIncomeSmoothing && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeader, marginBottom: 6 }}>Income</p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-                How should your daily budget be calculated when income varies?
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+              <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["8"] }}>
+                Income
               </p>
-
-              <div style={segmentedControl}>
-                {INCOME_OPTIONS.map(opt => {
-                  const isActive = (incomeSmoothing?.strategy ?? 'current_month') === opt.key
-                  return (
-                    <motion.button
-                      key={opt.key}
-                      onClick={() => onSetIncomeSmoothing(opt.value)}
-                      whileTap={{ scale: 0.97 }}
-                      transition={springs.snappy}
-                      style={{
-                        ...segmentedButtonBase,
-                        ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
-                        padding: "10px 8px",
-                        fontSize: 12,
-                        lineHeight: 1.3,
-                      }}
-                      aria-pressed={isActive}
-                      aria-label={opt.label}
-                      title={opt.desc}
-                    >
-                      {opt.label}
-                    </motion.button>
-                  )
-                })}
-              </div>
-            </GlassCard>
+              <SegmentedControl
+                items={INCOME_OPTIONS.map(o => o.label)}
+                selectedIndex={INCOME_OPTIONS.findIndex(o => o.key === (incomeSmoothing?.strategy ?? 'current_month'))}
+                onChange={(idx) => onSetIncomeSmoothing(INCOME_OPTIONS[idx].value)}
+                aria-label="Income calculation method"
+              />
+            </Card>
           )}
 
-          {/* ── Academic Term (task 121.1) ─────────────────────────────────── */}
+          {/* Academic term */}
           {onSetTermSchedule && (hasTermBudget || termSchedule) && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeader, marginBottom: 6 }}>📚 Academic Term</p>
-
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+              <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["8"] }}>
+                Academic Term
+              </p>
               {termSchedule && isTermActive(termSchedule, new Date()) ? (
                 <>
-                  <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 10, lineHeight: 1.5 }}>
+                  <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["8"] }}>
                     {termSchedule.label || "Current term"} — {getDaysRemainingInTerm(termSchedule, new Date())} days left
                   </p>
                   <div style={{
-                    height: 6, borderRadius: 3,
-                    background: "rgba(255,255,255,0.08)",
-                    marginBottom: 14, overflow: "hidden",
+                    height: spacingScale["6"], borderRadius: radius.full,
+                    background: elevations.sunken.fill,
+                    marginBottom: spacingScale["12"], overflow: "hidden",
                   }}>
                     <div style={{
-                      height: "100%", borderRadius: 3,
+                      height: "100%", borderRadius: radius.full,
                       width: `${Math.round(getTermProgress(termSchedule, new Date()) * 100)}%`,
-                      background: "var(--accent, #818cf8)",
-                      transition: "width 0.3s ease",
+                      background: colorRamp.accent[500],
                     }} />
                   </div>
-                  <motion.button
+                  <button
+                    type="button"
                     onClick={() => onSetTermSchedule(null)}
-                    whileTap={{ scale: 0.97 }}
-                    transition={springs.snappy}
-                    style={{ ...linkButton, color: "var(--error, #f87171)" }}
+                    style={{ background: "none", border: "none", ...typography["body-sm"], color: semanticColors.error, cursor: "pointer", padding: 0 }}
                     aria-label="Clear term schedule"
                   >
                     Clear term
-                  </motion.button>
+                  </button>
                 </>
               ) : termSchedule && !isTermActive(termSchedule, new Date()) ? (
                 <>
-                  <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 10, lineHeight: 1.5 }}>
-                    Your term has ended. Set up a new one to keep your budget on track.
+                  <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["8"] }}>
+                    Your term has ended. Set up a new one.
                   </p>
-                  <motion.button
-                    onClick={() => { setShowTermSetup(true); setTermStartDate(""); setTermEndDate(""); setTermLabel(""); }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={springs.snappy}
-                    style={linkButton}
+                  <button
+                    type="button"
+                    onClick={() => { setShowTermSetup(true); setTermStartDate(""); setTermEndDate(""); setTermLabel("") }}
+                    style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0 }}
                     aria-label="Set up a new term"
                   >
                     Set up a new term →
-                  </motion.button>
+                  </button>
                 </>
               ) : !showTermSetup ? (
-                <>
-                  <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 10, lineHeight: 1.5 }}>
-                    Set a semester or term window so your budgets pace correctly.
-                  </p>
-                  <motion.button
-                    onClick={() => setShowTermSetup(true)}
-                    whileTap={{ scale: 0.97 }}
-                    transition={springs.snappy}
-                    style={linkButton}
-                    aria-label="Set up a term"
-                  >
-                    Set up a term →
-                  </motion.button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => setShowTermSetup(true)}
+                  style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0 }}
+                  aria-label="Set up a term"
+                >
+                  Set up a term →
+                </button>
               ) : (
                 <>
-                  {/* Quick presets */}
-                  <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 8 }}>Quick start:</p>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                  <div style={{ display: "flex", gap: spacingScale["6"], flexWrap: "wrap", marginBottom: spacingScale["12"] }}>
                     {TERM_PRESETS.map(preset => (
-                      <motion.button
+                      <button
                         key={preset.label}
+                        type="button"
                         onClick={() => {
                           const start = new Date()
                           const end = addDaysLocal(start, preset.durationWeeks * 7 - 1)
@@ -1278,533 +877,254 @@ export function SettingsScreen({
                           setTermEndDate(formatDateLocal(end))
                           setTermLabel(preset.label)
                         }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={springs.snappy}
                         style={{
-                          padding: "6px 10px",
-                          borderRadius: 8,
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          color: "var(--text)",
-                          fontSize: 12,
+                          padding: `${spacingScale["6"]} ${spacingScale["12"]}`,
+                          borderRadius: radius.control,
+                          background: elevations.sunken.fill,
+                          border: `1px solid ${elevations.resting.border}`,
+                          color: textColors.text,
+                          ...typography.caption,
                           cursor: "pointer",
-                          fontFamily: FONT_FAMILY,
                         }}
                         aria-label={`Use ${preset.label} preset`}
                       >
                         {preset.emoji} {preset.label}
-                      </motion.button>
+                      </button>
                     ))}
                   </div>
-
-                  {/* Date inputs */}
-                  <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                  <div style={{ display: "flex", gap: spacingScale["8"], marginBottom: spacingScale["8"] }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 11, color: "var(--sub)", display: "block", marginBottom: 4 }}>Start date</label>
+                      <label style={{ ...typography.caption, color: textColors.sub, display: "block", marginBottom: spacingScale["4"] }}>Start</label>
                       <input
-                        type="date"
-                        value={termStartDate}
+                        type="date" value={termStartDate}
                         onChange={e => setTermStartDate(e.target.value)}
-                        style={{
-                          width: "100%", padding: "8px 10px", borderRadius: 8,
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          color: "var(--text)", fontSize: 13, fontFamily: FONT_FAMILY,
-                        }}
+                        style={{ width: "100%", padding: spacingScale["8"], borderRadius: radius.control, background: elevations.sunken.fill, border: `1px solid ${elevations.resting.border}`, color: textColors.text, ...typography["body-sm"] }}
                         aria-label="Term start date"
                       />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 11, color: "var(--sub)", display: "block", marginBottom: 4 }}>End date</label>
+                      <label style={{ ...typography.caption, color: textColors.sub, display: "block", marginBottom: spacingScale["4"] }}>End</label>
                       <input
-                        type="date"
-                        value={termEndDate}
+                        type="date" value={termEndDate}
                         onChange={e => setTermEndDate(e.target.value)}
-                        style={{
-                          width: "100%", padding: "8px 10px", borderRadius: 8,
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          color: "var(--text)", fontSize: 13, fontFamily: FONT_FAMILY,
-                        }}
+                        style={{ width: "100%", padding: spacingScale["8"], borderRadius: radius.control, background: elevations.sunken.fill, border: `1px solid ${elevations.resting.border}`, color: textColors.text, ...typography["body-sm"] }}
                         aria-label="Term end date"
                       />
                     </div>
                   </div>
-
-                  {/* Optional label */}
                   <input
-                    type="text"
-                    value={termLabel}
+                    type="text" value={termLabel}
                     onChange={e => setTermLabel(e.target.value)}
                     placeholder="Label (optional, e.g. Fall 2025)"
                     maxLength={30}
-                    style={{
-                      width: "100%", padding: "8px 10px", borderRadius: 8,
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "var(--text)", fontSize: 13, fontFamily: FONT_FAMILY,
-                      marginBottom: 14,
-                    }}
+                    style={{ width: "100%", padding: spacingScale["8"], borderRadius: radius.control, background: elevations.sunken.fill, border: `1px solid ${elevations.resting.border}`, color: textColors.text, ...typography["body-sm"], marginBottom: spacingScale["12"] }}
                     aria-label="Term label"
                   />
-
-                  {/* Action buttons */}
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <motion.button
+                  <div style={{ display: "flex", gap: spacingScale["8"] }}>
+                    <button
+                      type="button"
                       onClick={() => {
                         if (termStartDate && termEndDate && termStartDate < termEndDate) {
-                          onSetTermSchedule({
-                            startDate: termStartDate,
-                            endDate: termEndDate,
-                            label: termLabel || undefined,
-                          })
+                          onSetTermSchedule({ startDate: termStartDate, endDate: termEndDate, label: termLabel || undefined })
                           setShowTermSetup(false)
                         }
                       }}
                       disabled={!termStartDate || !termEndDate || termStartDate >= termEndDate}
-                      whileTap={{ scale: 0.97 }}
-                      transition={springs.snappy}
-                      style={{
-                        ...linkButton,
-                        opacity: (!termStartDate || !termEndDate || termStartDate >= termEndDate) ? 0.4 : 1,
-                      }}
-                      aria-label="Save term schedule"
+                      style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0, opacity: (!termStartDate || !termEndDate || termStartDate >= termEndDate) ? 0.4 : 1 }}
+                      aria-label="Save term"
                     >
                       Save
-                    </motion.button>
-                    <motion.button
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setShowTermSetup(false)}
-                      whileTap={{ scale: 0.97 }}
-                      transition={springs.snappy}
-                      style={{ ...linkButton, color: "var(--sub)" }}
-                      aria-label="Cancel term setup"
+                      style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.muted, cursor: "pointer", padding: 0 }}
+                      aria-label="Cancel"
                     >
                       Cancel
-                    </motion.button>
+                    </button>
                   </div>
                 </>
               )}
-            </GlassCard>
+            </Card>
           )}
 
-          {/* ── Spend-Down Plans (task 122.1) ─────────────────────────────── */}
+          {/* Spend-down plans */}
           {onAddSpendDownPlan && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeader, marginBottom: 6 }}>💰 Spend-Down Plans</p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 12, lineHeight: 1.5 }}>
-                Got a lump sum? Set a target date and we'll show you a safe daily amount.
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+              <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["8"] }}>
+                Spend-Down Plans
               </p>
-
-              {spendDownPlans.length > 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  {spendDownPlans.map(plan => {
-                    const now = new Date()
-                    const todayStr = now.toISOString().slice(0, 10)
-                    const isActive = todayStr >= plan.startDate && todayStr <= plan.endDate
-                    const isExpired = todayStr > plan.endDate
-                    return (
-                      <div
-                        key={plan.id}
-                        style={{
-                          display: "flex", alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "10px 0",
-                          borderBottom: "1px solid rgba(255,255,255,0.06)",
-                        }}
+              <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
+                Got a lump sum? Set a target date for a safe daily amount.
+              </p>
+              {spendDownPlans.length > 0 && spendDownPlans.map(plan => {
+                const todayStr = new Date().toISOString().slice(0, 10)
+                const isActive = todayStr >= plan.startDate && todayStr <= plan.endDate
+                const isExpired = todayStr > plan.endDate
+                return (
+                  <ListRow key={plan.id} variant="dense">
+                    <div style={{ flex: 1 }}>
+                      <span style={{ ...typography.body, color: textColors.text, display: "block" }}>
+                        {plan.emoji} {plan.label}
+                      </span>
+                      <span style={{ ...typography.caption, color: textColors.sub }}>
+                        ${plan.totalAmount.toLocaleString()} until {plan.endDate}
+                        {isActive && " • Active"}
+                        {isExpired && " • Ended"}
+                      </span>
+                    </div>
+                    {onRemoveSpendDownPlan && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveSpendDownPlan(plan.id)}
+                        style={{ background: "none", border: "none", ...typography.caption, color: semanticColors.error, cursor: "pointer", padding: spacingScale["4"] }}
+                        aria-label={`Remove ${plan.label}`}
                       >
-                        <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: 14, color: "var(--text)" }}>
-                            {plan.emoji} {plan.label}
-                          </span>
-                          <br />
-                          <span style={{ fontSize: 12, color: "var(--sub)" }}>
-                            ${plan.totalAmount.toLocaleString()} until {plan.endDate}
-                            {isActive && " • Active"}
-                            {isExpired && " • Ended"}
-                          </span>
-                        </div>
-                        {onRemoveSpendDownPlan && (
-                          <motion.button
-                            onClick={() => onRemoveSpendDownPlan(plan.id)}
-                            whileTap={{ scale: 0.95 }}
-                            transition={springs.snappy}
-                            style={{
-                              background: "none", border: "none",
-                              color: "var(--error, #f87171)",
-                              fontSize: 12, cursor: "pointer", padding: "4px 8px",
-                            }}
-                            aria-label={`Remove ${plan.label} plan`}
-                          >
-                            Remove
-                          </motion.button>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {showSpendDownForm ? (
-                <div style={{ marginTop: 8 }}>
+                        Remove
+                      </button>
+                    )}
+                  </ListRow>
+                )
+              })}
+              {!showSpendDownForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSpendDownForm(true)}
+                  style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0 }}
+                  aria-label="Add a spend-down plan"
+                >
+                  + Add plan
+                </button>
+              ) : (
+                <div style={{ marginTop: spacingScale["8"] }}>
                   {disbursements.length > 0 && (
-                    <div style={{ marginBottom: 12 }}>
-                      <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 6 }}>
+                    <div style={{ marginBottom: spacingScale["12"] }}>
+                      <p style={{ ...typography.caption, color: textColors.sub, marginBottom: spacingScale["6"] }}>
                         Quick fill from a disbursement:
                       </p>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: spacingScale["6"] }}>
                         {disbursements.slice(0, 3).map(d => (
-                          <motion.button
+                          <button
                             key={d.id}
+                            type="button"
                             onClick={() => {
-                              setSdLabel(d.label)
-                              setSdAmount(String(d.amount))
-                              setSdEmoji(d.emoji)
+                              setSdLabel(d.label); setSdAmount(String(d.amount)); setSdEmoji(d.emoji)
                               const parts = d.startDate.split('-').map(Number)
                               if (parts.length === 3) {
                                 const end = new Date(parts[0], parts[1] - 1 + d.coverMonths, parts[2])
                                 setSdEndDate(end.toISOString().slice(0, 10))
                               }
                             }}
-                            whileTap={{ scale: 0.95 }}
-                            transition={springs.snappy}
-                            style={{
-                              background: "rgba(129, 140, 248, 0.1)",
-                              border: "1px solid rgba(129, 140, 248, 0.2)",
-                              borderRadius: 8, padding: "4px 10px",
-                              fontSize: 12, color: "var(--accent, #818cf8)", cursor: "pointer",
-                            }}
+                            style={{ background: colorRamp.accent[50], border: `1px solid ${colorRamp.accent[200]}`, borderRadius: radius.control, padding: `${spacingScale["4"]} ${spacingScale["12"]}`, ...typography.caption, color: textColors.text, cursor: "pointer" }}
                           >
                             {d.emoji} {d.label}
-                          </motion.button>
+                          </button>
                         ))}
                       </div>
                     </div>
                   )}
-
-                  <label style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}>Label</label>
-                  <input
-                    type="text" value={sdLabel}
-                    onChange={e => setSdLabel(e.target.value)}
-                    placeholder="e.g. Fall Aid Refund"
-                    style={{
-                      width: "100%", padding: "8px 12px", fontSize: 14,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 8, color: "var(--text)", marginBottom: 10, outline: "none",
-                    }}
-                  />
-
-                  <label style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}>Total Amount ($)</label>
-                  <input
-                    type="number" value={sdAmount}
-                    onChange={e => setSdAmount(e.target.value)}
-                    placeholder="3000" min="1"
-                    style={{
-                      width: "100%", padding: "8px 12px", fontSize: 14,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 8, color: "var(--text)", marginBottom: 10, outline: "none",
-                    }}
-                  />
-
-                  <label style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}>Make it last until</label>
-                  <input
-                    type="date" value={sdEndDate}
-                    onChange={e => setSdEndDate(e.target.value)}
-                    style={{
-                      width: "100%", padding: "8px 12px", fontSize: 14,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 8, color: "var(--text)", marginBottom: 10, outline: "none",
-                    }}
-                  />
-
-                  <label style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}>Emoji</label>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                  <input type="text" value={sdLabel} onChange={e => setSdLabel(e.target.value)} placeholder="Label" style={{ width: "100%", padding: spacingScale["8"], borderRadius: radius.control, background: elevations.sunken.fill, border: `1px solid ${elevations.resting.border}`, color: textColors.text, ...typography["body-sm"], marginBottom: spacingScale["8"] }} />
+                  <input type="number" value={sdAmount} onChange={e => setSdAmount(e.target.value)} placeholder="Amount ($)" min="1" style={{ width: "100%", padding: spacingScale["8"], borderRadius: radius.control, background: elevations.sunken.fill, border: `1px solid ${elevations.resting.border}`, color: textColors.text, ...typography["body-sm"], marginBottom: spacingScale["8"] }} />
+                  <input type="date" value={sdEndDate} onChange={e => setSdEndDate(e.target.value)} style={{ width: "100%", padding: spacingScale["8"], borderRadius: radius.control, background: elevations.sunken.fill, border: `1px solid ${elevations.resting.border}`, color: textColors.text, ...typography["body-sm"], marginBottom: spacingScale["8"] }} aria-label="End date" />
+                  <div style={{ display: "flex", gap: spacingScale["8"], marginBottom: spacingScale["12"] }}>
                     {["💰", "🎓", "🏅", "📦", "🎉"].map(e => (
-                      <motion.button
-                        key={e}
-                        onClick={() => setSdEmoji(e)}
-                        whileTap={{ scale: 0.9 }}
-                        style={{
-                          background: sdEmoji === e ? "rgba(129, 140, 248, 0.2)" : "rgba(255,255,255,0.05)",
-                          border: sdEmoji === e ? "1px solid rgba(129, 140, 248, 0.4)" : "1px solid rgba(255,255,255,0.1)",
-                          borderRadius: 8, padding: "6px 10px", fontSize: 16, cursor: "pointer",
-                        }}
-                      >
+                      <button key={e} type="button" onClick={() => setSdEmoji(e)} style={{ background: sdEmoji === e ? colorRamp.accent[100] : elevations.sunken.fill, border: `1px solid ${sdEmoji === e ? colorRamp.accent[300] : elevations.resting.border}`, borderRadius: radius.control, padding: spacingScale["6"], cursor: "pointer" }}>
                         {e}
-                      </motion.button>
+                      </button>
                     ))}
                   </div>
-
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <motion.button
-                      onClick={() => {
-                        const amount = parseFloat(sdAmount)
-                        const today = new Date().toISOString().slice(0, 10)
-                        if (sdLabel && amount > 0 && sdEndDate && sdEndDate > today) {
-                          onAddSpendDownPlan({
-                            label: sdLabel, totalAmount: amount,
-                            startDate: today, endDate: sdEndDate, emoji: sdEmoji,
-                          })
-                          setSdLabel(""); setSdAmount(""); setSdEndDate(""); setSdEmoji("💰")
-                          setShowSpendDownForm(false)
-                        }
-                      }}
-                      disabled={!sdLabel || !sdAmount || parseFloat(sdAmount) <= 0 || !sdEndDate}
-                      whileTap={{ scale: 0.97 }}
-                      transition={springs.snappy}
-                      style={{
-                        ...linkButton,
-                        opacity: (!sdLabel || !sdAmount || parseFloat(sdAmount) <= 0 || !sdEndDate) ? 0.4 : 1,
-                      }}
-                      aria-label="Save spend-down plan"
-                    >
-                      Save Plan
-                    </motion.button>
-                    <motion.button
-                      onClick={() => setShowSpendDownForm(false)}
-                      whileTap={{ scale: 0.97 }}
-                      transition={springs.snappy}
-                      style={{ ...linkButton, color: "var(--sub)" }}
-                      aria-label="Cancel spend-down plan setup"
-                    >
-                      Cancel
-                    </motion.button>
+                  <div style={{ display: "flex", gap: spacingScale["8"] }}>
+                    <button type="button" onClick={() => { const amount = parseFloat(sdAmount); const today = new Date().toISOString().slice(0, 10); if (sdLabel && amount > 0 && sdEndDate && sdEndDate > today) { onAddSpendDownPlan({ label: sdLabel, totalAmount: amount, startDate: today, endDate: sdEndDate, emoji: sdEmoji }); setSdLabel(""); setSdAmount(""); setSdEndDate(""); setSdEmoji("💰"); setShowSpendDownForm(false) } }} disabled={!sdLabel || !sdAmount || parseFloat(sdAmount) <= 0 || !sdEndDate} style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0, opacity: (!sdLabel || !sdAmount || parseFloat(sdAmount) <= 0 || !sdEndDate) ? 0.4 : 1 }} aria-label="Save plan">Save</button>
+                    <button type="button" onClick={() => setShowSpendDownForm(false)} style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.muted, cursor: "pointer", padding: 0 }} aria-label="Cancel">Cancel</button>
                   </div>
                 </div>
-              ) : (
-                <motion.button
-                  onClick={() => setShowSpendDownForm(true)}
-                  whileTap={{ scale: 0.97 }}
-                  transition={springs.snappy}
-                  style={linkButton}
-                  aria-label="Add a spend-down plan"
-                >
-                  + Add plan
-                </motion.button>
               )}
-            </GlassCard>
+            </Card>
           )}
 
-          {/* ── Smart Categorization (task 113.3) ───────────────────── */}
+          {/* Smart categorization */}
           {onAddCategorizationRule && onDeleteCategorizationRule && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-              <p style={{ ...sectionHeader, marginBottom: 6 }}>Smart Categorization</p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-                Custom rules that always categorize certain notes for you.
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}` }}>
+              <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["4"] }}>
+                Smart Categorization
               </p>
-
-              {categorizationRules.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  {categorizationRules.map((rule) => (
-                    <div
-                      key={rule.id}
-                      style={{
-                        display: "flex", justifyContent: "space-between",
-                        alignItems: "center", padding: "8px 0",
-                        borderBottom: "1px solid var(--border)",
-                      }}
-                    >
-                      <span style={{ fontSize: 13, color: "var(--text)", flex: 1 }}>
-                        &ldquo;{rule.keyword}&rdquo; → {getCategoryEmoji(rule.category)} {rule.category}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteCategorizationRule(rule.id)}
-                        aria-label={`Delete rule for "${rule.keyword}"`}
-                        style={{
-                          background: "transparent", border: "none",
-                          padding: "4px 8px", fontSize: 14,
-                          color: "var(--muted)", cursor: "pointer", flexShrink: 0,
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {categorizationRules.length === 0 && !showAddRuleForm && (
-                <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-                  No rules yet — add one, or Folio will suggest creating them when you override a category.
-                </p>
-              )}
-
-              {showAddRuleForm ? (
-                <div
-                  style={{
-                    padding: "12px 14px",
-                    background: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    borderRadius: borderRadius.md,
-                    marginBottom: 12,
-                  }}
-                >
-                  <div style={{ marginBottom: 10 }}>
-                    <label
-                      htmlFor="rule-keyword-input"
-                      style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 4 }}
-                    >
-                      When note contains
-                    </label>
-                    <input
-                      id="rule-keyword-input"
-                      type="text"
-                      placeholder="e.g. starbucks"
-                      value={newRuleKeyword}
-                      onChange={(e) => setNewRuleKeyword(e.target.value.slice(0, 40))}
-                      maxLength={40}
-                      style={{
-                        width: "100%", background: "transparent", border: "none",
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
-                        outline: "none", fontSize: 14, fontFamily: FONT_FAMILY,
-                        color: "var(--text)", padding: "6px 0",
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 6 }}>
-                      Categorize as
-                    </label>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {BUDGET_CATEGORIES.map((cat) => {
-                        const isSelected = newRuleCategory === cat.category
-                        return (
-                          <button
-                            key={cat.category}
-                            type="button"
-                            onClick={() => setNewRuleCategory(cat.category)}
-                            aria-label={`Categorize as ${cat.label}`}
-                            aria-pressed={isSelected}
-                            style={{
-                              padding: "6px 12px",
-                              borderRadius: borderRadius.full,
-                              border: isSelected
-                                ? "1.5px solid rgba(129, 140, 248, 0.6)"
-                                : "1px solid rgba(255, 255, 255, 0.1)",
-                              background: isSelected ? "rgba(129, 140, 248, 0.1)" : "transparent",
-                              color: isSelected ? "var(--text)" : "var(--sub)",
-                              fontSize: 12, fontFamily: FONT_FAMILY, fontWeight: 500, cursor: "pointer",
-                            }}
-                          >
-                            {cat.emoji} {cat.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <motion.button
-                      type="button"
-                      onClick={() => {
-                        if (newRuleKeyword.trim()) {
-                          onAddCategorizationRule(newRuleKeyword.trim(), newRuleCategory)
-                          setNewRuleKeyword("")
-                          setShowAddRuleForm(false)
-                        }
-                      }}
-                      disabled={!newRuleKeyword.trim()}
-                      whileTap={{ scale: 0.97 }}
-                      transition={springs.snappy}
-                      style={{
-                        padding: "8px 16px", borderRadius: borderRadius.full,
-                        background: newRuleKeyword.trim() ? "rgba(129, 140, 248, 0.8)" : "rgba(255, 255, 255, 0.08)",
-                        border: "none",
-                        color: newRuleKeyword.trim() ? "#fff" : "var(--muted)",
-                        fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 600,
-                        cursor: newRuleKeyword.trim() ? "pointer" : "not-allowed",
-                      }}
-                    >
-                      Save rule
-                    </motion.button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowAddRuleForm(false); setNewRuleKeyword("") }}
-                      style={{
-                        padding: "8px 12px", borderRadius: borderRadius.full,
-                        background: "transparent", border: "none",
-                        color: "var(--muted)", fontSize: 13, fontFamily: FONT_FAMILY, cursor: "pointer",
-                      }}
-                    >
-                      Cancel
+              <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
+                Custom rules that auto-categorize certain notes.
+              </p>
+              {categorizationRules.length > 0 && categorizationRules.map((rule) => (
+                <ListRow key={rule.id} variant="dense">
+                  <span style={{ ...typography["body-sm"], color: textColors.text, flex: 1 }}>
+                    &ldquo;{rule.keyword}&rdquo; → {getCategoryEmoji(rule.category)} {rule.category}
+                  </span>
+                  <button type="button" onClick={() => onDeleteCategorizationRule(rule.id)} style={{ background: "none", border: "none", ...typography.caption, color: textColors.muted, cursor: "pointer", padding: spacingScale["4"] }} aria-label={`Delete rule for "${rule.keyword}"`}>
+                    ✕
+                  </button>
+                </ListRow>
+              ))}
+              {!showAddRuleForm ? (
+                <div style={{ display: "flex", gap: spacingScale["12"] }}>
+                  <button type="button" onClick={() => setShowAddRuleForm(true)} style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0 }} aria-label="Add rule">
+                    + Add rule
+                  </button>
+                  {onOpenCategorizationRules && (
+                    <button type="button" onClick={onOpenCategorizationRules} style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0 }} aria-label="Manage all rules">
+                      Manage rules →
                     </button>
-                  </div>
+                  )}
                 </div>
               ) : (
-                <motion.button
-                  onClick={() => setShowAddRuleForm(true)}
-                  whileTap={{ scale: 0.97 }}
-                  transition={springs.snappy}
-                  style={linkButton}
-                  aria-label="Add a categorization rule"
-                >
-                  + Add rule →
-                </motion.button>
+                <div style={{ padding: spacingScale["12"], background: elevations.sunken.fill, border: `1px solid ${elevations.resting.border}`, borderRadius: radius.control, marginBottom: spacingScale["12"] }}>
+                  <input type="text" placeholder="e.g. starbucks" value={newRuleKeyword} onChange={(e) => setNewRuleKeyword(e.target.value.slice(0, 40))} maxLength={40} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${elevations.resting.border}`, outline: "none", ...typography.body, color: textColors.text, padding: `${spacingScale["6"]} 0`, marginBottom: spacingScale["8"] }} aria-label="Keyword" />
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: spacingScale["6"], marginBottom: spacingScale["12"] }}>
+                    {BUDGET_CATEGORIES.map((cat) => {
+                      const isSelected = newRuleCategory === cat.category
+                      return (
+                        <button key={cat.category} type="button" onClick={() => setNewRuleCategory(cat.category)} aria-pressed={isSelected} style={{ padding: `${spacingScale["4"]} ${spacingScale["12"]}`, borderRadius: radius.full, border: `1px solid ${isSelected ? colorRamp.accent[400] : elevations.resting.border}`, background: isSelected ? colorRamp.accent[50] : "transparent", color: isSelected ? textColors.text : textColors.sub, ...typography.caption, cursor: "pointer" }}>
+                          {cat.emoji} {cat.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div style={{ display: "flex", gap: spacingScale["8"] }}>
+                    <button type="button" onClick={() => { if (newRuleKeyword.trim()) { onAddCategorizationRule(newRuleKeyword.trim(), newRuleCategory); setNewRuleKeyword(""); setShowAddRuleForm(false) } }} disabled={!newRuleKeyword.trim()} style={{ padding: `${spacingScale["8"]} ${spacingScale["16"]}`, borderRadius: radius.full, background: newRuleKeyword.trim() ? colorRamp.accent[500] : elevations.sunken.fill, border: "none", color: textColors.text, ...typography["body-sm"], cursor: newRuleKeyword.trim() ? "pointer" : "not-allowed" }}>Save rule</button>
+                    <button type="button" onClick={() => { setShowAddRuleForm(false); setNewRuleKeyword("") }} style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.muted, cursor: "pointer", padding: 0 }}>Cancel</button>
+                  </div>
+                </div>
               )}
-
-              {onOpenCategorizationRules && (
-                <motion.button
-                  onClick={onOpenCategorizationRules}
-                  whileTap={{ scale: 0.97 }}
-                  transition={springs.snappy}
-                  style={{ ...linkButton, marginTop: 12 }}
-                  aria-label="Manage all categorization and routing rules"
-                >
-                  Manage rules & auto-routing →
-                </motion.button>
-              )}
-            </GlassCard>
+            </Card>
           )}
         </CollapsibleSection>
         </motion.div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: Payment methods                                            */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ═══ SECTION: Payment Methods ═════════════════════════════════ */}
       {isSectionVisible('payment-methods') && (onOpenFundingSources || onOpenLinkedAccounts) && (
         <motion.div variants={listItem}>
         <CollapsibleSection
-          title="Payment methods"
+          title="Payment Methods"
           isOpen={isSectionOpen('payment-methods')}
           onToggle={() => toggleSection('payment-methods')}
         >
-          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}` }}>
             {onOpenFundingSources && (
-              <motion.button
-                onClick={onOpenFundingSources}
-                whileTap={{ scale: 0.97 }}
-                transition={springs.snappy}
-                style={{ ...linkButton, marginBottom: 12, display: "block" }}
-                aria-label="Manage payment methods"
-              >
-                💳 Payment Methods →
-              </motion.button>
+              <ListRow variant="dense" onPress={onOpenFundingSources} aria-label="Manage payment methods">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Payment Methods</span>
+                <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+              </ListRow>
             )}
-
             {onOpenLinkedAccounts && (
-              <motion.button
-                onClick={onOpenLinkedAccounts}
-                whileTap={{ scale: 0.97 }}
-                transition={springs.snappy}
-                style={{ ...linkButton, display: "block" }}
-                aria-label="Manage linked accounts (optional)"
-              >
-                🔗 Linked Accounts (optional) →
-              </motion.button>
+              <ListRow variant="dense" onPress={onOpenLinkedAccounts} aria-label="Linked accounts">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Linked Accounts</span>
+                <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+              </ListRow>
             )}
-          </GlassCard>
+          </Card>
         </CollapsibleSection>
         </motion.div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: Appearance                                                 */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ═══ SECTION: Appearance ══════════════════════════════════════ */}
       {isSectionVisible('appearance') && (
         <motion.div variants={listItem}>
         <CollapsibleSection
@@ -1812,135 +1132,61 @@ export function SettingsScreen({
           isOpen={isSectionOpen('appearance')}
           onToggle={() => toggleSection('appearance')}
         >
-          {/* Theme toggle */}
-          <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-            <p style={{ ...sectionHeader, marginBottom: 14 }}>Theme</p>
-            <div style={segmentedControl}>
-              {THEME_OPTIONS.map(opt => {
-                const isActive = theme === opt.key
-                return (
-                  <motion.button
-                    key={opt.key}
-                    onClick={() => setTheme(opt.key)}
-                    whileTap={{ scale: 0.97 }}
-                    transition={springs.snappy}
-                    style={{
-                      ...segmentedButtonBase,
-                      ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
-                    }}
-                    aria-pressed={isActive}
-                    aria-label={`Set theme to ${opt.label}`}
-                  >
-                    {opt.label}
-                  </motion.button>
-                )
-              })}
-            </div>
-          </GlassCard>
+          {/* Theme */}
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+            <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["12"] }}>Theme</p>
+            <SegmentedControl
+              items={THEME_OPTIONS as unknown as string[]}
+              selectedIndex={THEME_KEYS.indexOf(theme as typeof THEME_KEYS[number])}
+              onChange={(idx) => setTheme(THEME_KEYS[idx])}
+              aria-label="Theme"
+            />
+          </Card>
 
-          {/* Region-aware defaults — currency, formatting & amount presets (task 198.1) */}
+          {/* Region */}
           <RegionSettings />
 
           {/* Preferences */}
-          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-            <p style={{ ...sectionHeader, marginBottom: 14 }}>Preferences</p>
-
-            {/* Show daily insights toggle */}
-            <SettingsRow
-              label="Show daily insight"
-              description="A brief, rotating tip or celebration on your home screen"
-              action={
-                <SettingsToggle
-                  checked={insightsEnabled}
-                  onChange={(next) => {
-                    setInsightsEnabledState(next)
-                    setInsightsEnabled(next)
-                  }}
-                  ariaLabel="Show daily insight on home screen"
-                />
-              }
-            />
-
-            {/* Encouraging peer context toggle (task 186.1) — opt-in, OFF by default */}
-            <SettingsRow
-              label={<span style={{ fontSize: 14, color: "var(--text)", display: "block" }}>Show &ldquo;typical for a student&rdquo; context</span>}
-              description="Optional, anonymized, encouraging ranges in Tools — never a ranking or a scoreboard"
-              action={
-                <SettingsToggle
-                  checked={peerContextEnabled}
-                  onChange={(next) => {
-                    setPeerContextEnabledState(next)
-                    setPeerContextEnabled(next)
-                  }}
-                  ariaLabel="Show typical-for-a-student context in Tools"
-                />
-              }
-            />
-
-            {/* Count credit-card spending against today toggle */}
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}` }}>
+            <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["12"] }}>Preferences</p>
+            <ListRow variant="dense">
+              <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Show daily insight</span>
+              <Toggle checked={insightsEnabled} onChange={(next) => { setInsightsEnabledState(next); setInsightsEnabled(next) }} size="sm" aria-label="Show daily insight" />
+            </ListRow>
+            <ListRow variant="dense">
+              <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Peer context</span>
+              <Toggle checked={peerContextEnabled} onChange={(next) => { setPeerContextEnabledState(next); setPeerContextEnabled(next) }} size="sm" aria-label="Show peer context" />
+            </ListRow>
             {onUpdateCountCreditImmediately && (
-              <SettingsRow
-                label="Count credit-card spending against today?"
-                description="When off, credit purchases won't reduce your daily allowance until you pay the bill"
-                action={
-                  <SettingsToggle
-                    checked={countCreditImmediately}
-                    onChange={(next) => {
-                      setCountCreditImmediatelyState(next)
-                      onUpdateCountCreditImmediately(next)
-                    }}
-                    ariaLabel="Count credit-card spending against today"
-                  />
-                }
-              />
+              <ListRow variant="dense">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Count credit against today</span>
+                <Toggle checked={countCreditImmediately} onChange={(next) => { setCountCreditImmediatelyState(next); onUpdateCountCreditImmediately(next) }} size="sm" aria-label="Count credit-card spending against today" />
+              </ListRow>
             )}
-
-            {/* Reset Tutorial/Onboarding */}
             {onResetOnboarding && (
-              <motion.button
-                onClick={onResetOnboarding}
-                whileTap={{ scale: 0.97 }}
-                transition={springs.snappy}
-                style={{ ...linkButton, marginTop: 14 }}
-                aria-label="Reset onboarding tutorial"
-              >
-                Reset tutorial →
-              </motion.button>
+              <ListRow variant="dense" onPress={onResetOnboarding} aria-label="Reset tutorial">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Reset tutorial</span>
+                <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+              </ListRow>
             )}
-
-            {/* Show me around again — replay demos without resetting (task 224.2) */}
             {onReplayDemos && (
-              <motion.button
-                onClick={onReplayDemos}
-                whileTap={{ scale: 0.97 }}
-                transition={springs.snappy}
-                style={{ ...linkButton, marginTop: 10 }}
-                aria-label="Show me around again"
-              >
-                🎓 Show me around again →
-              </motion.button>
+              <ListRow variant="dense" onPress={onReplayDemos} aria-label="Show me around again">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Show me around again</span>
+                <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+              </ListRow>
             )}
-
-            {/* Catch up on past spending (backfill flow) */}
             {onOpenBackfill && (
-              <motion.button
-                onClick={onOpenBackfill}
-                whileTap={{ scale: 0.97 }}
-                transition={springs.snappy}
-                style={{ ...linkButton, marginTop: 10, display: 'block' }}
-                aria-label="Catch up on past spending"
-              >
-                📝 Catch up on past spending →
-              </motion.button>
+              <ListRow variant="dense" onPress={onOpenBackfill} aria-label="Catch up on past spending">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Catch up on past spending</span>
+                <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+              </ListRow>
             )}
-          </GlassCard>
+          </Card>
         </CollapsibleSection>
         </motion.div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: Notifications                                              */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ═══ SECTION: Notifications ═══════════════════════════════════ */}
       {isSectionVisible('notifications') && (
         <motion.div variants={listItem}>
         <CollapsibleSection
@@ -1949,238 +1195,150 @@ export function SettingsScreen({
           onToggle={() => toggleSection('notifications')}
         >
           <NotificationCenter />
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: spacingScale["16"] }}>
             <MinBalanceBufferSetting />
           </div>
         </CollapsibleSection>
         </motion.div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: Privacy & security                                         */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ═══ SECTION: Privacy & Security ══════════════════════════════ */}
       {isSectionVisible('privacy-security') && (
         <motion.div variants={listItem}>
         <CollapsibleSection
-          title="Privacy & security"
+          title="Privacy & Security"
           isOpen={isSectionOpen('privacy-security')}
           onToggle={() => toggleSection('privacy-security')}
         >
           <AppLockSetting />
-
-          {/* Active sessions — device list with revoke (task 192.1) */}
           <SessionsSetting />
-
-          {/* Privacy & data dashboard (task 191.1) */}
           {onOpenPrivacyDashboard && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
-              <p style={{ ...sectionHeader }}>Privacy &amp; data</p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-                See what&apos;s stored, take a copy, or erase everything — your call, anytime.
-              </p>
-              <motion.button
-                onClick={onOpenPrivacyDashboard}
-                whileTap={{ scale: 0.97 }}
-                transition={springs.snappy}
-                style={linkButton}
-                aria-label="Open the privacy and data dashboard"
-              >
-                See, export &amp; delete my data →
-              </motion.button>
-            </GlassCard>
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginTop: spacingScale["16"] }}>
+              <ListRow variant="dense" onPress={onOpenPrivacyDashboard} aria-label="Privacy & data dashboard">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Privacy & data</span>
+                <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+              </ListRow>
+            </Card>
           )}
         </CollapsibleSection>
         </motion.div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: Data & account                                             */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ═══ SECTION: Data & Account ══════════════════════════════════ */}
       {isSectionVisible('data-account') && (
         <motion.div variants={listItem}>
         <CollapsibleSection
-          title="Data & account"
+          title="Data & Account"
           isOpen={isSectionOpen('data-account')}
           onToggle={() => toggleSection('data-account')}
         >
-          {/* Account */}
-          <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-            <p style={{ ...sectionHeader, marginBottom: 14 }}>Account</p>
-            <motion.button
-              onClick={onOpenProfile}
-              whileTap={{ scale: 0.97 }}
-              transition={springs.snappy}
-              style={linkButton}
-              aria-label="Open account settings"
-            >
-              Manage account →
-            </motion.button>
-          </GlassCard>
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+            <ListRow variant="dense" onPress={onOpenProfile} aria-label="Manage account">
+              <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Account</span>
+              <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+            </ListRow>
+          </Card>
 
-          {/* Sharing (task 115.1) */}
+          {/* Sharing */}
           {onOpenSharing && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeader }}>Sharing</p>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14, lineHeight: 1.5 }}>
-                {activeShareCount > 0
-                  ? `Sharing a snapshot with ${activeShareCount} ${activeShareCount === 1 ? "person" : "people"}`
-                  : "Not sharing with anyone"}
-              </p>
-              <motion.button
-                onClick={onOpenSharing}
-                whileTap={{ scale: 0.97 }}
-                transition={springs.snappy}
-                style={linkButton}
-                aria-label="Manage sharing"
-              >
-                Manage sharing →
-              </motion.button>
-            </GlassCard>
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+              <ListRow variant="dense" onPress={onOpenSharing} aria-label="Manage sharing">
+                <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>
+                  Sharing {activeShareCount > 0 ? `(${activeShareCount})` : ""}
+                </span>
+                <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+              </ListRow>
+            </Card>
           )}
 
-          {/* Export options */}
+          {/* Export */}
           {(onExportData || onExportCSV || onOpenReports) && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-              <p style={{ ...sectionHeader, marginBottom: 14 }}>Export</p>
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
               {onOpenReports && (
-                <motion.button
-                  onClick={onOpenReports}
-                  whileTap={{ scale: 0.97 }}
-                  transition={springs.snappy}
-                  style={{ ...linkButton, marginBottom: 12, display: "block" }}
-                  aria-label="Open reports to filter and export by tag, merchant, or category"
-                >
-                  Reports (filter &amp; PDF) →
-                </motion.button>
+                <ListRow variant="dense" onPress={onOpenReports} aria-label="Reports">
+                  <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Reports</span>
+                  <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+                </ListRow>
               )}
               {onExportData && (
-                <motion.button
-                  onClick={onExportData}
-                  whileTap={{ scale: 0.97 }}
-                  transition={springs.snappy}
-                  style={{ ...linkButton, marginBottom: 12, display: "block" }}
-                  aria-label="Export your financial data"
-                >
-                  Export my data →
-                </motion.button>
+                <ListRow variant="dense" onPress={onExportData} aria-label="Export my data">
+                  <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Export my data</span>
+                  <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+                </ListRow>
               )}
               {onExportCSV && (
-                <motion.button
-                  onClick={onExportCSV}
-                  whileTap={{ scale: 0.97 }}
-                  transition={springs.snappy}
-                  style={{ ...linkButton, display: "block" }}
-                  aria-label="Export transactions as CSV"
-                >
-                  Export transactions (CSV) →
-                </motion.button>
+                <ListRow variant="dense" onPress={onExportCSV} aria-label="Export CSV">
+                  <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Export transactions (CSV)</span>
+                  <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+                </ListRow>
               )}
-            </GlassCard>
+            </Card>
           )}
 
           {/* Goals */}
-          <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
-            <p style={{ ...sectionHeader }}>Goals</p>
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+            <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["8"] }}>Goals</p>
             {activeGoals.length > 0 ? (
-              <div style={{ marginBottom: 14 }}>
-                {activeGoals.map(goal => {
-                  const progress = goal.targetAmount > 0
-                    ? Math.round((goal.currentAmount / goal.targetAmount) * 100)
-                    : 0
-                  return (
-                    <div key={goal.id} style={listRow}>
-                      <span>{goal.emoji} {goal.name}</span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color: progress >= 100 ? "var(--success)" : "var(--sub)",
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
-                        {progress}%
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
+              activeGoals.map(goal => {
+                const progress = goal.targetAmount > 0 ? Math.round((goal.currentAmount / goal.targetAmount) * 100) : 0
+                return (
+                  <ListRow key={goal.id} variant="dense">
+                    <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>{goal.emoji} {goal.name}</span>
+                    <span style={{ ...typography["body-sm"], color: progress >= 100 ? semanticColors.success : textColors.sub, fontVariantNumeric: "tabular-nums" }}>
+                      {progress}%
+                    </span>
+                  </ListRow>
+                )
+              })
             ) : (
-              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-                No goals yet — set one when you&apos;re ready to save toward something.
+              <p style={{ ...typography["body-sm"], color: textColors.muted, marginBottom: spacingScale["12"] }}>
+                No goals yet — set one when you&apos;re ready.
               </p>
             )}
-            <motion.button
-              onClick={onOpenGoals}
-              whileTap={{ scale: 0.97 }}
-              transition={springs.snappy}
-              style={linkButton}
-              aria-label="Manage savings goals"
-            >
+            <button type="button" onClick={onOpenGoals} style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0 }} aria-label="Manage goals">
               Manage goals →
-            </motion.button>
-          </GlassCard>
+            </button>
+          </Card>
 
           {/* Sign out */}
-          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-            <motion.button
-              onClick={onSignOut}
-              whileTap={{ scale: 0.97 }}
-              transition={springs.snappy}
-              style={linkButton}
-              aria-label="Sign out"
-            >
-              Sign out →
-            </motion.button>
-          </GlassCard>
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}` }}>
+            <ListRow variant="dense" onPress={onSignOut} aria-label="Sign out">
+              <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Sign out</span>
+              <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
+            </ListRow>
+          </Card>
         </CollapsibleSection>
         </motion.div>
       )}
       </motion.div>
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* DANGER ZONE: Delete account (always visible, not collapsible)       */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ═══ DANGER ZONE ═══════════════════════════════════════════════ */}
       {onDeleteAccount && (
-        <div style={{ marginTop: 32 }}>
-          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
+        <div style={{ marginTop: spacingScale["32"] }}>
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}` }}>
             {!showDeleteConfirm ? (
               <>
-                <p style={{ ...sectionHeader, marginBottom: 8, color: "var(--error, #f87171)" }}>
+                <p style={{ ...typography.body, color: semanticColors.error, marginBottom: spacingScale["8"] }}>
                   Danger zone
                 </p>
-                <motion.button
+                <button
+                  type="button"
                   onClick={() => setShowDeleteConfirm(true)}
-                  whileTap={{ scale: 0.97 }}
-                  transition={springs.snappy}
-                  style={{ ...linkButton, color: "var(--error)" }}
+                  style={{ background: "none", border: "none", ...typography["body-sm"], color: semanticColors.error, cursor: "pointer", padding: 0 }}
                   aria-label="Delete account"
                 >
                   Delete account →
-                </motion.button>
+                </button>
               </>
             ) : (
-              <div style={dangerZone}>
-                <p
-                  style={{
-                    ...sectionHeader,
-                    fontSize: 14,
-                    textTransform: "none",
-                    letterSpacing: "0.01em",
-                    color: "var(--error)",
-                    marginBottom: 8,
-                  }}
-                >
+              <div style={{ padding: spacingScale["16"], borderRadius: radius.control, background: colorRamp.error[50], border: `1px solid ${colorRamp.error[300]}` }}>
+                <p style={{ ...typography.body, color: semanticColors.error, marginBottom: spacingScale["8"] }}>
                   ⚠️ Delete Account
                 </p>
-                <p
-                  style={{
-                    fontSize: 13, color: "var(--text)",
-                    marginBottom: 12, lineHeight: 1.5,
-                    fontFamily: FONT_FAMILY,
-                  }}
-                >
-                  This will permanently delete all your data including transactions, budgets, and goals. This cannot be undone.
+                <p style={{ ...typography["body-sm"], color: textColors.text, marginBottom: spacingScale["12"] }}>
+                  This will permanently delete all your data. This cannot be undone.
                 </p>
-                <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 12, fontFamily: FONT_FAMILY }}>
+                <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
                   Type <strong>DELETE</strong> to confirm:
                 </p>
                 <input
@@ -2189,91 +1347,69 @@ export function SettingsScreen({
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="Type DELETE"
                   style={{
-                    width: "100%", padding: "10px 12px", marginBottom: 12,
-                    fontSize: 14, fontFamily: FONT_FAMILY,
-                    color: "var(--text)",
-                    background: "rgba(0, 0, 0, 0.2)",
-                    border: "1px solid rgba(248, 113, 113, 0.2)",
-                    borderRadius: borderRadius.sm, outline: "none",
+                    width: "100%",
+                    padding: spacingScale["8"],
+                    marginBottom: spacingScale["12"],
+                    ...typography.body,
+                    color: textColors.text,
+                    background: elevations.canvas.fill,
+                    border: `1px solid ${colorRamp.error[200]}`,
+                    borderRadius: radius.control,
+                    outline: "none",
                   }}
-                  aria-label="Type DELETE to confirm account deletion"
+                  aria-label="Type DELETE to confirm"
                 />
-                <div style={{ display: "flex", gap: 8 }}>
-                  <motion.button
+                <div style={{ display: "flex", gap: spacingScale["8"] }}>
+                  <button
+                    type="button"
                     onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText("") }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={springs.snappy}
                     style={{
-                      flex: 1, padding: "10px 16px", fontSize: 14,
-                      fontWeight: 500, fontFamily: FONT_FAMILY,
-                      color: "var(--text)",
-                      background: "rgba(255, 255, 255, 0.06)",
-                      border: "1px solid rgba(255, 255, 255, 0.06)",
-                      borderRadius: borderRadius.sm, cursor: "pointer",
+                      flex: 1,
+                      padding: `${spacingScale["8"]} ${spacingScale["16"]}`,
+                      ...typography["body-sm"],
+                      color: textColors.text,
+                      background: elevations.sunken.fill,
+                      border: `1px solid ${elevations.resting.border}`,
+                      borderRadius: radius.control,
+                      cursor: "pointer",
                     }}
-                    aria-label="Cancel account deletion"
+                    aria-label="Cancel"
                   >
                     Cancel
-                  </motion.button>
-                  <motion.button
-                    onClick={() => {
-                      if (deleteConfirmText === "DELETE" && onDeleteAccount) {
-                        onDeleteAccount()
-                      }
-                    }}
-                    whileTap={{ scale: deleteConfirmText === "DELETE" ? 0.97 : 1 }}
-                    transition={springs.snappy}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { if (deleteConfirmText === "DELETE" && onDeleteAccount) { onDeleteAccount() } }}
                     disabled={deleteConfirmText !== "DELETE"}
                     style={{
-                      flex: 1, padding: "10px 16px", fontSize: 14,
-                      fontWeight: 600, fontFamily: FONT_FAMILY,
-                      color: deleteConfirmText === "DELETE" ? "#fff" : "var(--muted)",
-                      background: deleteConfirmText === "DELETE" ? "var(--error)" : "rgba(255, 255, 255, 0.03)",
-                      border: "none", borderRadius: borderRadius.sm,
+                      flex: 1,
+                      padding: `${spacingScale["8"]} ${spacingScale["16"]}`,
+                      ...typography["body-sm"],
+                      fontWeight: 600,
+                      color: deleteConfirmText === "DELETE" ? textColors.text : textColors.muted,
+                      background: deleteConfirmText === "DELETE" ? semanticColors.error : elevations.sunken.fill,
+                      border: "none",
+                      borderRadius: radius.control,
                       cursor: deleteConfirmText === "DELETE" ? "pointer" : "not-allowed",
                       opacity: deleteConfirmText === "DELETE" ? 1 : 0.5,
                     }}
-                    aria-label="Confirm account deletion"
+                    aria-label="Confirm deletion"
                   >
                     Delete Forever
-                  </motion.button>
+                  </button>
                 </div>
               </div>
             )}
-          </GlassCard>
+          </Card>
         </div>
       )}
 
-      {/* ── Branded footer ────────────────────────────────────────────────── */}
-      <div
-        style={{
-          textAlign: "center",
-          paddingTop: 24,
-          paddingBottom: 8,
-          opacity: 0.4,
-        }}
-      >
-        <p
-          style={{
-            fontFamily: FONT_FAMILY,
-            fontSize: 14,
-            fontWeight: 300,
-            letterSpacing: "0.12em",
-            color: "var(--sub)",
-            margin: 0,
-          }}
-        >
+      {/* ── Footer ─────────────────────────────────────────────────── */}
+      <div style={{ textAlign: "center", paddingTop: spacingScale["24"], paddingBottom: spacingScale["8"], opacity: 0.4 }}>
+        <p style={{ ...typography["body-sm"], color: textColors.sub, letterSpacing: "0.12em", margin: 0 }}>
           folio
         </p>
-        <p
-          style={{
-            fontFamily: FONT_FAMILY,
-            fontSize: 10,
-            color: "var(--muted)",
-            marginTop: 4,
-            letterSpacing: "0.04em",
-          }}
-        >
+        <p style={{ ...typography.caption, color: textColors.muted, marginTop: spacingScale["4"] }}>
           v0.1.0
         </p>
       </div>

@@ -7,6 +7,8 @@
  * Requirements: 1.2, 1.3
  */
 
+import type React from 'react'
+
 // ============================================================================
 // Token Accessor Interface
 // ============================================================================
@@ -70,3 +72,31 @@ export const zIndex: TokenAccessor<ZIndexLayer> = {
   sheet: 'var(--z-sheet)',
   overlay: 'var(--z-overlay)',
 } as const
+
+// ============================================================================
+// Focus Ring Tokens (Req 18.4: ≥2px thick, ≥3:1 contrast)
+// ============================================================================
+
+/**
+ * Focus ring style object to apply via onFocus/onBlur or CSS-in-JS.
+ * Accent-500 (#818cf8) on darkest surface (#0e0e1a) = 5.7:1 contrast ✓
+ *
+ * Apply `focusRingStyle` when the element has focus-visible,
+ * and `focusRingReset` to clear it on blur.
+ */
+export const focusRing = {
+  color: 'var(--focus-ring-color)',
+  width: 'var(--focus-ring-width)',
+  offset: 'var(--focus-ring-offset)',
+} as const
+
+/** Style to apply when an element has visible focus (keyboard navigation). */
+export const focusRingStyle: React.CSSProperties = {
+  outline: `2px solid var(--focus-ring-color)`,
+  outlineOffset: '2px',
+}
+
+/** Style to reset focus ring (when element loses focus). */
+export const focusRingReset: React.CSSProperties = {
+  outline: 'none',
+}

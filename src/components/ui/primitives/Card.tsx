@@ -103,7 +103,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
     <motion.div
       ref={ref}
       style={{ ...baseStyle, cursor: "pointer" }}
-      className={className}
+      className={`focus-ring${className ? ` ${className}` : ''}`}
       variants={pressVariants}
       initial="rest"
       whileHover="rest"

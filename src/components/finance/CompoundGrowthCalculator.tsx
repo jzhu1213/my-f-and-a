@@ -1,6 +1,7 @@
 "use client"
 import { useState, useMemo } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { ChartFrame } from '@/components/ui/primitives/ChartFrame'
 import { FONT_FAMILY } from '@/styles/typography'
 import { progressBar, chartLabel, chartValueLabel, chartMotion } from '@/styles/chartTokens'
 import { computeCombinedSavingsInputs } from '@/lib/savingsAccountUtils'
@@ -277,37 +278,44 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
 
           {/* Growth chart */}
           <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>Year by Year</p>
-          <GlassCard elevation="low" style={{ padding: 16 }}>
-            {displayRows.map((row, idx) => (
-              <div
-                key={row.year}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  paddingTop: idx === 0 ? 0 : 10,
-                  paddingBottom: 10,
-                  borderBottom: idx === displayRows.length - 1 ? 'none' : '1px solid var(--line)',
-                }}
-              >
-                <span style={{ ...chartLabel, width: 48 }}>YR {row.year}</span>
-                <div style={{ flex: 1, height: progressBar.heightCompact, background: progressBar.track, borderRadius: progressBar.borderRadius, overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${(row.balance / result.finalAmount) * 100}%`,
-                      background: progressBar.fill,
-                      borderRadius: progressBar.borderRadius,
-                      transition: chartMotion.barGrow,
-                    }}
-                  />
+          <ChartFrame
+            type="bar"
+            state="loaded"
+            height={Math.max(200, displayRows.length * 50)}
+            aria-label="Compound growth year-by-year bar chart"
+          >
+            <div style={{ padding: 16 }}>
+              {displayRows.map((row, idx) => (
+                <div
+                  key={row.year}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingTop: idx === 0 ? 0 : 10,
+                    paddingBottom: 10,
+                    borderBottom: idx === displayRows.length - 1 ? 'none' : '1px solid var(--line)',
+                  }}
+                >
+                  <span style={{ ...chartLabel, width: 48 }}>YR {row.year}</span>
+                  <div style={{ flex: 1, height: progressBar.heightCompact, background: progressBar.track, borderRadius: progressBar.borderRadius, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${(row.balance / result.finalAmount) * 100}%`,
+                        background: progressBar.fill,
+                        borderRadius: progressBar.borderRadius,
+                        transition: chartMotion.barGrow,
+                      }}
+                    />
+                  </div>
+                  <span style={{ ...chartValueLabel, width: 80, textAlign: 'right' }}>
+                    ${row.balance.toLocaleString()}
+                  </span>
                 </div>
-                <span style={{ ...chartValueLabel, width: 80, textAlign: 'right' }}>
-                  ${row.balance.toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </GlassCard>
+              ))}
+            </div>
+          </ChartFrame>
         </div>
       )}
     </div>

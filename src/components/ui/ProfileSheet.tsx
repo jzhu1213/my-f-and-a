@@ -167,6 +167,7 @@ export function ProfileSheet({
                         onChange={(e) => setDisplayName(e.target.value)}
                         placeholder="Enter your name"
                         autoFocus
+                        className="focus-ring"
                         style={{
                           width: '100%',
                           fontSize: 15,

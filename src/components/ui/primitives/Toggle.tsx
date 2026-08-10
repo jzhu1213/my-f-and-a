@@ -125,6 +125,7 @@ export function Toggle({
       tabIndex={disabled ? -1 : 0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      className="focus-ring"
       whileTap={disabled ? undefined : { scale: 0.96 }}
       transition={springs.snappy}
       style={{
@@ -136,7 +137,7 @@ export function Toggle({
         padding: `${config.hitPadding}px`,
         minWidth: "44px",
         minHeight: "44px",
-        outline: "none",
+        borderRadius: radius.full,
         opacity: disabled ? 0.4 : 1,
         WebkitTapHighlightColor: "transparent",
       }}

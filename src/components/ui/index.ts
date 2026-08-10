@@ -179,3 +179,6 @@ export type { SettingsToggleProps } from './SettingsToggle'
 
 export { SettingsRow } from './SettingsRow'
 export type { SettingsRowProps } from './SettingsRow'
+
+export { DepthSurfaceTransition } from './DepthSurfaceTransition'
+export type { DepthSurfaceTransitionProps } from './DepthSurfaceTransition'

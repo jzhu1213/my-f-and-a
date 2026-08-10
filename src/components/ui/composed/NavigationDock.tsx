@@ -104,6 +104,7 @@ export function NavigationDock({ active, onNavigate, hidden = false }: Navigatio
             onClick={() => onNavigate(item.id)}
             aria-current={isActive ? "page" : undefined}
             aria-label={item.label}
+            className="focus-ring"
             style={{
               position: "relative",
               display: "flex",
@@ -119,7 +120,7 @@ export function NavigationDock({ active, onNavigate, hidden = false }: Navigatio
               cursor: "pointer",
               color: isActive ? colorRamp.accent[500] : textColors.muted,
               WebkitTapHighlightColor: "transparent",
-              outline: "none",
+              borderRadius: radius.control,
               transition: "color 0.15s ease-out",
             }}
           >

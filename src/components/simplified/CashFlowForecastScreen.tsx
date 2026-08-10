@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { ChartFrame } from "@/components/ui/primitives/ChartFrame"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -276,19 +277,25 @@ export function CashFlowForecastScreen({
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...springs.gentle, delay: 0.1 }}
       >
-        <GlassCard elevation="low" style={{ padding: "20px 16px", marginBottom: 16 }}>
-          <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
-            <span style={chartLabel}>Today</span>
-            <span style={chartLabel}>{forecast.summary.endDateLabel}</span>
-          </div>
+        <ChartFrame
+          type="line"
+          state={forecast.days.length >= 2 ? "loaded" : "error"}
+          height={CHART_HEIGHT + 60}
+          errorMessage="Not enough data to chart"
+          aria-label={`Balance projection chart from $${Math.round(currentBalance)} today to $${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0)} on ${forecast.summary.endDateLabel}`}
+        >
+          <div style={{ padding: "20px 16px" }}>
+            <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+              <span style={chartLabel}>Today</span>
+              <span style={chartLabel}>{forecast.summary.endDateLabel}</span>
+            </div>
 
-          {forecast.days.length >= 2 ? (
             <svg
               viewBox={`0 0 100 ${CHART_HEIGHT}`}
               preserveAspectRatio="none"
               style={{ width: "100%", height: CHART_HEIGHT, display: "block" }}
-              aria-label={`Balance projection chart from $${Math.round(currentBalance)} today to $${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0)} on ${forecast.summary.endDateLabel}`}
               role="img"
+              aria-label={`Balance projection from $${Math.round(currentBalance)} to $${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0)}`}
             >
               {/* Gradient fill */}
               <defs>
@@ -318,32 +325,28 @@ export function CashFlowForecastScreen({
                 <ZeroLine days={forecast.days} chartHeight={CHART_HEIGHT} />
               )}
             </svg>
-          ) : (
-            <div style={{ height: CHART_HEIGHT, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <p style={{ fontSize: 13, color: "var(--sub)" }}>Not enough data to chart</p>
-            </div>
-          )}
 
-          {/* Start/end balance labels */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-            <span style={{ ...chartValueLabel, fontWeight: 600, color: "var(--text)" }}>
-              ${Math.round(currentBalance).toLocaleString("en-US")}
-            </span>
-            <span
-              style={{
-                ...chartValueLabel,
-                fontWeight: 600,
-                color: forecast.days.length > 0
-                  ? forecast.days[forecast.days.length - 1].projectedBalance < 0
-                    ? "var(--error)"
-                    : "var(--text)"
-                  : "var(--text)",
-              }}
-            >
-              ${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0).toLocaleString("en-US")}
-            </span>
+            {/* Start/end balance labels */}
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+              <span style={{ ...chartValueLabel, fontWeight: 600, color: "var(--text)" }}>
+                ${Math.round(currentBalance).toLocaleString("en-US")}
+              </span>
+              <span
+                style={{
+                  ...chartValueLabel,
+                  fontWeight: 600,
+                  color: forecast.days.length > 0
+                    ? forecast.days[forecast.days.length - 1].projectedBalance < 0
+                      ? "var(--error)"
+                      : "var(--text)"
+                    : "var(--text)",
+                }}
+              >
+                ${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0).toLocaleString("en-US")}
+              </span>
+            </div>
           </div>
-        </GlassCard>
+        </ChartFrame>
       </motion.div>
 
       {/* ── Key Events Timeline ────────────────────────────────────── */}

@@ -126,7 +126,6 @@ export const Chip: React.FC<ChipProps> = ({
     whiteSpace: 'nowrap',
     userSelect: 'none',
     WebkitTapHighlightColor: 'transparent',
-    outline: 'none',
     position: 'relative',
     ...getVariantStyles(variant, selected, isDisabled),
   }
@@ -140,6 +139,7 @@ export const Chip: React.FC<ChipProps> = ({
       aria-disabled={isDisabled}
       aria-pressed={selected}
       role="option"
+      className="focus-ring"
       style={baseStyles}
       whileTap={isDisabled ? undefined : { scale: 0.98 }}
       transition={{

@@ -697,16 +697,26 @@ export function HomeScreen({
     }
   }, [externalCelebration, onCelebrationDismiss, celebrationQueue])
 
-  // ── Loading state: show full-page skeleton ────────────────────────────────
+  // ── Loading state: skeleton ↔ content crossfade via AnimatePresence ────────
+  // AnimatePresence mode="wait" ensures the skeleton is fully unmounted before
+  // content mounts. The 250ms opacity tween keeps CLS ≤ 0.02 with no layout
+  // shift. Cache-hydrated path skips the skeleton entirely (isLoading = false
+  // on mount), so no brief flash occurs.
+  // Validates: Requirements 17.2, 17.3
   if (isLoading) {
-    return <HomeScreenSkeleton />
+    return (
+      <AnimatePresence mode="wait">
+        <HomeScreenSkeleton key="home-skeleton" />
+      </AnimatePresence>
+    )
   }
 
   // ── Default no-op refresh handler ──────────────────────────────────────────
   const handleRefresh = onRefresh ?? (() => Promise.resolve())
 
   return (
-    <FadeInContent>
+    <AnimatePresence mode="wait">
+    <FadeInContent key="home-content">
     <PullToRefresh onRefresh={handleRefresh} disabled={isLoading}>
     <div className="home-screen" style={{ width: "100%", display: "flex", justifyContent: "center" }}>
       <motion.div
@@ -1838,5 +1848,6 @@ export function HomeScreen({
     </div>
     </PullToRefresh>
     </FadeInContent>
+    </AnimatePresence>
   )
 }

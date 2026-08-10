@@ -29,6 +29,7 @@ import { typography, FONT_FAMILY } from "@/styles/typography"
 import { spacingScale } from "@/styles/layout"
 import { radius, elevations } from "@/styles/surfaces"
 import { textColors, colorRamp } from "@/styles/colors"
+import { chartEntranceMotion } from "@/styles/chartTokens"
 import { Skeleton } from "./Skeleton"
 
 // ============================================================================
@@ -168,7 +169,7 @@ export function ChartFrame({
             initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={prefersReducedMotion ? { duration: 0 } : timings.normal}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: chartEntranceMotion.duration, ease: chartEntranceMotion.ease }}
             style={{ minHeight: height }}
           >
             {children}

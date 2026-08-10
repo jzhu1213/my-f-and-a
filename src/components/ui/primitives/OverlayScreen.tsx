@@ -15,10 +15,15 @@
  * - Canvas tier fill (--color-canvas) for full-screen background
  * - Z-index: overlay layer (--z-overlay)
  *
- * Requirements: 16.1, 16.2, 16.4
+ * Accessibility (Req 18.3, 18.4):
+ * - Focus trap: Tab/Shift+Tab cycles within overlay when open
+ * - Escape key dismissal
+ * - Focus restoration: returns focus to previously focused element on close
+ *
+ * Requirements: 16.1, 16.2, 16.4, 18.3, 18.4
  */
 
-import { type ReactNode, forwardRef, useEffect } from "react"
+import { type ReactNode, forwardRef, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { elevations } from "@/styles/surfaces"
 import { zIndex } from "@/styles/tokens"
@@ -61,6 +66,18 @@ export const OverlayScreen = forwardRef<HTMLDivElement, OverlayScreenProps>(
     ref
   ) {
     const tier = elevations.canvas
+    const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+    const overlayRef = useRef<HTMLDivElement | null>(null)
+
+    // Store the previously focused element when opening, restore on close
+    useEffect(() => {
+      if (open) {
+        previouslyFocusedRef.current = document.activeElement as HTMLElement | null
+      } else if (previouslyFocusedRef.current) {
+        previouslyFocusedRef.current.focus()
+        previouslyFocusedRef.current = null
+      }
+    }, [open])
 
     // Escape key handler
     useEffect(() => {
@@ -76,6 +93,63 @@ export const OverlayScreen = forwardRef<HTMLDivElement, OverlayScreenProps>(
       document.addEventListener("keydown", handleKeyDown)
       return () => document.removeEventListener("keydown", handleKeyDown)
     }, [open, onClose])
+
+    // Focus trap: cycle focus within overlay when Tab/Shift+Tab
+    useEffect(() => {
+      if (!open) return
+
+      const handleTabKey = (e: KeyboardEvent) => {
+        if (e.key !== "Tab") return
+
+        const overlay = overlayRef.current
+        if (!overlay) return
+
+        const focusableSelector =
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        const focusableElements = Array.from(
+          overlay.querySelectorAll<HTMLElement>(focusableSelector)
+        )
+
+        if (focusableElements.length === 0) return
+
+        const firstFocusable = focusableElements[0]
+        const lastFocusable = focusableElements[focusableElements.length - 1]
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstFocusable) {
+            e.preventDefault()
+            lastFocusable.focus()
+          }
+        } else {
+          if (document.activeElement === lastFocusable) {
+            e.preventDefault()
+            firstFocusable.focus()
+          }
+        }
+      }
+
+      document.addEventListener("keydown", handleTabKey)
+      return () => document.removeEventListener("keydown", handleTabKey)
+    }, [open])
+
+    // Focus first focusable element on present
+    useEffect(() => {
+      if (!open) return
+
+      const timer = setTimeout(() => {
+        const overlay = overlayRef.current
+        if (overlay) {
+          const focusable = overlay.querySelector<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+          if (focusable) {
+            focusable.focus()
+          }
+        }
+      }, 100)
+
+      return () => clearTimeout(timer)
+    }, [open])
 
     const overlayStyle: React.CSSProperties = {
       position: "fixed",
@@ -98,7 +172,11 @@ export const OverlayScreen = forwardRef<HTMLDivElement, OverlayScreenProps>(
       <AnimatePresence>
         {open && (
           <motion.div
-            ref={ref}
+            ref={(node) => {
+              overlayRef.current = node
+              if (typeof ref === "function") ref(node)
+              else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+            }}
             key="overlay-screen"
             style={overlayStyle}
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 12 }}

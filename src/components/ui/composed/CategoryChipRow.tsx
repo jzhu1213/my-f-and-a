@@ -170,7 +170,6 @@ function CategoryChipButton({ item, isSelected, onSelect }: CategoryChipButtonPr
     whiteSpace: "nowrap",
     userSelect: "none",
     WebkitTapHighlightColor: "transparent",
-    outline: "none",
     cursor: "pointer",
     position: "relative",
     border: "none",
@@ -187,6 +186,7 @@ function CategoryChipButton({ item, isSelected, onSelect }: CategoryChipButtonPr
       aria-pressed={isSelected}
       role="option"
       aria-selected={isSelected}
+      className="focus-ring"
       style={chipStyle}
       whileTap={{ scale: 0.96 }}
       transition={{
@@ -246,7 +246,6 @@ function SuggestionChip({ suggestion, accent, onSelect }: SuggestionChipProps) {
     whiteSpace: "nowrap",
     userSelect: "none",
     WebkitTapHighlightColor: "transparent",
-    outline: "none",
     cursor: "pointer",
     border: "none",
     background: `color-mix(in srgb, ${accent} 10%, transparent)`,
@@ -262,6 +261,7 @@ function SuggestionChip({ suggestion, accent, onSelect }: SuggestionChipProps) {
       type="button"
       onClick={() => onSelect(suggestion)}
       aria-label={`${suggestion.amount} dollars${suggestion.label ? `, ${suggestion.label}` : ""}`}
+      className="focus-ring"
       style={chipStyle}
       whileTap={{ scale: 0.95 }}
       transition={{

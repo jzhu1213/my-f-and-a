@@ -7,6 +7,7 @@ import {
   getPendingTransactionIds,
   getRecentlySyncedIds,
   markRecentlySynced,
+  QUEUE_CHANGE_EVENT,
 } from '@/lib/offlineQueue'
 
 // ============================================================================
@@ -55,6 +56,15 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
   useEffect(() => {
     refresh()
   }, [refresh, userId])
+
+  // Listen for queue-change events so pending count updates within 500ms
+  // of any addToOfflineQueue / removeFromOfflineQueue call (Req 17.8)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handleQueueChange = () => refresh()
+    window.addEventListener(QUEUE_CHANGE_EVENT, handleQueueChange)
+    return () => window.removeEventListener(QUEUE_CHANGE_EVENT, handleQueueChange)
+  }, [refresh])
 
   // Expire recently-synced indicators after the display window
   useEffect(() => {

@@ -6,16 +6,20 @@
  * A page that allows participants to view a shared goal's progress and
  * per-person contributions. Participants can also record their own contributions.
  *
- * For MVP, reads from localStorage keyed by token. In production, this would
+ * All visual values sourced from the Design_Token_System — zero page-local
+ * overrides. Section heading + shared value + supporting labels render
+ * immediately in the shell (badge visible before data loads).
+ * Invalid/expired link renders explanatory state immediately (no partial content).
+ *
+ * For MVP, reads from localStorage keyed by token. In production this would
  * fetch from a Supabase endpoint so it works cross-device.
  *
- * Task 169.1 — Shared goals
- * Phase 6, Task 269.1 — Premium design system styling
+ * Requirements: 15.8, 15.9, 15.10
  */
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/primitives/Card"
 import { Icon } from "@/components/ui/Icon"
 import {
   getSharedGoalByToken,
@@ -39,12 +43,11 @@ import {
   sharedInput,
   sharedActionButton,
   colorRamp,
-  fills,
   typography,
   TABULAR_NUMS,
-  FONT_FAMILY,
-  spacing,
-  borderRadius,
+  spacingScale,
+  textColors,
+  elevations,
 } from "../../sharedPageStyles"
 
 // ============================================================================
@@ -114,16 +117,19 @@ export default function SharedGoalViewPage() {
     setTimeout(() => setContributed(false), 2500)
   }, [goalId, myParticipantId, contributeAmount])
 
-  // Loading state
+  // Loading state — badge renders immediately
   if (loading) {
     return (
       <div style={sharedPageContainer}>
+        <div style={headerBadgeRow}>
+          <span style={headerBadge}>SHARED GOAL</span>
+        </div>
         <p style={loadingText}>Loading…</p>
       </div>
     )
   }
 
-  // Not found
+  // Not found — rendered immediately, no partial content
   if (notFound) {
     return (
       <div style={sharedPageContainer}>
@@ -156,33 +162,33 @@ export default function SharedGoalViewPage() {
       </div>
 
       {/* Goal info — hero card */}
-      <GlassCard elevation="medium" style={{ padding: "20px", marginBottom: spacing.md }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: spacing.sm }}>
+      <Card elevation="raised" style={{ padding: spacingScale["20"], marginBottom: spacingScale["16"] }}>
+        <div style={{ display: "flex", alignItems: "center", gap: spacingScale["12"], marginBottom: spacingScale["12"] }}>
           <span style={{ color: colorRamp.accent[500] }}>
             <Icon name="shared:group" size={18} />
           </span>
-          <p style={{ ...typography.overline, color: "var(--muted)", marginBottom: 0 }}>
+          <p style={{ ...typography.overline, color: textColors.muted, marginBottom: 0 }}>
             Group progress
           </p>
         </div>
         <p
           style={{
             ...typography.title,
-            color: "var(--text)",
+            color: textColors.text,
             ...TABULAR_NUMS,
-            marginBottom: 4,
+            marginBottom: spacingScale["4"],
           }}
         >
           ${totalContributed.toLocaleString("en-US", { maximumFractionDigits: 0 })}
         </p>
-        <p style={{ ...typography.caption, color: "var(--sub)" }}>
+        <p style={{ ...typography.caption, color: textColors.sub }}>
           contributed so far
         </p>
-      </GlassCard>
+      </Card>
 
       {/* Participant breakdown */}
       {participants.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.md }}>
+        <Card elevation="resting" style={{ padding: `${spacingScale["20"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
           <p style={sectionLabel}>Contributors</p>
           {participants.map((p, idx) => (
             <div
@@ -191,12 +197,12 @@ export default function SharedGoalViewPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "8px 0",
+                padding: `${spacingScale["8"]} 0`,
                 borderBottom:
-                  idx < participants.length - 1 ? `1px solid ${fills[8]}` : "none",
+                  idx < participants.length - 1 ? elevations.resting.border : "none",
               }}
             >
-              <span style={{ ...typography.body, color: "var(--text)" }}>
+              <span style={{ ...typography.body, color: textColors.text }}>
                 {p.name}
                 {p.id === myParticipantId && (
                   <span style={{ ...typography.caption, color: colorRamp.accent[500], marginLeft: 6 }}>
@@ -208,7 +214,7 @@ export default function SharedGoalViewPage() {
                 style={{
                   ...typography.body,
                   fontWeight: 500,
-                  color: "var(--sub)",
+                  color: textColors.sub,
                   ...TABULAR_NUMS,
                 }}
               >
@@ -216,19 +222,19 @@ export default function SharedGoalViewPage() {
               </span>
             </div>
           ))}
-        </GlassCard>
+        </Card>
       )}
 
       {/* Join / Contribute */}
       {!myParticipantId ? (
-        <GlassCard elevation="low" style={{ padding: "20px", marginBottom: spacing.md }}>
-          <p style={{ ...typography.body, fontWeight: 500, color: "var(--text)", marginBottom: 6 }}>
+        <Card elevation="resting" style={{ padding: spacingScale["20"], marginBottom: spacingScale["16"] }}>
+          <p style={{ ...typography.body, fontWeight: 500, color: textColors.text, marginBottom: spacingScale["6"] }}>
             Join this goal
           </p>
-          <p style={{ ...typography.caption, color: "var(--sub)", lineHeight: 1.5, marginBottom: 14 }}>
+          <p style={{ ...typography.caption, color: textColors.sub, lineHeight: 1.5, marginBottom: spacingScale["16"] }}>
             Add your name to start tracking your contributions.
           </p>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: spacingScale["8"] }}>
             <input
               type="text"
               value={joinName}
@@ -248,18 +254,18 @@ export default function SharedGoalViewPage() {
               Join
             </button>
           </div>
-        </GlassCard>
+        </Card>
       ) : (
-        <GlassCard elevation="low" style={{ padding: "20px", marginBottom: spacing.md }}>
-          <p style={{ ...typography.body, fontWeight: 500, color: "var(--text)", marginBottom: 6 }}>
+        <Card elevation="resting" style={{ padding: spacingScale["20"], marginBottom: spacingScale["16"] }}>
+          <p style={{ ...typography.body, fontWeight: 500, color: textColors.text, marginBottom: spacingScale["6"] }}>
             Add your contribution
           </p>
           {myParticipant && (
-            <p style={{ ...typography.caption, color: "var(--sub)", marginBottom: 14 }}>
+            <p style={{ ...typography.caption, color: textColors.sub, marginBottom: spacingScale["16"] }}>
               You&apos;ve contributed ${myParticipant.contributedAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })} so far. Nice work!
             </p>
           )}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: spacingScale["8"] }}>
             <div style={{ position: "relative", flex: 1 }}>
               <span
                 style={{
@@ -268,7 +274,7 @@ export default function SharedGoalViewPage() {
                   top: "50%",
                   transform: "translateY(-50%)",
                   ...typography.body,
-                  color: "var(--muted)",
+                  color: textColors.muted,
                 }}
               >
                 $
@@ -300,7 +306,7 @@ export default function SharedGoalViewPage() {
               {contributed ? "Added ✓" : "Add"}
             </button>
           </div>
-        </GlassCard>
+        </Card>
       )}
 
       {/* Footer */}

@@ -6,16 +6,20 @@
  * A read-only page that shows a guardian/family supporter how their
  * recurring support helps the student. Warm, encouraging, and minimal.
  *
- * For MVP, reads from localStorage keyed by token. In production, this
+ * All visual values sourced from the Design_Token_System — zero page-local
+ * overrides. Section heading + shared value + supporting labels render
+ * immediately in the shell (badge visible before data loads).
+ * Invalid/expired link renders explanatory state immediately (no partial content).
+ *
+ * For MVP, reads from localStorage keyed by token. In production this
  * would fetch from a Supabase endpoint so it works cross-device.
  *
- * Task 171.1 — Track inbound support as a named income stream
- * Phase 6, Task 269.1 — Premium design system styling
+ * Requirements: 15.8, 15.9, 15.10
  */
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { GlassCard } from "@/components/ui/GlassCard"
+import { Card } from "@/components/ui/primitives/Card"
 import { Icon } from "@/components/ui/Icon"
 import {
   getSupporterSummary,
@@ -37,11 +41,12 @@ import {
   footerText,
   footerAttribution,
   colorRamp,
-  fills,
   typography,
   TABULAR_NUMS,
-  FONT_FAMILY,
-  spacing,
+  spacingScale,
+  textColors,
+  radius,
+  elevations,
 } from "../../sharedPageStyles"
 
 // ============================================================================
@@ -74,16 +79,19 @@ export default function SharedSupportViewPage() {
     setSummary(data)
   }, [token])
 
-  // Loading state
+  // Loading state — badge renders immediately
   if (summary === undefined) {
     return (
       <div style={sharedPageContainer}>
+        <div style={headerBadgeRow}>
+          <span style={headerBadge}>FAMILY SUPPORT</span>
+        </div>
         <p style={loadingText}>Loading…</p>
       </div>
     )
   }
 
-  // Invalid or revoked link
+  // Invalid or revoked link — rendered immediately, no partial content
   if (summary === null) {
     return (
       <div style={sharedPageContainer}>
@@ -113,37 +121,37 @@ export default function SharedSupportViewPage() {
       </div>
 
       {/* Warm hero */}
-      <GlassCard elevation="high" style={{ padding: "24px 20px", marginBottom: spacing.md }}>
-        <div style={{ textAlign: "center", marginBottom: spacing.md }}>
+      <Card elevation="raised" style={{ padding: `${spacingScale["24"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+        <div style={{ textAlign: "center", marginBottom: spacingScale["16"] }}>
           <div
             style={{
               width: 56,
               height: 56,
-              borderRadius: "50%",
+              borderRadius: radius.full,
               background: colorRamp.accent[100],
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 12px",
+              margin: `0 auto ${spacingScale["12"]}`,
               color: colorRamp.accent[500],
             }}
           >
             <Icon name="shared:support" size={28} />
           </div>
-          <h1 style={{ ...typography.headline, color: "var(--text)", marginBottom: 8 }}>
+          <h1 style={{ ...typography.headline, color: textColors.text, marginBottom: spacingScale["8"] }}>
             Your support helps {summary.recipientName} stay on track
           </h1>
-          <p style={{ ...typography.body, color: "var(--sub)" }}>
+          <p style={{ ...typography.body, color: textColors.sub }}>
             Thank you, {summary.supporterName}. Here&apos;s how your contribution makes a difference.
           </p>
         </div>
-      </GlassCard>
+      </Card>
 
       {/* Contribution details */}
-      <GlassCard elevation="low" style={{ padding: "20px", marginBottom: spacing.md }}>
+      <Card elevation="resting" style={{ padding: spacingScale["20"], marginBottom: spacingScale["16"] }}>
         <p style={sectionLabel}>Contribution details</p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["12"] }}>
           <div style={detailRow}>
             <span style={detailLabel}>Amount</span>
             <span style={detailValue}>
@@ -177,11 +185,11 @@ export default function SharedSupportViewPage() {
             </span>
           </div>
         </div>
-      </GlassCard>
+      </Card>
 
       {/* Monthly history */}
       {summary.monthlyHistory.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "20px", marginBottom: spacing.md }}>
+        <Card elevation="resting" style={{ padding: spacingScale["20"], marginBottom: spacingScale["16"] }}>
           <p style={sectionLabel}>Recent months</p>
           {summary.monthlyHistory.map((entry, idx) => {
             const date = new Date(entry.month + "-01T00:00:00Z")
@@ -197,21 +205,21 @@ export default function SharedSupportViewPage() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "8px 0",
+                  padding: `${spacingScale["8"]} 0`,
                   borderBottom:
                     idx < summary.monthlyHistory.length - 1
-                      ? `1px solid ${fills[8]}`
+                      ? elevations.resting.border
                       : "none",
                 }}
               >
-                <span style={{ ...typography.body, color: "var(--text)" }}>
+                <span style={{ ...typography.body, color: textColors.text }}>
                   {monthLabel}
                 </span>
                 <span
                   style={{
                     ...typography.body,
                     fontWeight: 500,
-                    color: "var(--sub)",
+                    color: textColors.sub,
                     ...TABULAR_NUMS,
                   }}
                 >
@@ -227,31 +235,30 @@ export default function SharedSupportViewPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              padding: "12px 0 0",
-              marginTop: 8,
-              borderTop: `1px solid ${fills[8]}`,
+              padding: `${spacingScale["12"]} 0 0`,
+              marginTop: spacingScale["8"],
+              borderTop: elevations.resting.border,
             }}
           >
-            <span style={{ ...typography.body, fontWeight: 600, color: "var(--text)" }}>
+            <span style={{ ...typography.body, fontWeight: 600, color: textColors.text }}>
               Total contributed
             </span>
             <span
               style={{
-                ...typography.headline,
-                fontSize: typography.body.fontSize,
+                ...typography.body,
                 fontWeight: 700,
-                color: "var(--text)",
+                color: textColors.text,
                 ...TABULAR_NUMS,
               }}
             >
               ${summary.totalContributed.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </span>
           </div>
-        </GlassCard>
+        </Card>
       )}
 
       {/* Warm footer */}
-      <p style={{ ...footerText, ...typography.body, fontSize: typography.caption.fontSize }}>
+      <p style={{ ...footerText, ...typography.caption }}>
         {summary.recipientName} is building healthy money habits. Your support makes that possible. 💜
       </p>
       <p style={footerAttribution}>

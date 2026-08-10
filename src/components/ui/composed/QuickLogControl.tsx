@@ -86,7 +86,6 @@ export function QuickLogControl({
     border: "none",
     cursor: "pointer",
     padding: 0,
-    outline: "none",
     WebkitTapHighlightColor: "transparent",
     color: "#000",
     zIndex: 1,
@@ -107,6 +106,7 @@ export function QuickLogControl({
       type="button"
       onClick={onPress}
       aria-label={ariaLabel}
+      className="focus-ring"
       style={buttonStyle}
       whileTap={{ scale: 0.92 }}
       transition={PRESS_SPRING}

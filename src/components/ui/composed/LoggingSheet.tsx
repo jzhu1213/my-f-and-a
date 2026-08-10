@@ -285,6 +285,7 @@ export function LoggingSheet({
                   onClick={() => handleRepeatTap(chip)}
                   disabled={isSubmitting}
                   aria-label={`Quick log: ${chip.label}`}
+                  className="focus-ring"
                   style={repeatChipStyle}
                   whileTap={isSubmitting ? undefined : { scale: 0.96 }}
                   transition={{
@@ -335,6 +336,7 @@ export function LoggingSheet({
               aria-label="Expense amount"
               aria-invalid={!!error}
               aria-describedby={error ? "logging-sheet-error" : undefined}
+              className="focus-ring"
               style={numericInputStyle}
             />
           </div>
@@ -424,7 +426,6 @@ const repeatChipStyle: React.CSSProperties = {
   cursor: "pointer",
   fontFamily: FONT_FAMILY,
   WebkitTapHighlightColor: "transparent",
-  outline: "none",
 }
 
 const repeatChipLabelStyle: React.CSSProperties = {

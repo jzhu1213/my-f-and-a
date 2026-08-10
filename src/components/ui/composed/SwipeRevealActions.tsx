@@ -75,6 +75,7 @@ export function SwipeRevealActions({
         }}
         aria-label="Edit transaction"
         tabIndex={revealed ? 0 : -1}
+        className="focus-ring"
         style={{
           ...buttonBase,
           background: colorRamp.accent[200],
@@ -93,6 +94,7 @@ export function SwipeRevealActions({
         }}
         aria-label="Delete transaction"
         tabIndex={revealed ? 0 : -1}
+        className="focus-ring"
         style={{
           ...buttonBase,
           background: colorRamp.error[200],

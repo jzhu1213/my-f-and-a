@@ -99,7 +99,6 @@ export const IconButton: React.FC<IconButtonProps> = ({
     padding: 0,
     userSelect: 'none',
     WebkitTapHighlightColor: 'transparent',
-    outline: 'none',
     position: 'relative',
     ...sizeStyles[size],
     ...getVariantStyles(variant, disabled),
@@ -112,6 +111,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       onClick={disabled ? undefined : onClick}
       aria-label={ariaLabel}
       aria-disabled={disabled}
+      className="focus-ring"
       style={baseStyles}
       whileTap={disabled ? undefined : { scale: 0.98 }}
       transition={{

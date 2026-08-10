@@ -147,6 +147,16 @@ export const chartMotion = {
   dotEnter: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
 } as const
 
+/**
+ * Shared chart entrance motion config — identical ≤400ms duration across all chart views.
+ * Used as the framer-motion transition for chart content becoming visible inside ChartFrame.
+ * Validates: Requirement 15.5
+ */
+export const chartEntranceMotion = {
+  duration: 0.4,
+  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+} as const
+
 // ============================================================================
 // SVG gradient helpers
 // ============================================================================

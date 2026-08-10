@@ -13,7 +13,13 @@
  * - Corner radius: --radius-sheet (28px) on top corners
  * - Backdrop: semi-transparent overlay with blur
  *
- * Requirements: 16.1, 16.2, 16.4, 4.2
+ * Accessibility (Req 18.3, 18.4):
+ * - Focus trap: Tab/Shift+Tab cycles within sheet when open
+ * - Escape key dismissal
+ * - Focus restoration: returns focus to previously focused element on close
+ * - Visible focus indicators via focus-ring class
+ *
+ * Requirements: 16.1, 16.2, 16.4, 4.2, 18.3, 18.4
  */
 
 import {
@@ -86,7 +92,19 @@ export const Sheet = forwardRef<HTMLDivElement, SheetProps>(function Sheet(
   ref
 ) {
   const tier = elevations.overlay
-  const firstFocusableRef = useRef<HTMLElement | null>(null)
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+  const sheetContentRef = useRef<HTMLDivElement | null>(null)
+
+  // Store the previously focused element when opening, restore on close
+  useEffect(() => {
+    if (open) {
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null
+    } else if (previouslyFocusedRef.current) {
+      // Restore focus on close
+      previouslyFocusedRef.current.focus()
+      previouslyFocusedRef.current = null
+    }
+  }, [open])
 
   // Escape key handler
   useEffect(() => {
@@ -103,19 +121,58 @@ export const Sheet = forwardRef<HTMLDivElement, SheetProps>(function Sheet(
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [open, onClose])
 
+  // Focus trap: cycle focus within sheet when Tab/Shift+Tab
+  useEffect(() => {
+    if (!open) return
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return
+
+      const sheet = sheetContentRef.current
+      if (!sheet) return
+
+      const focusableSelector =
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      const focusableElements = Array.from(
+        sheet.querySelectorAll<HTMLElement>(focusableSelector)
+      )
+
+      if (focusableElements.length === 0) return
+
+      const firstFocusable = focusableElements[0]
+      const lastFocusable = focusableElements[focusableElements.length - 1]
+
+      if (e.shiftKey) {
+        // Shift+Tab: if at first element, wrap to last
+        if (document.activeElement === firstFocusable) {
+          e.preventDefault()
+          lastFocusable.focus()
+        }
+      } else {
+        // Tab: if at last element, wrap to first
+        if (document.activeElement === lastFocusable) {
+          e.preventDefault()
+          firstFocusable.focus()
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleTabKey)
+    return () => document.removeEventListener("keydown", handleTabKey)
+  }, [open])
+
   // Focus first focusable element on present
   useEffect(() => {
     if (!open) return
 
     const timer = setTimeout(() => {
-      const sheet = document.querySelector('[data-sheet-content]')
+      const sheet = sheetContentRef.current
       if (sheet) {
         const focusable = sheet.querySelector<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
         )
         if (focusable) {
           focusable.focus()
-          firstFocusableRef.current = focusable
         }
       }
     }, 100)
@@ -177,7 +234,11 @@ export const Sheet = forwardRef<HTMLDivElement, SheetProps>(function Sheet(
 
           {/* Sheet panel */}
           <motion.div
-            ref={ref}
+            ref={(node) => {
+              sheetContentRef.current = node
+              if (typeof ref === "function") ref(node)
+              else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+            }}
             key="sheet-panel"
             style={sheetStyle}
             variants={variants}

@@ -65,7 +65,6 @@ const baseStyles: React.CSSProperties = {
   minWidth: "44px",
   cursor: "pointer",
   userSelect: "none",
-  outline: "none",
   borderRadius: radius.control,
   ...typography.body,
 }
@@ -248,6 +247,7 @@ export function Select({
         tabIndex={disabled ? -1 : 0}
         onClick={toggleOpen}
         onKeyDown={handleKeyDown}
+        className="focus-ring"
         whileTap={disabled ? undefined : { scale: 0.98 }}
         transition={springs.snappy}
         style={{

@@ -131,6 +131,7 @@ export function addToOfflineQueue(
   const queue = getOfflineQueue()
   queue.push(item)
   persistQueue(queue)
+  dispatchQueueChange()
   return item
 }
 
@@ -138,6 +139,7 @@ export function addToOfflineQueue(
 export function removeFromOfflineQueue(id: string): void {
   const queue = getOfflineQueue().filter((item) => item.id !== id)
   persistQueue(queue)
+  dispatchQueueChange()
 }
 
 /** Updates an existing queue item (e.g. retryCount, status) */
@@ -350,4 +352,18 @@ export function getRecentlySyncedIds(): Set<string> {
 function persistQueue(queue: PendingTransaction[]): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(STORAGE_KEY, JSON.stringify(queue))
+}
+
+// ============================================================================
+// Queue change event — notifies listeners (e.g. useOfflineSync) of mutations
+// Requirements: 17.8 (pending count updates within 500ms of each queue op)
+// ============================================================================
+
+/** Custom event name dispatched whenever the offline queue changes */
+export const QUEUE_CHANGE_EVENT = 'folio-queue-change'
+
+/** Dispatch a queue-change event so hooks can reactively update pending count */
+export function dispatchQueueChange(): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent(QUEUE_CHANGE_EVENT))
 }

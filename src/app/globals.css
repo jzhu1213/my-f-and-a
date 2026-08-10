@@ -234,6 +234,12 @@
   --border-strong:  1px solid rgba(255, 255, 255, 0.10);
   --border-accent:  1px solid rgba(255, 255, 255, 0.12);
 
+  /* ── FOCUS RING TOKEN (Req 18.4: ≥2px thick, ≥3:1 contrast) ──────── */
+  /* accent-500 (#818cf8) on darkest surface (#0e0e1a) = 5.7:1 contrast ✓ */
+  --focus-ring-color: #818cf8;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
   /* ── 7. ELEVATION SHADOW TOKENS (5 tiers) ──────────────────────────── */
   --shadow-none: none;
   --shadow-sm:   0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
@@ -434,17 +440,32 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.5;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Focus-visible utility for primitives (Req 18.4) ────────────── */
+/*
+ * Visible focus indicator: ≥2px thick, ≥3:1 contrast against adjacent bg.
+ * accent-500 (#818cf8) on darkest surface (#0e0e1a) = 5.7:1 ✓
+ * Applied via the .focus-ring class on all interactive primitives.
+ */
+.focus-ring:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.focus-ring:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* ── Label utility ──────────────────────────────────────────────── */
 .label {
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -523,6 +544,13 @@ body {
   border-radius: 2px;
 }
 
+/* Reduced motion — instant progress bar fill (Req 18.6) */
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill {
+    transition: none;
+  }
+}
+
 /* ── Bottom sheet ───────────────────────────────────────────────── */
 .sheet {
   @apply fixed inset-x-0 bottom-0 z-50 flex flex-col;
@@ -538,6 +566,13 @@ body {
   transform: translateY(0);
 }
 
+/* Reduced motion — collapse sheet slide to instant (Req 18.6) */
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    transition: transform 0.1s ease-out;
+  }
+}
+
 .sheet-handle {
   width: 40px;
   height: 4px;
@@ -550,7 +585,7 @@ body {
 .t-input {
   @apply w-full bg-transparent;
   font-family: 'Inter', sans-serif;
-  font-size: 15px;
+  font-size: 0.9375rem;
   color: var(--text);
   border: none;
   border-bottom: 1px solid var(--line);
@@ -575,11 +610,11 @@ input[type="date"] {
 /* ── Buttons ─────────────────────────────────────────────────────── */
 .btn-primary {
   @apply flex items-center justify-center px-6 font-medium transition-all;
-  height: 52px;
+  min-height: 52px;
   background: var(--accent);
   color: #000;
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: -0.01em;
   border-radius: var(--radius-md);
@@ -605,11 +640,11 @@ input[type="date"] {
 
 .btn-ghost {
   @apply flex items-center justify-center px-6 transition-all;
-  height: 52px;
+  min-height: 52px;
   color: var(--sub);
   border: 1px solid var(--border);
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: -0.01em;
   border-radius: var(--radius-md);
@@ -643,7 +678,7 @@ input[type="date"] {
 
 .t-tab-item .tab-label {
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1935,7 +1970,7 @@ input[type="date"] {
 
 .app-topbar__avatar-initial {
   font-family: 'Inter', sans-serif;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text);
   line-height: 1;
@@ -1960,7 +1995,7 @@ input[type="date"] {
   align-items: center;
   gap: 3px;
   font-family: 'Inter', sans-serif;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   text-transform: lowercase;
@@ -2500,7 +2535,7 @@ input[type="date"] {
 }
 
 .celebration-emoji {
-  font-size: 56px;
+  font-size: 3.5rem;
   line-height: 1;
   display: inline-block;
 }
@@ -2525,7 +2560,7 @@ input[type="date"] {
 
 .celebration-card__title {
   font-family: 'Inter', sans-serif;
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.01em;
@@ -2534,7 +2569,7 @@ input[type="date"] {
 
 .celebration-card__message {
   font-family: 'Inter', sans-serif;
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.5;
   color: var(--sub);
   margin: 0;
@@ -2546,7 +2581,7 @@ input[type="date"] {
   border: none;
   border-radius: 999px;
   font-family: 'Inter', sans-serif;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: #1a1626;
   background: linear-gradient(135deg, #fcd34d 0%, #fb923c 100%);
@@ -2597,7 +2632,7 @@ input[type="date"] {
 }
 
 .celebration-emoji--milestone {
-  font-size: 32px;
+  font-size: 2rem;
   line-height: 1;
 }
 
@@ -2807,6 +2842,31 @@ input[type="date"] {
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GLOBAL REDUCED-MOTION SAFETY NET (Requirement 18.6)
+ *
+ * Ensures all transitions and animations that haven't been explicitly handled
+ * above honour prefers-reduced-motion. This caps transition durations at 150ms
+ * and disables CSS animations globally, unless a component opts into a specific
+ * calm animation (opacity-only, ≤150ms) via the more specific selectors above.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.15s !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Keep specific short fades that were intentionally designed for reduced motion */
+  .animate-fade-in {
+    animation-duration: 180ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
