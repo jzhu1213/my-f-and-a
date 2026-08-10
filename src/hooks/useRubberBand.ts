@@ -84,6 +84,11 @@ export function useRubberBand(
       const el = containerRef.current
       if (!el) return
 
+      // Only apply rubber-band if the element is independently scrollable
+      // (has its own scrollable content). If scrollHeight <= clientHeight,
+      // the element doesn't scroll and we should not intercept touch events.
+      if (el.scrollHeight <= el.clientHeight) return
+
       const touchY = e.touches[0].clientY
       const deltaY = touchY - touchStartY.current
 

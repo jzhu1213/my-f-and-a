@@ -1,5 +1,7 @@
 # Folio
 
+https://folio-beige-zeta.vercel.app/
+
 A pocket money app for college students and young adults. Folio answers one question: **"Can I afford this today?"**
 
 It calculates a daily allowance from your income, bills, and saving goals — then makes logging spending as fast as a single tap.
@@ -12,30 +14,6 @@ It calculates a daily allowance from your income, bills, and saving goals — th
 - **Tools** — goals, sinking funds, debt tracker, subscription audit, calculators
 - **Offline-first** — log and browse without connectivity; syncs when back online
 - **Shareable pages** — public read-only links for goals, pools, and support pages
-
-## Quick Start
-
-```bash
-npm install
-npm run dev
-```
-
-Create `.env.local` (see `.env.example`):
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
-```
-
-## Scripts
-
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Local dev server |
-| `npm run build` | Production build |
-| `npm run typecheck` | Type-check without emitting |
-| `npm run validate` | Typecheck + build (pre-commit runs this) |
-| `npm test` | Run tests (Vitest) |
 
 ## Tech Stack
 

@@ -4,7 +4,7 @@ import type { Transaction, TransactionCategory } from "@/types"
 import type { DailyAllowance } from "@/types/folio"
 import type { FundingSource } from "@/lib/fundingSources"
 import { motion } from "framer-motion"
-import { springs, useReducedMotion } from "@/lib/animations"
+import { useReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY, spacing } from "@/styles/typography"
 import { HistoryView } from "@/components/accounting/HistoryView"
 import { InsightTrendCard } from "./InsightTrendCard"
@@ -133,31 +133,6 @@ export function HistoryScreen({
         onBulkTag={onBulkTag}
       />
       </motion.div>
-
-      {/* Floating Action Button — log new expense */}
-      <motion.button
-        type="button"
-        className="history-screen__fab"
-        onClick={onLogExpense}
-        whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
-        transition={springs.snappy}
-        aria-label="Log new expense"
-      >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2.2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12 5v14" />
-          <path d="M5 12h14" />
-        </svg>
-      </motion.button>
     </motion.div>
   )
 }
