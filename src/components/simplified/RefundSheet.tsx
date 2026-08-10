@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Sheet } from '@/components/ui/primitives/Sheet'
 import { useToast } from '@/contexts/ToastContext'
 import type { Transaction } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
@@ -73,7 +73,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
   })()
 
   return (
-    <BottomSheet isOpen={isOpen && !!transaction} onClose={onClose} ariaLabel="Log a refund">
+    <Sheet open={isOpen && !!transaction} onClose={onClose} size="half" aria-label="Log a refund">
       {transaction && (
         <div style={{ padding: '0 24px 32px' }}>
           {/* ── Header ────────────────────────────────────── */}
@@ -221,6 +221,6 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
           </button>
         </div>
       )}
-    </BottomSheet>
+    </Sheet>
   )
 }

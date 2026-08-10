@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
-import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Sheet } from '@/components/ui/primitives/Sheet'
 import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { Transaction, TransactionCategory } from '@/types'
@@ -168,7 +168,7 @@ export function EditTransactionSheet({
   })()
 
   return (
-    <BottomSheet isOpen={isOpen && !!transaction} onClose={onClose} ariaLabel="Edit transaction" preventClose={isSaving}>
+    <Sheet open={isOpen && !!transaction} onClose={onClose} size="half" aria-label="Edit transaction">
       {transaction && (
         <div style={{ padding: `0 ${spacing.lg}px ${spacing.xl}px` }}>
               {/* ── Header ────────────────────────────────────── */}
@@ -434,6 +434,6 @@ export function EditTransactionSheet({
               )}
             </div>
       )}
-    </BottomSheet>
+    </Sheet>
   )
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
-import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Sheet } from '@/components/ui/primitives/Sheet'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
 import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePerFriendOwedCustom } from '@/lib/splitUtils'
 import { autoCategorizeWithRules } from '@/lib/autoCategorize'
@@ -544,7 +544,7 @@ export function ExpenseSheet({
     : { tap: { scale: 1.3 } }
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} minHeight="50vh" ariaLabel="Log expense" originFromFab={originFromFab}>
+    <Sheet open={isOpen} onClose={onClose} size="full" aria-label="Log expense">
       <div style={{ padding: '0 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
               {habitChips.length > 0 && (
                 <div
@@ -2402,6 +2402,6 @@ export function ExpenseSheet({
                 Log
               </motion.button>
             </div>
-    </BottomSheet>
+    </Sheet>
   )
 }

@@ -34,6 +34,8 @@ export interface ButtonProps {
   size?: ButtonSize
   disabled?: boolean
   loading?: boolean
+  /** When true, the button stretches to fill its container width. */
+  fullWidth?: boolean
   onClick?: () => void
   type?: 'button' | 'submit' | 'reset'
   'aria-label'?: string
@@ -135,6 +137,7 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   disabled = false,
   loading = false,
+  fullWidth = false,
   onClick,
   type = 'button',
   'aria-label': ariaLabel,
@@ -156,6 +159,7 @@ export const Button: React.FC<ButtonProps> = ({
     outline: 'none',
     position: 'relative',
     overflow: 'hidden',
+    ...(fullWidth ? { width: '100%' } : {}),
     ...sizeStyles[size],
     ...getVariantStyles(variant, isDisabled),
   }

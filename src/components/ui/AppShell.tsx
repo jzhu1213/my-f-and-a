@@ -9,7 +9,7 @@
  *   - a fixed {@link GradientMesh} background (drives the ambient mesh)
  *   - a minimal floating glass **top bar** (user avatar left, settings right)
  *   - a scrollable content area for the current screen
- *   - a floating dock-style **glass navigation** (home / history / settings)
+ *   - a floating dock-style **glass navigation** (home / history / tools / settings)
  *
  * The chrome is intentionally low-clutter: icon-only controls, generous
  * safe-area-aware spacing for notched / Dynamic Island devices, subtle
@@ -20,6 +20,13 @@
  * framer-motion, and a shared-layout highlight pill slides between items. All
  * motion respects `prefers-reduced-motion` through {@link useReducedMotion}.
  *
+ * Scroll-responsive chrome (Task 14.2): the top bar, FAB, and divider react
+ * continuously to scroll position between 24–64px using framer-motion
+ * MotionValues (GPU-composited transform + opacity only). Collapses top chrome
+ * ~40%, scales FAB down ~10%, and reveals a 3:1 contrast divider at the scroll
+ * boundary. All transforms restore with a gentle spring settle (200–400ms)
+ * when scroll returns to ≤24px. Reduced-motion users see static resting state.
+ *
  * Accessibility: the dock is a real `<nav>` with `aria-current="page"` on the
  * active item; every icon-only control carries an `aria-label`. The mesh is
  * decorative (`aria-hidden` inside GradientMesh).
@@ -28,25 +35,28 @@
  * `.app-dock*` and `.section-divider` classes in globals.css.
  *
  * Requirements: 9.1 (single scrollable view), 9.3 (settings access),
- * 9.6 (profile access), 8.4 (friendlier, rounded, warm chrome).
+ * 9.6 (profile access), 8.4 (friendlier, rounded, warm chrome),
+ * 11.3, 11.4, 11.9 (scroll-responsive chrome).
  */
 
-import type { ReactNode } from 'react'
-import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { type ReactNode, useCallback, useRef } from 'react'
+import { motion, AnimatePresence, useTransform, useMotionValue, useSpring } from 'framer-motion'
 import { GradientMesh, type GradientMeshVariant } from './GradientMesh'
 import { Icon } from './Icon'
-import { useReducedMotion, springs, timings } from '@/lib/animations'
+import { NavigationDock } from './composed/NavigationDock'
+import { useReducedMotion, springs } from '@/lib/animations'
+import { sheetPresentationConfig } from '@/lib/transitions'
 import { useRubberBand } from '@/hooks/useRubberBand'
+import { useScrollProgress } from '@/hooks/useScrollProgress'
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation'
+import { useScrollPreservation } from '@/hooks/useScrollPreservation'
 
 /**
  * App navigation keys.
  *
- * The primary dock exposes only `home`, `history`, and `settings` (a 3-tab
- * dock per the simplification spec). `tools` remains a valid destination but is
- * reached through progressive disclosure from the Settings screen rather than a
- * dedicated dock tab (Requirement 9.5), so it is intentionally absent from the
- * dock's `navItems`.
+ * The 4-tab primary dock exposes `home`, `history`, `tools`, and `settings`
+ * via the NavigationDock composed component. Each destination has a dedicated
+ * tab with spring-driven highlight animation (Requirement 10.3, 11.1).
  */
 export type AppNavKey = 'home' | 'history' | 'tools' | 'settings'
 
@@ -88,13 +98,6 @@ export interface AppShellProps {
   hideDock?: boolean
 }
 
-/** A single dock destination with its icon + accessible label. */
-interface NavItem {
-  key: AppNavKey
-  label: string
-  icon: ReactNode
-}
-
 /* ── Icons ───────────────────────────────────────────────────────
  * All chrome/nav icons now come from the central icon registry via the
  * shared <Icon> wrapper (stroke-based, currentColor). See src/lib/icons.ts.
@@ -115,6 +118,24 @@ export function AppShell({
 }: AppShellProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
+  // ── Underlying surface scale-down during sheet presentation (Task 14.4) ────
+  // When a sheet is open (hideDock=true), the main content area scales down 3%
+  // (middle of 2–4% spec range) using the sheet spring for smooth choreography.
+  const underlyingScaleTarget = useMotionValue(hideDock ? sheetPresentationConfig.underlyingScale : 1)
+  const underlyingScale = useSpring(underlyingScaleTarget, {
+    stiffness: (sheetPresentationConfig.underlyingTransition as { stiffness: number }).stiffness,
+    damping: (sheetPresentationConfig.underlyingTransition as { damping: number }).damping,
+    mass: (sheetPresentationConfig.underlyingTransition as { mass: number }).mass,
+  })
+
+  // Update the motion value when hideDock changes
+  // (useMotionValue initial value only sets once; we need to track changes)
+  const prevHideDock = useRef(hideDock)
+  if (prevHideDock.current !== hideDock) {
+    prevHideDock.current = hideDock
+    underlyingScaleTarget.set(hideDock ? sheetPresentationConfig.underlyingScale : 1)
+  }
+
   // Rubber-band overscroll on the main content scroll area (Task 242.3)
   const { containerRef: rubberBandRef, style: rubberBandStyle } = useRubberBand({
     disabled: prefersReducedMotion,
@@ -122,40 +143,50 @@ export function AppShell({
     maxStretch: 60,
   })
 
-  // Dock morph on scroll (Task 245.2): compress dock padding & shrink FAB when scrolled
-  const [isScrolled, setIsScrolled] = useState(false)
+  // ── Swipe navigation between adjacent destinations (Task 14.3) ────────────
+  const { gestureRef: swipeRef } = useSwipeNavigation({
+    activeNav,
+    onNavChange,
+  })
 
-  const handleScroll = useCallback((e: Event) => {
-    const target = e.target as HTMLElement
-    setIsScrolled(target.scrollTop > 20)
-  }, [])
+  // Merged ref for the <main> element: sets both rubberBandRef and swipeRef
+  const mainRef = useRef<HTMLElement | null>(null)
+  const mergedMainRef = useCallback(
+    (node: HTMLElement | null) => {
+      mainRef.current = node
+      // Set the rubber-band hook's ref
+      ;(rubberBandRef as React.MutableRefObject<HTMLElement | null>).current = node
+      // Set the swipe navigation hook's ref
+      ;(swipeRef as React.MutableRefObject<HTMLElement | null>).current = node
+    },
+    [rubberBandRef, swipeRef],
+  )
 
-  useEffect(() => {
-    // Skip morph entirely when reduced motion is preferred
-    if (prefersReducedMotion) return
+  // ── Scroll position preservation per destination (Task 14.3) ───────────────
+  useScrollPreservation(activeNav, mainRef)
 
-    const el = rubberBandRef.current as HTMLElement | null
-    if (!el) return
+  // ── Scroll-responsive chrome (Task 14.2) ──────────────────────────────────
+  // Progress ramps 0→1 over 24–64px scroll offset. Spring smoothing gives a
+  // soft 200–400ms settle when scroll returns to ≤24px (gentle spring).
+  const { progress } = useScrollProgress({
+    start: 24,
+    end: 64,
+    spring: true,
+  })
 
-    el.addEventListener('scroll', handleScroll, { passive: true })
-    return () => el.removeEventListener('scroll', handleScroll)
-  }, [prefersReducedMotion, handleScroll, rubberBandRef])
+  // Top chrome collapse: translateY shifts header up ~40% of its height (56px)
+  // to partially collapse it. Opacity dims slightly for depth.
+  const topBarY = useTransform(progress, [0, 1], [0, -22])
+  const topBarOpacity = useTransform(progress, [0, 1], [1, 0.7])
 
-  // 3-tab primary dock: Home / History / Settings. Advanced features (the Tools
-  // surface, which includes Learn) are reached via progressive disclosure from
-  // the Settings screen, not a dedicated dock tab (Requirement 9.5).
-  const navItems: NavItem[] = [
-    { key: 'home', label: 'Home', icon: <Icon name="nav:home" size={22} /> },
-    { key: 'history', label: 'History', icon: <Icon name="nav:history" size={22} /> },
-    { key: 'settings', label: 'Settings', icon: <Icon name="nav:settings" size={22} /> },
-  ]
+  // Divider reveal: fades in after ~30% scroll progress for a 3:1 contrast edge.
+  // Uses the existing ::after pseudo-element via a CSS variable driven by inline opacity.
+  const dividerOpacity = useTransform(progress, [0, 0.3, 1], [0, 0, 1])
+
+  // Quick-log FAB scale-down: 10% reduction (within 8–12% spec range)
+  const fabScale = useTransform(progress, [0, 1], [1, 0.9])
 
   const handleSettingsTop = onOpenSettings ?? (() => onNavChange('settings'))
-
-  // The Tools surface has no dedicated dock tab; it is reached from Settings, so
-  // keep the Settings dock item highlighted while it is open. This preserves a
-  // valid `aria-current="page"` target and keyboard roving-tabindex focus.
-  const dockActiveNav: AppNavKey = activeNav === 'tools' ? 'settings' : activeNav
 
   return (
     <div className="app-shell">
@@ -164,7 +195,25 @@ export function AppShell({
 
       {/* ── Floating glass top bar ─────────────────────────────── */}
       {!hideTopBar && (
-        <header className={`app-topbar${isScrolled ? ' app-topbar--scrolled' : ''}`}>
+        <motion.header
+          className="app-topbar"
+          style={
+            prefersReducedMotion
+              ? undefined
+              : { y: topBarY, opacity: topBarOpacity }
+          }
+        >
+          {/* Scroll-driven divider — sits at the bottom of the header */}
+          <motion.div
+            className="app-topbar__divider"
+            style={
+              prefersReducedMotion
+                ? { opacity: 0 }
+                : { opacity: dividerOpacity }
+            }
+            aria-hidden="true"
+          />
+
           <div className="app-topbar__avatar">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -191,14 +240,18 @@ export function AppShell({
           >
             <Icon name="nav:settings" size={22} />
           </button>
-        </header>
+        </motion.header>
       )}
 
       {/* ── Scrollable content ─────────────────────────────────── */}
       <motion.main
-        ref={rubberBandRef as React.RefObject<HTMLElement>}
+        ref={mergedMainRef}
         className={`app-content ${hideTopBar ? 'app-content--no-topbar' : ''} ${contentClassName}`.trim()}
-        style={rubberBandStyle}
+        style={{
+          ...rubberBandStyle,
+          scale: prefersReducedMotion ? undefined : underlyingScale,
+          transformOrigin: 'center top',
+        }}
       >
         {children}
       </motion.main>
@@ -209,14 +262,21 @@ export function AppShell({
           <motion.button
             key="quick-log-fab"
             type="button"
-            className={`app-dock-fab ${isScrolled ? 'app-dock-fab--compact' : ''}`}
+            className="app-dock-fab"
             onClick={onQuickLog}
             aria-label="Log expense"
+            aria-hidden={hideDock ? true : undefined}
+            tabIndex={hideDock ? -1 : undefined}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.6 }}
             whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
             transition={springs.snappy}
+            style={
+              prefersReducedMotion
+                ? undefined
+                : { scale: fabScale }
+            }
           >
             <Icon name="action:add" size={26} strokeWidth={2.2} />
           </motion.button>
@@ -224,73 +284,11 @@ export function AppShell({
       </AnimatePresence>
 
       {/* ── Floating dock navigation ───────────────────────────── */}
-      {!hideDock && (
-      <nav className={`app-dock ${isScrolled ? 'app-dock--compact' : ''}`} aria-label="Primary">
-        <ul
-          className="app-dock__list"
-          onKeyDown={(e) => {
-            const keys = navItems.map(n => n.key)
-            const currentIndex = keys.indexOf(dockActiveNav)
-            let nextIndex = -1
-            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-              e.preventDefault()
-              nextIndex = currentIndex < keys.length - 1 ? currentIndex + 1 : 0
-            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-              e.preventDefault()
-              nextIndex = currentIndex > 0 ? currentIndex - 1 : keys.length - 1
-            }
-            if (nextIndex >= 0) {
-              onNavChange(keys[nextIndex])
-              const container = e.currentTarget
-              const buttons = container.querySelectorAll<HTMLButtonElement>('button')
-              buttons[nextIndex]?.focus()
-            }
-          }}
-        >
-          {navItems.map(({ key, label, icon }) => {
-            const isActive = dockActiveNav === key
-            return (
-              <li key={key} className="app-dock__item-wrap">
-                <motion.button
-                  type="button"
-                  className={`app-dock__item ${isActive ? 'is-active' : ''}`}
-                  onClick={() => onNavChange(key)}
-                  aria-label={label}
-                  aria-current={isActive ? 'page' : undefined}
-                  tabIndex={isActive ? 0 : -1}
-                  animate={
-                    prefersReducedMotion
-                      ? undefined
-                      : { scale: isActive ? 1.12 : 1 }
-                  }
-                  whileTap={prefersReducedMotion ? undefined : { scale: 0.92 }}
-                  transition={springs.snappy}
-                >
-                  {isActive && (
-                    <motion.span
-                      layoutId={prefersReducedMotion ? undefined : 'app-dock-active'}
-                      className="app-dock__glow"
-                      aria-hidden="true"
-                      transition={springs.gentle}
-                    />
-                  )}
-                  <motion.span
-                    className="app-dock__icon"
-                    aria-hidden="true"
-                    animate={
-                      prefersReducedMotion ? undefined : { opacity: isActive ? 1 : 0.5 }
-                    }
-                    transition={timings.fast}
-                  >
-                    {icon}
-                  </motion.span>
-                </motion.button>
-              </li>
-            )
-          })}
-        </ul>
-      </nav>
-      )}
+      <NavigationDock
+        active={activeNav}
+        onNavigate={onNavChange}
+        hidden={hideDock}
+      />
     </div>
   )
 }

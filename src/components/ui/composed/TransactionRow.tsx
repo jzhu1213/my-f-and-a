@@ -40,6 +40,20 @@ export interface TransactionRowProps {
   revealContent?: React.ReactNode
   /** Called when swipe reveals actions. */
   onReveal?: () => void
+  /** Called when user swipes past 40% to delete (Req 14.11). */
+  onDelete?: () => void
+  /** Called when user activates edit action (Req 14.6). */
+  onEdit?: () => void
+  /** Whether the row is in inline-edit mode. */
+  editing?: boolean
+  /** Content shown when in inline-edit mode. */
+  editContent?: React.ReactNode
+  /**
+   * Use compact vertical padding (8px) to meet the Timeline Surface
+   * row height constraint of 56–72px with ≤8px vertical padding (Req 14.3).
+   * Default row uses 12px vertical padding.
+   */
+  compact?: boolean
 }
 
 // ============================================================================
@@ -71,6 +85,11 @@ export function TransactionRow({
   swipeable = false,
   revealContent,
   onReveal,
+  onDelete,
+  onEdit,
+  editing = false,
+  editContent,
+  compact = false,
 }: TransactionRowProps) {
   const iconName = getCategoryIconName(category)
 
@@ -117,7 +136,14 @@ export function TransactionRow({
       onPress={onPress}
       revealContent={revealContent}
       onReveal={onReveal}
-      style={{ gap: spacingScale["12"] }}
+      onDelete={onDelete}
+      onEdit={onEdit}
+      editing={editing}
+      editContent={editContent}
+      style={{
+        gap: spacingScale["12"],
+        ...(compact ? { padding: `${spacingScale["8"]} ${spacingScale["16"]}`, minHeight: "56px" } : {}),
+      }}
     >
       {/* Leading: category icon */}
       <div style={iconContainerStyle}>

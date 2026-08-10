@@ -86,6 +86,7 @@ export {
   AllowanceHero,
   TransactionRow,
   CategoryChipRow,
+  DayGroupTimeline,
 } from './composed'
 
 export type {
@@ -96,6 +97,8 @@ export type {
   TransactionRowProps,
   CategoryChipRowProps,
   CategoryChipItem,
+  DayGroupTimelineProps,
+  DayGroup,
 } from './composed'
 
 // ============================================================================

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings } from '@/lib/animations'
-import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Sheet } from '@/components/ui/primitives/Sheet'
 import { useToast } from '@/contexts/ToastContext'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { computeTaxSetAside, DEFAULT_GIG_TAX_RATE } from '@/lib/taxSetAside'
@@ -231,7 +231,7 @@ export function PaycheckSheet({
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} maxHeight="85vh" ariaLabel="Allocate paycheck">
+    <Sheet open={isOpen} onClose={onClose} size="full" aria-label="Allocate paycheck">
       <div style={{ padding: '0 24px 32px' }}>
               {/* ── Header ──────────────────────────────────────── */}
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
@@ -901,6 +901,6 @@ export function PaycheckSheet({
                 )}
               </AnimatePresence>
             </div>
-    </BottomSheet>
+    </Sheet>
   )
 }

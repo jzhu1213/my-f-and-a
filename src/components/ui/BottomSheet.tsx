@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useRef, type ReactNode } from "react"
 import { motion, AnimatePresence, type PanInfo } from "framer-motion"
 import { timings, sheetSpring, useReducedMotion } from "@/lib/animations"
+import { sheetPresentationConfig } from "@/lib/transitions"
 
 // ============================================================================
 // Types
@@ -84,8 +85,12 @@ const sheetVariantsReduced = {
 
 const backdropVariants = {
   hidden: { opacity: 0, backdropFilter: "blur(0px)" },
-  visible: { opacity: 1, backdropFilter: "blur(4px)", transition: timings.fast },
-  exit: { opacity: 0, backdropFilter: "blur(0px)", transition: timings.fast },
+  visible: {
+    opacity: sheetPresentationConfig.backdropDimOpacity,
+    backdropFilter: `blur(${sheetPresentationConfig.backdropBlur})`,
+    transition: sheetPresentationConfig.backdropTransition,
+  },
+  exit: { opacity: 0, backdropFilter: "blur(0px)", transition: { type: "tween" as const, duration: 0.2, ease: "easeIn" as const } },
 }
 
 // ============================================================================
@@ -241,7 +246,7 @@ export function BottomSheet({
               position: "fixed",
               inset: 0,
               zIndex: 40,
-              background: "rgba(0, 0, 0, 0.6)",
+              background: "rgba(0, 0, 0, 1)",
             }}
           />
 

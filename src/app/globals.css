@@ -1840,14 +1840,27 @@ input[type="date"] {
   transition: opacity 0.25s ease;
 }
 
-.app-topbar--scrolled::after {
-  opacity: 1;
-}
+/* Legacy scrolled class — no longer applied; divider is motion-driven (Task 14.2) */
 
 @media (prefers-reduced-motion: reduce) {
   .app-topbar::after {
     transition: none;
   }
+}
+
+/*
+ * Scroll-driven divider element (Task 14.2):
+ * A real DOM element whose opacity is driven by a framer-motion MotionValue
+ * (GPU-composited). Reveals at ≥3:1 contrast against the header surface.
+ * Replaces the previous ::after + class-toggle approach.
+ */
+.app-topbar__divider {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(129, 140, 248, 0.22) 30%, rgba(255, 255, 255, 0.10) 50%, rgba(129, 140, 248, 0.22) 70%, transparent);
+  pointer-events: none;
 }
 
 /* Shared round icon-button base for top-bar controls */
@@ -2177,7 +2190,7 @@ input[type="date"] {
   }
 }
 
-/* Compact FAB when user scrolls content (245.2) */
+/* Legacy compact class — FAB scale is now motion-driven via useScrollProgress (Task 14.2) */
 .app-dock-fab--compact {
   transform: translateX(-50%) scale(0.9);
 }

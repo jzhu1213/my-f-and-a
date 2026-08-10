@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Sheet } from '@/components/ui/primitives/Sheet'
 import { useToast } from '@/contexts/ToastContext'
 import { FONT_FAMILY, spacing, pxToRem } from '@/styles/typography'
 import { borderRadius, shadows, fills, colorRamp } from '@/styles/shared'
@@ -268,7 +268,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
   })()
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} minHeight="50vh" ariaLabel="Log income">
+    <Sheet open={isOpen} onClose={onClose} size="full" aria-label="Log income">
       {contributePrompt ? (
         /* ── Quick-contribute phase (task 157.2) ─────────────────── */
         <div style={{ padding: '8px 24px 32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -1010,6 +1010,6 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
               </button>
             </div>
       )}
-    </BottomSheet>
+    </Sheet>
   )
 }
