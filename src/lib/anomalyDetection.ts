@@ -43,10 +43,11 @@ function getCategoryLabel(category: TransactionCategory): string {
   if (!entry) return category
   // Use a shorter, more conversational form for certain categories
   switch (category) {
-    case 'food': return 'food & drinks'
+    case 'food': return 'food'
+    case 'drinks': return 'drinks'
     case 'rent': return 'rent & bills'
-    case 'transport': return 'getting around'
-    case 'fun': return 'going out'
+    case 'transport': return 'transportation'
+    case 'fun': return 'fun'
     case 'subscriptions': return 'subscriptions'
     case 'health': return 'health'
     case 'school': return 'school'

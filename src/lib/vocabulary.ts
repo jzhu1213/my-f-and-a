@@ -26,6 +26,7 @@ import type { AllowanceStatus } from '@/types/folio'
  */
 export const CATEGORY_EMOJI: Record<TransactionCategory, string> = {
   food: '🍕',
+  drinks: '☕',
   rent: '🏠',
   transport: '🚲',
   school: '📚',

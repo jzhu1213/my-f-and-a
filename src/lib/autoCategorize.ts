@@ -10,11 +10,9 @@ import { applyUserRules } from './categorizationRules'
  */
 const KEYWORD_MAP: [string, TransactionCategory, number][] = [
   // Food — brands (high specificity)
-  ['starbucks', 'food', 3],
   ['chipotle', 'food', 3],
   ['mcdonald', 'food', 3],
   ['chick-fil-a', 'food', 3],
-  ['dunkin', 'food', 3],
   ['subway', 'food', 3],
   ['dominos', 'food', 3],
   ['pizza hut', 'food', 3],
@@ -32,7 +30,6 @@ const KEYWORD_MAP: [string, TransactionCategory, number][] = [
   ['sweetgreen', 'food', 3],
   ['cava', 'food', 3],
   // Food — generic (medium specificity)
-  ['coffee', 'food', 2],
   ['lunch', 'food', 2],
   ['dinner', 'food', 2],
   ['breakfast', 'food', 2],
@@ -42,17 +39,27 @@ const KEYWORD_MAP: [string, TransactionCategory, number][] = [
   ['pizza', 'food', 2],
   ['burger', 'food', 2],
   ['sushi', 'food', 2],
-  ['boba', 'food', 2],
   ['dining hall', 'food', 2],
   ['meal plan', 'food', 2],
   ['ramen', 'food', 2],
-  ['smoothie', 'food', 2],
-  ['bubble tea', 'food', 2],
   ['campus cafe', 'food', 2],
   ['late night', 'food', 2],
   ['vending', 'food', 2],
   ['food', 'food', 1],
   ['eat', 'food', 1],
+
+  // Drinks — brands (high specificity)
+  ['starbucks', 'drinks', 3],
+  ['dunkin', 'drinks', 3],
+  // Drinks — generic
+  ['coffee', 'drinks', 2],
+  ['boba', 'drinks', 2],
+  ['smoothie', 'drinks', 2],
+  ['bubble tea', 'drinks', 2],
+  ['tea', 'drinks', 2],
+  ['latte', 'drinks', 2],
+  ['drinks', 'drinks', 2],
+  ['juice', 'drinks', 2],
 
   // Transport — brands (high specificity)
   ['uber', 'transport', 3],
@@ -81,8 +88,7 @@ const KEYWORD_MAP: [string, TransactionCategory, number][] = [
   ['movie', 'fun', 2],
   ['concert', 'fun', 2],
   ['game', 'fun', 2],
-  ['bar', 'fun', 1],
-  ['drinks', 'fun', 2],
+  ['bar', 'fun', 2],
   ['party', 'fun', 2],
   ['club', 'fun', 1],
   ['bowling', 'fun', 2],

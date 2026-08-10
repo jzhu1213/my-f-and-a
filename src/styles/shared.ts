@@ -85,6 +85,7 @@ export const colorRamp = {
  */
 export const CATEGORY_ACCENTS: Record<TransactionCategory | "fallback", string> = {
   food: "#fb923c", // warm orange
+  drinks: "#8b5cf6", // soft violet
   rent: "#a78bfa", // brand purple (accent-2)
   transport: "#60a5fa", // --blue
   school: "#fbbf24", // --amber

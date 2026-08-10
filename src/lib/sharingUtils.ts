@@ -455,6 +455,7 @@ export function refreshAllSharedSummaries(
 function getCategoryEmojiSimple(category: string): string {
   const emojiMap: Record<string, string> = {
     food: '🍕',
+    drinks: '☕',
     rent: '🏠',
     transport: '🚲',
     school: '📚',

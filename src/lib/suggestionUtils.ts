@@ -8,6 +8,7 @@ import type { SmartSuggestion } from '@/types/folio'
 export function getCategoryPresets(category: TransactionCategory): number[] {
   switch (category) {
     case 'food':          return [8, 12, 15, 5]
+    case 'drinks':        return [4, 6, 8, 3]
     case 'rent':          return [500, 600, 800, 400]
     case 'transport':     return [2, 5, 15, 30]
     case 'school':        return [30, 75, 15, 150]

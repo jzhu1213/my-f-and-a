@@ -465,6 +465,7 @@ export const arbOnboardingResult = (): fc.Arbitrary<OnboardingResult> =>
     customLimits: fc.option(
       fc.record({
         food: arbBudgetAmount(),
+        drinks: arbBudgetAmount(),
         rent: arbBudgetAmount(),
         transport: arbBudgetAmount(),
         school: arbBudgetAmount(),

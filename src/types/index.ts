@@ -75,6 +75,7 @@ export type TransactionType = 'income' | 'expense'
 
 export type TransactionCategory = 
   | 'food'
+  | 'drinks'
   | 'rent'
   | 'transport'
   | 'school'
@@ -242,22 +243,24 @@ export interface Budget {
 }
 
 export const BUDGET_CATEGORIES: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: 'food', emoji: '🍕', label: 'Food & Drinks' },
+  { category: 'food', emoji: '🍕', label: 'Food' },
+  { category: 'drinks', emoji: '☕', label: 'Drinks' },
   { category: 'rent', emoji: '🏠', label: 'Rent & Bills' },
-  { category: 'transport', emoji: '🚲', label: 'Getting Around' },
+  { category: 'transport', emoji: '🚲', label: 'Transportation' },
   { category: 'school', emoji: '📚', label: 'School' },
-  { category: 'fun', emoji: '🎶', label: 'Going Out' },
+  { category: 'fun', emoji: '🎶', label: 'Fun' },
   { category: 'health', emoji: '💪', label: 'Health' },
   { category: 'subscriptions', emoji: '🔄', label: 'Subscriptions' },
   { category: 'other', emoji: '📦', label: 'Other' },
 ]
 
 export const TRANSACTION_CATEGORIES: { category: TransactionCategory; emoji: string; label: string; type: TransactionType }[] = [
-  { category: 'food', emoji: '🍕', label: 'Food & Drinks', type: 'expense' },
+  { category: 'food', emoji: '🍕', label: 'Food', type: 'expense' },
+  { category: 'drinks', emoji: '☕', label: 'Drinks', type: 'expense' },
   { category: 'rent', emoji: '🏠', label: 'Rent & Bills', type: 'expense' },
-  { category: 'transport', emoji: '🚲', label: 'Getting Around', type: 'expense' },
+  { category: 'transport', emoji: '🚲', label: 'Transportation', type: 'expense' },
   { category: 'school', emoji: '📚', label: 'School', type: 'expense' },
-  { category: 'fun', emoji: '🎶', label: 'Going Out', type: 'expense' },
+  { category: 'fun', emoji: '🎶', label: 'Fun', type: 'expense' },
   { category: 'health', emoji: '💪', label: 'Health', type: 'expense' },
   { category: 'subscriptions', emoji: '🔄', label: 'Subscriptions', type: 'expense' },
   { category: 'other', emoji: '📦', label: 'Other', type: 'expense' },

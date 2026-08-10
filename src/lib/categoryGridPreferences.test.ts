@@ -139,8 +139,8 @@ describe('categoryGridPreferences', () => {
   describe('categoriesToPrefs', () => {
     it('converts categories to prefs with correct order', () => {
       const categories = [
-        { category: 'fun' as const, emoji: '🎶', label: 'Going Out' },
-        { category: 'food' as const, emoji: '🍕', label: 'Food & Drinks' },
+        { category: 'fun' as const, emoji: '🎶', label: 'Fun' },
+        { category: 'food' as const, emoji: '🍕', label: 'Food' },
       ]
       const prefs = categoriesToPrefs(categories)
       expect(prefs[0]).toEqual({ categoryId: 'fun', order: 0 })

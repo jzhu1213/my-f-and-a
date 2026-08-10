@@ -23,6 +23,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   // Categories
   Utensils,
+  Coffee,
   Home,
   Bike,
   GraduationCap,
@@ -102,6 +103,7 @@ import type { AllowanceStatus, TipType } from '@/types/folio'
 export type IconName =
   // ── Categories (mirror TransactionCategory) ──────────────────────────────
   | 'category:food'
+  | 'category:drinks'
   | 'category:rent'
   | 'category:transport'
   | 'category:school'
@@ -198,6 +200,7 @@ export type IconName =
 export const ICON_REGISTRY = {
   // ── Categories ────────────────────────────────────────────────────────────
   'category:food': Utensils,
+  'category:drinks': Coffee,
   'category:rent': Home,
   'category:transport': Bike,
   'category:school': GraduationCap,

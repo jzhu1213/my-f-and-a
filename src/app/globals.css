@@ -421,7 +421,13 @@
 }
 
 html, body, #__next {
-  height: 100%;
+  min-height: 100%;
+}
+
+/* Allow body to grow beyond viewport so content scrolls naturally on mobile */
+body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -2131,9 +2137,10 @@ input[type="date"] {
 .app-dock-fab {
   position: fixed;
   left: 50%;
-  transform: translateX(-50%);
-  /* Sit above the dock (dock bottom ~16+safe, dock height ~64, offset -18 for overlap) */
-  bottom: calc(60px + var(--safe-bottom));
+  /* Centering handled via margin so framer-motion scale doesn't clobber it */
+  margin-left: -28px; /* half of 56px width */
+  /* Sit above the dock with enough clearance (dock ~64px + 16px safe + 8px gap) */
+  bottom: calc(80px + var(--safe-bottom));
   z-index: 46;
   display: flex;
   align-items: center;
@@ -2192,7 +2199,7 @@ input[type="date"] {
 
 /* Legacy compact class — FAB scale is now motion-driven via useScrollProgress (Task 14.2) */
 .app-dock-fab--compact {
-  transform: translateX(-50%) scale(0.9);
+  transform: scale(0.9);
 }
 
 .app-dock-fab:active {
@@ -2215,7 +2222,7 @@ input[type="date"] {
     padding: 8px;
   }
   .app-dock-fab--compact {
-    transform: translateX(-50%);
+    transform: none;
   }
 }
 

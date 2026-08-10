@@ -28,7 +28,8 @@ interface EditTransactionSheetProps {
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
   { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food' },
-  { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Transport' },
+  { category: 'drinks', emoji: getCategoryEmoji('drinks'), label: 'Drinks' },
+  { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Transportation' },
   { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Fun' },
   { category: 'school', emoji: getCategoryEmoji('school'), label: 'School' },
   { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent' },

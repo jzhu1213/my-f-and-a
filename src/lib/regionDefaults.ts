@@ -131,9 +131,9 @@ export const REGIONS: Record<RegionCode, RegionDefaults> = {
     locale: 'en-GB',
     categoryLabels: {
       rent: 'Rent & Bills',
-      transport: 'Getting Around',
+      transport: 'Transportation',
       school: 'Uni',
-      fun: 'Going Out',
+      fun: 'Fun',
     },
     amountPresets: {
       food: [4, 8, 12, 6],
@@ -151,7 +151,7 @@ export const REGIONS: Record<RegionCode, RegionDefaults> = {
     locale: 'de-DE',
     categoryLabels: {
       school: 'Uni',
-      transport: 'Getting Around',
+      transport: 'Transportation',
     },
     amountPresets: {
       food: [4, 8, 12, 6],
@@ -203,7 +203,7 @@ export const REGIONS: Record<RegionCode, RegionDefaults> = {
     locale: 'en-IN',
     categoryLabels: {
       school: 'College',
-      transport: 'Getting Around',
+      transport: 'Transportation',
     },
     amountPresets: {
       food: [100, 200, 350, 50],

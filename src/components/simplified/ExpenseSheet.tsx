@@ -132,9 +132,10 @@ function isFutureDate(dateStr: string): boolean {
 }
 
 const CATEGORY_GRID: { category: TransactionCategory; emoji: string; label: string }[] = [
-  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food & Drinks' },
-  { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Getting Around' },
-  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Going Out' },
+  { category: 'food', emoji: getCategoryEmoji('food'), label: 'Food' },
+  { category: 'drinks', emoji: getCategoryEmoji('drinks'), label: 'Drinks' },
+  { category: 'transport', emoji: getCategoryEmoji('transport'), label: 'Transportation' },
+  { category: 'fun', emoji: getCategoryEmoji('fun'), label: 'Fun' },
   { category: 'school', emoji: getCategoryEmoji('school'), label: 'School' },
   { category: 'rent', emoji: getCategoryEmoji('rent'), label: 'Rent & Bills' },
   { category: 'other', emoji: getCategoryEmoji('other'), label: 'Other' },
