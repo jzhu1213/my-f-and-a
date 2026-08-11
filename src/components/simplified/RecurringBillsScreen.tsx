@@ -455,7 +455,7 @@ function BillForm({ form, setForm, onSave, onCancel, saving, isEdit }: BillFormP
             fontSize: 14,
             fontWeight: 600,
             fontFamily: FONT_FAMILY,
-            color: "#fff",
+            color: "var(--text)",
             background: saving || !form.label.trim() || form.amount <= 0
               ? "rgba(255,255,255,0.06)"
               : "var(--success)",

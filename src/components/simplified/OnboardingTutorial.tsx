@@ -378,7 +378,7 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
                     width: '47%',
                     height: '100%',
                     borderRadius: 3,
-                    background: '#4ade80',
+                    background: 'var(--success)',
                   }}
                 />
               </div>
@@ -393,7 +393,7 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
         className="w-full mt-5 py-3 rounded-xl font-medium text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
         style={{
           background: 'var(--accent)',
-          color: '#fff',
+          color: 'var(--text)',
         }}
         aria-label="Got it, back to setup options"
       >
@@ -679,7 +679,7 @@ export function OnboardingTutorial({
               className="w-full py-3.5 rounded-xl font-medium text-base transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
               style={{
                 background: canAdvance ? 'var(--accent)' : 'var(--muted)',
-                color: '#fff',
+                color: 'var(--text)',
                 opacity: canAdvance ? 1 : 0.5,
                 cursor: canAdvance ? 'pointer' : 'not-allowed',
               }}

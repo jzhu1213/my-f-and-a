@@ -292,7 +292,7 @@ export function AppLockSetting() {
       )}
 
       {error && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--danger, #f87171)", marginTop: 12 }}>
+        <p role="alert" style={{ fontSize: 13, color: "var(--error)", marginTop: 12 }}>
           {error}
         </p>
       )}
@@ -337,7 +337,7 @@ function primaryButtonStyle(busy: boolean): React.CSSProperties {
     borderRadius: borderRadius.sm,
     border: "none",
     background: busy ? "rgba(167, 139, 250, 0.3)" : "rgba(167, 139, 250, 0.9)",
-    color: "#fff",
+    color: "var(--text)",
     fontSize: 14,
     fontWeight: 600,
     fontFamily: FONT_FAMILY,

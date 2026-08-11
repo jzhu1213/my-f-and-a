@@ -56,9 +56,9 @@ function frequencyLabel(frequency: 'monthly' | 'weekly' | 'annual'): string {
 function confidenceBadgeStyle(level: ConfidenceBadge['level']): { bg: string; fg: string; border: string } {
   switch (level) {
     case 'high':
-      return { bg: "rgba(74, 222, 128, 0.16)", fg: "#86efac", border: "rgba(74, 222, 128, 0.32)" }
+      return { bg: "var(--success-200)", fg: "var(--success-300)", border: "var(--success-300)" }
     case 'medium':
-      return { bg: "rgba(129, 140, 248, 0.16)", fg: "#c7d2fe", border: "rgba(129, 140, 248, 0.32)" }
+      return { bg: "var(--accent-200)", fg: "var(--accent-300)", border: "var(--accent-300)" }
     case 'low':
     default:
       return { bg: "rgba(255, 255, 255, 0.08)", fg: "var(--sub)", border: "var(--border)" }
@@ -331,7 +331,7 @@ export function SubscriptionAuditScreen({
                         background: "rgba(74, 222, 128, 0.14)",
                         border: "1px solid rgba(74, 222, 128, 0.32)",
                         borderRadius: 10,
-                        color: "#86efac",
+                        color: "var(--success-300)",
                         fontSize: 13,
                         fontWeight: 600,
                         fontFamily: FONT_FAMILY,

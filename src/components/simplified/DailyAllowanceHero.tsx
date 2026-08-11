@@ -14,6 +14,7 @@ import { useReducedMotion, springs, timings } from "@/lib/animations"
 import { useTimeOfDay } from "@/hooks/useTimeOfDay"
 import { typography, pxToRem, animatedFontWeight, fontWeights } from "@/styles/typography"
 import { fills } from "@/styles/shared"
+import { colorRamp, semanticColors } from "@/styles/colors"
 import { AllowanceRing } from "./AllowanceRing"
 import { Icon } from "@/components/ui/Icon"
 import { getStatusIconName, type IconName } from "@/lib/icons"
@@ -97,7 +98,7 @@ function getTrackerInstantStatus(spentToday: number, dailyBudget: number): { ico
     return { iconName: 'status:healthy', phrase: 'Light day', color: 'var(--success)' }
   }
   if (ratio < 0.9) {
-    return { iconName: 'status:tracking', phrase: 'Typical', color: 'var(--accent, #a78bfa)' }
+    return { iconName: 'status:tracking', phrase: 'Typical', color: 'var(--accent)' }
   }
   if (ratio < 1.3) {
     return { iconName: 'status:caution', phrase: 'Busy day', color: 'var(--warning)' }
@@ -140,13 +141,13 @@ function getTrackerMessage(spentToday: number, dailyBudget: number): string {
 function getStatusGradient(status: AllowanceStatus): { from: string; to: string } {
   switch (status) {
     case "healthy":
-      return { from: "#4ade80", to: "#a7f3d0" }
+      return { from: colorRamp.success[500], to: colorRamp.success[200] }
     case "caution":
-      return { from: "#fbbf24", to: "#fde68a" }
+      return { from: colorRamp.warning[500], to: colorRamp.caution[400] }
     case "warning":
-      return { from: "#fb923c", to: "#fbbf24" }
+      return { from: colorRamp.warning[600], to: colorRamp.warning[500] }
     case "over":
-      return { from: "#f87171", to: "#fca5a5" }
+      return { from: colorRamp.error[500], to: colorRamp.error[300] }
   }
 }
 
@@ -498,7 +499,7 @@ export function DailyAllowanceHero({
           label: "Spent today",
           value: formatCurrency(spentToday),
           valueColor: "var(--text)",
-          accentColor: "#fb923c",
+          accentColor: colorRamp.warning[600],
         },
         ...(dailyBudget > 0
           ? [{
@@ -507,7 +508,7 @@ export function DailyAllowanceHero({
               label: "Your typical day",
               value: `${formatCurrency(dailyBudget)}/day`,
               valueColor: "var(--sub)",
-              accentColor: "#818cf8",
+              accentColor: colorRamp.accent[500],
             }]
           : []),
         ...(reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0
@@ -517,7 +518,7 @@ export function DailyAllowanceHero({
               label: "Set aside for bills",
               value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
               valueColor: "var(--sub)",
-              accentColor: "#60a5fa",
+              accentColor: colorRamp.blue[500],
             }]
           : []),
       ]
@@ -528,7 +529,7 @@ export function DailyAllowanceHero({
           label: "Daily budget",
           value: `${formatCurrency(dailyBudget)}/day`,
           valueColor: "var(--text)",
-          accentColor: "#818cf8",
+          accentColor: colorRamp.accent[500],
         },
         {
           key: "rollover",
@@ -536,7 +537,7 @@ export function DailyAllowanceHero({
           label: "Rollover",
           value: formatRollover(rollover),
           valueColor: rollover >= 0 ? "var(--success)" : "var(--sub)",
-          accentColor: rollover >= 0 ? "#4ade80" : "#fbbf24",
+          accentColor: rollover >= 0 ? colorRamp.success[500] : colorRamp.warning[500],
         },
         {
           key: "spent-today",
@@ -544,7 +545,7 @@ export function DailyAllowanceHero({
           label: "Spent today",
           value: `${formatCurrency(spentToday)} spent today`,
           valueColor: "var(--text)",
-          accentColor: "#fb923c",
+          accentColor: colorRamp.warning[600],
         },
         // Reserved for bills row — only included when there are upcoming bills
         ...(reservedForBills !== undefined && reservedForBills > 0 && upcomingBillCount !== undefined && upcomingBillCount > 0
@@ -554,7 +555,7 @@ export function DailyAllowanceHero({
               label: "Set aside for bills",
               value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
               valueColor: "var(--sub)",
-              accentColor: "#60a5fa",
+              accentColor: colorRamp.blue[500],
             }]
           : []),
         // Scheduled expenses row — only included when there are future-dated transactions (task 90.1)
@@ -565,7 +566,7 @@ export function DailyAllowanceHero({
               label: "Scheduled",
               value: `${formatCurrency(reservedForScheduled)} for ${scheduledCount} item${scheduledCount === 1 ? '' : 's'}`,
               valueColor: "var(--sub)",
-              accentColor: "#22d3ee",
+              accentColor: colorRamp.blue[400],
             }]
           : []),
         // Combined total reserved row (Task 90.2) — shown when BOTH bills and scheduled items exist
@@ -576,7 +577,7 @@ export function DailyAllowanceHero({
               label: "Total reserved",
               value: formatCurrency(reservedForBills + reservedForScheduled),
               valueColor: "var(--sub)",
-              accentColor: "#a78bfa",
+              accentColor: colorRamp.accent[400],
             }]
           : []),
       ]

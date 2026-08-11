@@ -147,8 +147,8 @@ export function SwipeableTransactionRow({
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: 10,
-                background: "var(--error, #f87171)",
-                color: "#fff",
+                background: "var(--error)",
+                color: "var(--text)",
               }}
             >
               <Icon name="action:delete" size={18} strokeWidth={2} />
@@ -182,7 +182,7 @@ export function SwipeableTransactionRow({
                   justifyContent: "center",
                   borderRadius: 10,
                   background: "rgba(129, 140, 248, 0.9)",
-                  color: "#fff",
+                  color: "var(--text)",
                 }}
               >
                 <Icon name="action:edit" size={18} strokeWidth={2} />

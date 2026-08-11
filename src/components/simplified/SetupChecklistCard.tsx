@@ -188,7 +188,7 @@ export function SetupChecklistCard({
                 <span
                   style={{
                     fontSize: 11,
-                    color: 'var(--accent, #a78bfa)',
+                    color: 'var(--accent)',
                     fontFamily: FONT_FAMILY,
                     opacity: 0.9,
                   }}

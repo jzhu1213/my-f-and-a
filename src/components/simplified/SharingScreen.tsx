@@ -393,7 +393,7 @@ export function SharingScreen({
                         border: selected
                           ? "1px solid rgba(129, 140, 248, 0.9)"
                           : "1px solid rgba(255, 255, 255, 0.1)",
-                        color: selected ? "#fff" : "var(--sub)",
+                        color: selected ? "var(--text)" : "var(--sub)",
                         fontSize: 12,
                         fontFamily: FONT_FAMILY,
                         fontWeight: 500,
@@ -497,7 +497,7 @@ export function SharingScreen({
                     ? "rgba(129, 140, 248, 0.8)"
                     : "rgba(255, 255, 255, 0.08)",
                   border: "none",
-                  color: newLabel.trim() && scopeSections.length > 0 ? "#fff" : "var(--muted)",
+                  color: newLabel.trim() && scopeSections.length > 0 ? "var(--text)" : "var(--muted)",
                   fontSize: 13,
                   fontFamily: FONT_FAMILY,
                   fontWeight: 600,

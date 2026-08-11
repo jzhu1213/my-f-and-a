@@ -429,7 +429,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                   background: canSubmit
                     ? `linear-gradient(135deg, ${colorRamp.accent[500]} 0%, ${colorRamp.accent[600]} 100%)`
                     : "var(--dim)",
-                  color: canSubmit ? "#fff" : "var(--muted)",
+                  color: canSubmit ? "var(--text)" : "var(--muted)",
                   fontFamily: FONT_FAMILY,
                   fontSize: 17,
                   fontWeight: 600,

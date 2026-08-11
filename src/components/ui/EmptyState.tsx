@@ -38,6 +38,7 @@ import {
   borderRadius,
   colorRamp,
 } from "@/styles/shared"
+import { semanticColors } from "@/styles/colors"
 
 // ============================================================================
 // Illustration types & SVGs
@@ -89,7 +90,7 @@ function IllustrationTransactions() {
       viewBox="0 0 48 48"
       fill="none"
       aria-hidden="true"
-      style={{ color: "var(--accent, #a78bfa)" }}
+      style={{ color: semanticColors.accent }}
     >
       {/* Notepad body */}
       <rect x="12" y="8" width="24" height="32" rx="4" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
@@ -117,7 +118,7 @@ function IllustrationGoals() {
       viewBox="0 0 48 48"
       fill="none"
       aria-hidden="true"
-      style={{ color: "var(--accent, #a78bfa)" }}
+      style={{ color: semanticColors.accent }}
     >
       {/* Gentle hill */}
       <path
@@ -154,7 +155,7 @@ function IllustrationFilter() {
       viewBox="0 0 48 48"
       fill="none"
       aria-hidden="true"
-      style={{ color: "var(--accent, #a78bfa)" }}
+      style={{ color: semanticColors.accent }}
     >
       {/* Magnifying glass */}
       <circle cx="22" cy="22" r="10" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
@@ -176,7 +177,7 @@ function IllustrationReview() {
       viewBox="0 0 48 48"
       fill="none"
       aria-hidden="true"
-      style={{ color: "var(--accent, #a78bfa)" }}
+      style={{ color: semanticColors.accent }}
     >
       {/* Pot / soil line */}
       <path
@@ -224,7 +225,7 @@ function IllustrationBudget() {
       viewBox="0 0 48 48"
       fill="none"
       aria-hidden="true"
-      style={{ color: "var(--accent, #a78bfa)" }}
+      style={{ color: semanticColors.accent }}
     >
       {/* Target rings */}
       <circle cx="24" cy="24" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
@@ -248,7 +249,7 @@ function IllustrationGeneric() {
       viewBox="0 0 48 48"
       fill="none"
       aria-hidden="true"
-      style={{ color: "var(--accent, #a78bfa)" }}
+      style={{ color: semanticColors.accent }}
     >
       {/* Central sparkle */}
       <path
@@ -312,7 +313,7 @@ export function EmptyState({
       ? `1px solid ${colorRamp.success[300]}`
       : `1px solid ${colorRamp.accent[300]}`
   const actionTextColor =
-    actionColor === "success" ? "var(--success, #4ade80)" : "var(--accent, #a78bfa)"
+    actionColor === "success" ? semanticColors.success : semanticColors.accent
 
   return (
     <motion.div

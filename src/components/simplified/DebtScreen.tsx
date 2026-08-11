@@ -536,7 +536,7 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
             fontSize: 14,
             fontWeight: 600,
             fontFamily: FONT_FAMILY,
-            color: "#fff",
+            color: "var(--text)",
             background: saving || !form.name.trim() || form.balance <= 0
               ? "rgba(255,255,255,0.06)"
               : "var(--success)",

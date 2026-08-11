@@ -462,7 +462,7 @@ export function CategoryHubScreen({
                     borderRadius: 8,
                     border: "none",
                     background: newLabel.trim() ? "var(--accent)" : "rgba(255,255,255,0.04)",
-                    color: newLabel.trim() ? "#fff" : "var(--muted)",
+                    color: newLabel.trim() ? "var(--text)" : "var(--muted)",
                     fontSize: 13,
                     fontWeight: 600,
                     fontFamily: FONT_FAMILY,

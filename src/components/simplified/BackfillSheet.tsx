@@ -424,7 +424,7 @@ export function BackfillSheet({
                     fontSize: 15,
                     fontWeight: 600,
                     fontFamily: FONT_FAMILY,
-                    color: '#fff',
+                    color: 'var(--text)',
                     background: paycheckAmount && parseFloat(paycheckAmount) > 0
                       ? 'rgba(167, 139, 250, 0.7)'
                       : 'rgba(167, 139, 250, 0.3)',
@@ -646,7 +646,7 @@ export function BackfillSheet({
                     fontSize: 14,
                     fontWeight: 600,
                     fontFamily: FONT_FAMILY,
-                    color: '#fff',
+                    color: 'var(--text)',
                     background: selectedCategory && expenseAmount && parseFloat(expenseAmount) > 0
                       ? 'rgba(167, 139, 250, 0.7)'
                       : 'rgba(167, 139, 250, 0.3)',
@@ -755,7 +755,7 @@ export function BackfillSheet({
                   fontSize: 15,
                   fontWeight: 600,
                   fontFamily: FONT_FAMILY,
-                  color: '#fff',
+                  color: 'var(--text)',
                   background: 'rgba(167, 139, 250, 0.7)',
                   border: 'none',
                   borderRadius: borderRadius.sm,

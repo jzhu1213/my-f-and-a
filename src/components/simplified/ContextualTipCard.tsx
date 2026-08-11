@@ -6,6 +6,7 @@ import { GlassCard, type GlassGlow } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import { getTipIconName } from "@/lib/icons"
 import { borderRadius } from "@/styles/shared"
+import { colorRamp } from "@/styles/colors"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import type { ContextualTip, TipType } from "@/types/folio"
 
@@ -30,23 +31,23 @@ const TIP_STYLES: Record<
 > = {
   celebration: {
     glow: "celebration",
-    accentFrom: "#fcd34d",
-    accentTo: "#f59e0b",
+    accentFrom: colorRamp.caution[500],
+    accentTo: colorRamp.warning[600],
   },
   gentle_nudge: {
     glow: "caution",
-    accentFrom: "#fbbf24",
-    accentTo: "#f59e0b",
+    accentFrom: colorRamp.warning[500],
+    accentTo: colorRamp.warning[600],
   },
   did_you_know: {
     glow: "rgba(99, 179, 237, 0.35)",
-    accentFrom: "#63b3ed",
-    accentTo: "#3b82f6",
+    accentFrom: colorRamp.blue[400],
+    accentTo: colorRamp.blue[600],
   },
   smart_suggestion: {
     glow: "rgba(99, 179, 237, 0.35)",
-    accentFrom: "#63b3ed",
-    accentTo: "#3b82f6",
+    accentFrom: colorRamp.blue[400],
+    accentTo: colorRamp.blue[600],
   },
 }
 

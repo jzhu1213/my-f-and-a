@@ -146,7 +146,7 @@ function SwipeableRow({ onDelete, children }: SwipeableRowProps) {
           style={{
             fontFamily: 'Inter, sans-serif', fontSize: '12px',
             fontWeight: 600,
-            color: '#fff', width: '100%', height: '100%',
+            color: 'var(--text)', width: '100%', height: '100%',
           }}
         >
           Delete
@@ -886,7 +886,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                       >
                         {isSelected && (
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
                         )}
                       </div>
@@ -1421,7 +1421,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     fontFamily: 'Inter, sans-serif',
                     fontSize: 13,
                     fontWeight: 600,
-                    color: '#fff',
+                    color: 'var(--text)',
                     background: 'var(--accent)',
                     border: 'none',
                     borderRadius: 8,

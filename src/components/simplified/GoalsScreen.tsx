@@ -223,7 +223,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
           style={{
             fontSize: 12,
             lineHeight: 1.5,
-            color: deadlineInfo.feasible ? "var(--sub)" : "var(--warning, #fbbf24)",
+            color: deadlineInfo.feasible ? "var(--sub)" : "var(--warning)",
             marginBottom: 12,
             padding: "6px 10px",
             background: deadlineInfo.feasible
@@ -382,7 +382,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
                 fontSize: 13,
                 fontWeight: 600,
                 fontFamily: FONT_FAMILY,
-                color: "#fff",
+                color: "var(--text)",
                 background: "var(--error)",
                 border: "1px solid var(--error)",
                 borderRadius: 10,
@@ -820,7 +820,7 @@ export function GoalsScreen({
                               width: 16,
                               height: 16,
                               borderRadius: "50%",
-                              background: rule.enabled ? "#4ade80" : "var(--muted)",
+                              background: rule.enabled ? "var(--success)" : "var(--muted)",
                               transition: "left 0.2s, background 0.2s",
                             }}
                           />
@@ -889,8 +889,8 @@ export function GoalsScreen({
                             fontSize: 12,
                             fontWeight: 600,
                             fontFamily: FONT_FAMILY,
-                            color: "#fff",
-                            background: "#4ade80",
+                            color: "var(--text)",
+                            background: "var(--success)",
                             border: "none",
                             borderRadius: 6,
                             cursor: "pointer",

@@ -18,7 +18,7 @@
 import React from "react"
 import { motion, useReducedMotion } from "framer-motion"
 import { Icon } from "@/components/ui/Icon"
-import { gradients, colorRamp } from "@/styles/colors"
+import { gradients, colorRamp, surfaceColors } from "@/styles/colors"
 import { springPresets } from "@/styles/motion"
 
 // ============================================================================
@@ -87,7 +87,7 @@ export function QuickLogControl({
     cursor: "pointer",
     padding: 0,
     WebkitTapHighlightColor: "transparent",
-    color: "#000",
+    color: surfaceColors.canvas,
     zIndex: 1,
   }
 

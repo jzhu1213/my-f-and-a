@@ -629,7 +629,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                     fontSize: 14,
                     fontWeight: 600,
                     fontFamily: FONT_FAMILY,
-                    color: "#fff",
+                    color: "var(--text)",
                     background: "var(--success)",
                     border: "none",
                     borderRadius: 8,

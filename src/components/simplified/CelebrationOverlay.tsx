@@ -13,6 +13,7 @@ import {
 } from "@/lib/animations"
 import { triggerHaptic } from "@/lib/haptics"
 import type { CelebrationEvent, CelebrationType } from "@/types/folio"
+import { resolvedColors } from "@/styles/colors"
 
 /**
  * CelebrationOverlay — the immersive, full-screen celebration experience.
@@ -60,12 +61,12 @@ const STREAK_TYPES: ReadonlySet<CelebrationType> = new Set<CelebrationType>([
 
 /** Warm, friendly confetti palette drawn from the theme's semantic colors. */
 const CONFETTI_COLORS = [
-  "#fcd34d", // warm gold
-  "#fb923c", // orange
-  "#4ade80", // success green
-  "#818cf8", // accent indigo
-  "#f472b6", // playful pink
-  "#ffffff", // sparkle white
+  resolvedColors.caution500,   // warm gold
+  resolvedColors.warning600,   // orange/amber
+  resolvedColors.success500,   // success green
+  resolvedColors.accent500,    // accent indigo
+  resolvedColors.pink500,      // playful pink
+  resolvedColors.text,         // sparkle white
 ] as const
 
 /** Default on-screen lifetime if the event doesn't specify a duration. */
@@ -148,7 +149,7 @@ function MilestoneStarburst() {
             y1={y1}
             x2={x2}
             y2={y2}
-            stroke={isLong ? "#fcd34d" : "#fb923c"}
+            stroke={isLong ? resolvedColors.caution500 : resolvedColors.warning600}
             strokeWidth={isLong ? 2.5 : 2}
             strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 0 }}
@@ -166,7 +167,7 @@ function MilestoneStarburst() {
         cx={center}
         cy={center}
         r={4}
-        fill="#fcd34d"
+        fill={resolvedColors.caution500}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: [0, 1.4, 1], opacity: [0, 1, 0.85] }}
         transition={{ duration: 0.5, ease: "easeOut" }}
@@ -177,7 +178,7 @@ function MilestoneStarburst() {
         cy={center}
         r={24}
         fill="none"
-        stroke="#818cf8"
+        stroke={resolvedColors.accent500}
         strokeWidth={1.5}
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: [0.5, 1.1, 1], opacity: [0, 0.7, 0] }}

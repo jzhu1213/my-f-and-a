@@ -404,7 +404,7 @@ function ToggleSwitch({ checked, onToggle, label }: { checked: boolean; onToggle
           width: 24,
           height: 24,
           borderRadius: 12,
-          background: "#fff",
+          background: "var(--text)",
           boxShadow: shadows.sm,
         }}
       />

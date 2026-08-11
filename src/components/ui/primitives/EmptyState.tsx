@@ -23,7 +23,7 @@ import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { typography, FONT_FAMILY } from "@/styles/typography"
 import { spacingScale } from "@/styles/layout"
 import { radius } from "@/styles/surfaces"
-import { colorRamp, textColors, gradients } from "@/styles/colors"
+import { colorRamp, textColors, gradients, surfaceColors } from "@/styles/colors"
 
 // ============================================================================
 // Props
@@ -118,7 +118,7 @@ export function EmptyState({
             borderRadius: radius.full,
             border: "none",
             background: gradients.action,
-            color: "#000",
+            color: surfaceColors.canvas,
             fontFamily: FONT_FAMILY,
             fontSize: typography["body-sm"].fontSize,
             fontWeight: 600,

@@ -294,7 +294,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                     fontSize: 15,
                     fontWeight: 600,
                     fontFamily: FONT_FAMILY,
-                    color: "#fff",
+                    color: "var(--text)",
                     background: "var(--accent)",
                     border: "none",
                     borderRadius: 12,

@@ -316,9 +316,9 @@ export function InlineTransactionEditor({
                 alignItems: "center",
                 justifyContent: "center",
                 background: canSubmit
-                  ? "linear-gradient(135deg, #a78bfa, #7c3aed)"
+                  ? "var(--gradient-action)"
                   : "var(--dim)",
-                color: canSubmit ? "#fff" : "var(--muted)",
+                color: canSubmit ? "var(--color-canvas)" : "var(--muted)",
                 fontFamily: "Inter, sans-serif",
                 fontSize: 13,
                 fontWeight: 600,

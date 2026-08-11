@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { Icon } from '@/components/ui/Icon'
+import { semanticColors } from '@/styles/colors'
 
 // ============================================================================
 // OfflineBanner — warm, on-brand offline status bar
@@ -69,7 +70,7 @@ export function OfflineBanner({ visible }: OfflineBannerProps) {
           {/* Offline icon */}
           <span
             className="flex-shrink-0"
-            style={{ color: 'var(--warning, #f59e0b)' }}
+            style={{ color: semanticColors.warning }}
           >
             <Icon name="status:offline" size={16} strokeWidth={2} />
           </span>

@@ -544,7 +544,7 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
               width: '47%',
               height: '100%',
               borderRadius: 3,
-              background: '#4ade80',
+              background: 'var(--success)',
             }}
           />
         </div>
@@ -826,7 +826,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
                     width: '47%',
                     height: '100%',
                     borderRadius: 3,
-                    background: '#4ade80',
+                    background: 'var(--success)',
                   }}
                 />
               </div>
@@ -841,7 +841,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
         className="w-full mt-5 py-3 rounded-xl font-medium text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
         style={{
           background: 'var(--accent)',
-          color: '#fff',
+          color: 'var(--text)',
         }}
         aria-label="Got it, back to setup options"
       >
@@ -1508,7 +1508,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         className="flex-1 py-2 rounded-lg text-sm font-medium"
                         style={{
                           background: (parseFloat(hourlyRate) && parseFloat(hoursPerWeek)) ? 'var(--accent)' : 'var(--muted)',
-                          color: '#fff',
+                          color: 'var(--text)',
                           fontFamily: 'Inter, sans-serif',
                           opacity: (parseFloat(hourlyRate) && parseFloat(hoursPerWeek)) ? 1 : 0.5,
                           borderRadius: 8,
@@ -1564,7 +1564,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         className="flex-1 py-2 rounded-lg text-sm font-medium"
                         style={{
                           background: parseFloat(weeklyAmount) ? 'var(--accent)' : 'var(--muted)',
-                          color: '#fff',
+                          color: 'var(--text)',
                           fontFamily: 'Inter, sans-serif',
                           opacity: parseFloat(weeklyAmount) ? 1 : 0.5,
                           borderRadius: 8,
@@ -1663,7 +1663,7 @@ function SetupBudgetStyleStep({ selected, onChange, monthlyIncome }: SetupBudget
                   style={{ background: 'var(--accent)' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
               )}
@@ -2815,7 +2815,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
               className="flex-1 py-2 rounded-lg text-sm font-medium"
               style={{
                 background: label.trim() && amount ? 'var(--accent)' : 'var(--muted)',
-                color: '#fff',
+                color: 'var(--text)',
                 fontFamily: 'Inter, sans-serif',
                 opacity: label.trim() && amount ? 1 : 0.5,
                 borderRadius: 8,
@@ -2920,7 +2920,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
                     className="px-2.5 py-1 text-xs"
                     style={{
                       background: period === 'weekly' ? 'var(--accent)' : 'transparent',
-                      color: period === 'weekly' ? '#fff' : 'var(--muted)',
+                      color: period === 'weekly' ? 'var(--text)' : 'var(--muted)',
                       fontFamily: 'Inter, sans-serif',
                       fontWeight: 500,
                     }}
@@ -2934,7 +2934,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
                     className="px-2.5 py-1 text-xs"
                     style={{
                       background: period === 'monthly' ? 'var(--accent)' : 'transparent',
-                      color: period === 'monthly' ? '#fff' : 'var(--muted)',
+                      color: period === 'monthly' ? 'var(--text)' : 'var(--muted)',
                       fontFamily: 'Inter, sans-serif',
                       fontWeight: 500,
                     }}
@@ -3177,7 +3177,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
                   style={{ background: 'var(--accent)' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
               )}
@@ -3285,7 +3285,7 @@ interface AllocationSplitStepProps {
 const ALLOC_BUCKETS: { key: 'spend' | 'save' | 'invest' | 'setAside'; label: string; emoji: string; color: string }[] = [
   { key: 'spend', label: 'Spend', emoji: '💸', color: 'var(--text)' },
   { key: 'save', label: 'Save', emoji: '🏦', color: 'var(--success)' },
-  { key: 'invest', label: 'Invest', emoji: '📈', color: '#818cf8' },
+  { key: 'invest', label: 'Invest', emoji: '📈', color: 'var(--accent)' },
   { key: 'setAside', label: 'Set Aside', emoji: '🎯', color: 'var(--warning)' },
 ]
 
@@ -3359,7 +3359,7 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
               className="px-3.5 py-2 rounded-full text-sm font-medium"
               style={{
                 background: isActive ? 'var(--accent)' : 'var(--surface)',
-                color: isActive ? '#fff' : 'var(--text)',
+                color: isActive ? 'var(--text)' : 'var(--text)',
                 border: `1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
                 fontFamily: 'Inter, sans-serif',
                 cursor: 'pointer',
@@ -3639,7 +3639,7 @@ function PaycheckModeStep({ mode, onModeChange }: PaycheckModeStepProps) {
                   style={{ background: 'var(--accent)' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
               )}
@@ -3784,7 +3784,7 @@ function SimpleSplitStep({
                 className="flex-1 py-2 px-2 rounded-lg text-sm font-medium"
                 style={{
                   background: isActive ? 'var(--accent)' : 'var(--surface)',
-                  color: isActive ? '#fff' : 'var(--text)',
+                  color: isActive ? 'var(--text)' : 'var(--text)',
                   border: `1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
                   fontFamily: 'Inter, sans-serif',
                   cursor: 'pointer',
@@ -3811,7 +3811,7 @@ function SimpleSplitStep({
               className="px-3.5 py-2 rounded-full text-sm font-medium"
               style={{
                 background: isActive ? 'var(--accent)' : 'var(--surface)',
-                color: isActive ? '#fff' : 'var(--text)',
+                color: isActive ? 'var(--text)' : 'var(--text)',
                 border: `1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
                 fontFamily: 'Inter, sans-serif',
                 cursor: 'pointer',

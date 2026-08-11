@@ -32,7 +32,7 @@ const ALLOCATION_PRESETS: AllocationPreset[] = [
 const BUCKETS: { key: keyof IncomeAllocation; label: string; emoji: string; color: string }[] = [
   { key: 'spend', label: 'Spend', emoji: '💸', color: 'var(--text)' },
   { key: 'save', label: 'Save', emoji: '🏦', color: 'var(--success)' },
-  { key: 'invest', label: 'Invest', emoji: '📈', color: '#818cf8' },
+  { key: 'invest', label: 'Invest', emoji: '📈', color: 'var(--accent)' },
   { key: 'setAside', label: 'Set Aside', emoji: '🎯', color: 'var(--warning)' },
 ]
 
@@ -439,7 +439,7 @@ export function PaycheckSheet({
                         <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>
                           📈 Invest bucket remaining
                         </p>
-                        <p style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 600, color: '#818cf8', fontVariantNumeric: 'tabular-nums' }}>
+                        <p style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
                           ${Math.max(0, allocation.invest - savingsContributed).toLocaleString()}
                         </p>
                       </div>
@@ -556,8 +556,8 @@ export function PaycheckSheet({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: 'linear-gradient(135deg, #4ade80, #22c55e)',
-                        color: '#fff',
+                        background: 'var(--gradient-action)',
+                        color: 'var(--text)',
                         fontFamily: FONT_FAMILY,
                         fontSize: 16,
                         fontWeight: 600,
@@ -590,9 +590,9 @@ export function PaycheckSheet({
                             fontSize: 12,
                             fontFamily: FONT_FAMILY,
                             fontWeight: 600,
-                            color: activePreset === idx ? '#fff' : 'var(--text)',
+                            color: activePreset === idx ? 'var(--color-canvas)' : 'var(--text)',
                             background: activePreset === idx
-                              ? 'linear-gradient(135deg, #4ade80, #22c55e)'
+                              ? 'var(--gradient-action)'
                               : 'rgba(255, 255, 255, 0.06)',
                             border: activePreset === idx
                               ? 'none'
@@ -629,9 +629,9 @@ export function PaycheckSheet({
                           fontSize: 12,
                           fontFamily: FONT_FAMILY,
                           fontWeight: 600,
-                          color: activePreset === null ? '#fff' : 'var(--text)',
+                          color: activePreset === null ? 'var(--color-canvas)' : 'var(--text)',
                           background: activePreset === null
-                            ? 'linear-gradient(135deg, #818cf8, #6366f1)'
+                            ? 'var(--gradient-action)'
                             : 'rgba(255, 255, 255, 0.06)',
                           border: activePreset === null
                             ? 'none'
@@ -687,7 +687,7 @@ export function PaycheckSheet({
                                   style={{
                                     flex: 1,
                                     height: 4,
-                                    accentColor: bucket.color === 'var(--text)' ? '#e2e8f0' : bucket.color,
+                                    accentColor: bucket.color === 'var(--text)' ? 'var(--sub)' : bucket.color,
                                     cursor: 'pointer',
                                   }}
                                 />
@@ -739,9 +739,9 @@ export function PaycheckSheet({
                         alignItems: 'center',
                         justifyContent: 'center',
                         background: isValid
-                          ? 'linear-gradient(135deg, #4ade80, #22c55e)'
+                          ? 'var(--gradient-action)'
                           : 'var(--dim)',
-                        color: isValid ? '#fff' : 'var(--muted)',
+                        color: isValid ? 'var(--color-canvas)' : 'var(--muted)',
                         fontFamily: FONT_FAMILY,
                         fontSize: 16,
                         fontWeight: 600,
@@ -885,8 +885,8 @@ export function PaycheckSheet({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: 'linear-gradient(135deg, #4ade80, #22c55e)',
-                        color: '#fff',
+                        background: 'var(--gradient-action)',
+                        color: 'var(--text)',
                         fontFamily: FONT_FAMILY,
                         fontSize: 16,
                         fontWeight: 600,

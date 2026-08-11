@@ -207,7 +207,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
                   busy || pin.length < MIN_PIN_LENGTH
                     ? "rgba(167, 139, 250, 0.3)"
                     : "rgba(167, 139, 250, 0.9)",
-                color: "#fff",
+                color: "var(--text)",
                 fontSize: 15,
                 fontWeight: 600,
                 fontFamily: FONT_FAMILY,
@@ -233,7 +233,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
               borderRadius: borderRadius.sm,
               border: "none",
               background: busy ? "rgba(167, 139, 250, 0.3)" : "rgba(167, 139, 250, 0.9)",
-              color: "#fff",
+              color: "var(--text)",
               fontSize: 15,
               fontWeight: 600,
               fontFamily: FONT_FAMILY,
@@ -246,7 +246,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
         )}
 
         {error && (
-          <p role="alert" style={{ fontSize: 13, color: "var(--danger, #f87171)", textAlign: "center" }}>
+          <p role="alert" style={{ fontSize: 13, color: "var(--error)", textAlign: "center" }}>
             {error}
           </p>
         )}

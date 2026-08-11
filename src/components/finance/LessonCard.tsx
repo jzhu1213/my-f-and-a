@@ -33,7 +33,7 @@ const primaryButton: React.CSSProperties = {
   borderRadius: 99,
   border: 'none',
   background: 'var(--success)',
-  color: '#fff',
+  color: 'var(--text)',
   fontSize: 14,
   fontWeight: 500,
   fontFamily: FONT_FAMILY,

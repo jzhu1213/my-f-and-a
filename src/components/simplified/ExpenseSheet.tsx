@@ -1247,7 +1247,7 @@ export function ExpenseSheet({
                             ? 'rgba(129, 140, 248, 0.8)'
                             : 'rgba(255, 255, 255, 0.08)',
                           border: 'none',
-                          color: newCategoryLabel.trim() ? '#fff' : 'var(--muted)',
+                          color: newCategoryLabel.trim() ? 'var(--text)' : 'var(--muted)',
                           fontSize: 13,
                           fontFamily: FONT_FAMILY,
                           fontWeight: 600,
@@ -1816,7 +1816,7 @@ export function ExpenseSheet({
                         width: 16,
                         height: 16,
                         borderRadius: '50%',
-                        background: '#fff',
+                        background: 'var(--text)',
                         transition: 'left 0.15s ease',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                       }}
@@ -2260,7 +2260,7 @@ export function ExpenseSheet({
                                         fontFamily: FONT_FAMILY,
                                         fontSize: 13,
                                         fontWeight: 500,
-                                        color: 'var(--success, #4ade80)',
+                                        color: 'var(--success)',
                                         opacity: 0.9,
                                       }}
                                       aria-live="polite"
@@ -2338,7 +2338,7 @@ export function ExpenseSheet({
                             width: 16,
                             height: 16,
                             borderRadius: '50%',
-                            background: '#fff',
+                            background: 'var(--text)',
                             transition: 'left 0.15s ease',
                             boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                           }}
@@ -2388,7 +2388,7 @@ export function ExpenseSheet({
                   background: canSubmit
                     ? 'linear-gradient(135deg, rgba(129, 140, 248, 1) 0%, rgba(99, 102, 241, 1) 100%)'
                     : 'var(--dim)',
-                  color: canSubmit ? '#fff' : 'var(--muted)',
+                  color: canSubmit ? 'var(--text)' : 'var(--muted)',
                   fontFamily: FONT_FAMILY,
                   fontSize: pxToRem(17),
                   fontWeight: 600,

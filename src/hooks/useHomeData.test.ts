@@ -41,11 +41,15 @@ vi.mock('@/lib/supabaseData', () => ({
 describe('useHomeData', () => {
   const mockUserId = 'test-user-123'
   
+  // Use local date string to match how useHomeData computes "today" (local timezone)
+  const now = new Date()
+  const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  
   const mockTransactions: Transaction[] = [
     {
       id: '1',
       userId: mockUserId,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayLocal,
       amount: 15,
       type: 'expense',
       category: 'food',
@@ -56,7 +60,7 @@ describe('useHomeData', () => {
     {
       id: '2',
       userId: mockUserId,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayLocal,
       amount: 50,
       type: 'expense',
       category: 'transport',
@@ -216,7 +220,7 @@ describe('useHomeData', () => {
     const newTransactions: Transaction[] = [...mockTransactions, {
       id: '3',
       userId: mockUserId,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayLocal,
       amount: 10,
       type: 'expense' as const,
       category: 'fun',
@@ -287,7 +291,7 @@ describe('useHomeData', () => {
     const newTransaction: Transaction = {
       id: '999',
       userId: mockUserId,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayLocal,
       amount: 25,
       type: 'expense',
       category: 'food',
@@ -322,7 +326,7 @@ describe('useHomeData', () => {
     const newTransaction: Transaction = {
       id: '999',
       userId: mockUserId,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayLocal,
       amount: 20,
       type: 'expense',
       category: 'food',

@@ -123,7 +123,7 @@ export function PrivacyDataScreen({
       borderRadius: borderRadius.full,
       background: enabled ? "rgba(129, 140, 248, 0.85)" : "rgba(129, 140, 248, 0.25)",
       border: "none",
-      color: "#fff",
+      color: "var(--text)",
       fontSize: 14,
       fontFamily: FONT_FAMILY,
       fontWeight: 600,
@@ -309,7 +309,7 @@ export function PrivacyDataScreen({
       <section aria-labelledby="privacy-delete-heading">
         <h3
           id="privacy-delete-heading"
-          style={{ ...sectionHeader, marginBottom: 12, color: "var(--error, #f87171)" }}
+          style={{ ...sectionHeader, marginBottom: 12, color: "var(--error)" }}
         >
           Delete everything
         </h3>
@@ -330,8 +330,8 @@ export function PrivacyDataScreen({
                   padding: "14px 20px",
                   borderRadius: borderRadius.full,
                   background: "transparent",
-                  border: "1px solid var(--error, #f87171)",
-                  color: "var(--error, #f87171)",
+                  border: "1px solid var(--error)",
+                  color: "var(--error)",
                   fontSize: 14,
                   fontFamily: FONT_FAMILY,
                   fontWeight: 600,
@@ -417,7 +417,7 @@ export function PrivacyDataScreen({
                     fontSize: 14,
                     fontWeight: 600,
                     fontFamily: FONT_FAMILY,
-                    color: canDelete ? "#fff" : "var(--muted)",
+                    color: canDelete ? "var(--text)" : "var(--muted)",
                     background: canDelete ? "var(--error)" : "rgba(255, 255, 255, 0.03)",
                     border: "none",
                     borderRadius: borderRadius.sm,

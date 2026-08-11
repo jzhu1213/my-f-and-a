@@ -315,7 +315,7 @@ export function ReportsScreen({ transactions, onBack, onNotify }: ReportsScreenP
           borderRadius: borderRadius.full,
           background: hasResults ? "rgba(129, 140, 248, 0.85)" : "rgba(129, 140, 248, 0.25)",
           border: "none",
-          color: "#fff",
+          color: "var(--text)",
           fontSize: 14,
           fontFamily: FONT_FAMILY,
           fontWeight: 600,

@@ -17,6 +17,8 @@
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { shadows } from "@/styles/shared"
+import { textColors } from "@/styles/colors"
+import { opacity } from "@/styles/tokens"
 
 export interface SettingsToggleProps {
   /** Whether the toggle is on/checked */
@@ -70,7 +72,7 @@ export function SettingsToggle({
           width: 20,
           height: 20,
           borderRadius: "50%",
-          background: checked ? "#fff" : "rgba(255, 255, 255, 0.4)",
+          background: checked ? "var(--text)" : "rgba(255, 255, 255, 0.4)",
           transition: "left 0.2s ease, background 0.2s ease",
           boxShadow: shadows.sm,
         }}

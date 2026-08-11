@@ -19,7 +19,7 @@ import { springPresets } from '@/styles/motion'
 import { FONT_FAMILY, typography } from '@/styles/typography'
 import { radius } from '@/styles/surfaces'
 import { spacingScale } from '@/styles/layout'
-import { colorRamp, gradients, textColors, semanticColors } from '@/styles/colors'
+import { colorRamp, gradients, textColors, semanticColors, surfaceColors } from '@/styles/colors'
 
 // ============================================================================
 // Types
@@ -99,7 +99,7 @@ function getVariantStyles(variant: ButtonVariant, disabled: boolean): React.CSSP
     case 'primary':
       return {
         background: gradients.action,
-        color: '#0e0e1a',
+        color: surfaceColors.canvas,
         border: 'none',
         cursor: 'pointer',
       }
@@ -120,7 +120,7 @@ function getVariantStyles(variant: ButtonVariant, disabled: boolean): React.CSSP
     case 'danger':
       return {
         background: colorRamp.error[600],
-        color: '#ffffff',
+        color: textColors.text,
         border: 'none',
         cursor: 'pointer',
       }

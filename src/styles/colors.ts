@@ -159,3 +159,28 @@ export const semanticColors = {
   /** Border — accent */
   borderAccent: 'var(--border-accent)',
 } as const
+
+
+// ============================================================================
+// Resolved Color Values (for Canvas API / non-DOM contexts)
+// ============================================================================
+
+/**
+ * Resolved hex values for use where CSS `var()` cannot be applied
+ * (e.g., canvas-confetti, Canvas 2D context, WebGL).
+ *
+ * These MUST stay in sync with the corresponding CSS custom properties
+ * in globals.css. Update both locations when changing values.
+ */
+export const resolvedColors = {
+  accent500: '#818cf8',
+  success500: '#4ade80',
+  warning500: '#fbbf24',
+  warning600: '#eab308',
+  caution500: '#facc15',
+  error500: '#f87171',
+  blue500: '#3b82f6',
+  text: '#ffffff',
+  canvas: '#0e0e1a',
+  pink500: '#f472b6',
+} as const

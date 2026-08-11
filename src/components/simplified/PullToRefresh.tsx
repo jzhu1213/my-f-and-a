@@ -268,7 +268,7 @@ function AccentDot({
 
   // Alternate between accent purple and secondary purple for depth
   const isSecondary = index % 2 === 1
-  const color = isSecondary ? "#a78bfa" : "#818cf8"
+  const color = isSecondary ? "var(--accent-400)" : "var(--accent-500)"
 
   // During refresh: dots pulse/breathe. With reduced motion: just steady opacity.
   const refreshAnimation = prefersReducedMotion

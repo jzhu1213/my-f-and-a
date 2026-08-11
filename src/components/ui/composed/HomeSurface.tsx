@@ -30,7 +30,7 @@ import { EmptyState } from "@/components/ui/primitives/EmptyState"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { spacingScale, CONTENT_MAX_WIDTH, HORIZONTAL_PADDING } from "@/styles/layout"
 import { typography, FONT_FAMILY } from "@/styles/typography"
-import { textColors } from "@/styles/colors"
+import { textColors, colorRamp } from "@/styles/colors"
 import { radius } from "@/styles/surfaces"
 import type { Transaction } from "@/types"
 import type { ContextualTip } from "@/types/folio"
@@ -247,9 +247,9 @@ function ContextualCardSlot({
               style={{
                 padding: `${spacingScale["6"]} ${spacingScale["12"]}`,
                 borderRadius: radius.full,
-                border: "none",
-                background: "var(--gradient-action, linear-gradient(135deg, #a78bfa, #7c3aed))",
-                color: "#000",
+                border: `1px solid ${colorRamp.accent[500]}`,
+                background: "transparent",
+                color: colorRamp.accent[500],
                 fontFamily: FONT_FAMILY,
                 fontSize: typography.caption.fontSize,
                 fontWeight: 600,

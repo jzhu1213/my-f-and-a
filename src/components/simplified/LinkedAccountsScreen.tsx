@@ -43,7 +43,7 @@ const STATUS_DISPLAY: Record<
   },
   error: {
     label: "Needs attention",
-    color: "var(--warning, #f59e0b)",
+    color: "var(--warning)",
     bg: "rgba(245, 158, 11, 0.1)",
   },
 }

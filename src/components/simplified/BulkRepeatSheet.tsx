@@ -432,7 +432,7 @@ export function BulkRepeatSheet({
             fontSize: 15,
             fontFamily: FONT_FAMILY,
             fontWeight: 600,
-            color: canSubmit ? '#FFFFFF' : 'var(--muted)',
+            color: canSubmit ? 'var(--text)' : 'var(--muted)',
             opacity: canSubmit ? 1 : 0.5,
           }}
         >

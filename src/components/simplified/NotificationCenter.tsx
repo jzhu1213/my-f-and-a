@@ -123,7 +123,7 @@ function NudgeToggle({
               width: 22,
               height: 22,
               borderRadius: borderRadius.md,
-              background: enabled ? "#fff" : "rgba(255, 255, 255, 0.5)",
+              background: enabled ? "var(--text)" : "rgba(255, 255, 255, 0.5)",
               boxShadow: shadows.sm,
             }}
           />
@@ -557,7 +557,7 @@ export function NotificationCenter() {
             borderRadius: 10,
             border: "1px solid rgba(167, 139, 250, 0.3)",
             background: "rgba(167, 139, 250, 0.08)",
-            color: "var(--accent, #a78bfa)",
+            color: "var(--accent)",
             fontSize: 13,
             fontWeight: 500,
             fontFamily: FONT_FAMILY,

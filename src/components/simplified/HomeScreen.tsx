@@ -967,7 +967,7 @@ export function HomeScreen({
                 }}
               >
                 Saving{" "}
-                <span style={{ color: "var(--success, #4ade80)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ color: "var(--success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                   {savingsRate}%
                 </span>{" "}
                 this month
@@ -999,7 +999,7 @@ export function HomeScreen({
                   marginTop: 10,
                   fontFamily: FONT_FAMILY,
                   fontSize: 12,
-                  color: "var(--accent, #a78bfa)",
+                  color: "var(--accent)",
                   opacity: 0.9,
                 }}
               >
@@ -1109,7 +1109,7 @@ export function HomeScreen({
               <span
                 style={{
                   fontSize: 11,
-                  color: activeSpendDown.onTrack ? 'var(--success, #4ade80)' : 'var(--warning, #fbbf24)',
+                  color: activeSpendDown.onTrack ? 'var(--success)' : 'var(--warning)',
                   fontFamily: FONT_FAMILY,
                   marginLeft: 2,
                 }}
@@ -1130,11 +1130,11 @@ export function HomeScreen({
               transition={springs.bouncy}
               style={{
                 flex: 1.6,
-                background: "linear-gradient(135deg, #a78bfa 0%, #7c3aed 50%, #6d28d9 100%)",
+                background: "var(--gradient-action)",
                 border: "none",
                 borderRadius: borderRadius.full,
                 padding: "18px 24px",
-                color: "#fff",
+                color: "var(--text)",
                 fontSize: 16,
                 fontWeight: 600,
                 fontFamily: FONT_FAMILY,
@@ -1262,7 +1262,7 @@ export function HomeScreen({
                       fontSize: 11,
                       fontFamily: FONT_FAMILY,
                       fontWeight: 600,
-                      color: 'var(--success, #4ade80)',
+                      color: 'var(--success)',
                       background: colorRamp.success[100],
                       border: `1px solid ${colorRamp.success[200]}`,
                       borderRadius: borderRadius.full,

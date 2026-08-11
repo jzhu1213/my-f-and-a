@@ -387,13 +387,13 @@ export function FundingSourcesScreen({
                   padding: "10px 12px",
                   borderRadius: 8,
                   border: !form.reducesBalanceNow
-                    ? "1.5px solid var(--warning, #f59e0b)"
+                    ? "1.5px solid var(--warning)"
                     : `1px solid ${fills[8]}`,
                   background: !form.reducesBalanceNow
                     ? "rgba(245, 158, 11, 0.08)"
                     : "transparent",
                   color: !form.reducesBalanceNow
-                    ? "var(--warning, #f59e0b)"
+                    ? "var(--warning)"
                     : "var(--muted)",
                   fontSize: 13,
                   fontWeight: 500,
@@ -439,7 +439,7 @@ export function FundingSourcesScreen({
                 background: form.label.trim()
                   ? "var(--success)"
                   : fills[6],
-                color: form.label.trim() ? "#000" : "var(--muted)",
+                color: form.label.trim() ? "var(--color-canvas)" : "var(--muted)",
                 fontSize: 13,
                 fontWeight: 600,
                 fontFamily: FONT_FAMILY,
@@ -590,7 +590,7 @@ export function FundingSourcesScreen({
                             : "rgba(245, 158, 11, 0.1)",
                           color: source.reducesBalanceNow
                             ? "var(--success)"
-                            : "var(--warning, #f59e0b)",
+                            : "var(--warning)",
                           fontFamily: FONT_FAMILY,
                         }}
                       >

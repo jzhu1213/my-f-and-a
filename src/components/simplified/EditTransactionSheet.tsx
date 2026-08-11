@@ -10,6 +10,7 @@ import type { Transaction, TransactionCategory } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 import { FONT_FAMILY, spacing, pxToRem } from '@/styles/typography'
 import { shadows, fills, colorRamp } from '@/styles/shared'
+import { gradients } from '@/styles/colors'
 import { DatePickerChips, getRelativeDateLabel } from '@/components/ui/DatePickerChips'
 
 interface EditTransactionSheetProps {
@@ -392,9 +393,9 @@ export function EditTransactionSheet({
                   alignItems: 'center',
                   justifyContent: 'center',
                   background: canSubmit && hasChanges
-                    ? 'linear-gradient(135deg, #a78bfa, #7c3aed)'
+                    ? gradients.action
                     : 'var(--dim)',
-                  color: canSubmit && hasChanges ? '#fff' : 'var(--muted)',
+                  color: canSubmit && hasChanges ? 'var(--color-canvas)' : 'var(--muted)',
                   fontFamily: FONT_FAMILY,
                   fontSize: pxToRem(16),
                   fontWeight: 600,

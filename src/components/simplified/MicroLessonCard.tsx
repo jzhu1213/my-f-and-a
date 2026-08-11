@@ -77,7 +77,7 @@ export function MicroLessonCard({ lesson, onLearnMore, onDismiss }: MicroLessonC
                 cursor: "pointer",
                 fontSize: 13,
                 fontWeight: 500,
-                color: "var(--accent, #63b3ed)",
+                color: "var(--accent)",
                 fontFamily: FONT_FAMILY,
                 padding: 0,
               }}

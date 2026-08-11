@@ -84,7 +84,7 @@ const primaryButton: React.CSSProperties = {
   fontSize: 15,
   fontWeight: 600,
   fontFamily: FONT_FAMILY,
-  color: "#fff",
+  color: "var(--text)",
   background: "var(--accent)",
   border: "none",
   borderRadius: borderRadius.sm,

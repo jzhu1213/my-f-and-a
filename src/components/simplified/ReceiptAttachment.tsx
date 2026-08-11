@@ -246,7 +246,7 @@ export function ReceiptAttachment({
                 justifyContent: "center",
                 cursor: "pointer",
                 fontSize: 18,
-                color: "#fff",
+                color: "var(--text)",
               }}
             >
               ×

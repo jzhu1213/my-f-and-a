@@ -504,9 +504,9 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                       style={{
                         fontSize: 10,
                         fontWeight: 600,
-                        color: "#f97316",
-                        background: "rgba(249, 115, 22, 0.12)",
-                        border: "1px solid rgba(249, 115, 22, 0.25)",
+                        color: colorRamp.warning[500],
+                        background: colorRamp.warning[100],
+                        border: `1px solid ${colorRamp.warning[300]}`,
                         borderRadius: 99,
                         padding: "2px 7px",
                         letterSpacing: "0.04em",
@@ -651,7 +651,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                           height: 6,
                           borderRadius: 3,
                           appearance: "none",
-                          background: `linear-gradient(to right, ${isFirm ? "#f97316" : "var(--success)"} 0%, ${isFirm ? "#f97316" : "var(--success)"} ${(limit / SLIDER_MAX) * 100}%, var(--border) ${(limit / SLIDER_MAX) * 100}%, var(--border) 100%)`,
+                          background: `linear-gradient(to right, ${isFirm ? colorRamp.warning[500] : "var(--success)"} 0%, ${isFirm ? colorRamp.warning[500] : "var(--success)"} ${(limit / SLIDER_MAX) * 100}%, var(--border) ${(limit / SLIDER_MAX) * 100}%, var(--border) 100%)`,
                           cursor: "pointer",
                           outline: "none",
                         }}
@@ -765,8 +765,8 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                               aria-checked={isFirm}
                               style={{
                                 ...segmentedButtonBase,
-                                background: isFirm ? "rgba(249, 115, 22, 0.15)" : "transparent",
-                                color: isFirm ? "#f97316" : "var(--muted)",
+                                background: isFirm ? colorRamp.warning[200] : "transparent",
+                                color: isFirm ? colorRamp.warning[500] : "var(--muted)",
                                 boxShadow: isFirm ? shadows.sm : "none",
                               }}
                             >
@@ -1133,7 +1133,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                 width: 24,
                 height: 24,
                 borderRadius: borderRadius.md,
-                background: "#fff",
+                background: "var(--text)",
                 boxShadow: shadows.sm,
               }}
             />

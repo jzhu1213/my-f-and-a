@@ -23,13 +23,18 @@ describe('computeDailyAllowance', () => {
     createdAt: new Date().toISOString()
   })
 
+  // Helper: create a local-time Date to avoid UTC timezone issues.
+  // new Date('2024-01-15') creates UTC midnight which may shift to the previous
+  // day in negative-offset timezones. Using (year, month-1, day) creates local midnight.
+  const localDate = (year: number, month: number, day: number) => new Date(year, month - 1, day)
+
   it('should calculate daily budget as totalMonthlyBudget / daysInMonth', () => {
     const budgets: Budget[] = [
       createBudget('food', 300),
       createBudget('transport', 100)
     ]
     const transactions: Transaction[] = []
-    const currentDate = new Date('2024-01-15') // 31 days in January
+    const currentDate = localDate(2024, 1, 15) // 31 days in January
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -44,7 +49,7 @@ describe('computeDailyAllowance', () => {
       createTransaction('2024-01-14', 20), // yesterday, should not count
       createTransaction('2024-01-15', 15, 'income') // income, should not count
     ]
-    const currentDate = new Date('2024-01-15')
+    const currentDate = localDate(2024, 1, 15)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -61,7 +66,7 @@ describe('computeDailyAllowance', () => {
       createTransaction('2024-01-04', 5),
       createTransaction('2024-01-05', 5)
     ]
-    const currentDate = new Date('2024-01-06') // Day 6
+    const currentDate = localDate(2024, 1, 6) // Day 6
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -80,7 +85,7 @@ describe('computeDailyAllowance', () => {
       createTransaction('2024-01-04', 15),
       createTransaction('2024-01-05', 15)
     ]
-    const currentDate = new Date('2024-01-06') // Day 6
+    const currentDate = localDate(2024, 1, 6) // Day 6
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -95,7 +100,7 @@ describe('computeDailyAllowance', () => {
       // Days 1-10: spent 0, should save 100 but cap at 20 (2 days)
       ...Array.from({ length: 10 }, (_, i) => createTransaction(`2024-01-${String(i + 1).padStart(2, '0')}`, 0))
     ]
-    const currentDate = new Date('2024-01-11') // Day 11
+    const currentDate = localDate(2024, 1, 11) // Day 11
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -108,7 +113,7 @@ describe('computeDailyAllowance', () => {
     const transactions: Transaction[] = [
       createTransaction('2024-01-15', 100) // way over budget today
     ]
-    const currentDate = new Date('2024-01-15')
+    const currentDate = localDate(2024, 1, 15)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -120,7 +125,7 @@ describe('computeDailyAllowance', () => {
     const transactions: Transaction[] = [
       createTransaction('2024-01-15', 3) // spent 3 out of 10
     ]
-    const currentDate = new Date('2024-01-15')
+    const currentDate = localDate(2024, 1, 15)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -133,7 +138,7 @@ describe('computeDailyAllowance', () => {
       // On day 1, spend 6 out of 10, leaving 4 (40% remaining)
       createTransaction('2024-01-01', 6)
     ]
-    const currentDate = new Date('2024-01-01')
+    const currentDate = localDate(2024, 1, 1)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -147,7 +152,7 @@ describe('computeDailyAllowance', () => {
       // On day 1, spend 8 out of 10, leaving 2 (20% remaining)
       createTransaction('2024-01-01', 8)
     ]
-    const currentDate = new Date('2024-01-01')
+    const currentDate = localDate(2024, 1, 1)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -161,7 +166,7 @@ describe('computeDailyAllowance', () => {
       // On day 1, spend 12 out of 10 (overspent)
       createTransaction('2024-01-01', 12)
     ]
-    const currentDate = new Date('2024-01-01')
+    const currentDate = localDate(2024, 1, 1)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -172,7 +177,7 @@ describe('computeDailyAllowance', () => {
   it('should return encouraging message based on status', () => {
     const budgets: Budget[] = [createBudget('food', 310)]
     const transactions: Transaction[] = []
-    const currentDate = new Date('2024-01-15')
+    const currentDate = localDate(2024, 1, 15)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -184,7 +189,7 @@ describe('computeDailyAllowance', () => {
   it('should handle empty budgets array', () => {
     const budgets: Budget[] = []
     const transactions: Transaction[] = []
-    const currentDate = new Date('2024-01-15')
+    const currentDate = localDate(2024, 1, 15)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -202,7 +207,7 @@ describe('computeDailyAllowance', () => {
   it('should handle empty transactions array', () => {
     const budgets: Budget[] = [createBudget('food', 310)]
     const transactions: Transaction[] = []
-    const currentDate = new Date('2024-01-15')
+    const currentDate = localDate(2024, 1, 15)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -213,7 +218,7 @@ describe('computeDailyAllowance', () => {
   it('should handle first day of month (no rollover calculation)', () => {
     const budgets: Budget[] = [createBudget('food', 310)]
     const transactions: Transaction[] = []
-    const currentDate = new Date('2024-01-01')
+    const currentDate = localDate(2024, 1, 1)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
@@ -232,12 +237,12 @@ describe('computeDailyAllowance', () => {
       // Day 5: spent 3 so far
       createTransaction('2024-01-05', 3)
     ]
-    const currentDate = new Date('2024-01-05')
+    const currentDate = localDate(2024, 1, 5)
 
     const result = computeDailyAllowance(budgets, transactions, currentDate)
 
     const dailyBudget = 310 / 31 // ~10
-    const rollover = 20 // saved 5*4 days
+    const rollover = 20 // saved 5*4 days, capped at ±2 days budget = 20
     const spentToday = 3
     const expectedAmount = dailyBudget + rollover - spentToday
 

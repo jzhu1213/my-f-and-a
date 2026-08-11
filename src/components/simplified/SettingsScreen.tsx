@@ -190,7 +190,7 @@ function CollapsibleSection({
   children: React.ReactNode
 }) {
   return (
-    <div style={{ marginBottom: spacingScale["12"] }}>
+    <div style={{ marginBottom: spacingScale["32"] }}>
       <button
         type="button"
         onClick={onToggle}

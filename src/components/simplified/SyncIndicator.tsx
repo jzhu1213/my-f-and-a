@@ -98,7 +98,7 @@ export function SyncIndicator({
           className="flex items-center gap-3 px-4 py-3 w-full"
           style={glassCardStyle}
         >
-          <span className="flex-shrink-0" style={{ color: 'var(--green, #34d399)' }}>
+          <span className="flex-shrink-0" style={{ color: 'var(--success)' }}>
             <Icon name="toast:success" size={16} strokeWidth={2} />
           </span>
           <p
@@ -128,7 +128,7 @@ export function SyncIndicator({
           className="flex items-center gap-3 px-4 py-3 w-full"
           style={glassCardStyle}
         >
-          <span className="flex-shrink-0" style={{ color: 'var(--warning, #f59e0b)' }}>
+          <span className="flex-shrink-0" style={{ color: 'var(--warning)' }}>
             <Icon name="status:error" size={16} strokeWidth={2} />
           </span>
           <p
@@ -146,7 +146,7 @@ export function SyncIndicator({
               onClick={onRetry}
               style={{ ...pillButtonStyle, color: 'var(--text)' }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'var(--accent, #a78bfa)'
+                e.currentTarget.style.borderColor = 'var(--accent)'
                 e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
               }}
               onMouseLeave={e => {
@@ -190,7 +190,7 @@ export function SyncIndicator({
           className="flex items-center gap-3 px-4 py-3 w-full"
           style={glassCardStyle}
         >
-          <span className="flex-shrink-0" style={{ color: 'var(--blue, #60a5fa)' }}>
+          <span className="flex-shrink-0" style={{ color: 'var(--blue)' }}>
             <motion.span
               className="inline-flex"
               animate={prefersReducedMotion ? {} : { rotate: 360 }}

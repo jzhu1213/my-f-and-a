@@ -306,7 +306,7 @@ export function YearInReviewScreen({
             borderRadius: borderRadius.full,
             background: "rgba(129, 140, 248, 0.85)",
             border: "none",
-            color: "#fff",
+            color: "var(--text)",
             fontSize: 14,
             fontFamily: FONT_FAMILY,
             fontWeight: 600,

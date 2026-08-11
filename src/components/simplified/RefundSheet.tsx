@@ -184,7 +184,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
             {parseFloat(amount) > transaction.amount && (
               <p style={{
                 fontSize: 12,
-                color: 'var(--error, #ef4444)',
+                color: 'var(--error)',
                 marginTop: 8,
                 fontFamily: FONT_FAMILY,
               }}>
@@ -205,9 +205,9 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
               alignItems: 'center',
               justifyContent: 'center',
               background: canSubmit
-                ? 'linear-gradient(135deg, #4ade80, #22c55e)'
+                ? 'var(--gradient-action)'
                 : 'var(--dim)',
-              color: canSubmit ? '#fff' : 'var(--muted)',
+              color: canSubmit ? 'var(--color-canvas)' : 'var(--muted)',
               fontFamily: FONT_FAMILY,
               fontSize: 16,
               fontWeight: 600,

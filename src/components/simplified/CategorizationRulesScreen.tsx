@@ -419,7 +419,7 @@ function RuleFormWrapper({
             fontSize: 14,
             fontWeight: 600,
             fontFamily: FONT_FAMILY,
-            color: canSave ? "#fff" : "var(--muted)",
+            color: canSave ? "var(--text)" : "var(--muted)",
             background: canSave ? "rgba(129, 140, 248, 0.9)" : "rgba(255,255,255,0.06)",
             border: "none",
             borderRadius: borderRadius.full,

@@ -6,6 +6,7 @@ import type { FundingSource } from "@/lib/fundingSources"
 import { motion } from "framer-motion"
 import { useReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY, spacing } from "@/styles/typography"
+import { spacingScale } from "@/styles/layout"
 import { HistoryView } from "@/components/accounting/HistoryView"
 import { InsightTrendCard } from "./InsightTrendCard"
 import { InsightBreakdownCard } from "./InsightBreakdownCard"
@@ -120,7 +121,7 @@ export function HistoryScreen({
         <InsightBreakdownCard transactions={transactions} />
       </motion.div>
 
-      <motion.div variants={listItem}>
+      <motion.div variants={listItem} style={{ marginTop: spacingScale["32"] }}>
       <HistoryView
         transactions={transactions}
         isLoading={isLoading}

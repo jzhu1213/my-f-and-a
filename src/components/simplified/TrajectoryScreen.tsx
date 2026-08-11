@@ -62,7 +62,7 @@ const DIRECTION_DISPLAY: Record<
 > = {
   improving: { arrow: "↗", color: "var(--success)", label: "Improving" },
   steady: { arrow: "→", color: "var(--sub)", label: "Steady" },
-  declining: { arrow: "↘", color: "var(--warning, #f59e0b)", label: "Needs attention" },
+  declining: { arrow: "↘", color: "var(--warning)", label: "Needs attention" },
 }
 
 // ============================================================================
@@ -1026,7 +1026,7 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
           )}
           {hasDebtSignal && (
             <p style={{ fontSize: 12, color: "var(--sub)" }}>
-              <span style={{ color: "var(--accent, #818cf8)", fontWeight: 600 }}>Debt</span>{" "}
+              <span style={{ color: "var(--accent)", fontWeight: 600 }}>Debt</span>{" "}
               projected to drop to{" "}
               <span style={{ color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
                 {formatDollars(projectedDebt)}

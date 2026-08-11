@@ -176,7 +176,7 @@ export function CashFlowForecastScreen({
   const summaryColor = forecast.summary.willGoNegative
     ? "var(--error)"
     : forecast.summary.lowestBalance < 50
-    ? "var(--warning, #f5a623)"
+    ? "var(--warning)"
     : "var(--success)"
 
   return (

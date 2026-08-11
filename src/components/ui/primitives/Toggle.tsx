@@ -82,9 +82,10 @@ const sizeConfigs: Record<"sm" | "md", ToggleSizeConfig> = {
 const KNOB_FILL_OFF = "var(--color-text, #ffffff)"
 
 /**
- * Knob fill for on state — pure white for maximum contrast on accent track.
+ * Knob fill for on state — white for maximum contrast on accent track.
+ * Resolves from the color-text CSS token (which is white in the canonical palette).
  */
-const KNOB_FILL_ON = "#ffffff"
+const KNOB_FILL_ON = "var(--color-text, #ffffff)"
 
 // ============================================================================
 // Component
