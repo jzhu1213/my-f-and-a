@@ -1,15 +1,25 @@
-import type { IncomeAllocation } from '@/types/folio'
-
 /**
- * Computes the allocation-bucket slice of "set aside" money for a collection of
- * allocations: save + invest + setAside from each allocation.
+ * Allocation utilities — allocation-bucket slice of "set aside" + savings rate.
+ *
+ * Computes `computeTotalSetAside` (allocation-only slice) and `computeSavingsRate`.
  *
  * NOTE: This is only the *allocation-bucket* portion of money set aside. The
  * unified, reconciled model that maps ALL four features (allocation buckets,
  * sinking funds, goals, and the emergency fund) lives in `src/lib/setAside.ts`
  * (`computeSetAside`). Prefer that single source of truth for anything that
- * needs the overall "money set aside" figure; this helper is kept for callers
- * that specifically want the allocation buckets alone.
+ * needs the overall "money set aside" figure.
+ *
+ * ── Related modules (money-set-aside cluster) ─────────────────────────────
+ *   • setAside.ts            — unified "money set aside" model (flow + balance)
+ *   • taxSetAside.ts         — gig/1099 tax reserve computation
+ *   • autoEarmarkSavings.ts  — auto-sweep unspent allowance toward savings
+ */
+
+import type { IncomeAllocation } from '@/types/folio'
+
+/**
+ * Computes the allocation-bucket slice of "set aside" money for a collection of
+ * allocations: save + invest + setAside from each allocation.
  *
  * @param allocations - Array of income allocations (typically for the current month)
  * @returns Total reserved money across all allocations

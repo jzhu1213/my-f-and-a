@@ -50,6 +50,8 @@ interface DbProfile {
   onboarding_path?: string | null
   onboarding_completed_steps?: string[] | null
   onboarding_skipped_steps?: string[] | null
+  handle?: string | null
+  discoverable?: boolean
 }
 
 interface DbBudget {
@@ -71,6 +73,17 @@ interface DbGoal {
   created_at: string
   target_date?: string | null
   linked_account_id?: string | null
+  is_shared?: boolean | null
+  share_token?: string | null
+}
+
+interface DbGoalParticipant {
+  id: string
+  goal_id: string
+  participant_user_id?: string | null
+  name: string
+  contributed_amount: number
+  joined_at: string
 }
 
 interface DbLessonProgress {
@@ -172,6 +185,8 @@ function dbProfileToApp(db: DbProfile): UserProfile {
     onboardingPath: (db.onboarding_path as OnboardingPath) ?? null,
     onboardingCompletedSteps: db.onboarding_completed_steps ?? [],
     onboardingSkippedSteps: db.onboarding_skipped_steps ?? [],
+    handle: db.handle ?? null,
+    discoverable: db.discoverable ?? false,
   }
 }
 
@@ -204,6 +219,17 @@ function dbGoalToApp(db: DbGoal): Goal {
     createdAt: db.created_at,
     ...(db.target_date ? { targetDate: db.target_date } : {}),
     ...(db.linked_account_id ? { linkedAccountId: db.linked_account_id } : {}),
+    ...(db.is_shared ? { isShared: true } : {}),
+    ...(db.share_token ? { shareToken: db.share_token } : {}),
+  }
+}
+
+function dbGoalParticipantToApp(db: DbGoalParticipant): import('@/types').GoalParticipant {
+  return {
+    id: db.id,
+    name: db.name,
+    contributedAmount: Number(db.contributed_amount),
+    joinedAt: db.joined_at,
   }
 }
 
@@ -297,6 +323,8 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
         priority: 'save',
         hasCompletedOnboarding: false,
         createdAt: new Date().toISOString(),
+        handle: null,
+        discoverable: false,
       }
     }
     return null
@@ -681,7 +709,33 @@ export async function getGoals(userId: string): Promise<Goal[]> {
     return []
   }
 
-  return (data || []).map(dbGoalToApp)
+  const goals = (data || []).map(dbGoalToApp)
+
+  // Fetch participants for any shared goals
+  const sharedGoalIds = goals.filter(g => g.isShared).map(g => g.id)
+  if (sharedGoalIds.length > 0) {
+    const { data: participants } = await supabase
+      .from('goal_participants')
+      .select('*')
+      .in('goal_id', sharedGoalIds)
+      .order('joined_at', { ascending: true })
+
+    if (participants && participants.length > 0) {
+      const participantsByGoal = new Map<string, import('@/types').GoalParticipant[]>()
+      for (const p of participants) {
+        const list = participantsByGoal.get(p.goal_id) || []
+        list.push(dbGoalParticipantToApp(p))
+        participantsByGoal.set(p.goal_id, list)
+      }
+      for (const goal of goals) {
+        if (participantsByGoal.has(goal.id)) {
+          goal.participants = participantsByGoal.get(goal.id)
+        }
+      }
+    }
+  }
+
+  return goals
 }
 
 export async function createGoal(
@@ -777,6 +831,208 @@ export async function deleteGoal(
 }
 
 // ============================================
+// SHARED GOAL FUNCTIONS
+// ============================================
+
+/**
+ * Enable sharing on a goal: sets is_shared = true and generates a share_token.
+ * Returns the share token string, or null on failure.
+ */
+export async function enableGoalSharing(
+  userId: string,
+  goalId: string
+): Promise<string | null> {
+  // Generate token client-side so we can return it immediately
+  const token = crypto.randomUUID()
+
+  const { error } = await supabase
+    .from('goals')
+    .update({ is_shared: true, share_token: token })
+    .eq('id', goalId)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error enabling goal sharing:', error)
+    return null
+  }
+
+  return token
+}
+
+/**
+ * Revoke sharing on a goal: sets is_shared = false and clears the share_token.
+ */
+export async function disableGoalSharing(
+  userId: string,
+  goalId: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('goals')
+    .update({ is_shared: false, share_token: null })
+    .eq('id', goalId)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error disabling goal sharing:', error)
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Check if a goal is shared by reading the is_shared column.
+ */
+export async function checkGoalShared(goalId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('goals')
+    .select('is_shared')
+    .eq('id', goalId)
+    .single()
+
+  if (error || !data) return false
+  return !!data.is_shared
+}
+
+/**
+ * Get the share token for a goal.
+ */
+export async function getGoalShareToken(goalId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('goals')
+    .select('share_token')
+    .eq('id', goalId)
+    .single()
+
+  if (error || !data) return null
+  return data.share_token ?? null
+}
+
+/**
+ * Fetch a goal by its share token (for invite link access).
+ */
+export async function getGoalByShareToken(token: string): Promise<Goal | null> {
+  const { data, error } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('share_token', token)
+    .eq('is_shared', true)
+    .single()
+
+  if (error || !data) return null
+  return dbGoalToApp(data)
+}
+
+/**
+ * Add a participant to a shared goal.
+ * participant_user_id is optional (null for name-only/unlinked participants).
+ */
+export async function addGoalParticipant(
+  goalId: string,
+  name: string,
+  participantUserId?: string | null
+): Promise<import('@/types').GoalParticipant | null> {
+  const { data, error } = await supabase
+    .from('goal_participants')
+    .insert({
+      goal_id: goalId,
+      name: name.trim() || 'Participant',
+      ...(participantUserId ? { participant_user_id: participantUserId } : {}),
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error adding goal participant:', error)
+    return null
+  }
+
+  return dbGoalParticipantToApp(data)
+}
+
+/**
+ * Remove a participant from a shared goal.
+ */
+export async function removeGoalParticipant(
+  goalId: string,
+  participantId: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('goal_participants')
+    .delete()
+    .eq('id', participantId)
+    .eq('goal_id', goalId)
+
+  if (error) {
+    console.error('Error removing goal participant:', error)
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Record a contribution for a participant (adds amount to existing contributed_amount).
+ */
+export async function recordGoalParticipantContribution(
+  goalId: string,
+  participantId: string,
+  amount: number
+): Promise<import('@/types').GoalParticipant | null> {
+  if (amount <= 0) return null
+
+  // Fetch current amount first
+  const { data: current, error: fetchError } = await supabase
+    .from('goal_participants')
+    .select('contributed_amount')
+    .eq('id', participantId)
+    .eq('goal_id', goalId)
+    .single()
+
+  if (fetchError || !current) {
+    console.error('Error fetching participant:', fetchError)
+    return null
+  }
+
+  const newAmount = Number(current.contributed_amount) + amount
+
+  const { data, error } = await supabase
+    .from('goal_participants')
+    .update({ contributed_amount: newAmount })
+    .eq('id', participantId)
+    .eq('goal_id', goalId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error recording contribution:', error)
+    return null
+  }
+
+  return dbGoalParticipantToApp(data)
+}
+
+/**
+ * Get all participants for a shared goal.
+ */
+export async function getGoalParticipants(
+  goalId: string
+): Promise<import('@/types').GoalParticipant[]> {
+  const { data, error } = await supabase
+    .from('goal_participants')
+    .select('*')
+    .eq('goal_id', goalId)
+    .order('joined_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching goal participants:', error)
+    return []
+  }
+
+  return (data || []).map(dbGoalParticipantToApp)
+}
+
+// ============================================
 // LESSON PROGRESS FUNCTIONS
 // ============================================
 
@@ -837,6 +1093,8 @@ export async function updateProfilePreferences(
     onboardingSkippedSteps?: string[]
     hasCompletedOnboarding?: boolean
     priority?: UserPriority
+    handle?: string | null
+    discoverable?: boolean
   }
 ): Promise<UserProfile | null> {
   const updates: Record<string, any> = {}
@@ -866,6 +1124,12 @@ export async function updateProfilePreferences(
   }
   if (preferences.priority !== undefined) {
     updates.priority = preferences.priority
+  }
+  if (preferences.handle !== undefined) {
+    updates.handle = preferences.handle
+  }
+  if (preferences.discoverable !== undefined) {
+    updates.discoverable = preferences.discoverable
   }
 
   const { data, error } = await supabase
@@ -1724,8 +1988,24 @@ export async function updateFundingSourceBalance(
  * (children before anything they might reference). All rows are scoped by the
  * authenticated user's id, so Supabase RLS keeps the delete confined to the
  * signed-in person's own data.
+ *
+ * Phase 7 social tables are listed BEFORE existing tables so that child tables
+ * (e.g. goal_participants) are deleted before their parents (goals). Social
+ * tables with cross-user references (friendships, split_participants,
+ * pool_members, goal_participants) are handled specially before this loop —
+ * see the "detach to name-only" logic in deleteAllUserData.
  */
 const USER_DATA_TABLES = [
+  // Phase 7 social tables — children/dependents first
+  'notifications',
+  'split_participants',
+  'splits',
+  'pool_entries',
+  'pool_members',
+  'pools',
+  'goal_participants',
+  'share_links',
+  // Original tables
   'transactions',
   'reimbursements',
   'allocations',
@@ -1737,6 +2017,7 @@ const USER_DATA_TABLES = [
   'goals',
   'budgets',
   'lesson_progress',
+  'user_sessions',
 ] as const
 
 export interface DeleteAllUserDataResult {
@@ -1766,8 +2047,130 @@ export async function deleteAllUserData(userId: string): Promise<DeleteAllUserDa
 
   const deletedTables: string[] = []
 
+  // -----------------------------------------------------------------------
+  // Phase 7 social tables: "detach to name-only" for cross-user rows.
+  //
+  // Some social tables have rows where the user appears as a participant but
+  // is NOT the owner. Deleting those rows would orphan the owner's records.
+  // Instead, we null out the user link so the row degrades to a name-only
+  // reference (the participant name text is preserved for the owner's context).
+  //
+  // Similarly, friendships uses requester_id/addressee_id (not user_id), so
+  // the generic .eq('user_id', userId) pattern won't find them — we need
+  // explicit delete calls for both columns.
+  // -----------------------------------------------------------------------
+
+  // Detach: split_participants where this user is a participant (not owner).
+  // Sets participant_user_id to null so the split owner's record stays intact.
+  const { error: detachSplitParts } = await supabase
+    .from('split_participants')
+    .update({ participant_user_id: null })
+    .eq('participant_user_id', userId)
+
+  if (detachSplitParts) {
+    console.error('Error detaching split_participants:', detachSplitParts)
+    return {
+      success: false,
+      deletedTables,
+      error: "Couldn't detach your split participation records — please try again.",
+    }
+  }
+
+  // Detach: pool_members where this user appears as a member (not owner).
+  // Sets user_id to null so the pool owner's roster stays intact.
+  const { error: detachPoolMembers } = await supabase
+    .from('pool_members')
+    .update({ user_id: null })
+    .eq('user_id', userId)
+
+  if (detachPoolMembers) {
+    console.error('Error detaching pool_members:', detachPoolMembers)
+    return {
+      success: false,
+      deletedTables,
+      error: "Couldn't detach your pool membership records — please try again.",
+    }
+  }
+
+  // Detach: goal_participants where this user appears as a participant.
+  // Sets participant_user_id to null so the goal owner's record stays intact.
+  const { error: detachGoalParts } = await supabase
+    .from('goal_participants')
+    .update({ participant_user_id: null })
+    .eq('participant_user_id', userId)
+
+  if (detachGoalParts) {
+    console.error('Error detaching goal_participants:', detachGoalParts)
+    return {
+      success: false,
+      deletedTables,
+      error: "Couldn't detach your goal participation records — please try again.",
+    }
+  }
+
+  // Delete friendships: uses requester_id / addressee_id (no user_id column).
+  // The user may appear as either party, so we need two delete passes.
+  const { error: delFriendReq } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('requester_id', userId)
+
+  if (delFriendReq) {
+    console.error('Error deleting friendships (as requester):', delFriendReq)
+    return {
+      success: false,
+      deletedTables,
+      error: "Couldn't remove your friend connections — please try again.",
+    }
+  }
+
+  const { error: delFriendAddr } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('addressee_id', userId)
+
+  if (delFriendAddr) {
+    console.error('Error deleting friendships (as addressee):', delFriendAddr)
+    return {
+      success: false,
+      deletedTables,
+      error: "Couldn't remove your friend connections — please try again.",
+    }
+  }
+
+  deletedTables.push('friendships (detached + deleted)')
+
+  // -----------------------------------------------------------------------
+  // Main loop: delete all user-owned rows from every table via .eq('user_id').
+  // Tables where the user is only a participant (not owner) were already
+  // handled above via the detach logic. The loop below catches rows the user
+  // OWNS (e.g. their own splits, pools, notifications, share_links).
+  // -----------------------------------------------------------------------
+
   for (const table of USER_DATA_TABLES) {
-    const { error } = await supabase.from(table).delete().eq('user_id', userId)
+    // Determine the correct user-scoping column for each table.
+    // Most tables use 'user_id'; Phase 7 tables vary:
+    //   - splits, pools: use 'owner_id'
+    //   - pool_entries: use 'added_by'
+    //   - split_participants, goal_participants: deleted via CASCADE from parent
+    //     table deletion (splits/goals), so we skip direct deletion here.
+    //     The detach logic above already handled the user-as-participant case.
+    const skipCascadeTables = ['split_participants', 'goal_participants']
+    if (skipCascadeTables.includes(table)) {
+      deletedTables.push(table)
+      continue
+    }
+
+    let userColumn: string
+    if (table === 'splits' || table === 'pools') {
+      userColumn = 'owner_id'
+    } else if (table === 'pool_entries') {
+      userColumn = 'added_by'
+    } else {
+      userColumn = 'user_id'
+    }
+
+    const { error } = await supabase.from(table).delete().eq(userColumn, userId)
 
     if (error) {
       console.error(`Error deleting ${table}:`, error)

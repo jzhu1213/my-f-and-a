@@ -14,6 +14,7 @@ import {
   segmentedButtonInactive,
   shadows,
 } from "@/styles/shared"
+import { SocialNotificationsPanel } from "./SocialNotificationsPanel"
 import {
   getReminderPreferences,
   setReminderPreferences,
@@ -543,6 +544,29 @@ export function NotificationCenter() {
             : "Enable monthly balance check-in"
         }
       />
+
+      {/* ── 7. Social Activity ──────────────────────────────────────── */}
+      <div
+        style={{
+          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+          marginTop: 16,
+          paddingTop: 16,
+          marginBottom: 12,
+        }}
+      >
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--sub)",
+            fontWeight: 500,
+            fontFamily: FONT_FAMILY,
+            marginBottom: 10,
+          }}
+        >
+          Social activity
+        </p>
+        <SocialNotificationsPanel />
+      </div>
 
       {/* ── Shared Permission Status ──────────────────────────────────── */}
       {needsPermission && (

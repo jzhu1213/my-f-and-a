@@ -10,6 +10,12 @@
  * All outputs are percentages, ratios, or directional indicators so the UI
  * can present progress without ever showing a raw dollar figure that might
  * feel discouraging to a college student.
+ *
+ * ── Related modules (savings-projection cluster) ──────────────────────────
+ *   • compoundGrowthUtils.ts         — pure compound interest math
+ *   • progressCurveUtils.ts          — unified debt+savings progress score
+ *   • savingsContributionHistory.ts  — per-account local contribution log
+ *   • savingsAccountUtils.ts         — account-level aggregates + projections
  */
 
 import type { Transaction } from "@/types"

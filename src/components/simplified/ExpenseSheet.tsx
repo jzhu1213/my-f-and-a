@@ -5,12 +5,16 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { Sheet } from '@/components/ui/primitives/Sheet'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
-import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePerFriendOwedCustom } from '@/lib/splitUtils'
+import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePerFriendOwedCustom, computePercentSplit, computeShareSplit } from '@/lib/splitUtils'
 import { autoCategorizeWithRules } from '@/lib/autoCategorize'
 import type { CategorizationRule } from '@/lib/categorizationRules'
 import { hasExistingRule, applyRouteRule } from '@/lib/categorizationRules'
 import { lookupMerchant, recordMerchant } from '@/lib/merchantMemory'
 import { triggerHaptic } from '@/lib/haptics'
+import { listFriends, type Friendship } from '@/lib/social/friends'
+import { searchPublicProfiles, type PublicProfile } from '@/lib/social/profiles'
+import { createSplit, type CreateSplitInput, type CreateSplitParticipantInput } from '@/lib/social/splits'
+import type { SplitMethod } from '@/lib/social/splits.types'
 import { predictHabit, getTopHabitChips } from '@/lib/habitEngine'
 import { getMostRecentExpenseCategory } from '@/lib/transactionUtils'
 import { useToast } from '@/contexts/ToastContext'
@@ -30,6 +34,14 @@ import { getRecentTags } from '@/lib/tagUtils'
 import type { FundingSource } from '@/lib/fundingSources'
 import { predictFundingSource } from '@/lib/fundingSources'
 import type { SpendingMode } from '@/lib/spendingModes'
+
+/** A split participant — either a linked friend (with userId) or a name-only entry */
+interface SplitParticipant {
+  id: string
+  name: string
+  userId: string | null
+  avatarUrl?: string | null
+}
 
 interface ExpenseSheetProps {
   isOpen: boolean
@@ -81,6 +93,10 @@ interface ExpenseSheetProps {
    * (origin-scale) rather than the default slide-up. (Task 246.2)
    */
   originFromFab?: boolean
+  /**
+   * Called when user taps "View settle-up" to navigate to the ReimbursementLedger (task 284.1).
+   */
+  onOpenSettleUp?: () => void
 }
 
 // ── Date helper utilities (task 87.1) ────────────────────────────────────
@@ -165,6 +181,7 @@ export function ExpenseSheet({
   onAddCategorizationRule,
   dailyAllowanceAmount,
   originFromFab = false,
+  onOpenSettleUp,
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
@@ -179,12 +196,25 @@ export function ExpenseSheet({
   const [splitEnabled, setSplitEnabled] = useState(false)
   const [splitCount, setSplitCount] = useState(2)
   const [splitWith, setSplitWith] = useState('')
-  // Split mode: 'even' (auto-divide) or 'custom' (user enters their share)
-  const [splitMode, setSplitMode] = useState<'even' | 'custom'>('even')
+  // Split mode: 'even' (auto-divide) or 'custom' (user enters their share) or 'percent'/'shares' (task 284.1)
+  const [splitMode, setSplitMode] = useState<SplitMethod>('even')
   // Custom split: user's manual share amount
   const [customShareInput, setCustomShareInput] = useState('')
   // Multiple friends as chips
   const [splitFriends, setSplitFriends] = useState<string[]>([])
+  // Split participants with optional userId for linked friends (task 284.1)
+  const [splitParticipants, setSplitParticipants] = useState<SplitParticipant[]>([])
+  // Percent inputs (one per participant, must sum to 100)
+  const [percentInputs, setPercentInputs] = useState<number[]>([])
+  // Shares inputs (one per participant, positive integers)
+  const [shareInputs, setShareInputs] = useState<number[]>([])
+  // Whether to show advanced split modes (percent/shares)
+  const [showAdvancedSplit, setShowAdvancedSplit] = useState(false)
+  // Friends list from the data layer
+  const [friendsList, setFriendsList] = useState<{ userId: string; name: string; avatarUrl?: string | null }[]>([])
+  const [friendsLoading, setFriendsLoading] = useState(false)
+  // Whether "type a name" mode is active (vs friend picker)
+  const [showNameInput, setShowNameInput] = useState(false)
   // Tracks whether category was manually selected (true) or auto-suggested (false)
   const [manualCategorySelection, setManualCategorySelection] = useState(false)
   // Tracks whether the current category was auto-suggested
@@ -262,6 +292,11 @@ export function ExpenseSheet({
       setSplitMode('even')
       setCustomShareInput('')
       setSplitFriends([])
+      setSplitParticipants([])
+      setPercentInputs([])
+      setShareInputs([])
+      setShowAdvancedSplit(false)
+      setShowNameInput(false)
       setManualCategorySelection(!!effectiveDefault)
       setIsAutoSuggested(!!(!defaultCategory && !effectiveDefault && habitPrediction))
       setMerchantMatched(false)
@@ -322,6 +357,53 @@ export function ExpenseSheet({
       setSplitCount(splitFriends.length + 1)
     }
   }, [splitFriends])
+
+  // Load friends list when split is enabled (task 284.1)
+  useEffect(() => {
+    if (splitEnabled && friendsList.length === 0 && !friendsLoading) {
+      setFriendsLoading(true)
+      listFriends().then(async (friendships) => {
+        // Resolve friend profiles — get display names from public_profiles
+        // For each friendship, the "other" user is the friend
+        const { data: session } = await (await import('@/lib/supabaseClient')).supabase.auth.getSession()
+        const userId = session?.session?.user?.id
+        if (!userId || friendships.length === 0) {
+          setFriendsLoading(false)
+          return
+        }
+        const friendUserIds = friendships.map((f) =>
+          f.requesterId === userId ? f.addresseeId : f.requesterId
+        )
+        // Fetch profiles for these IDs
+        const profiles = await Promise.all(
+          friendUserIds.map((id) => searchPublicProfiles(id).then((results) => results.find((p) => p.id === id)))
+        )
+        const resolved = friendUserIds.map((id, i) => ({
+          userId: id,
+          name: profiles[i]?.displayName || profiles[i]?.handle || `Friend`,
+          avatarUrl: profiles[i]?.avatarUrl ?? null,
+        }))
+        setFriendsList(resolved)
+        setFriendsLoading(false)
+      }).catch(() => setFriendsLoading(false))
+    }
+  }, [splitEnabled, friendsList.length, friendsLoading])
+
+  // Sync splitParticipants with percent/share inputs length
+  useEffect(() => {
+    const count = splitParticipants.length
+    if (count > 0) {
+      setPercentInputs((prev) => {
+        if (prev.length === count) return prev
+        const even = Math.floor(100 / count)
+        return Array(count).fill(even)
+      })
+      setShareInputs((prev) => {
+        if (prev.length === count) return prev
+        return Array(count).fill(1)
+      })
+    }
+  }, [splitParticipants.length])
 
   // Determine if selected funding source is borrowed (task 84.1)
   const selectedSourceIsBorrowed = useMemo(() => {
@@ -1845,10 +1927,10 @@ export function ExpenseSheet({
                       transition={springs.snappy}
                       style={{ overflow: 'hidden' }}
                     >
-                      {/* Split with — multiple friend name chips (task 113.1) */}
+                      {/* Split with — friend picker + name fallback (task 284.1) */}
                       <div style={{ padding: '14px 4px 0' }}>
-                        {/* Friend chips display */}
-                        {splitFriends.length > 0 && (
+                        {/* Selected participant chips */}
+                        {splitParticipants.length > 0 && (
                           <div
                             style={{
                               display: 'flex',
@@ -1858,15 +1940,15 @@ export function ExpenseSheet({
                             }}
                             aria-label="Added split partners"
                           >
-                            {splitFriends.map((name) => (
+                            {splitParticipants.map((p) => (
                               <span
-                                key={name}
+                                key={p.id}
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 4,
-                                  background: 'rgba(129, 140, 248, 0.1)',
-                                  border: '1px solid rgba(129, 140, 248, 0.25)',
+                                  background: p.userId ? 'rgba(129, 140, 248, 0.12)' : 'rgba(129, 140, 248, 0.08)',
+                                  border: p.userId ? '1px solid rgba(129, 140, 248, 0.3)' : '1px solid rgba(129, 140, 248, 0.2)',
                                   borderRadius: borderRadius.full,
                                   padding: '5px 10px',
                                   fontSize: 12,
@@ -1875,14 +1957,16 @@ export function ExpenseSheet({
                                   color: 'var(--text)',
                                 }}
                               >
-                                {name}
+                                {p.userId && <span style={{ fontSize: 10, opacity: 0.7 }}>👤</span>}
+                                {p.name}
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setSplitFriends((prev) => prev.filter((f) => f !== name))
+                                    setSplitParticipants((prev) => prev.filter((x) => x.id !== p.id))
+                                    setSplitFriends((prev) => prev.filter((f) => f !== p.name))
                                     triggerHaptic('light')
                                   }}
-                                  aria-label={`Remove ${name}`}
+                                  aria-label={`Remove ${p.name}`}
                                   style={{
                                     background: 'none',
                                     border: 'none',
@@ -1900,51 +1984,155 @@ export function ExpenseSheet({
                           </div>
                         )}
 
-                        <input
-                          ref={splitWithRef}
-                          type="text"
-                          placeholder={splitFriends.length > 0 ? 'Add another friend...' : 'Who are you splitting with?'}
-                          value={splitWith}
-                          onChange={(e) => setSplitWith(e.target.value.slice(0, 40))}
-                          onKeyDown={(e) => {
-                            if ((e.key === 'Enter' || e.key === ',') && splitWith.trim()) {
-                              e.preventDefault()
-                              const name = splitWith.trim().replace(/,+$/, '')
-                              if (name && !splitFriends.includes(name)) {
-                                setSplitFriends((prev) => [...prev, name])
-                              }
-                              setSplitWith('')
-                              triggerHaptic('light')
-                            }
-                          }}
-                          maxLength={40}
-                          aria-label="Friend's name to split with"
-                          style={{
-                            width: '100%',
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: borderRadius.md,
-                            outline: 'none',
-                            fontSize: 14,
-                            fontFamily: FONT_FAMILY,
-                            color: 'var(--text)',
-                            padding: '10px 14px',
-                            caretColor: 'var(--text)',
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontFamily: FONT_FAMILY,
-                            fontSize: 11,
-                            color: 'var(--muted)',
-                            marginTop: 4,
-                            display: 'block',
-                          }}
-                        >
-                          Press Enter or comma to add
-                        </span>
+                        {/* Friends quick-select chips (task 284.1) */}
+                        {friendsList.length > 0 && !showNameInput && (
+                          <div style={{ marginBottom: 10 }}>
+                            <span
+                              style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: 11,
+                                color: 'var(--muted)',
+                                display: 'block',
+                                marginBottom: 6,
+                              }}
+                            >
+                              Friends
+                            </span>
+                            <div
+                              style={{
+                                display: 'flex',
+                                gap: 6,
+                                flexWrap: 'wrap',
+                              }}
+                              aria-label="Select a friend to split with"
+                            >
+                              {friendsList
+                                .filter((f) => !splitParticipants.some((p) => p.userId === f.userId))
+                                .slice(0, 8)
+                                .map((friend) => (
+                                  <button
+                                    key={friend.userId}
+                                    type="button"
+                                    onClick={() => {
+                                      const newP: SplitParticipant = {
+                                        id: friend.userId,
+                                        name: friend.name,
+                                        userId: friend.userId,
+                                        avatarUrl: friend.avatarUrl,
+                                      }
+                                      setSplitParticipants((prev) => [...prev, newP])
+                                      setSplitFriends((prev) => [...prev, friend.name])
+                                      triggerHaptic('light')
+                                    }}
+                                    aria-label={`Split with ${friend.name}`}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 5,
+                                      background: 'rgba(129, 140, 248, 0.06)',
+                                      border: '1px solid rgba(129, 140, 248, 0.2)',
+                                      borderRadius: borderRadius.full,
+                                      padding: '6px 12px',
+                                      fontSize: 12,
+                                      fontFamily: FONT_FAMILY,
+                                      fontWeight: 500,
+                                      color: 'var(--sub)',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    <span style={{ fontSize: 10 }}>👤</span>
+                                    {friend.name}
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+                        )}
 
-                        {/* Recent split partner chips — shown always when there are available partners (task 123.1 — smarter suggestions) */}
+                        {friendsLoading && (
+                          <span style={{ fontFamily: FONT_FAMILY, fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>
+                            Loading friends…
+                          </span>
+                        )}
+
+                        {/* "Just type a name" fallback toggle */}
+                        {!showNameInput && (
+                          <button
+                            type="button"
+                            onClick={() => { setShowNameInput(true); triggerHaptic('light') }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              padding: '4px 0',
+                              cursor: 'pointer',
+                              fontFamily: FONT_FAMILY,
+                              fontSize: 12,
+                              fontWeight: 500,
+                              color: 'rgba(129, 140, 248, 0.8)',
+                              marginBottom: 4,
+                            }}
+                            aria-label="Type a name instead"
+                          >
+                            + Just type a name
+                          </button>
+                        )}
+
+                        {/* Name input — shown when toggled or when no friends available */}
+                        {(showNameInput || (friendsList.length === 0 && !friendsLoading)) && (
+                          <>
+                            <input
+                              ref={splitWithRef}
+                              type="text"
+                              placeholder={splitParticipants.length > 0 ? 'Add another person...' : 'Who are you splitting with?'}
+                              value={splitWith}
+                              onChange={(e) => setSplitWith(e.target.value.slice(0, 40))}
+                              onKeyDown={(e) => {
+                                if ((e.key === 'Enter' || e.key === ',') && splitWith.trim()) {
+                                  e.preventDefault()
+                                  const name = splitWith.trim().replace(/,+$/, '')
+                                  if (name && !splitFriends.includes(name)) {
+                                    const newP: SplitParticipant = {
+                                      id: `name-${Date.now()}-${name}`,
+                                      name,
+                                      userId: null,
+                                    }
+                                    setSplitParticipants((prev) => [...prev, newP])
+                                    setSplitFriends((prev) => [...prev, name])
+                                  }
+                                  setSplitWith('')
+                                  triggerHaptic('light')
+                                }
+                              }}
+                              maxLength={40}
+                              aria-label="Friend's name to split with"
+                              style={{
+                                width: '100%',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: borderRadius.md,
+                                outline: 'none',
+                                fontSize: 14,
+                                fontFamily: FONT_FAMILY,
+                                color: 'var(--text)',
+                                padding: '10px 14px',
+                                caretColor: 'var(--text)',
+                              }}
+                            />
+                            <span
+                              style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: 11,
+                                color: 'var(--muted)',
+                                marginTop: 4,
+                                display: 'block',
+                              }}
+                            >
+                              Press Enter or comma to add
+                            </span>
+                          </>
+                        )}
+
+                        {/* Recent split partner chips — shown when no friends loaded or as extra suggestions */}
                         {recentSplitPartners.filter((n) => !splitFriends.includes(n)).length > 0 && !splitWith.trim() && (
                           <div
                             style={{
@@ -1953,9 +2141,9 @@ export function ExpenseSheet({
                               flexWrap: 'wrap',
                               marginTop: 10,
                             }}
-                            aria-label={splitFriends.length > 0 ? 'Add another split partner' : 'Recent split partners'}
+                            aria-label={splitParticipants.length > 0 ? 'Add another split partner' : 'Recent split partners'}
                           >
-                            {splitFriends.length > 0 && (
+                            {splitParticipants.length > 0 && (
                               <span
                                 style={{
                                   fontFamily: FONT_FAMILY,
@@ -1964,7 +2152,7 @@ export function ExpenseSheet({
                                   alignSelf: 'center',
                                 }}
                               >
-                                Add:
+                                Recent:
                               </span>
                             )}
                             {recentSplitPartners.filter((n) => !splitFriends.includes(n)).slice(0, 5).map((name) => (
@@ -1972,6 +2160,12 @@ export function ExpenseSheet({
                                 key={name}
                                 type="button"
                                 onClick={() => {
+                                  const newP: SplitParticipant = {
+                                    id: `recent-${name}`,
+                                    name,
+                                    userId: null,
+                                  }
+                                  setSplitParticipants((prev) => [...prev, newP])
                                   setSplitFriends((prev) => [...prev, name])
                                   triggerHaptic('light')
                                 }}
@@ -1996,60 +2190,140 @@ export function ExpenseSheet({
                         )}
                       </div>
 
-                      {/* Even / Custom split toggle (task 113.1) */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 6,
-                          padding: '14px 4px 0',
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => { setSplitMode('even'); triggerHaptic('light') }}
-                          aria-pressed={splitMode === 'even'}
+                      {/* Split mode selector — Even / Custom + More options (task 284.1) */}
+                      <div style={{ padding: '14px 4px 0' }}>
+                        <div
                           style={{
-                            flex: 1,
-                            padding: '8px 0',
-                            borderRadius: 9,
-                            border: 'none',
-                            fontSize: 13,
-                            fontWeight: 500,
-                            fontFamily: FONT_FAMILY,
-                            cursor: 'pointer',
-                            transition: 'background 0.15s, color 0.15s',
-                            textAlign: 'center',
-                            color: splitMode === 'even' ? 'var(--text)' : 'var(--muted)',
-                            background: splitMode === 'even' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                            display: 'flex',
+                            gap: 6,
                           }}
                         >
-                          Even split
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setSplitMode('custom'); triggerHaptic('light') }}
-                          aria-pressed={splitMode === 'custom'}
-                          style={{
-                            flex: 1,
-                            padding: '8px 0',
-                            borderRadius: 9,
-                            border: 'none',
-                            fontSize: 13,
-                            fontWeight: 500,
-                            fontFamily: FONT_FAMILY,
-                            cursor: 'pointer',
-                            transition: 'background 0.15s, color 0.15s',
-                            textAlign: 'center',
-                            color: splitMode === 'custom' ? 'var(--text)' : 'var(--muted)',
-                            background: splitMode === 'custom' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
-                          }}
-                        >
-                          Custom split
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => { setSplitMode('even'); triggerHaptic('light') }}
+                            aria-pressed={splitMode === 'even'}
+                            style={{
+                              flex: 1,
+                              padding: '8px 0',
+                              borderRadius: 9,
+                              border: 'none',
+                              fontSize: 13,
+                              fontWeight: 500,
+                              fontFamily: FONT_FAMILY,
+                              cursor: 'pointer',
+                              transition: 'background 0.15s, color 0.15s',
+                              textAlign: 'center',
+                              color: splitMode === 'even' ? 'var(--text)' : 'var(--muted)',
+                              background: splitMode === 'even' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                            }}
+                          >
+                            Even
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setSplitMode('custom'); triggerHaptic('light') }}
+                            aria-pressed={splitMode === 'custom'}
+                            style={{
+                              flex: 1,
+                              padding: '8px 0',
+                              borderRadius: 9,
+                              border: 'none',
+                              fontSize: 13,
+                              fontWeight: 500,
+                              fontFamily: FONT_FAMILY,
+                              cursor: 'pointer',
+                              transition: 'background 0.15s, color 0.15s',
+                              textAlign: 'center',
+                              color: splitMode === 'custom' ? 'var(--text)' : 'var(--muted)',
+                              background: splitMode === 'custom' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                            }}
+                          >
+                            Custom
+                          </button>
+                          {!showAdvancedSplit && (
+                            <button
+                              type="button"
+                              onClick={() => { setShowAdvancedSplit(true); triggerHaptic('light') }}
+                              style={{
+                                padding: '8px 12px',
+                                borderRadius: 9,
+                                border: 'none',
+                                fontSize: 13,
+                                fontWeight: 500,
+                                fontFamily: FONT_FAMILY,
+                                cursor: 'pointer',
+                                color: 'var(--muted)',
+                                background: 'transparent',
+                              }}
+                              aria-label="More split options"
+                            >
+                              More ›
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Advanced modes — percent & shares (progressive, task 284.1) */}
+                        <AnimatePresence>
+                          {showAdvancedSplit && (
+                            <motion.div
+                              key="advanced-split-modes"
+                              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
+                              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                              transition={springs.snappy}
+                              style={{ overflow: 'hidden' }}
+                            >
+                              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => { setSplitMode('percent'); triggerHaptic('light') }}
+                                  aria-pressed={splitMode === 'percent'}
+                                  style={{
+                                    flex: 1,
+                                    padding: '8px 0',
+                                    borderRadius: 9,
+                                    border: 'none',
+                                    fontSize: 13,
+                                    fontWeight: 500,
+                                    fontFamily: FONT_FAMILY,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.15s, color 0.15s',
+                                    textAlign: 'center',
+                                    color: splitMode === 'percent' ? 'var(--text)' : 'var(--muted)',
+                                    background: splitMode === 'percent' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                                  }}
+                                >
+                                  By %
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setSplitMode('shares'); triggerHaptic('light') }}
+                                  aria-pressed={splitMode === 'shares'}
+                                  style={{
+                                    flex: 1,
+                                    padding: '8px 0',
+                                    borderRadius: 9,
+                                    border: 'none',
+                                    fontSize: 13,
+                                    fontWeight: 500,
+                                    fontFamily: FONT_FAMILY,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.15s, color 0.15s',
+                                    textAlign: 'center',
+                                    color: splitMode === 'shares' ? 'var(--text)' : 'var(--muted)',
+                                    background: splitMode === 'shares' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                                  }}
+                                >
+                                  By shares
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
-                      {/* Split count stepper — only in even mode AND when no friend chips entered (task 123.1) */}
-                      {splitMode === 'even' && splitFriends.length === 0 && (
+                      {/* Split count stepper — only in even mode AND when no participants added (task 123.1) */}
+                      {splitMode === 'even' && splitParticipants.length === 0 && (
                         <div
                           style={{
                             display: 'flex',
@@ -2174,7 +2448,113 @@ export function ExpenseSheet({
                         </div>
                       )}
 
-                      {/* Owed breakdown (task 113.1) */}
+                      {/* Percent inputs — only in percent mode (task 284.1) */}
+                      {splitMode === 'percent' && splitParticipants.length > 0 && (
+                        <div style={{ padding: '14px 4px 4px' }}>
+                          <label style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--sub)', display: 'block', marginBottom: 8 }}>
+                            Percentage per person (must total 100%)
+                          </label>
+                          {/* You (the payer) */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--text)', minWidth: 60 }}>You</span>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              max={100}
+                              value={100 - percentInputs.reduce((s, v) => s + v, 0)}
+                              readOnly
+                              aria-label="Your percentage"
+                              style={{
+                                width: 60,
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: borderRadius.sm,
+                                fontSize: 13,
+                                fontFamily: FONT_FAMILY,
+                                color: 'var(--muted)',
+                                padding: '6px 8px',
+                                textAlign: 'center',
+                              }}
+                            />
+                            <span style={{ fontFamily: FONT_FAMILY, fontSize: 12, color: 'var(--muted)' }}>%</span>
+                          </div>
+                          {splitParticipants.map((p, i) => (
+                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--text)', minWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={100}
+                                value={percentInputs[i] ?? 0}
+                                onChange={(e) => {
+                                  const val = Math.max(0, Math.min(100, parseInt(e.target.value) || 0))
+                                  setPercentInputs((prev) => { const next = [...prev]; next[i] = val; return next })
+                                }}
+                                aria-label={`${p.name}'s percentage`}
+                                style={{
+                                  width: 60,
+                                  background: 'rgba(255, 255, 255, 0.04)',
+                                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                                  borderRadius: borderRadius.sm,
+                                  fontSize: 13,
+                                  fontFamily: FONT_FAMILY,
+                                  color: 'var(--text)',
+                                  padding: '6px 8px',
+                                  textAlign: 'center',
+                                }}
+                              />
+                              <span style={{ fontFamily: FONT_FAMILY, fontSize: 12, color: 'var(--muted)' }}>%</span>
+                            </div>
+                          ))}
+                          {(() => {
+                            const totalPct = percentInputs.reduce((s, v) => s + v, 0)
+                            if (totalPct > 100) return (
+                              <span style={{ fontFamily: FONT_FAMILY, fontSize: 11, color: 'var(--warning)' }}>Total exceeds 100%</span>
+                            )
+                            return null
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Shares inputs — only in shares mode (task 284.1) */}
+                      {splitMode === 'shares' && splitParticipants.length > 0 && (
+                        <div style={{ padding: '14px 4px 4px' }}>
+                          <label style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--sub)', display: 'block', marginBottom: 8 }}>
+                            Shares per person (proportional)
+                          </label>
+                          {/* You (the payer) — always 1 share by default */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--text)', minWidth: 60 }}>You</span>
+                            <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--muted)' }}>1 share</span>
+                          </div>
+                          {splitParticipants.map((p, i) => (
+                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--text)', minWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.max(1, (next[i] ?? 1) - 1); return next })}
+                                  disabled={(shareInputs[i] ?? 1) <= 1}
+                                  aria-label={`Decrease ${p.name}'s shares`}
+                                  style={{ ...roundButton, width: 26, height: 26, fontSize: 14, opacity: (shareInputs[i] ?? 1) <= 1 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) <= 1 ? 'not-allowed' : 'pointer' }}
+                                >−</button>
+                                <span style={{ fontFamily: FONT_FAMILY, fontSize: 14, fontWeight: 600, color: 'var(--text)', minWidth: 24, textAlign: 'center' }}>{shareInputs[i] ?? 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.min(10, (next[i] ?? 1) + 1); return next })}
+                                  disabled={(shareInputs[i] ?? 1) >= 10}
+                                  aria-label={`Increase ${p.name}'s shares`}
+                                  style={{ ...roundButton, width: 26, height: 26, fontSize: 14, opacity: (shareInputs[i] ?? 1) >= 10 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) >= 10 ? 'not-allowed' : 'pointer' }}
+                                >+</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Owed breakdown (task 113.1, extended task 284.1) */}
                       {(() => {
                         const parsed = parseFloat(amount)
                         if (!parsed || parsed <= 0) return null
@@ -2190,6 +2570,22 @@ export function ExpenseSheet({
                           perFriendBreakdown = friends.length > 0
                             ? computePerFriendOwedCustom(parsed, userShare, friends)
                             : []
+                        } else if (splitMode === 'percent' && splitParticipants.length > 0) {
+                          const yourPct = 100 - percentInputs.reduce((s, v) => s + v, 0)
+                          userShare = Math.round((parsed * Math.max(0, yourPct)) / 100 * 100) / 100
+                          const amounts = computePercentSplit(parsed, percentInputs)
+                          perFriendBreakdown = splitParticipants.map((p, i) => ({
+                            name: p.name,
+                            owes: amounts[i] ?? 0,
+                          }))
+                        } else if (splitMode === 'shares' && splitParticipants.length > 0) {
+                          const allShares = [1, ...shareInputs.slice(0, splitParticipants.length)]
+                          const amounts = computeShareSplit(parsed, allShares)
+                          userShare = amounts[0] ?? parsed
+                          perFriendBreakdown = splitParticipants.map((p, i) => ({
+                            name: p.name,
+                            owes: amounts[i + 1] ?? 0,
+                          }))
                         } else {
                           userShare = computeSplitAmount(parsed, splitCount)
                           perFriendBreakdown = friends.length > 0
@@ -2269,6 +2665,29 @@ export function ExpenseSheet({
                                     </span>
                                   )
                                 })}
+                              </div>
+                            )}
+
+                            {/* View settle-up link (task 284.2) */}
+                            {onOpenSettleUp && perFriendBreakdown.length > 0 && (
+                              <div style={{ textAlign: 'center', marginTop: 4 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => { onOpenSettleUp(); triggerHaptic('light') }}
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    padding: '4px 0',
+                                    cursor: 'pointer',
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    color: 'rgba(129, 140, 248, 0.8)',
+                                  }}
+                                  aria-label="View settle-up ledger"
+                                >
+                                  View settle-up →
+                                </button>
                               </div>
                             )}
                           </div>

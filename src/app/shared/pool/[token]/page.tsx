@@ -11,10 +11,11 @@
  * immediately in the shell (badge visible before data loads).
  * Invalid/expired link renders explanatory state immediately (no partial content).
  *
- * For MVP, reads from localStorage keyed by token. In production this would
- * fetch from Supabase with RLS.
+ * Fetches from Supabase first (via async householdPool functions), falls back
+ * to localStorage for backward compat.
  *
  * Requirements: 15.8, 15.9, 15.10
+ * Task 289.1 — Supabase-backed pool persistence
  */
 
 import { useState, useEffect, useCallback } from "react"
@@ -52,7 +53,6 @@ import {
   spacingScale,
   textColors,
   radius,
-  elevations,
 } from "../../sharedPageStyles"
 
 // ============================================================================
@@ -78,9 +78,13 @@ export default function SharedPoolViewPage() {
   const [note, setNote] = useState("")
   const [logged, setLogged] = useState(false)
 
-  const refresh = useCallback((poolId: string) => {
-    setSummary(getPoolSummary(poolId))
-    setExpenses(getPoolExpenses(poolId))
+  const refresh = useCallback(async (poolId: string) => {
+    const [s, e] = await Promise.all([
+      getPoolSummary(poolId),
+      getPoolExpenses(poolId),
+    ])
+    setSummary(s)
+    setExpenses(e)
   }, [])
 
   useEffect(() => {
@@ -89,34 +93,45 @@ export default function SharedPoolViewPage() {
       setLoading(false)
       return
     }
-    const found = getPoolByShareToken(token)
-    if (!found) {
-      setNotFound(true)
+
+    let cancelled = false
+
+    async function load() {
+      const found = await getPoolByShareToken(token!)
+      if (cancelled) return
+      if (!found) {
+        setNotFound(true)
+        setLoading(false)
+        return
+      }
+      setPool(found)
+      await refresh(found.id)
+      if (cancelled) return
+      const storedName = localStorage.getItem(`folio-shared-pool-me-${found.id}`)
+      if (storedName) setMyName(storedName)
       setLoading(false)
-      return
     }
-    setPool(found)
-    refresh(found.id)
-    const storedName = localStorage.getItem(`folio-shared-pool-me-${found.id}`)
-    if (storedName) setMyName(storedName)
-    setLoading(false)
+
+    load()
+    return () => { cancelled = true }
   }, [token, refresh])
 
-  const handleJoin = useCallback(() => {
+  const handleJoin = useCallback(async () => {
     if (!pool || !joinName.trim()) return
-    addMember(pool.id, joinName.trim())
+    await addMember(pool.id, joinName.trim())
     localStorage.setItem(`folio-shared-pool-me-${pool.id}`, joinName.trim())
     setMyName(joinName.trim())
-    setPool(getPoolByShareToken(token!))
+    const updated = await getPoolByShareToken(token!)
+    if (updated) setPool(updated)
     setJoinName("")
   }, [pool, joinName, token])
 
-  const handleLog = useCallback(() => {
+  const handleLog = useCallback(async () => {
     if (!pool || !myName) return
     const val = parseFloat(amount)
     if (!val || val <= 0) return
-    logPoolExpense(pool.id, val, "general", myName, note || undefined)
-    refresh(pool.id)
+    await logPoolExpense(pool.id, val, "general", myName, note || undefined)
+    await refresh(pool.id)
     setAmount("")
     setNote("")
     setLogged(true)

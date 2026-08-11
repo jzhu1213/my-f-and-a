@@ -1,8 +1,9 @@
 /**
  * Expense-splitting utility functions.
  *
- * Provides a pure helper to compute a user's share when an expense is
+ * Provides pure helpers to compute a user's share when an expense is
  * split among multiple people (roommates, friends, etc.).
+ * Supports even, custom, percent, and shares split methods.
  *
  * Requirements: 3.1, 10.1, new
  */
@@ -100,4 +101,87 @@ export function computePerFriendOwedCustom(
   const perFriend = computeCustomSplitOwed(totalAmount, userShare, friends.length)
   if (perFriend <= 0) return []
   return friends.map((name) => ({ name, owes: perFriend }))
+}
+
+
+// ============================================================================
+// Percent Split
+// ============================================================================
+
+/**
+ * Computes per-person amounts from a percent-based split.
+ *
+ * @param totalAmount - The full expense/income amount
+ * @param percents    - Array of percent values (one per participant). Should sum to 100.
+ * @returns Array of amounts (same order as `percents`), 2-decimal rounded,
+ *          with remainder reconciliation applied to the first participant.
+ *
+ * Edge cases:
+ * - Empty percents array → returns []
+ * - Percents that don't sum to 100 are accepted (caller validates); rounding
+ *   penny is still reconciled against the mathematical total.
+ */
+export function computePercentSplit(totalAmount: number, percents: number[]): number[] {
+  if (!percents.length || !Number.isFinite(totalAmount) || totalAmount <= 0) return []
+
+  const raw = percents.map((p) => Math.round((totalAmount * p) / 100 * 100) / 100)
+  return reconcileRemainder(totalAmount, raw)
+}
+
+// ============================================================================
+// Shares Split
+// ============================================================================
+
+/**
+ * Computes per-person amounts from a shares-based split.
+ *
+ * Each participant has N shares (e.g. 2, 1, 1 = four total shares).
+ * Their amount is (shares / totalShares) * totalAmount, 2-decimal rounded.
+ *
+ * @param totalAmount - The full expense/income amount
+ * @param shares      - Array of share counts (one per participant, positive integers)
+ * @returns Array of amounts (same order as `shares`), 2-decimal rounded,
+ *          with remainder reconciliation applied to the first participant.
+ *
+ * Edge cases:
+ * - Empty shares array or all-zero shares → returns []
+ */
+export function computeShareSplit(totalAmount: number, shares: number[]): number[] {
+  if (!shares.length || !Number.isFinite(totalAmount) || totalAmount <= 0) return []
+
+  const totalShares = shares.reduce((sum, s) => sum + s, 0)
+  if (totalShares <= 0) return []
+
+  const raw = shares.map((s) => Math.round((totalAmount * s) / totalShares * 100) / 100)
+  return reconcileRemainder(totalAmount, raw)
+}
+
+// ============================================================================
+// Remainder Reconciliation
+// ============================================================================
+
+/**
+ * Ensures per-person shares sum exactly to `total` by assigning any
+ * rounding penny deterministically to the first participant.
+ *
+ * This avoids floating-point drift when individual shares are independently
+ * rounded to 2 decimal places.
+ *
+ * @param total   - The expected sum (the split's total amount)
+ * @param amounts - Array of 2-decimal-rounded per-person amounts
+ * @returns A new array with the same values, except the first element is
+ *          adjusted so the array sums exactly to `total`.
+ */
+export function reconcileRemainder(total: number, amounts: number[]): number[] {
+  if (!amounts.length) return []
+
+  const sum = amounts.reduce((acc, a) => acc + a, 0)
+  const diff = Math.round((total - sum) * 100) / 100
+
+  if (diff === 0) return amounts
+
+  // Assign the rounding penny to the first participant deterministically
+  const result = [...amounts]
+  result[0] = Math.round((result[0] + diff) * 100) / 100
+  return result
 }

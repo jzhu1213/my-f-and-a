@@ -13,6 +13,12 @@
  * involved — this stays backward-compatible and fully local.
  *
  * Task 158.2
+ *
+ * ── Related modules (savings-projection cluster) ──────────────────────────
+ *   • compoundGrowthUtils.ts  — pure compound interest math
+ *   • progressCurveUtils.ts   — unified debt+savings progress score
+ *   • savingsAccountUtils.ts  — account-level aggregates + projections
+ *   • trajectoryUtils.ts      — directional financial health trends
  */
 
 // ============================================================================

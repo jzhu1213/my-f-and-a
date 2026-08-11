@@ -43,6 +43,11 @@
  * Everything here is a pure function with no side effects. This is the ONLY place
  * that defines what "money set aside" means; all surfaces read from `useHomeData`
  * (which calls `computeSetAside` once) rather than re-deriving their own totals.
+ *
+ * ── Related modules (money-set-aside cluster) ─────────────────────────────
+ *   • taxSetAside.ts         — gig/1099 tax reserve computation
+ *   • autoEarmarkSavings.ts  — auto-sweep unspent allowance toward savings
+ *   • allocationUtils.ts     — allocation-bucket slice + savings rate
  */
 
 import type { IncomeAllocation } from '@/types/folio'

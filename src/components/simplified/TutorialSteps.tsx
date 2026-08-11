@@ -1157,7 +1157,7 @@ export const TUTORIAL_SETUP_STEPS: TutorialStep[] = [
 ]
 
 // ============================================================================
-// Budget Presets (reused from WarmOnboarding)
+// Budget Presets
 // ============================================================================
 
 export const BUDGET_PRESETS: Array<{

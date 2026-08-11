@@ -15,6 +15,12 @@
  *
  * Both signals are weighted equally so a user with only debt or only savings
  * still sees a full 0→100 curve.
+ *
+ * ── Related modules (savings-projection cluster) ──────────────────────────
+ *   • compoundGrowthUtils.ts         — pure compound interest math
+ *   • savingsContributionHistory.ts  — per-account local contribution log
+ *   • savingsAccountUtils.ts         — account-level aggregates + projections
+ *   • trajectoryUtils.ts             — directional financial health trends
  */
 
 import type { Debt, SavingsAccount } from '@/types/folio'

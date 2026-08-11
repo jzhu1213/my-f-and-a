@@ -33,10 +33,6 @@ import {
 } from "@/styles/shared"
 import { getPools, createPool, type HouseholdPool } from "@/lib/householdPool"
 import {
-  getShareTokenForGoal,
-  isGoalShared,
-} from "@/lib/sharedGoalUtils"
-import {
   buildInviteUrl,
   buildInviteMessage,
   recordSentInvite,
@@ -119,8 +115,9 @@ export function RoommateInviteScreen({
   const [sentInvites, setSentInvites] = useState<RoommateInvite[]>([])
 
   // Refresh available targets + prior invites on mount.
-  const refresh = useCallback(() => {
-    setPools(getPools())
+  const refresh = useCallback(async () => {
+    const fetched = await getPools()
+    setPools(fetched)
     setSentInvites(getSentInvites())
   }, [])
 
@@ -130,7 +127,7 @@ export function RoommateInviteScreen({
 
   // Shared goals are goals the user has already marked shareable.
   const sharedGoals = useMemo(
-    () => goals.filter(g => isGoalShared(g.id)),
+    () => goals.filter(g => !!g.isShared),
     [goals]
   )
 
@@ -375,7 +372,7 @@ function PickTargetStep({
           <p style={{ ...sectionHeader, marginBottom: 10 }}>Shared goals</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {sharedGoals.map((goal) => {
-              const token = goal.shareToken ?? getShareTokenForGoal(goal.id) ?? ""
+              const token = goal.shareToken ?? ""
               return (
                 <TargetCard
                   key={goal.id}
@@ -468,9 +465,9 @@ function CreatePoolInline({
 
   const canCreate = name.trim().length > 0 && parseFloat(monthlyLimit) > 0
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!canCreate) return
-    const pool = createPool(name, "🏠", parseFloat(monthlyLimit))
+    const pool = await createPool(name, "🏠", parseFloat(monthlyLimit))
     onCreated(pool)
   }
 

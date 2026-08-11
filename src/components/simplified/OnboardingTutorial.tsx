@@ -90,7 +90,7 @@ export interface OnboardingTutorialProps {
 }
 
 // ============================================================================
-// Animation variants (matching WarmOnboarding)
+// Animation variants
 // ============================================================================
 
 const slideVariants = {

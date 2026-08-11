@@ -265,13 +265,13 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
         <p style={{ ...sectionHeader }}>Net Summary</p>
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
           <div>
-            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>Owed to you</p>
+            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>Coming your way</p>
             <p style={{ fontSize: 20, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
               ${summary.totalOwedToMe.toFixed(2)}
             </p>
           </div>
           <div>
-            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>You owe</p>
+            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>Headed out</p>
             <p style={{ fontSize: 20, fontWeight: 700, color: "var(--error)", fontVariantNumeric: "tabular-nums" }}>
               ${summary.totalOwedByMe.toFixed(2)}
             </p>
@@ -348,7 +348,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
 
           {settleUpLedger.length > 0 && (
             <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-              <p style={{ ...sectionHeader }}>Who Owes Whom</p>
+              <p style={{ ...sectionHeader }}>Settle-Up Summary</p>
               {settleUpLedger.map(entry => (
                 <SettleUpRow
                   key={entry.personName}
@@ -551,7 +551,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                     }}
                     aria-pressed={direction === d}
                   >
-                    {d === "owed_to_me" ? "They owe me" : "I owe them"}
+                    {d === "owed_to_me" ? "They're paying me" : "I'm paying them"}
                   </motion.button>
                 ))}
               </div>
@@ -705,7 +705,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
             No IOUs yet
           </p>
           <p style={{ fontSize: 12, color: "var(--sub)" }}>
-            Track money friends owe you — or that you owe them.
+            Keep track of shared expenses with friends — no rush, just clarity.
           </p>
         </GlassCard>
       )}
@@ -767,7 +767,7 @@ function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowPro
           {entry.personName}
         </p>
         <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
-          {entry.iouCount} IOU{entry.iouCount !== 1 ? 's' : ''} · {entry.direction === 'they_owe' ? 'owes you' : 'you owe'}
+          {entry.iouCount} IOU{entry.iouCount !== 1 ? 's' : ''} · {entry.direction === 'they_owe' ? 'coming your way' : 'headed their way'}
         </p>
       </div>
 
@@ -854,7 +854,7 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
       <span
         style={{ fontSize: 16, opacity: 0.7 }}
         aria-hidden="true"
-        title={r.direction === "owed_to_me" ? "They owe you" : "You owe them"}
+        title={r.direction === "owed_to_me" ? "Coming your way" : "Headed their way"}
       >
         {r.direction === "owed_to_me" ? "←" : "→"}
       </span>

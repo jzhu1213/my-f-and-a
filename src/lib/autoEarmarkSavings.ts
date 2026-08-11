@@ -1,3 +1,15 @@
+/**
+ * Auto-Earmark Savings — Pure Utility Module + Sweep Engine
+ *
+ * Tracks unspent daily allowance as a virtual "earmark" toward a savings goal.
+ * When sweep is enabled, actively contributes leftover amounts to the chosen goal.
+ *
+ * ── Related modules (money-set-aside cluster) ─────────────────────────────
+ *   • setAside.ts         — unified "money set aside" model (flow + balance)
+ *   • taxSetAside.ts      — gig/1099 tax reserve computation
+ *   • allocationUtils.ts  — allocation-bucket slice + savings rate
+ */
+
 import type { Transaction, Budget } from '@/types'
 
 // ============================================================================

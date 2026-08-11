@@ -68,6 +68,10 @@ export interface UserProfile {
   onboardingCompletedSteps?: string[]
   /** Steps the user skipped during onboarding (task 211.1) */
   onboardingSkippedSteps?: string[]
+  /** Unique public handle for discovery (task 277.1) */
+  handle?: string | null
+  /** Whether this profile is visible in public search (task 277.1) */
+  discoverable?: boolean
 }
 
 // Transaction Types

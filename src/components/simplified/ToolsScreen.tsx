@@ -16,7 +16,7 @@
 import { useMemo, useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { layoutTransition, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
-import { getPeerContextEnabled } from "@/lib/peerContextPreferences"
+import { getPeerContextEnabled } from "@/lib/uiPreferences"
 import { SectionHeader, ListRow, Card } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/lib/icons"
@@ -27,6 +27,7 @@ import { elevations, radius } from "@/styles/surfaces"
 import { safeAreaBottom } from "@/styles/layout"
 import { SourceBalancesView } from "./SourceBalancesView"
 import { ObligationsSummary } from "./ObligationsSummary"
+import { SharedActivityView } from "./SharedActivityView"
 import { RoundUpSetting } from "./RoundUpSetting"
 import { AutoSaveSetting } from "./AutoSaveSetting"
 import { computeNetObligations } from "@/lib/obligationsUtils"
@@ -329,6 +330,11 @@ export function ToolsScreen({
                 <div style={{ marginBottom: sectionTools.length > 0 ? spacingScale["12"] : 0 }}>
                   <ObligationsSummary obligations={obligations} />
                 </div>
+              )}
+
+              {/* Shared Activity — calm list of recent social events (after Obligations) */}
+              {section.id === "obligations" && (
+                <SharedActivityView />
               )}
 
               {/* Tool entries — each as a ListRow (dense) */}

@@ -154,14 +154,15 @@ export function computeSettleUpLedger(reimbursements: Reimbursement[]): SettleUp
 
 /**
  * Generate a friendly reminder message for a settle-up entry.
+ * Copy follows the warm, shame-free tone standard — no dunning language.
  */
 export function generateReminder(entry: SettleUpEntry): string {
   const absAmount = Math.abs(entry.netAmount).toFixed(2)
 
   if (entry.direction === 'they_owe') {
-    return `Hey ${entry.personName}! Just a friendly reminder — you owe me $${absAmount}. No rush, just keeping track 🙂`
+    return `Hey ${entry.personName}! Just a friendly nudge about the $${absAmount} — no rush at all, whenever you're ready 🙂`
   } else if (entry.direction === 'you_owe') {
-    return `Hey ${entry.personName}! Heads up — I owe you $${absAmount}. Want to settle up?`
+    return `Hey ${entry.personName}! Heads up — I've got $${absAmount} headed your way. Want to square up sometime?`
   }
   return `Hey ${entry.personName}! Looks like we're all squared up 🤝`
 }

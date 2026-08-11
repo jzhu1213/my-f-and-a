@@ -1,3 +1,16 @@
+/**
+ * compoundGrowthUtils.ts — Pure compound interest math.
+ *
+ * Extracts core compound-growth math into reusable pure functions for
+ * projections, previews, and testing. Used by savingsAccountUtils.ts.
+ *
+ * ── Related modules (savings-projection cluster) ──────────────────────────
+ *   • progressCurveUtils.ts          — unified debt+savings progress score
+ *   • savingsContributionHistory.ts  — per-account local contribution log
+ *   • savingsAccountUtils.ts         — account-level aggregates + projections
+ *   • trajectoryUtils.ts             — directional financial health trends
+ */
+
 import type { CompoundGrowthResult } from '@/types'
 
 /**

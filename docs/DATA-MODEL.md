@@ -433,44 +433,20 @@ All conversions happen in the `db*ToApp()` mapper functions at the top of `src/l
 
 ---
 
-## Module Map (Phase 3 Reorganization)
+## Module Map
 
-As of Phase 3 task 144, the `src/lib/` utility layer is organized into domain clusters
-via barrel `index.ts` files. Each domain can be imported as a namespace:
+All utility modules live as flat files under `src/lib/`. Imports use per-file paths:
 
 ```ts
-import { computeDailyAllowance } from '@/lib/allowance'
-import { getTotalMonthlyReserve } from '@/lib/obligations'
+import { computeDailyAllowance } from '@/lib/dailyAllowanceUtils'
+import { getTotalMonthlyReserve } from '@/lib/sinkingFunds'
 ```
 
-Existing per-file imports (`@/lib/dailyAllowanceUtils`) continue to work unchanged.
-
-### Domain Clusters
-
-| Domain | Path | Contains |
-|--------|------|----------|
-| **allowance** | `src/lib/allowance/` | dailyAllowanceUtils, termAllowance, weekendAllowance, spendDown, spendingModes, affordabilityUtils |
-| **income** | `src/lib/income/` | allocationUtils, paySchedule, disbursements, autoContributeUtils |
-| **obligations** | `src/lib/obligations/` | debtUtils, fixedExpenses, obligationsUtils, sinkingFunds, subscriptionDetector |
-| **sources** | `src/lib/sources/` | fundingSources, sourceBalances, linkedAccounts, accountUtils |
-| **savings** | `src/lib/savings/` | savingsAccountUtils, compoundGrowthUtils, goalUtils, goalDeadlineUtils, saveUpPlanUtils, roundUpSavings, autoEarmarkSavings, emergencyFund, setAside, taxSetAside |
-| **insights** | `src/lib/insights/` | insightUtils, insightPreferences, spendingInsights, tipUtils, celebrationEngine, habitEngine, trajectoryUtils, timeHorizonStats |
-| **dates** | `src/lib/dates/` | dateUtils, termSchedule |
-| **transactions** | `src/lib/transactions/` | transactionUtils, transactionValidation, refundUtils, tagUtils, merchantMemory, receiptStorage, splitUtils |
-| **categories** | `src/lib/categories/` | autoCategorize, categorizationRules, customCategories, categoryGridPreferences, budgetUtils, budgetSummary |
-| **notifications** | `src/lib/notifications/` | notificationScheduler, reminderPreferences, smartNotifications |
-| **education** | `src/lib/education/` | lessonsContent, microLessons, vocabulary |
-| **challenges** | `src/lib/challenges/` | noSpendChallenge, minBalanceBuffer |
-| **infra** | `src/lib/infra/` | supabaseClient, supabaseData, offlineQueue, homeCache, storage, featureFlags, haptics, animations, widgetSync, undoStack, sharingUtils |
-
-### Cross-Cutting (Unclustered)
-
-These remain at `src/lib/` root as they span multiple domains:
+### Cross-Cutting Utilities
 
 | File | Purpose |
 |------|---------|
 | `suggestionUtils.ts` | Smart amount suggestions — reads transactions, categories, and spending patterns |
-| `defaultsEngine.ts` | Time-of-day category & source prediction — reads transactions and funding sources |
 | `reimbursements.ts` | IOU ledger — standalone feature with its own data model |
 
 ### Set-Aside / Reserve Deduplication Notes
@@ -495,8 +471,7 @@ Models" section above.
 | Type | File | Purpose |
 |------|------|---------|
 | `MerchantEntry` | `src/lib/merchantMemory.ts` | note→category→amount association stored in localStorage (LRU, max 100). Used for merchant pre-fill on repeat entries. |
-| `SmartDefault` | `src/lib/defaultsEngine.ts` | Predicted category + funding source for the current time-of-day slot, with confidence scores. Powers the auto-suggestion in the expense sheet. |
-| `HabitPrediction` | `src/lib/habitEngine.ts` | A single predicted expense (category, amount, note) with confidence. Used internally by the defaults engine. |
+| `HabitPrediction` | `src/lib/habitEngine.ts` | A single predicted expense (category, amount, note) with confidence. Used internally by the habit engine. |
 | `HabitChip` | `src/lib/habitEngine.ts` | A rendered chip suggestion with label and frequency. Drives the QuickLog area's smart chips. |
 | `TimeSlot` | `src/lib/habitEngine.ts` | Time-of-day bucket: `early_morning` · `morning` · `midday` · `afternoon` · `evening` · `night`. |
 | `UndoEntry` | `src/lib/undoStack.ts` | A reversible destructive action with expiry timer. At most one pending entry at a time. Supports: delete, edit, bulk delete, bulk recategorize, refund. |
@@ -512,8 +487,6 @@ Models" section above.
 ### How New Runtime Types Feed the App
 
 ```
-  defaultsEngine (SmartDefault)
-      ↓ pre-selects category + source in ExpenseSheet
   merchantMemory (MerchantEntry)
       ↓ pre-fills category + amount when note matches known merchant
   habitEngine (HabitPrediction, HabitChip)

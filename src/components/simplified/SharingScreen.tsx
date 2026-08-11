@@ -86,8 +86,12 @@ export function SharingScreen({
 
   // Load links on mount and refresh shared data
   useEffect(() => {
-    setLinks(getShareLinks())
-    refreshAllSharedSummaries(userId, transactions, budgets, allowance)
+    async function loadAndRefresh() {
+      const fetched = await getShareLinks()
+      setLinks(fetched)
+      await refreshAllSharedSummaries(userId, transactions, budgets, allowance)
+    }
+    loadAndRefresh()
   }, [userId, transactions, budgets, allowance])
 
   // A link is shown as "active" only when it's active AND not expired.
@@ -111,24 +115,32 @@ export function SharingScreen({
 
   const handleCreate = useCallback(() => {
     if (!newLabel.trim() || scopeSections.length === 0) return
-    const link = createShareLink(userId, newLabel.trim(), {
-      expiresInDays: expiryDays,
-      scope: { access: "read-only", sections: scopeSections },
-    })
-    // Store the summary for this new link
-    refreshAllSharedSummaries(userId, transactions, budgets, allowance)
-    setLinks(getShareLinks())
-    resetForm()
-    // Auto-copy the new link
-    const url = getShareUrl(link.token)
-    navigator.clipboard?.writeText(url).catch(() => {})
-    setCopiedToken(link.token)
-    setTimeout(() => setCopiedToken(null), 2000)
+    async function doCreate() {
+      const link = await createShareLink(userId, newLabel.trim(), {
+        expiresInDays: expiryDays,
+        scope: { access: "read-only", sections: scopeSections },
+      })
+      // Store the summary for this new link
+      await refreshAllSharedSummaries(userId, transactions, budgets, allowance)
+      const fetched = await getShareLinks()
+      setLinks(fetched)
+      resetForm()
+      // Auto-copy the new link
+      const url = getShareUrl(link.token)
+      navigator.clipboard?.writeText(url).catch(() => {})
+      setCopiedToken(link.token)
+      setTimeout(() => setCopiedToken(null), 2000)
+    }
+    doCreate()
   }, [newLabel, scopeSections, expiryDays, userId, transactions, budgets, allowance, resetForm])
 
   const handleRevoke = useCallback((id: string) => {
-    revokeShareLink(id)
-    setLinks(getShareLinks())
+    async function doRevoke() {
+      await revokeShareLink(id)
+      const fetched = await getShareLinks()
+      setLinks(fetched)
+    }
+    doRevoke()
   }, [])
 
   const handleCopy = useCallback((token: string) => {

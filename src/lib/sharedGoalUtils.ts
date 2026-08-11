@@ -4,13 +4,25 @@
  * Functions for managing shared goals — goals that multiple people contribute
  * toward (e.g., a trip with friends, splitting an apartment deposit).
  *
- * Persistence: localStorage for MVP (same pattern as sharingUtils.ts).
- * In production, this would use a Supabase table with RLS.
+ * Persistence: Supabase (goals.is_shared + goal_participants table).
+ * Falls back to localStorage when offline or unauthenticated.
  *
  * Task 169.1 — Shared goals
+ * Task 288.1 — Persist shared goals & participants server-side
  */
 
 import type { Goal, GoalParticipant } from '@/types'
+import {
+  enableGoalSharing,
+  disableGoalSharing,
+  checkGoalShared,
+  getGoalShareToken,
+  getGoalByShareToken,
+  addGoalParticipant,
+  removeGoalParticipant as removeGoalParticipantDb,
+  recordGoalParticipantContribution,
+  getGoalParticipants,
+} from '@/lib/supabaseData'
 
 // ============================================================================
 // Constants
@@ -19,9 +31,8 @@ import type { Goal, GoalParticipant } from '@/types'
 const SHARED_GOALS_KEY = 'folio-shared-goals'
 
 /**
- * Internal storage shape: maps goalId → shared goal metadata.
- * We keep participants and shareToken in localStorage separately so the
- * existing Goal persistence (Supabase) doesn't need schema changes for MVP.
+ * Internal localStorage shape: maps goalId → shared goal metadata.
+ * Used as fallback when Supabase is unavailable.
  */
 interface SharedGoalMeta {
   goalId: string
@@ -32,7 +43,7 @@ interface SharedGoalMeta {
 }
 
 // ============================================================================
-// Storage Helpers
+// localStorage Fallback Helpers
 // ============================================================================
 
 function loadSharedGoals(): SharedGoalMeta[] {
@@ -51,14 +62,27 @@ function saveSharedGoals(metas: SharedGoalMeta[]): void {
 }
 
 // ============================================================================
-// Public API
+// Public API — async, Supabase-first with localStorage fallback
 // ============================================================================
 
 /**
  * Make a goal shared by generating a share token.
  * If the goal already has a token, returns the existing one.
+ * @param goalId - The goal to share
+ * @param userId - Authenticated user ID (pass null/undefined for offline fallback)
  */
-export function createSharedGoalToken(goalId: string): string {
+export async function createSharedGoalToken(goalId: string, userId?: string | null): Promise<string> {
+  // Try Supabase first
+  if (userId) {
+    try {
+      const token = await enableGoalSharing(userId, goalId)
+      if (token) return token
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+
+  // localStorage fallback
   const metas = loadSharedGoals()
   const existing = metas.find(m => m.goalId === goalId)
   if (existing && existing.isActive) {
@@ -75,7 +99,6 @@ export function createSharedGoalToken(goalId: string): string {
   }
 
   if (existing) {
-    // Re-activate with new token
     existing.shareToken = token
     existing.isActive = true
     saveSharedGoals(metas)
@@ -90,8 +113,28 @@ export function createSharedGoalToken(goalId: string): string {
 /**
  * Add a participant to a shared goal by goalId.
  * Returns the new participant, or null if the goal isn't shared.
+ * @param goalId - The shared goal
+ * @param name - Participant display name
+ * @param userId - Authenticated owner user ID (for RLS)
+ * @param participantUserId - Optional linked account for the participant
  */
-export function addParticipant(goalId: string, name: string): GoalParticipant | null {
+export async function addParticipant(
+  goalId: string,
+  name: string,
+  userId?: string | null,
+  participantUserId?: string | null
+): Promise<GoalParticipant | null> {
+  // Try Supabase
+  if (userId) {
+    try {
+      const p = await addGoalParticipant(goalId, name, participantUserId)
+      if (p) return p
+    } catch {
+      // Fall through
+    }
+  }
+
+  // localStorage fallback
   const metas = loadSharedGoals()
   const meta = metas.find(m => m.goalId === goalId && m.isActive)
   if (!meta) return null
@@ -112,12 +155,25 @@ export function addParticipant(goalId: string, name: string): GoalParticipant | 
  * Record a contribution from a specific participant.
  * Returns the updated participant or null if not found.
  */
-export function recordParticipantContribution(
+export async function recordParticipantContribution(
   goalId: string,
   participantId: string,
-  amount: number
-): GoalParticipant | null {
+  amount: number,
+  userId?: string | null
+): Promise<GoalParticipant | null> {
   if (amount <= 0) return null
+
+  // Try Supabase
+  if (userId) {
+    try {
+      const p = await recordGoalParticipantContribution(goalId, participantId, amount)
+      if (p) return p
+    } catch {
+      // Fall through
+    }
+  }
+
+  // localStorage fallback
   const metas = loadSharedGoals()
   const meta = metas.find(m => m.goalId === goalId && m.isActive)
   if (!meta) return null
@@ -134,7 +190,24 @@ export function recordParticipantContribution(
  * Get the per-person contribution breakdown for a shared goal.
  * Returns an empty array if the goal isn't shared.
  */
-export function getParticipantBreakdown(goalId: string): GoalParticipant[] {
+export async function getParticipantBreakdown(
+  goalId: string,
+  userId?: string | null
+): Promise<GoalParticipant[]> {
+  // Try Supabase
+  if (userId) {
+    try {
+      const participants = await getGoalParticipants(goalId)
+      if (participants.length > 0) return participants
+      // Empty result could mean no participants yet — check if shared
+      const shared = await checkGoalShared(goalId)
+      if (shared) return []
+    } catch {
+      // Fall through
+    }
+  }
+
+  // localStorage fallback
   const metas = loadSharedGoals()
   const meta = metas.find(m => m.goalId === goalId)
   if (!meta) return []
@@ -142,18 +215,42 @@ export function getParticipantBreakdown(goalId: string): GoalParticipant[] {
 }
 
 /**
- * Retrieve a shared goal's metadata by its share token.
+ * Retrieve a shared goal by its share token.
  * Returns null if not found or revoked.
  */
-export function getSharedGoalByToken(token: string): SharedGoalMeta | null {
+export async function getSharedGoalByToken(token: string): Promise<Goal | null> {
+  try {
+    const goal = await getGoalByShareToken(token)
+    if (goal) return goal
+  } catch {
+    // Fall through to localStorage
+  }
+
+  // localStorage fallback — returns limited info
   const metas = loadSharedGoals()
-  return metas.find(m => m.shareToken === token && m.isActive) ?? null
+  const meta = metas.find(m => m.shareToken === token && m.isActive)
+  if (!meta) return null
+  // We can't reconstruct a full Goal from localStorage alone, return null
+  return null
 }
 
 /**
  * Get the share token for a goal, or null if not shared.
  */
-export function getShareTokenForGoal(goalId: string): string | null {
+export async function getShareTokenForGoal(
+  goalId: string,
+  userId?: string | null
+): Promise<string | null> {
+  if (userId) {
+    try {
+      const token = await getGoalShareToken(goalId)
+      if (token) return token
+    } catch {
+      // Fall through
+    }
+  }
+
+  // localStorage fallback
   const metas = loadSharedGoals()
   const meta = metas.find(m => m.goalId === goalId && m.isActive)
   return meta?.shareToken ?? null
@@ -162,7 +259,19 @@ export function getShareTokenForGoal(goalId: string): string | null {
 /**
  * Check if a goal is shared.
  */
-export function isGoalShared(goalId: string): boolean {
+export async function isGoalShared(
+  goalId: string,
+  userId?: string | null
+): Promise<boolean> {
+  if (userId) {
+    try {
+      return await checkGoalShared(goalId)
+    } catch {
+      // Fall through
+    }
+  }
+
+  // localStorage fallback
   const metas = loadSharedGoals()
   return metas.some(m => m.goalId === goalId && m.isActive)
 }
@@ -170,7 +279,20 @@ export function isGoalShared(goalId: string): boolean {
 /**
  * Revoke sharing for a goal (deactivates the token).
  */
-export function revokeSharedGoalToken(goalId: string): void {
+export async function revokeSharedGoalToken(
+  goalId: string,
+  userId?: string | null
+): Promise<void> {
+  if (userId) {
+    try {
+      await disableGoalSharing(userId, goalId)
+      return
+    } catch {
+      // Fall through
+    }
+  }
+
+  // localStorage fallback
   const metas = loadSharedGoals()
   const meta = metas.find(m => m.goalId === goalId)
   if (meta) {
@@ -182,7 +304,21 @@ export function revokeSharedGoalToken(goalId: string): void {
 /**
  * Remove a participant from a shared goal.
  */
-export function removeParticipant(goalId: string, participantId: string): boolean {
+export async function removeParticipant(
+  goalId: string,
+  participantId: string,
+  userId?: string | null
+): Promise<boolean> {
+  if (userId) {
+    try {
+      const result = await removeGoalParticipantDb(goalId, participantId)
+      if (result) return true
+    } catch {
+      // Fall through
+    }
+  }
+
+  // localStorage fallback
   const metas = loadSharedGoals()
   const meta = metas.find(m => m.goalId === goalId && m.isActive)
   if (!meta) return false
@@ -204,10 +340,16 @@ export function getSharedGoalUrl(token: string): string {
 }
 
 /**
- * Hydrate a Goal object with its shared metadata from localStorage.
- * This merges the stored participant data into the Goal for display.
+ * Hydrate a Goal object with its shared metadata.
+ * When using Supabase, shared data is already on the Goal from getGoals().
+ * This function is retained for backward compatibility — it returns the goal as-is
+ * since participants are now fetched from Supabase directly.
  */
 export function hydrateGoalWithSharedData(goal: Goal): Goal {
+  // If goal already has shared data from Supabase, return as-is
+  if (goal.isShared) return goal
+
+  // localStorage fallback for offline/unauthenticated
   const metas = loadSharedGoals()
   const meta = metas.find(m => m.goalId === goal.id && m.isActive)
   if (!meta) return goal
@@ -217,7 +359,6 @@ export function hydrateGoalWithSharedData(goal: Goal): Goal {
     isShared: true,
     participants: meta.participants,
     shareToken: meta.shareToken,
-    type: 'shared',
   }
 }
 

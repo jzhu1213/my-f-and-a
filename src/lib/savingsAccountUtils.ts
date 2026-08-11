@@ -1,3 +1,17 @@
+/**
+ * savingsAccountUtils.ts — Account-level savings/investment utilities.
+ *
+ * Total balance, monthly contributions, Roth IRA contribution progress,
+ * combined projections, and contribution gap detection. Uses compoundGrowthUtils
+ * for projection math.
+ *
+ * ── Related modules (savings-projection cluster) ──────────────────────────
+ *   • compoundGrowthUtils.ts         — pure compound interest math
+ *   • progressCurveUtils.ts          — unified debt+savings progress score
+ *   • savingsContributionHistory.ts  — per-account local contribution log
+ *   • trajectoryUtils.ts             — directional financial health trends
+ */
+
 import type { SavingsAccount, SavingsAccountType } from '@/types/folio'
 import type { CompoundGrowthResult } from '@/types'
 import { SAVINGS_ACCOUNT_TYPES } from '@/types/folio'

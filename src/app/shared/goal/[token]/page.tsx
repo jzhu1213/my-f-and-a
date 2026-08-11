@@ -78,40 +78,48 @@ export default function SharedGoalViewPage() {
       return
     }
 
-    const meta = getSharedGoalByToken(token)
-    if (!meta) {
-      setNotFound(true)
+    async function loadGoal() {
+      if (!token) return
+      const goal = await getSharedGoalByToken(token)
+      if (!goal) {
+        setNotFound(true)
+        setLoading(false)
+        return
+      }
+
+      setGoalId(goal.id)
+      const breakdown = await getParticipantBreakdown(goal.id)
+      setParticipants(breakdown)
+
+      const storedId = localStorage.getItem(`folio-shared-goal-me-${goal.id}`)
+      if (storedId) setMyParticipantId(storedId)
+
       setLoading(false)
-      return
     }
 
-    setGoalId(meta.goalId)
-    setParticipants(getParticipantBreakdown(meta.goalId))
-
-    const storedId = localStorage.getItem(`folio-shared-goal-me-${meta.goalId}`)
-    if (storedId) setMyParticipantId(storedId)
-
-    setLoading(false)
+    loadGoal()
   }, [token])
 
-  const handleJoin = useCallback(() => {
+  const handleJoin = useCallback(async () => {
     if (!goalId || !joinName.trim()) return
-    const p = addParticipant(goalId, joinName.trim())
+    const p = await addParticipant(goalId, joinName.trim())
     if (p) {
       setMyParticipantId(p.id)
       localStorage.setItem(`folio-shared-goal-me-${goalId}`, p.id)
-      setParticipants(getParticipantBreakdown(goalId))
+      const breakdown = await getParticipantBreakdown(goalId)
+      setParticipants(breakdown)
       setJoinName("")
     }
   }, [goalId, joinName])
 
-  const handleContribute = useCallback(() => {
+  const handleContribute = useCallback(async () => {
     if (!goalId || !myParticipantId) return
     const amount = parseFloat(contributeAmount)
     if (!amount || amount <= 0) return
 
-    recordParticipantContribution(goalId, myParticipantId, amount)
-    setParticipants(getParticipantBreakdown(goalId))
+    await recordParticipantContribution(goalId, myParticipantId, amount)
+    const breakdown = await getParticipantBreakdown(goalId)
+    setParticipants(breakdown)
     setContributeAmount("")
     setContributed(true)
     setTimeout(() => setContributed(false), 2500)

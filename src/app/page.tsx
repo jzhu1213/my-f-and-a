@@ -28,7 +28,7 @@ import { detectSubscriptions, toRecurringBillDraft } from '@/lib/subscriptionDet
 import { mapGoalToPriority } from '@/lib/goalMapping'
 import { getGoalDefaults } from '@/lib/goalDefaults'
 import { getCategorizationRules, saveCategorizationRule, updateCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
-import { getActiveShareLinks } from '@/lib/sharingUtils'
+import { getActiveShareLinksSync } from '@/lib/sharingUtils'
 import type { CategorizationRule, CategorizationRuleUpdate } from '@/lib/categorizationRules'
 import { shadows } from '@/styles/shared'
 
@@ -194,6 +194,7 @@ import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 import { useOverlayRouter } from '@/hooks/useOverlayRouter'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
+import { useLocalToCloudMigration } from '@/hooks/useLocalToCloudMigration'
 import { SyncIndicator } from '@/components/simplified/SyncIndicator'
 import { OfflineBanner } from '@/components/ui/OfflineBanner'
 
@@ -456,6 +457,9 @@ export default function FolioApp() {
 
   // ── Service Worker registration (task 77 — PWA notifications) ──
   useServiceWorker()
+
+  // ── Local → Cloud migration (task 292.1 — one-way migration on first auth) ──
+  useLocalToCloudMigration()
 
   // ── Optional cold-open app lock (task 182.1 — biometric/PIN gate) ──
   // Device-local privacy convenience, OFF by default. Gates a fresh cold open
@@ -2392,7 +2396,7 @@ export default function FolioApp() {
                 onOpenCategorizationRules={() => overlay.openOverlay('categorizationRules')}
                 onOpenSharing={() => overlay.openOverlay('sharing')}
                 onOpenCategoryHub={() => overlay.openOverlay('categoryHub')}
-                activeShareCount={getActiveShareLinks().length}
+                activeShareCount={getActiveShareLinksSync().length}
                 spendDownPlans={spendDownPlans}
                 onAddSpendDownPlan={addSpendDownPlan}
                 onRemoveSpendDownPlan={removeSpendDownPlan}
@@ -2582,6 +2586,8 @@ export default function FolioApp() {
         displayName={user?.displayName}
         avatarUrl={user?.avatarUrl}
         userId={user?.id}
+        handle={user?.handle}
+        discoverable={user?.discoverable}
         onSignOut={handleSignOut}
         onProfileUpdate={handleProfileUpdate}
       />

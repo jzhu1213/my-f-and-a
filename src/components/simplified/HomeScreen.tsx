@@ -27,8 +27,7 @@ import { CELEBRATION_COPY, CELEBRATION_EMOJI } from "@/lib/vocabulary"
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { recordLastActive } from "@/lib/reminderPreferences"
-import { getInsightsEnabled } from "@/lib/insightPreferences"
-import { getSavingsRateBadgeEnabled } from "@/lib/savingsBadgePreferences"
+import { getInsightsEnabled, getSavingsRateBadgeEnabled } from "@/lib/uiPreferences"
 import { getPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
 import { SpendPaceIndicator } from "./SpendPaceIndicator"
 import { motion, AnimatePresence } from "framer-motion"
@@ -1248,7 +1247,7 @@ export function HomeScreen({
                     textAlign: 'left',
                   }}
                 >
-                  {split.name} owes you ${split.amount % 1 === 0 ? split.amount : split.amount.toFixed(2)}
+                  {split.name} · ${split.amount % 1 === 0 ? split.amount : split.amount.toFixed(2)} to settle
                 </span>
                 {onSettleSplit && (
                   <button
@@ -1280,7 +1279,7 @@ export function HomeScreen({
               <button
                 type="button"
                 onClick={onOpenReimbursements}
-                aria-label="View all outstanding splits"
+                aria-label="View all open splits"
                 style={{
                   width: '100%',
                   padding: '8px 16px',

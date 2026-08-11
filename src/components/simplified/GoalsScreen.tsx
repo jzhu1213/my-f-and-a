@@ -20,7 +20,6 @@ import type { Goal } from "@/types"
 import type { SavingsAccount } from "@/types/folio"
 import { goalProgress, isGoalComplete } from "@/lib/goalUtils"
 import { getLinkedAccountForGoal } from "@/lib/goalInvestingUtils"
-import { isGoalShared, getParticipantBreakdown } from "@/lib/sharedGoalUtils"
 import { SharedGoalSheet } from "./SharedGoalSheet"
 import { FONT_FAMILY } from "@/styles/typography"
 import { borderRadius, fills, colorRamp, shadows } from "@/styles/shared"
@@ -94,8 +93,8 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
   const complete = isGoalComplete(effectiveGoal)
   const remaining = Math.max(0, goal.targetAmount - effectiveCurrentAmount)
   const fillColor = complete ? "var(--success)" : "var(--accent)"
-  const shared = isGoalShared(goal.id)
-  const participants = shared ? getParticipantBreakdown(goal.id) : []
+  const shared = !!goal.isShared
+  const participants = goal.participants || []
 
   // Compute deadline feasibility when a target date is set
   const deadlineInfo = useMemo(

@@ -5,15 +5,18 @@
  * Allows users to generate shareable links that give read-only access to a
  * high-level spending summary (no individual transaction details).
  *
- * Persistence: localStorage for MVP. In production, this would use a
- * Supabase table with RLS so shared data is accessible cross-device.
+ * Persistence: Supabase `share_links` table (primary) with localStorage
+ * fallback when offline or unauthenticated. Cross-device viewing is powered
+ * by the `get_shared_summary()` security-definer function (no auth needed).
  *
  * Task 115.1 — Optional read-only sharing
  * Task 193.1 — Hardening: expiry, revoke, and scope controls
+ * Task 290.1 — Move read-only share summaries server-side (Supabase)
  */
 
 import type { Transaction, Budget } from '@/types'
 import type { DailyAllowance, AllowanceStatus } from '@/types/folio'
+import { supabase } from '@/lib/supabaseClient'
 
 // ============================================================================
 // Types
@@ -134,6 +137,20 @@ const SHARE_LINKS_KEY = 'folio-share-links'
 const SHARED_DATA_PREFIX = 'folio-shared-data-'
 
 // ============================================================================
+// Supabase auth helper
+// ============================================================================
+
+/** Returns the authenticated user ID, or null if not logged in. */
+async function getAuthUserId(): Promise<string | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    return user?.id ?? null
+  } catch {
+    return null
+  }
+}
+
+// ============================================================================
 // Normalization & lifecycle helpers
 // ============================================================================
 
@@ -201,13 +218,33 @@ export function describeExpiry(link: ShareLink, now: Date = new Date()): string 
 }
 
 // ============================================================================
-// Share Link CRUD
+// Supabase ↔ ShareLink mapping helpers
+// ============================================================================
+
+/** Maps a Supabase share_links row to our client-side ShareLink interface. */
+function rowToShareLink(row: Record<string, unknown>): ShareLink {
+  return normalizeShareLink({
+    id: row.id as string,
+    userId: row.user_id as string,
+    label: (row.label as string) || 'Shared link',
+    token: row.token as string,
+    createdAt: row.created_at as string,
+    isActive: row.is_active as boolean,
+    lastViewedAt: (row.last_viewed_at as string) ?? null,
+    expiresAt: (row.expires_at as string) ?? null,
+    revokedAt: (row.revoked_at as string) ?? null,
+    scope: row.scope as ShareScope | undefined,
+  })
+}
+
+// ============================================================================
+// Share Link CRUD (localStorage fallback)
 // ============================================================================
 
 /**
- * Get all share links for the current user (normalized for backward compat).
+ * Get all share links from localStorage (fallback for offline/unauthenticated).
  */
-export function getShareLinks(): ShareLink[] {
+function getShareLinksLocal(): ShareLink[] {
   if (typeof window === 'undefined') return []
   try {
     const raw = localStorage.getItem(SHARE_LINKS_KEY)
@@ -218,25 +255,92 @@ export function getShareLinks(): ShareLink[] {
   }
 }
 
+// ============================================================================
+// Share Link CRUD (Supabase-first, localStorage fallback)
+// ============================================================================
+
+/**
+ * Get all share links for the current user (normalized for backward compat).
+ * Fetches from Supabase when authenticated; falls back to localStorage.
+ */
+export async function getShareLinks(): Promise<ShareLink[]> {
+  const userId = await getAuthUserId()
+  if (!userId) return getShareLinksLocal()
+
+  try {
+    const { data, error } = await supabase
+      .from('share_links')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error || !data) {
+      // Network error — fall back to localStorage
+      return getShareLinksLocal()
+    }
+
+    return data.map(rowToShareLink)
+  } catch {
+    return getShareLinksLocal()
+  }
+}
+
+/**
+ * Synchronous localStorage-only getter — kept for backward compatibility
+ * with code that cannot be made async (e.g. certain UI initializations).
+ */
+export function getShareLinksSync(): ShareLink[] {
+  return getShareLinksLocal()
+}
+
 /**
  * Create a new share link with a custom label, optional expiry, and scope.
+ * Inserts into Supabase when authenticated; falls back to localStorage.
  *
  * @param options.expiresInDays Days until expiry; omit/null for no expiry.
  * @param options.scope What the recipient can view; defaults to full read-only.
  */
-export function createShareLink(
+export async function createShareLink(
   userId: string,
   label: string,
   options: CreateShareLinkOptions = {}
-): ShareLink {
-  const links = getShareLinks()
-
+): Promise<ShareLink> {
   const { expiresInDays = null, scope } = options
   let expiresAt: string | null = null
   if (typeof expiresInDays === 'number' && expiresInDays > 0) {
     expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString()
   }
 
+  const normalizedScope = normalizeScope(scope)
+  const authUserId = await getAuthUserId()
+
+  // Try Supabase first
+  if (authUserId) {
+    try {
+      const { data, error } = await supabase
+        .from('share_links')
+        .insert({
+          user_id: authUserId,
+          label: label.trim() || 'Shared link',
+          scope: normalizedScope,
+          expires_at: expiresAt,
+          is_active: true,
+        })
+        .select()
+        .single()
+
+      if (!error && data) {
+        const link = rowToShareLink(data)
+        // Also cache in localStorage for offline availability
+        cacheShareLinkLocally(link)
+        return link
+      }
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+
+  // Fallback: localStorage-only
   const newLink: ShareLink = {
     id: crypto.randomUUID(),
     userId,
@@ -247,8 +351,9 @@ export function createShareLink(
     lastViewedAt: null,
     expiresAt,
     revokedAt: null,
-    scope: normalizeScope(scope),
+    scope: normalizedScope,
   }
+  const links = getShareLinksLocal()
   links.push(newLink)
   localStorage.setItem(SHARE_LINKS_KEY, JSON.stringify(links))
   return newLink
@@ -259,8 +364,39 @@ export function createShareLink(
  * subsequent recipient view is rejected. Also clears the stored summary so no
  * cached data lingers.
  */
-export function revokeShareLink(id: string): void {
-  const links = getShareLinks()
+export async function revokeShareLink(id: string): Promise<void> {
+  const authUserId = await getAuthUserId()
+
+  if (authUserId) {
+    try {
+      const { error } = await supabase
+        .from('share_links')
+        .update({
+          is_active: false,
+          revoked_at: new Date().toISOString(),
+          summary: null, // Clear stored summary
+        })
+        .eq('id', id)
+        .eq('user_id', authUserId)
+
+      if (!error) {
+        // Also update local cache
+        revokeShareLinkLocally(id)
+        return
+      }
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+
+  // Fallback: localStorage-only
+  revokeShareLinkLocally(id)
+}
+
+/** Local-only revoke for fallback/cache sync. */
+function revokeShareLinkLocally(id: string): void {
+  if (typeof window === 'undefined') return
+  const links = getShareLinksLocal()
   const target = links.find(link => link.id === id)
   const updated = links.map(link =>
     link.id === id
@@ -268,8 +404,7 @@ export function revokeShareLink(id: string): void {
       : link
   )
   localStorage.setItem(SHARE_LINKS_KEY, JSON.stringify(updated))
-  // Immediately purge the cached summary so revoked data can't be read.
-  if (target && typeof window !== 'undefined') {
+  if (target) {
     localStorage.removeItem(SHARED_DATA_PREFIX + target.token)
   }
 }
@@ -278,20 +413,82 @@ export function revokeShareLink(id: string): void {
  * Update the scope of an existing link (e.g. broaden or narrow what a
  * recipient can see). Returns the updated link, or null if not found.
  */
-export function updateShareLinkScope(id: string, scope: ShareScope): ShareLink | null {
-  const links = getShareLinks()
+export async function updateShareLinkScope(id: string, scope: ShareScope): Promise<ShareLink | null> {
+  const normalizedScope = normalizeScope(scope)
+  const authUserId = await getAuthUserId()
+
+  if (authUserId) {
+    try {
+      const { data, error } = await supabase
+        .from('share_links')
+        .update({ scope: normalizedScope })
+        .eq('id', id)
+        .eq('user_id', authUserId)
+        .select()
+        .single()
+
+      if (!error && data) {
+        const link = rowToShareLink(data)
+        // Update local cache
+        updateShareLinkLocally(id, { scope: normalizedScope })
+        return link
+      }
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+
+  // Fallback: localStorage-only
+  return updateShareLinkScopeLocally(id, normalizedScope)
+}
+
+/** Local-only scope update for fallback/cache sync. */
+function updateShareLinkScopeLocally(id: string, scope: ShareScope): ShareLink | null {
+  const links = getShareLinksLocal()
   const idx = links.findIndex(link => link.id === id)
   if (idx === -1) return null
-  links[idx] = { ...links[idx], scope: normalizeScope(scope) }
+  links[idx] = { ...links[idx], scope }
   localStorage.setItem(SHARE_LINKS_KEY, JSON.stringify(links))
   return links[idx]
 }
 
+/** Generic local-only field update helper for cache sync. */
+function updateShareLinkLocally(id: string, updates: Partial<ShareLink>): void {
+  if (typeof window === 'undefined') return
+  const links = getShareLinksLocal()
+  const idx = links.findIndex(link => link.id === id)
+  if (idx === -1) return
+  links[idx] = { ...links[idx], ...updates }
+  localStorage.setItem(SHARE_LINKS_KEY, JSON.stringify(links))
+}
+
+/** Cache a share link in localStorage for offline availability. */
+function cacheShareLinkLocally(link: ShareLink): void {
+  if (typeof window === 'undefined') return
+  const links = getShareLinksLocal()
+  const idx = links.findIndex(l => l.id === link.id)
+  if (idx >= 0) {
+    links[idx] = link
+  } else {
+    links.push(link)
+  }
+  localStorage.setItem(SHARE_LINKS_KEY, JSON.stringify(links))
+}
+
 /**
- * Get usable share links only — active and not expired.
+ * Get usable share links only — active and not expired (async, Supabase-first).
  */
-export function getActiveShareLinks(): ShareLink[] {
-  return getShareLinks().filter(link => isShareLinkValid(link))
+export async function getActiveShareLinks(): Promise<ShareLink[]> {
+  const links = await getShareLinks()
+  return links.filter(link => isShareLinkValid(link))
+}
+
+/**
+ * Synchronous version — reads from localStorage only. Useful for inline UI
+ * rendering that cannot await (e.g. badge counts in the tools screen).
+ */
+export function getActiveShareLinksSync(): ShareLink[] {
+  return getShareLinksLocal().filter(link => isShareLinkValid(link))
 }
 
 /**
@@ -366,26 +563,76 @@ export function getShareSummary(
 }
 
 /**
- * Store a shared summary keyed by token so the shared page can read it.
- * NOTE: In production this would be stored server-side (Supabase) so the
- * recipient doesn't need to be on the same device.
+ * Store a shared summary for a token. Writes to the `summary` column of the
+ * corresponding share_links row in Supabase (primary), with localStorage
+ * fallback for offline.
  */
-export function storeSharedSummary(token: string, summary: SharedSummary): void {
+export async function storeSharedSummary(token: string, summary: SharedSummary): Promise<void> {
+  const authUserId = await getAuthUserId()
+
+  if (authUserId) {
+    try {
+      const { error } = await supabase
+        .from('share_links')
+        .update({ summary: summary as unknown as Record<string, unknown> })
+        .eq('token', token)
+        .eq('user_id', authUserId)
+
+      if (!error) {
+        // Also cache locally for offline reads by the owner
+        storeSharedSummaryLocally(token, summary)
+        return
+      }
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+
+  // Fallback: localStorage-only
+  storeSharedSummaryLocally(token, summary)
+}
+
+/** Local-only summary store for fallback/cache. */
+function storeSharedSummaryLocally(token: string, summary: SharedSummary): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(SHARED_DATA_PREFIX + token, JSON.stringify(summary))
 }
 
 /**
- * Retrieve a shared summary by token. Returns null if not found or revoked.
+ * Retrieve a shared summary by token. Uses the `get_shared_summary()` RPC
+ * function which works for unauthenticated viewers cross-device. Falls back
+ * to localStorage if the RPC is unreachable.
  */
-export function getSharedSummary(token: string): SharedSummary | null {
+export async function getSharedSummary(token: string): Promise<SharedSummary | null> {
+  // Try Supabase RPC first (works for anon viewers, cross-device)
+  try {
+    const { data, error } = await supabase.rpc('get_shared_summary', {
+      p_token: token,
+    })
+
+    if (!error && data) {
+      return data as unknown as SharedSummary
+    }
+
+    // If error or null data (link invalid/revoked/expired), RPC returned null
+    if (!error && data === null) {
+      return null
+    }
+  } catch {
+    // Network error — fall through to localStorage fallback
+  }
+
+  // Fallback: localStorage (same-device only, for offline)
+  return getSharedSummaryLocal(token)
+}
+
+/** Local-only summary retrieval (original localStorage logic). */
+function getSharedSummaryLocal(token: string): SharedSummary | null {
   if (typeof window === 'undefined') return null
   try {
-    // Reject revoked or expired links before returning any data.
-    const links = getShareLinks()
+    const links = getShareLinksLocal()
     const link = links.find(l => l.token === token)
     if (link && !isShareLinkValid(link)) {
-      // Clean up any lingering cache for a link that's no longer usable.
       localStorage.removeItem(SHARED_DATA_PREFIX + token)
       return null
     }
@@ -393,15 +640,12 @@ export function getSharedSummary(token: string): SharedSummary | null {
     const raw = localStorage.getItem(SHARED_DATA_PREFIX + token)
     if (!raw) return null
 
-    // Update lastViewedAt on the underlying link record.
     if (link) {
       link.lastViewedAt = new Date().toISOString()
       localStorage.setItem(SHARE_LINKS_KEY, JSON.stringify(links))
     }
 
     const summary: SharedSummary = JSON.parse(raw)
-    // Defense-in-depth: re-apply the link's current scope so narrowing scope
-    // takes effect immediately even against a previously cached summary.
     return link ? applyScopeToSummary(summary, normalizeScope(link.scope)) : summary
   } catch {
     return null
@@ -428,13 +672,13 @@ export function applyScopeToSummary(summary: SharedSummary, scope: ShareScope): 
  * Update all active share links with the latest summary data.
  * Called whenever the user opens the sharing screen or data changes.
  */
-export function refreshAllSharedSummaries(
+export async function refreshAllSharedSummaries(
   userId: string,
   transactions: Transaction[],
   budgets: Budget[],
   allowance: DailyAllowance | null
-): void {
-  const links = getActiveShareLinks()
+): Promise<void> {
+  const links = await getActiveShareLinks()
   for (const link of links) {
     const summary = getShareSummary(
       userId,
@@ -444,7 +688,7 @@ export function refreshAllSharedSummaries(
       link.label,
       normalizeScope(link.scope)
     )
-    storeSharedSummary(link.token, summary)
+    await storeSharedSummary(link.token, summary)
   }
 }
 

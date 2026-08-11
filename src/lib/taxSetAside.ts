@@ -7,6 +7,11 @@
  *
  * Includes quarterly estimated tax guidance (Task 177.1) — warm, plain-language
  * framing with no filing or professional-advice claims.
+ *
+ * ── Related modules (money-set-aside cluster) ─────────────────────────────
+ *   • setAside.ts            — unified "money set aside" model (flow + balance)
+ *   • autoEarmarkSavings.ts  — auto-sweep unspent allowance toward savings
+ *   • allocationUtils.ts     — allocation-bucket slice + savings rate
  */
 
 export interface TaxSetAsideResult {

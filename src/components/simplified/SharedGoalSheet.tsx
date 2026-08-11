@@ -7,9 +7,10 @@
  * adding new ones, recording contributions, and sharing the invite link.
  *
  * Task 169.1 — Shared goals
+ * Task 288.1 — Persist shared goals & participants server-side
  */
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
@@ -37,13 +38,15 @@ export interface SharedGoalSheetProps {
   onClose: () => void
   /** Called after sharing state changes so the parent can refresh goal data */
   onGoalUpdated?: () => void
+  /** Authenticated user ID — enables Supabase persistence. Falls back to localStorage if absent. */
+  userId?: string | null
 }
 
 // ============================================================================
 // Component
 // ============================================================================
 
-export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated }: SharedGoalSheetProps) {
+export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }: SharedGoalSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const [participants, setParticipants] = useState<GoalParticipant[]>([])
   const [newName, setNewName] = useState("")
@@ -52,73 +55,98 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated }: Shared
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [isShared, setIsShared] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  // Refresh participants when sheet opens
-  const refreshState = useCallback(() => {
-    if (!goal) return
-    const shared = isGoalShared(goal.id)
-    setIsShared(shared)
-    if (shared) {
-      setParticipants(getParticipantBreakdown(goal.id))
-      const token = goal.shareToken
-      if (token) setShareUrl(getSharedGoalUrl(token))
+  // Refresh state when sheet opens
+  useEffect(() => {
+    if (!isOpen || !goal) return
+    let cancelled = false
+
+    async function refresh() {
+      if (!goal) return
+      setLoading(true)
+      try {
+        const shared = await isGoalShared(goal.id, userId)
+        if (cancelled) return
+        setIsShared(shared)
+        if (shared) {
+          const breakdown = await getParticipantBreakdown(goal.id, userId)
+          if (cancelled) return
+          setParticipants(breakdown)
+          const token = goal.shareToken
+          if (token) setShareUrl(getSharedGoalUrl(token))
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-  }, [goal])
 
-  // Effect-like initialization on open
-  if (isOpen && goal) {
-    // We use a simple flag check to avoid re-running on every render
-    if (participants.length === 0 && !isShared) {
-      refreshState()
+    refresh()
+    return () => { cancelled = true }
+  }, [isOpen, goal, userId])
+
+  const handleEnableSharing = useCallback(async () => {
+    if (!goal) return
+    setLoading(true)
+    try {
+      const token = await createSharedGoalToken(goal.id, userId)
+      setIsShared(true)
+      setShareUrl(getSharedGoalUrl(token))
+      onGoalUpdated?.()
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [goal, userId, onGoalUpdated])
 
-  const handleEnableSharing = useCallback(() => {
+  const handleDisableSharing = useCallback(async () => {
     if (!goal) return
-    const token = createSharedGoalToken(goal.id)
-    setIsShared(true)
-    setShareUrl(getSharedGoalUrl(token))
-    onGoalUpdated?.()
-  }, [goal, onGoalUpdated])
+    setLoading(true)
+    try {
+      await revokeSharedGoalToken(goal.id, userId)
+      setIsShared(false)
+      setShareUrl(null)
+      setParticipants([])
+      onGoalUpdated?.()
+    } finally {
+      setLoading(false)
+    }
+  }, [goal, userId, onGoalUpdated])
 
-  const handleDisableSharing = useCallback(() => {
-    if (!goal) return
-    revokeSharedGoalToken(goal.id)
-    setIsShared(false)
-    setShareUrl(null)
-    setParticipants([])
-    onGoalUpdated?.()
-  }, [goal, onGoalUpdated])
-
-  const handleAddParticipant = useCallback(() => {
+  const handleAddParticipant = useCallback(async () => {
     if (!goal || !newName.trim()) return
-    const p = addParticipant(goal.id, newName.trim())
+    const p = await addParticipant(goal.id, newName.trim(), userId)
     if (p) {
       setParticipants(prev => [...prev, p])
       setNewName("")
       onGoalUpdated?.()
     }
-  }, [goal, newName, onGoalUpdated])
+  }, [goal, newName, userId, onGoalUpdated])
 
-  const handleContribute = useCallback(() => {
+  const handleContribute = useCallback(async () => {
     if (!goal || !contributeId) return
     const amount = parseFloat(contributeAmount)
     if (!amount || amount <= 0) return
-    recordParticipantContribution(goal.id, contributeId, amount)
-    setParticipants(getParticipantBreakdown(goal.id))
+    const updated = await recordParticipantContribution(goal.id, contributeId, amount, userId)
+    if (updated) {
+      setParticipants(prev =>
+        prev.map(p => (p.id === contributeId ? updated : p))
+      )
+    }
     setContributeId(null)
     setContributeAmount("")
     onGoalUpdated?.()
-  }, [goal, contributeId, contributeAmount, onGoalUpdated])
+  }, [goal, contributeId, contributeAmount, userId, onGoalUpdated])
 
   const handleRemoveParticipant = useCallback(
-    (participantId: string) => {
+    async (participantId: string) => {
       if (!goal) return
-      removeParticipant(goal.id, participantId)
-      setParticipants(prev => prev.filter(p => p.id !== participantId))
-      onGoalUpdated?.()
+      const success = await removeParticipant(goal.id, participantId, userId)
+      if (success) {
+        setParticipants(prev => prev.filter(p => p.id !== participantId))
+        onGoalUpdated?.()
+      }
     },
-    [goal, onGoalUpdated]
+    [goal, userId, onGoalUpdated]
   )
 
   const handleCopyLink = useCallback(async () => {
@@ -225,6 +253,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated }: Shared
                   onClick={handleEnableSharing}
                   whileTap={{ scale: prefersReducedMotion ? 1 : 0.97 }}
                   transition={springs.snappy}
+                  disabled={loading}
                   style={{
                     padding: "12px 24px",
                     fontSize: 14,
@@ -234,10 +263,11 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated }: Shared
                     background: "var(--accent)",
                     border: "none",
                     borderRadius: 10,
-                    cursor: "pointer",
+                    cursor: loading ? "wait" : "pointer",
+                    opacity: loading ? 0.7 : 1,
                   }}
                 >
-                  Make this a shared goal
+                  {loading ? "Setting up…" : "Make this a shared goal"}
                 </motion.button>
               </GlassCard>
             ) : (
@@ -519,6 +549,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated }: Shared
                   onClick={handleDisableSharing}
                   whileTap={{ scale: prefersReducedMotion ? 1 : 0.97 }}
                   transition={springs.snappy}
+                  disabled={loading}
                   style={{
                     width: "100%",
                     padding: "12px",
@@ -529,7 +560,8 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated }: Shared
                     background: "rgba(239, 68, 68, 0.06)",
                     border: "1px solid rgba(239, 68, 68, 0.15)",
                     borderRadius: 10,
-                    cursor: "pointer",
+                    cursor: loading ? "wait" : "pointer",
+                    opacity: loading ? 0.7 : 1,
                   }}
                 >
                   Stop sharing this goal

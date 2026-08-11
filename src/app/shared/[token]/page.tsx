@@ -11,8 +11,9 @@
  * immediately in the shell (badge, heading visible before data loads).
  * Invalid/expired link renders explanatory state immediately (no partial content).
  *
- * For MVP, reads from localStorage keyed by token. In production, this would
- * fetch from a Supabase endpoint so it works cross-device.
+ * Fetches from Supabase via the `get_shared_summary()` RPC function so it
+ * works cross-device for unauthenticated viewers. Falls back to localStorage
+ * if the network is unavailable.
  *
  * Requirements: 15.8, 15.9, 15.10
  */
@@ -91,8 +92,21 @@ export default function SharedViewPage() {
       setSummary(null)
       return
     }
-    const data = getSharedSummary(token)
-    setSummary(data)
+
+    let cancelled = false
+
+    async function fetchSummary() {
+      const data = await getSharedSummary(token!)
+      if (!cancelled) {
+        setSummary(data)
+      }
+    }
+
+    fetchSummary()
+
+    return () => {
+      cancelled = true
+    }
   }, [token])
 
   // Loading state — shell (badge, heading) renders immediately

@@ -312,6 +312,223 @@ verifiability gaps typical of an MVP.
 
 ---
 
+## 7. Phase 7 — Social Tables RLS & Cross-User Access Policies
+
+Phase 7 introduces social features (friends, splits, pools, notifications, shared
+goals, and share links). Because these tables involve multi-user rows and
+cross-user read/write paths, their RLS policies are more nuanced than the simple
+`auth.uid() = user_id` pattern used by personal-finance tables. All policies are
+defined in `.kiro/specs/folio-simplification/Phase7-supabase-setup.sql`.
+
+### 7.1 Security Definer Helper Functions
+
+To avoid infinite RLS recursion between related tables (e.g. `splits` ↔
+`split_participants`), narrow `SECURITY DEFINER` functions bypass RLS to perform
+cross-table membership checks. Each is read-only and scoped to a single boolean
+question:
+
+| Function | Purpose |
+|----------|---------|
+| `is_split_owner(uuid)` | True if `auth.uid()` owns the given split |
+| `is_split_participant(uuid)` | True if `auth.uid()` is a linked participant on the split |
+| `is_goal_owner(uuid)` | True if `auth.uid()` owns the goal |
+| `is_pool_owner(uuid)` | True if `auth.uid()` owns the pool |
+| `is_pool_member(uuid)` | True if `auth.uid()` is a member of the pool |
+| `are_friends(uuid, uuid)` | True if two users have an accepted friendship |
+| `create_notification(uuid, text, jsonb)` | Validates relationship before inserting a cross-user notification |
+| `get_shared_summary(uuid)` | Returns scoped read-only summary if link is active, not expired, not revoked |
+| `settle_counterpart_iou(uuid, uuid)` | Two-sided settle (both parties' reimbursement rows) |
+
+### 7.2 Per-Table RLS Policy Breakdown
+
+#### `friendships`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| SELECT | `friendships_party_select` | `auth.uid() IN (requester_id, addressee_id)` |
+| INSERT | `friendships_insert_as_requester` | `auth.uid() = requester_id` (can't impersonate) |
+| UPDATE | `friendships_party_update` | Either party (accept/decline/block) |
+| DELETE | `friendships_party_delete` | Either party can remove the relationship |
+
+**Cross-user access:** Only the two parties ever see the row. No third party
+can discover who is friends with whom. The unique index
+`uniq_friendship_pair(least, greatest)` prevents duplicate/reverse requests.
+
+#### `splits`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| ALL | `splits_owner_all` | `auth.uid() = owner_id` (full control) |
+| SELECT | `splits_participant_read` | `is_split_participant(id)` (linked participant can read) |
+
+**Cross-user access:** A participant can only READ splits they are linked to.
+They cannot insert, update, or delete splits. The owner retains full control.
+
+#### `split_participants`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| SELECT | `split_participants_read` | `is_split_owner(split_id)` OR `auth.uid() = participant_user_id` |
+| INSERT | `split_participants_owner_insert` | `is_split_owner(split_id)` only |
+| UPDATE | `split_participants_update` | Owner OR participant (own row — e.g. marking settled) |
+| DELETE | `split_participants_owner_delete` | Owner only |
+
+**Cross-user access:** A participant can view and update (self-settle) only
+their own row. They cannot add/remove other participants or see other
+participants' rows unless the owner shares the split.
+
+#### `notifications`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| SELECT | `notifications_owner_rw` | `auth.uid() = user_id` (recipient only) |
+| INSERT | `notifications_self_insert` | `auth.uid() = user_id` (self-insert only) |
+| UPDATE | `notifications_owner_update` | Recipient only (mark read) |
+| DELETE | `notifications_owner_delete` | Recipient only |
+
+**Cross-user access:** Direct inserts are self-only. Cross-user notification
+creation goes through `create_notification()` RPC which validates a legitimate
+relationship (friend, pending request, or shared split) before inserting.
+This prevents spam/abuse from unrelated users.
+
+#### `pools`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| ALL | `pools_owner_all` | `auth.uid() = owner_id` (full control) |
+| SELECT | `pools_member_read` | `is_pool_member(id)` (members can read the pool) |
+
+**Cross-user access:** Members can only read the pool — they cannot rename,
+delete, or change its settings. Only the owner has write access.
+
+#### `pool_members`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| ALL | `pool_members_owner_all` | `is_pool_owner(pool_id)` (owner manages) |
+| SELECT | `pool_members_read` | `is_pool_member(pool_id)` OR `is_pool_owner(pool_id)` |
+
+**Cross-user access:** Members can see the roster (who else is in the pool).
+Only the owner can add/remove members.
+
+#### `pool_entries`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| SELECT | `pool_entries_read` | `is_pool_member(pool_id)` OR `is_pool_owner(pool_id)` |
+| INSERT | `pool_entries_member_insert` | Member or owner, AND `auth.uid() = added_by` |
+| UPDATE | `pool_entries_author_update` | `auth.uid() = added_by` OR `is_pool_owner(pool_id)` |
+| DELETE | `pool_entries_author_delete` | `auth.uid() = added_by` OR `is_pool_owner(pool_id)` |
+
+**Cross-user access:** Any pool member can view entries and add their own. Only
+the entry author or the pool owner can edit/delete entries. Members cannot modify
+other members' entries.
+
+#### `share_links`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| ALL | `share_links_owner_all` | `auth.uid() = user_id` (owner-only) |
+
+**Cross-user access:** No direct table access for anyone except the owner.
+Public (unauthenticated) viewing is via `get_shared_summary(token)` which
+validates the link is active, not expired, and not revoked before returning a
+scoped read-only summary. This is the narrowest possible read path.
+
+#### `goal_participants`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| ALL | `goal_participants_owner_all` | `is_goal_owner(goal_id)` (full control) |
+| SELECT | `goal_participants_self_read` | `auth.uid() = participant_user_id` |
+| UPDATE | `goal_participants_self_update` | `auth.uid() = participant_user_id` (own contribution) |
+
+**Cross-user access:** A linked participant can read and update their own
+contribution row. They cannot see other participants or modify the goal itself.
+
+#### `user_sessions`
+
+| Operation | Policy | Rule |
+|-----------|--------|------|
+| ALL | `user_sessions_owner_all` | `auth.uid() = user_id` (owner-only) |
+
+**Cross-user access:** None. Purely owner-scoped.
+
+### 7.3 Narrow Cross-User Access Paths (Explicitly Allowed)
+
+The following are the ONLY paths by which one user can see or act on another
+user's data:
+
+1. **Public profile discovery** — The `public_profiles` view exposes only
+   `id`, `handle`, `display_name`, `avatar_url` for users where
+   `discoverable = true AND handle IS NOT NULL`. Non-discoverable users are
+   completely invisible.
+
+2. **Split participant self-settle** — A linked participant can READ splits
+   they're in (via `is_split_participant`) and UPDATE their own
+   `split_participants` row (to mark settled). They cannot see other
+   participants or modify the split itself.
+
+3. **Token-scoped share read** — `get_shared_summary(token)` returns a
+   pre-computed, scoped summary to any caller (including unauthenticated) IF
+   the link is active, not revoked, and not expired. No other table data is
+   exposed.
+
+4. **Pool member access** — Pool members can read the pool, roster, and
+   entries, and add their own entries. They cannot manage the pool.
+
+5. **Goal participant contribution** — A linked participant can read and
+   update their own contribution row on a shared goal.
+
+6. **Cross-user notifications** — Only via `create_notification()` RPC,
+   which validates a friendship/request/shared-split relationship before
+   inserting. Direct cross-user inserts are blocked by RLS.
+
+### 7.4 Abuse & Safety Guards
+
+- **Friend request impersonation prevention** — RLS INSERT policy requires
+  `auth.uid() = requester_id`, so nobody can send requests on behalf of
+  another user.
+
+- **Duplicate request prevention** — The `uniq_friendship_pair` unique index
+  on `(least(requester_id, addressee_id), greatest(requester_id, addressee_id))`
+  means only one row can exist per user pair. A blocked row prevents further
+  requests.
+
+- **Blocking prevents further requests** — `blockUser()` creates/updates a
+  friendship row with status 'blocked'. The unique index prevents any new row
+  for that pair. `searchByHandle()` excludes all users with an existing
+  friendship row (any status), so blocked users don't appear in search results.
+
+- **Non-discoverable users are invisible** — The `public_profiles` view only
+  returns users where `discoverable = true AND handle IS NOT NULL`. A private
+  user cannot be found through search.
+
+- **Settle reminders are rate-limited** — `settlements.ts` enforces a 48-hour
+  cooldown per person (localStorage-backed). A user cannot spam settle reminders.
+
+- **Friend requests are rate-limited** — `friends.ts` enforces a 10 requests
+  per hour limit (localStorage-backed). Prevents mass-adding.
+
+- **Cross-user notification validation** — `create_notification()` RPC verifies
+  a legitimate relationship before inserting. Unrelated users cannot send
+  notifications to each other.
+
+### 7.5 Least-Privilege Summary
+
+For every Phase 7 table, a user **cannot** read or mutate another user's rows
+**except** through the explicitly-allowed narrow paths documented above. Each
+cross-user path is:
+
+- **Minimal** — exposes only the specific data needed (e.g. own row, scoped
+  summary, pool entries)
+- **Authenticated** — requires `auth.uid()` match or validated relationship
+  (except token-scoped share which is intentionally public)
+- **Non-escalatable** — no path grants broader access than intended (e.g. a
+  pool member reading entries cannot escalate to deleting the pool)
+
+---
+
 ## Summary
 
 Folio stores self-reported budgeting data (amounts, categories, free-text notes,
@@ -323,5 +540,7 @@ on RLS keyed on `user_id` — consistently reinforced by client-side filters but
 ultimately enforced (and to be verified/version-controlled) in Postgres. Sharing
 tokens are already hardened with unguessable tokens, expiry, revoke, and scope,
 with a documented path to server-side enforcement. Account-level 2FA is feasible
-with Supabase MFA and recommended as an opt-in future addition. The top action is
-to **verify and version-control RLS coverage**.
+with Supabase MFA and recommended as an opt-in future addition. Phase 7 social
+tables use fine-grained RLS with security-definer helpers to enforce
+least-privilege cross-user access through narrow, explicitly-allowed paths. The
+top action is to **verify and version-control RLS coverage**.
