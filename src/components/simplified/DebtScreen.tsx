@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import type { Debt, DebtType } from "@/types/folio"
 import { DEBT_TYPES } from "@/types/folio"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -246,9 +247,13 @@ export function DebtScreen({
         <p style={sectionHeader}>Your Debts</p>
 
         {debts.length === 0 && !showAddForm && (
-          <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-            No debts tracked yet. Add your first debt to see payoff estimates.
-          </p>
+          <EmptyState
+            illustration="generic"
+            title="Debt-free zone (for now)"
+            subtitle="Tracking debts here helps you plan payoff timelines and see progress over time."
+            actionLabel="+ Add your first debt"
+            onAction={openAddForm}
+          />
         )}
 
         <AnimatePresence mode="popLayout">

@@ -174,6 +174,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
 import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement, upsertPaySchedule, upsertBudget, deleteAllUserData } from '@/lib/supabaseData'
+import { createSplit, type CreateSplitInput } from '@/lib/social/splits'
 import type { StoredDataCategory } from '@/components/simplified/PrivacyDataScreen'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
 import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, setOnboardingPath, markOnboardingStepCompleted } from '@/lib/storage'
@@ -294,6 +295,9 @@ export default function FolioApp() {
   // ── Last logged expense for undo ───────────────────────────────
   const [lastLoggedId, setLastLoggedId] = useState<string | null>(null)
 
+  // ── Recurring Bills (task 65 — set-and-forget bills) ───────────
+  const { bills: recurringBills, addBill, updateBill, deleteBill } = useRecurringBills(user?.id)
+
   // ── Data Layer (consolidated in useHomeData hook) ─────────────
   const {
     transactions,
@@ -351,10 +355,22 @@ export default function FolioApp() {
     deleteSavingsAccount,
     contributeToSavingsAccount,
     totalSavingsBalance,
-  } = useHomeData(user?.id, user)
+    loadError,
+  } = useHomeData(user?.id, user, recurringBills)
 
   // ── Custom Categories ──────────────────────────────────────────
   const { customCategories, addCustomCategory, removeCustomCategory, renameCustomCategory } = useCustomCategories(user?.id)
+
+  // ── Error Toast: notify user when initial data load fails ──────
+  useEffect(() => {
+    if (loadError) {
+      showToast(
+        "Couldn\u2019t load your data — check your connection and pull to refresh",
+        'error',
+        { label: 'Retry', onClick: () => refresh() }
+      )
+    }
+  }, [loadError, showToast, refresh])
 
   // ── Offline Sync (background retry of queued expenses) ─────────
   const {
@@ -368,9 +384,6 @@ export default function FolioApp() {
 
   // ── Network Status (Phase 6, task 265.1 — offline detection) ───
   const { isOnline } = useNetworkStatus()
-
-  // ── Recurring Bills (task 65 — set-and-forget bills) ───────────
-  const { bills: recurringBills, addBill, updateBill, deleteBill } = useRecurringBills(user?.id)
 
   // ── Hero Display (task 100) — computed from heroMeaning + allowance ────────
   // Pure derivation so the hero component stays agnostic about which metric
@@ -958,6 +971,7 @@ export default function FolioApp() {
     splitWith?: string
     splitOwedAmount?: number
     tags?: string[]
+    splitData?: { totalAmount: number; splitMethod: string; participants: { name: string; userId: string | null; shareAmount: number; isPayer: boolean }[] }
   }) => {
     if (!user?.id) return
 
@@ -998,8 +1012,24 @@ export default function FolioApp() {
         }
       }
 
-      // Auto-create IOU when splitting with a named friend (task 5.3 polish)
-      if (data.splitWith && data.splitOwedAmount && data.splitOwedAmount > 0) {
+      // Auto-create split with per-participant IOUs when splitData is present (task 284.1)
+      if (data.splitData && data.splitData.participants.length > 1) {
+        const splitInput: CreateSplitInput = {
+          linkedTransactionId: result.id,
+          totalAmount: data.splitData.totalAmount,
+          type: 'expense',
+          splitMethod: data.splitData.splitMethod as 'even' | 'custom' | 'percent' | 'shares',
+          note: data.note ?? '',
+          participants: data.splitData.participants.map((p) => ({
+            participantUserId: p.isPayer ? user.id : p.userId,
+            participantName: p.isPayer ? (user.displayName ?? user.name ?? 'Me') : p.name,
+            shareAmount: p.shareAmount,
+            isPayer: p.isPayer,
+          })),
+        }
+        await createSplit(splitInput)
+      } else if (data.splitWith && data.splitOwedAmount && data.splitOwedAmount > 0) {
+        // Fallback: legacy single-friend split (name-only, no splitData)
         const iouResult = await createReimbursement(user.id, {
           personName: data.splitWith,
           direction: 'owed_to_me',
@@ -1300,8 +1330,9 @@ export default function FolioApp() {
     id: string,
     data: { amount: number; category: TransactionCategory; note?: string; date?: string }
   ) => {
+    // Try sheet payload first, fall back to transactions list (needed for undo after sheet closes)
     const editPayload = overlay.getSheetPayload('edit')
-    const editTx = editPayload?.transaction ?? null
+    const editTx = editPayload?.transaction ?? transactions.find(t => t.id === id) ?? null
     if (!editTx) return null
     return updateTransaction(id, {
       amount: data.amount,
@@ -1310,7 +1341,7 @@ export default function FolioApp() {
       date: data.date ?? editTx.date, // Use provided date or keep original
       note: data.note,
     })
-  }, [overlay, updateTransaction])
+  }, [overlay, transactions, updateTransaction])
 
   /** Inline edit handler — looks up the transaction from the list (no sheet state needed) */
   const handleInlineSaveTransaction = useCallback(async (
@@ -1768,6 +1799,8 @@ export default function FolioApp() {
           onContributeToGoal={handleContributeToGoal}
           onDeleteGoal={handleDeleteGoal}
           onBack={() => overlay.closeOverlay()}
+          userId={user?.id ?? null}
+          onGoalUpdated={refresh}
         />
       </div>
     )

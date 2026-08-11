@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -90,9 +91,10 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
   }, [userId, sourcesLoaded, fundingSources])
 
   // Initial load
-  useState(() => {
+  useEffect(() => {
     loadData()
-  })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -335,15 +337,12 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
       {activeTab === 'settle' && (
         <>
           {settleUpLedger.length === 0 && (
-            <GlassCard elevation="low" style={{ padding: "24px 20px", textAlign: "center" }}>
-              <p style={{ fontSize: 28, marginBottom: 8 }}>✅</p>
-              <p style={{ fontSize: 14, color: "var(--text)", fontWeight: 500, marginBottom: 4 }}>
-                All squared up
-              </p>
-              <p style={{ fontSize: 12, color: "var(--sub)" }}>
-                No outstanding balances with anyone.
-              </p>
-            </GlassCard>
+            <EmptyState
+              illustration="generic"
+              title="All squared up"
+              subtitle="No outstanding balances with anyone."
+              actionColor="success"
+            />
           )}
 
           {settleUpLedger.length > 0 && (
@@ -699,15 +698,13 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
 
       {/* Empty state */}
       {loaded && reimbursements.length === 0 && (
-        <GlassCard elevation="low" style={{ padding: "24px 20px", textAlign: "center" }}>
-          <p style={{ fontSize: 28, marginBottom: 8 }}>🤝</p>
-          <p style={{ fontSize: 14, color: "var(--text)", fontWeight: 500, marginBottom: 4 }}>
-            No IOUs yet
-          </p>
-          <p style={{ fontSize: 12, color: "var(--sub)" }}>
-            Keep track of shared expenses with friends — no rush, just clarity.
-          </p>
-        </GlassCard>
+        <EmptyState
+          illustration="generic"
+          title="No IOUs yet"
+          subtitle="Keep track of shared expenses with friends — no rush, just clarity."
+          actionLabel="+ Add IOU"
+          onAction={() => setShowForm(true)}
+        />
       )}
         </>
       )}

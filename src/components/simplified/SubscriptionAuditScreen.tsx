@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import type { DetectedSubscription, SubscriptionAlert, ConfidenceBadge } from "@/lib/subscriptionDetector"
 import { emojiForCategory, getMonthlySubscriptionTotal, getStudentSavingsOpportunities, getSubscriptionAlerts, confidenceBadge } from "@/lib/subscriptionDetector"
 import { getTodayLocal } from "@/lib/dateUtils"
@@ -202,10 +203,12 @@ export function SubscriptionAuditScreen({
 
       {/* ── Subscription list ──────────────────────────────────────── */}
       {subscriptions.length === 0 ? (
-        <GlassCard elevation="low" style={{ padding: "24px 20px", textAlign: "center" }}>
-          <p style={{ fontSize: 14, color: "var(--sub)" }}>
-            No subscriptions detected yet. Keep logging and we&apos;ll spot patterns over time.
-          </p>
+        <GlassCard elevation="low" style={{ padding: "4px 0" }}>
+          <EmptyState
+            illustration="filter"
+            title="No subscriptions detected yet"
+            subtitle="Keep logging your spending and Folio will spot patterns over time — no action needed from you."
+          />
         </GlassCard>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

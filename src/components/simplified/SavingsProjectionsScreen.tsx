@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -173,48 +174,14 @@ export function SavingsProjectionsScreen({
           animate={{ opacity: 1, y: 0 }}
           transition={springs.gentle}
         >
-          <GlassCard elevation="low" style={{ padding: "24px 18px", textAlign: "center" }}>
-            <p style={{ fontSize: 32, marginBottom: 10 }} aria-hidden="true">
-              🌱
-            </p>
-            <p
-              style={{
-                fontSize: 15,
-                fontWeight: 600,
-                color: "var(--text)",
-                marginBottom: 8,
-              }}
-            >
-              Start tracking your savings
-            </p>
-            <p
-              style={{
-                fontSize: 13,
-                color: "var(--sub)",
-                lineHeight: 1.5,
-                marginBottom: 16,
-              }}
-            >
-              Add your savings and investment accounts to see how they could grow
-              over time. Every dollar counts.
-            </p>
-            <button
-              onClick={() => setShowAddForm(true)}
-              style={{
-                background: "var(--surface)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 8,
-                color: "var(--text)",
-                fontSize: 14,
-                fontWeight: 600,
-                padding: "10px 20px",
-                cursor: "pointer",
-                fontFamily: FONT_FAMILY,
-              }}
-            >
-              + Add Your First Account
-            </button>
-          </GlassCard>
+          <EmptyState
+            illustration="goals"
+            title="Start tracking your savings"
+            subtitle="Add your savings and investment accounts to see how they could grow over time. Every dollar counts."
+            actionLabel="+ Add Your First Account"
+            onAction={() => setShowAddForm(true)}
+            actionColor="success"
+          />
         </motion.div>
       )}
 

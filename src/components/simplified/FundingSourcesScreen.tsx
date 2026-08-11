@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -455,60 +456,14 @@ export function FundingSourcesScreen({
 
       {/* ── Source Cards ──────────────────────────────────────────────── */}
       {fundingSources.length === 0 && !showForm ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 12,
-            padding: "48px 20px",
-          }}
-        >
-          <span style={{ fontSize: 36 }} aria-hidden="true">
-            💳
-          </span>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 500,
-              color: "var(--text)",
-              textAlign: "center",
-              fontFamily: FONT_FAMILY,
-            }}
-          >
-            No payment methods yet
-          </p>
-          <p
-            style={{
-              fontSize: 13,
-              color: "var(--sub)",
-              textAlign: "center",
-              fontFamily: FONT_FAMILY,
-              maxWidth: 260,
-              lineHeight: 1.5,
-            }}
-          >
-            Add your cards, cash, and wallets to track where your money goes.
-          </p>
-          <button
-            onClick={openAddForm}
-            aria-label="Add your first payment method"
-            style={{
-              marginTop: 8,
-              padding: "10px 20px",
-              borderRadius: 9999,
-              border: "1.5px solid rgba(6, 214, 160, 0.4)",
-              background: "transparent",
-              color: "var(--success)",
-              fontSize: 13,
-              fontWeight: 500,
-              fontFamily: FONT_FAMILY,
-              cursor: "pointer",
-            }}
-          >
-            + Add a source
-          </button>
-        </div>
+        <EmptyState
+          illustration="generic"
+          title="No payment methods yet"
+          subtitle="Add your cards, cash, and wallets to track where your money goes."
+          actionLabel="+ Add a source"
+          onAction={openAddForm}
+          actionColor="success"
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {fundingSources.map((source) => (

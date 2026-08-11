@@ -371,6 +371,8 @@ export interface UseHomeDataReturn {
   isSyncing: boolean
   /** Whether cached data is stale beyond the configured threshold */
   isStale: boolean
+  /** Whether the last data load failed (for error UI) */
+  loadError: boolean
   
   // ── Mutation Functions ─────────────────────────────────────────
   /** Refresh all data from Supabase (Requirement 13.7) */
@@ -569,7 +571,7 @@ export interface UseHomeDataReturn {
  * @param userProfile - Full user profile with preferences (optional)
  * @returns Object containing all home screen data and mutation functions
  */
-export function useHomeData(userId: string | null | undefined, userProfile?: UserProfile | null): UseHomeDataReturn {
+export function useHomeData(userId: string | null | undefined, userProfile?: UserProfile | null, recurringBills?: FixedExpense[]): UseHomeDataReturn {
   // ── Stable "today" date (only changes on calendar day boundary) ──
   const currentDay = useCurrentDay()
 
@@ -608,6 +610,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   const [isLoading, setIsLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isStale, setIsStale] = useState(false)
+  const [loadError, setLoadError] = useState(false)
 
   // Track whether cache hydration happened so we skip the skeleton
   const hydratedFromCache = useRef(false)
@@ -674,8 +677,10 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       setFundingSources(fundingSourcesData)
       
       setIsStale(false)
+      setLoadError(false)
     } catch (err) {
       console.error('Error loading home data:', err)
+      setLoadError(true)
       // Set empty arrays on error to allow app to function (only if no cache)
       if (!hydratedFromCache.current) {
         setTransactions([])
@@ -772,6 +777,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     type: TransactionType
     date: string
     note?: string
+    fundingSourceId?: string
   }) => {
     if (!userId) return null
     
@@ -785,6 +791,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       type: data.type,
       category: data.category,
       note: data.note,
+      fundingSourceId: data.fundingSourceId,
       accountType: 'personal',
       createdAt: new Date().toISOString(),
     }
@@ -1686,8 +1693,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       isActive: true,
     }
     const allFixedExpenses = reserveAmount > 0
-      ? [...debtFixedExpenses, sinkingFundFixedExpense]
-      : debtFixedExpenses
+      ? [...debtFixedExpenses, sinkingFundFixedExpense, ...(recurringBills ?? [])]
+      : [...debtFixedExpenses, ...(recurringBills ?? [])]
     
     // Task 82: Get user's credit spending preference (defaults to true)
     const countCreditImmediately = userProfile?.countCreditImmediately ?? true
@@ -1712,7 +1719,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       rhythmWeights, // Task 164.1: weekly spending rhythm weights
       incomeStreams.length > 0 ? incomeStreams : null  // Task 176.1: multiple income streams
     )
-  }, [budgets, transactions, debts, sinkingFunds, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights, incomeStreams])
+  }, [budgets, transactions, debts, sinkingFunds, recurringBills, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights, incomeStreams])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
@@ -1975,6 +1982,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     isLoading,
     isSyncing,
     isStale,
+    loadError,
     
     // Mutation functions
     refresh,

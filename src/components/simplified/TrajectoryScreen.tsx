@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { ChartFrame } from "@/components/ui/primitives/ChartFrame"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
@@ -416,25 +417,11 @@ export function TrajectoryScreen({
       {/* ── Insight cards ──────────────────────────────────────────── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {trajectory.insights.length === 0 && !showProgressSection && (
-          <GlassCard elevation="low" style={{ padding: "20px 18px", textAlign: "center" }}>
-            <p style={{ fontSize: 28, marginBottom: 8 }} aria-hidden="true">
-              📊
-            </p>
-            <p
-              style={{
-                fontSize: 14,
-                color: "var(--text)",
-                fontWeight: 500,
-                marginBottom: 6,
-              }}
-            >
-              Not enough data yet
-            </p>
-            <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5 }}>
-              Log a few weeks of expenses and income — this view will light up
-              with trends and insights.
-            </p>
-          </GlassCard>
+          <EmptyState
+            illustration="review"
+            title="Not enough data yet"
+            subtitle="Log a few weeks of expenses and income — this view will light up with trends and insights."
+          />
         )}
 
         {trajectory.insights.length > 0 && (
@@ -464,25 +451,11 @@ export function TrajectoryScreen({
           transition={{ ...springs.gentle, delay: 0.15 }}
           style={{ marginTop: 16 }}
         >
-          <GlassCard elevation="low" style={{ padding: "16px 18px", textAlign: "center" }}>
-            <p style={{ fontSize: 22, marginBottom: 6 }} aria-hidden="true">
-              🌱
-            </p>
-            <p
-              style={{
-                fontSize: 14,
-                color: "var(--text)",
-                fontWeight: 500,
-                marginBottom: 4,
-              }}
-            >
-              Track your savings too
-            </p>
-            <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5 }}>
-              Add savings accounts to see your full financial picture here — every
-              little bit you set aside counts.
-            </p>
-          </GlassCard>
+          <EmptyState
+            illustration="goals"
+            title="Track your savings too"
+            subtitle="Add savings accounts to see your full financial picture here — every little bit you set aside counts."
+          />
         </motion.div>
       )}
 

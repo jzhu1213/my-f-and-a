@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -163,44 +164,11 @@ export function LinkedAccountsScreen({
 
       {/* ── Account list / empty state ───────────────────────────────── */}
       {linkedAccounts.length === 0 ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 12,
-            padding: "40px 20px",
-          }}
-        >
-          <span style={{ fontSize: 36 }} aria-hidden="true">
-            🔗
-          </span>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 500,
-              color: "var(--text)",
-              textAlign: "center",
-              fontFamily: FONT_FAMILY,
-            }}
-          >
-            No linked accounts
-          </p>
-          <p
-            style={{
-              fontSize: 13,
-              color: "var(--sub)",
-              textAlign: "center",
-              fontFamily: FONT_FAMILY,
-              maxWidth: 280,
-              lineHeight: 1.5,
-            }}
-          >
-            Linking is 100% optional. If you ever want balances to update
-            automatically, you can connect an account here — but it&apos;s never
-            required.
-          </p>
-        </div>
+        <EmptyState
+          illustration="generic"
+          title="No linked accounts"
+          subtitle="Linking is 100% optional. If you ever want balances to update automatically, you can connect an account here — but it's never required."
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {linkedAccounts.map((account) => {

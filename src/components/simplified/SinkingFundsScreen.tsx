@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { TransactionCategory } from "@/types"
 import type { SinkingFund } from "@/lib/sinkingFunds"
@@ -15,6 +16,7 @@ import {
   isFunded,
   getRemainingAmount,
   summarizeSinkingFunds,
+  getTotalMonthlyReserve,
   validateSinkingFund,
 } from "@/lib/sinkingFunds"
 import type { Disbursement } from "@/lib/disbursements"
@@ -143,6 +145,7 @@ export function SinkingFundsScreen({
 
   const now = new Date()
   const summary = summarizeSinkingFunds(funds)
+  const dynamicTotalReserve = getTotalMonthlyReserve(funds, now)
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   function openAddForm(preset?: typeof SINKING_FUND_PRESETS[number]) {
@@ -278,7 +281,7 @@ export function SinkingFundsScreen({
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
           <p style={sectionHeader}>Total Monthly Reserve</p>
           <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
-            ${summary.totalMonthlyReserve.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            ${dynamicTotalReserve.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
               /mo set aside
             </span>
@@ -295,9 +298,13 @@ export function SinkingFundsScreen({
         <p style={sectionHeader}>Your Funds</p>
 
         {funds.length === 0 && !showAddForm && (
-          <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-            No sinking funds yet. Pick a preset below to get started.
-          </p>
+          <EmptyState
+            illustration="budget"
+            title="No funds yet"
+            subtitle="Pick a preset below or add your own — saving a little now avoids a big hit later."
+            actionLabel="+ Add fund"
+            onAction={() => openAddForm()}
+          />
         )}
 
         <AnimatePresence mode="popLayout">
