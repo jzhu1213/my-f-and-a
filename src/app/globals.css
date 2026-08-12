@@ -2064,6 +2064,9 @@ input[type="date"] {
     max(16px, env(safe-area-inset-right));
   max-width: 560px;
   margin-inline: auto;
+  /* Ensure a stable minimum height so tab switching doesn't cause the page
+   * to collapse/jump when shorter screens are displayed. */
+  min-height: 100dvh;
 }
 
 .app-content--no-topbar {

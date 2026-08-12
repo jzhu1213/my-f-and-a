@@ -357,6 +357,7 @@ export default function FolioApp() {
     contributeToSavingsAccount,
     totalSavingsBalance,
     loadError,
+    incomeOverdue,
   } = useHomeData(user?.id, user, recurringBills)
 
   // ── Custom Categories ──────────────────────────────────────────
@@ -1124,6 +1125,10 @@ export default function FolioApp() {
 
     if (result) {
       setLastLoggedId(result.id)
+      // Task 336.1: Show encouraging acknowledgment when income is logged.
+      // The daily budget recalculates automatically (transactions dependency),
+      // and this toast confirms the positive outcome to the user.
+      showToast("Got it — your daily budget just went up.", 'success')
     } else {
       // Income is not replayed by the offline queue, so don't claim it was saved.
       showToast("Couldn't save income — check your connection and try again", 'error')
@@ -2321,6 +2326,7 @@ export default function FolioApp() {
                   ...(typeof window !== 'undefined' && localStorage.getItem('folio-income-anchor-offered') !== 'true' ? ['income-anchor'] : []),
                 ]}
                 onResumeSetupStep={handleResumeSetupStep}
+                incomeOverdue={incomeOverdue}
                 onHeroTapDetails={() => handleNavChange('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => overlay.openSheet('income')}

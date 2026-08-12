@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
-import { motion, AnimatePresence, PanInfo, Variants, Reorder } from "framer-motion"
+import { motion, AnimatePresence, PanInfo, Variants, Reorder, LayoutGroup } from "framer-motion"
 import type { Transaction, Budget, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { QuickTransaction, SmartSuggestion, CustomCategory } from "@/types/folio"
 import { generateSmartSuggestions } from "@/lib/suggestionUtils"
+import { lookupMerchant, getMerchantCategoryContext, getMerchantAverageAmount } from "@/lib/merchantMemory"
 import { useToast } from "@/contexts/ToastContext"
 import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
@@ -17,7 +18,12 @@ import {
   saveCategoryGridPrefs,
   mergePrefsWithDefaults,
   categoriesToPrefs,
+  recordCategoryUsage,
+  getCategoryFrequencies,
+  loadSortMode,
+  saveSortMode,
 } from "@/lib/categoryGridPreferences"
+import type { CategorySortMode } from "@/lib/categoryGridPreferences"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -468,6 +474,8 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
   const [rawAmount, setRawAmount] = useState("")
   const [note, setNote] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [merchantContext, setMerchantContext] = useState<string | null>(null)
+  const [merchantAvg, setMerchantAvg] = useState<{ amount: number; label: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   function handleAmountChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -478,6 +486,24 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
   function handleNoteChange(e: React.ChangeEvent<HTMLInputElement>) {
     const sanitized = sanitizeNote(e.target.value)
     setNote(sanitized)
+
+    // Merchant memory detection (task 340.1, 340.2)
+    if (sanitized.trim().length >= 2) {
+      const merchant = lookupMerchant(sanitized)
+      if (merchant) {
+        // Pre-fill amount from merchant memory if user hasn't typed one
+        if (!rawAmount) {
+          setRawAmount(merchant.amount % 1 === 0 ? String(merchant.amount) : merchant.amount.toFixed(2))
+        }
+        const catCtx = getMerchantCategoryContext(sanitized)
+        setMerchantContext(catCtx?.message ?? null)
+        const avgCtx = getMerchantAverageAmount(sanitized)
+        setMerchantAvg(avgCtx)
+        return
+      }
+    }
+    setMerchantContext(null)
+    setMerchantAvg(null)
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -571,6 +597,36 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
         </p>
       )}
 
+      {/* Merchant context message (task 340.1) */}
+      {merchantContext && (
+        <p style={{ fontSize: 12, color: "var(--sub)", margin: 0, fontFamily: FONT_FAMILY }}>
+          {merchantContext}
+        </p>
+      )}
+
+      {/* Merchant average amount chip (task 340.2) */}
+      {merchantAvg && (
+        <button
+          type="button"
+          onClick={() => setRawAmount(merchantAvg.amount % 1 === 0 ? String(merchantAvg.amount) : merchantAvg.amount.toFixed(2))}
+          style={{
+            alignSelf: "flex-start",
+            padding: "6px 12px",
+            fontSize: 12,
+            fontWeight: 500,
+            fontFamily: FONT_FAMILY,
+            background: "rgba(167, 139, 250, 0.1)",
+            border: "1px solid rgba(167, 139, 250, 0.25)",
+            borderRadius: borderRadius.full,
+            color: "var(--text)",
+            cursor: "pointer",
+          }}
+          aria-label={`Use average amount: ${merchantAvg.label}`}
+        >
+          {merchantAvg.label}
+        </button>
+      )}
+
       {/* Actions */}
       <div className="flex gap-2">
         <button
@@ -635,6 +691,8 @@ export function QuickLogArea({
   const [showCustomInput, setShowCustomInput] = useState(false)
   /** Id of the chip currently playing the success ripple (task 9.4). */
   const [rippleChipId, setRippleChipId] = useState<string | null>(null)
+  /** Whether the user dismissed the category budget insight line (task 341.1). */
+  const [dismissedCategoryInsight, setDismissedCategoryInsight] = useState(false)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -645,12 +703,16 @@ export function QuickLogArea({
     { category: TransactionCategory; emoji: string; label: string }[]
   >([])
 
+  // ── Sort mode state (Task 339.2) ──────────────────────────────────────────
+  const [sortMode, setSortMode] = useState<CategorySortMode>('manual')
+
   // Load saved preferences on mount
   useEffect(() => {
     const prefs = loadCategoryGridPrefs()
     if (prefs) {
       setCustomizedCategories(mergePrefsWithDefaults(prefs))
     }
+    setSortMode(loadSortMode())
   }, [])
 
   // Clean up the ripple reset timer on unmount.
@@ -674,22 +736,95 @@ export function QuickLogArea({
 
   // ── 6.2: Sort categories by usage frequency (Requirement 3.2) ──────────────
   const sortedCategories = useMemo(() => {
-    // If user has customized preferences, use those (Task 133.1)
+    // Build the custom category entries (shared across modes)
+    const custom = [...customCategories]
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map((c) => ({
+        category: 'other' as TransactionCategory,
+        emoji: c.emoji,
+        label: c.label,
+        customId: c.id,
+        icon: c.icon,
+      }))
+
+    // ── Auto mode (Task 339.2): sort by 30-day frequency data ──
+    if (sortMode === 'auto') {
+      const frequencies = getCategoryFrequencies()
+      const prefs = loadCategoryGridPrefs()
+
+      // Determine "pinned" categories — ones user has manually arranged
+      // A category is pinned if it exists in the saved manual prefs
+      const pinnedPositions = new Map<string, number>()
+      if (prefs && prefs.length > 0) {
+        for (const pref of prefs) {
+          pinnedPositions.set(pref.categoryId, pref.order)
+        }
+      }
+
+      // Get the base list with any emoji/label overrides from prefs
+      const baseList = prefs && prefs.length > 0
+        ? mergePrefsWithDefaults(prefs)
+        : [...BUDGET_CATEGORIES]
+
+      // Separate pinned and unpinned categories
+      const pinned: { cat: typeof baseList[0]; order: number }[] = []
+      const unpinned: typeof baseList = []
+
+      for (const cat of baseList) {
+        if (pinnedPositions.has(cat.category)) {
+          pinned.push({ cat, order: pinnedPositions.get(cat.category)! })
+        } else {
+          unpinned.push(cat)
+        }
+      }
+
+      // Sort unpinned by frequency (highest first), then by default order for ties
+      const defaultOrder = BUDGET_CATEGORIES.map(c => c.category)
+      unpinned.sort((a, b) => {
+        const freqA = frequencies.get(a.category) ?? 0
+        const freqB = frequencies.get(b.category) ?? 0
+        if (freqB !== freqA) return freqB - freqA
+        return defaultOrder.indexOf(a.category) - defaultOrder.indexOf(b.category)
+      })
+
+      // Merge: place pinned categories at their saved positions, fill rest with frequency-sorted
+      const result: typeof baseList = []
+      const maxLen = baseList.length
+      let unpinnedIdx = 0
+
+      // Sort pinned by their saved order
+      pinned.sort((a, b) => a.order - b.order)
+      let pinnedIdx = 0
+
+      for (let i = 0; i < maxLen; i++) {
+        if (pinnedIdx < pinned.length && pinned[pinnedIdx].order === i) {
+          result.push(pinned[pinnedIdx].cat)
+          pinnedIdx++
+        } else if (unpinnedIdx < unpinned.length) {
+          result.push(unpinned[unpinnedIdx])
+          unpinnedIdx++
+        }
+      }
+
+      // Append any remaining (edge case safety)
+      while (pinnedIdx < pinned.length) {
+        result.push(pinned[pinnedIdx].cat)
+        pinnedIdx++
+      }
+      while (unpinnedIdx < unpinned.length) {
+        result.push(unpinned[unpinnedIdx])
+        unpinnedIdx++
+      }
+
+      return [...result, ...custom]
+    }
+
+    // ── Manual mode: use saved customization or fallback to recency ──
     if (customizedCategories.length > 0) {
-      // Append custom categories after the user's saved built-in order
-      const custom = [...customCategories]
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-        .map((c) => ({
-          category: 'other' as TransactionCategory,
-          emoji: c.emoji,
-          label: c.label,
-          customId: c.id,
-          icon: c.icon,
-        }))
       return [...customizedCategories, ...custom]
     }
 
-    // Fallback: frequency-based sorting for new users
+    // Fallback: frequency-based sorting for new users (no prefs saved)
     // Count transactions per expense category (look at the last 50 for performance)
     const usageCount = new Map<TransactionCategory, number>()
     const sample = recentTransactions.slice(0, 50)
@@ -703,25 +838,44 @@ export function QuickLogArea({
       (a, b) => (usageCount.get(b.category) ?? 0) - (usageCount.get(a.category) ?? 0)
     )
 
-    // Append custom categories at the end, sorted by creation date (task 69)
-    const custom = [...customCategories]
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      .map((c) => ({
-        category: 'other' as TransactionCategory,
-        emoji: c.emoji,
-        label: c.label,
-        customId: c.id,
-        icon: c.icon,
-      }))
-
     return [...builtIn, ...custom]
-  }, [recentTransactions, customCategories, customizedCategories])
+  }, [recentTransactions, customCategories, customizedCategories, sortMode])
 
   // ── 6.3: Smart suggestions for selected category (Requirements 3.3, 3.6) ───
   const suggestions = useMemo<SmartSuggestion[]>(() => {
     if (!selectedCategory) return []
     return generateSmartSuggestions(selectedCategory, recentTransactions)
   }, [selectedCategory, recentTransactions])
+
+  // ── Category budget insight (Task 341.1, Requirement 18.4) ─────────────────
+  const categoryInsight = useMemo<string | null>(() => {
+    if (!selectedCategory) return null
+    const budget = budgets.find(b => b.category === selectedCategory)
+    if (!budget) return null
+
+    const remaining = budget.monthlyLimit - budget.spent
+    const ratio = budget.monthlyLimit > 0 ? remaining / budget.monthlyLimit : 0
+
+    // Approximate weeks left in month (use current date)
+    const now = new Date()
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const dayOfMonth = now.getDate()
+    const daysLeft = Math.max(1, daysInMonth - dayOfMonth)
+    const weeksLeft = Math.max(1, Math.ceil(daysLeft / 7))
+    const weeklyRemaining = Math.max(0, Math.round(remaining / weeksLeft))
+
+    const label = BUDGET_CATEGORIES.find(c => c.category === selectedCategory)?.label ?? selectedCategory
+
+    if (ratio > 0.5) {
+      return `${label}: on track`
+    } else if (ratio >= 0.25) {
+      return `${label}: $${weeklyRemaining} left this week`
+    } else if (ratio >= 0) {
+      return `${label}: a little tight this month`
+    }
+    // Overspent — still non-judgmental
+    return `${label}: over budget, but tomorrow's a new day`
+  }, [selectedCategory, budgets])
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -733,6 +887,7 @@ export function QuickLogArea({
     } else {
       setSelectedCategory(category)
       setShowCustomInput(false)
+      setDismissedCategoryInsight(false) // Reset insight dismissal on category change (task 341.1)
     }
   }
 
@@ -745,6 +900,8 @@ export function QuickLogArea({
       note: suggestion.label,
     }
     onLogExpense(transaction)
+    // Record category usage for frequency-based sorting (Task 339.1)
+    recordCategoryUsage(selectedCategory)
     const amountStr =
       suggestion.amount % 1 === 0
         ? `$${suggestion.amount}`
@@ -770,6 +927,8 @@ export function QuickLogArea({
   /** ── 6.5: Custom amount submitted from panel ── */
   function handleCustomSubmit(transaction: QuickTransaction) {
     onLogExpense(transaction)
+    // Record category usage for frequency-based sorting (Task 339.1)
+    recordCategoryUsage(transaction.category)
     const amountStr =
       transaction.amount % 1 === 0
         ? `$${transaction.amount}`
@@ -806,6 +965,13 @@ export function QuickLogArea({
     const builtInCats = sortedCategories.filter(c => !('customId' in c))
     setCustomizedCategories(builtInCats)
   }, [sortedCategories])
+
+  /** Toggle sort mode between manual and auto (Task 339.2) */
+  const handleToggleSortMode = useCallback(() => {
+    const newMode: CategorySortMode = sortMode === 'auto' ? 'manual' : 'auto'
+    setSortMode(newMode)
+    saveSortMode(newMode)
+  }, [sortMode])
 
   /** Save customized order + labels and exit edit mode */
   const handleDoneCustomize = useCallback(() => {
@@ -876,25 +1042,52 @@ export function QuickLogArea({
           ) : (
             <>
               {!selectedCategory && (
-                <motion.button
-                  type="button"
-                  onClick={handleStartCustomize}
-                  style={{
-                    fontSize: 12,
-                    color: "var(--muted)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "4px 0",
-                    fontFamily: FONT_FAMILY,
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                  aria-label="Customize category order and labels"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  Customize
-                </motion.button>
+                <>
+                  {/* Auto sort toggle (Task 339.2) */}
+                  <motion.button
+                    type="button"
+                    onClick={handleToggleSortMode}
+                    style={{
+                      fontSize: 12,
+                      color: sortMode === 'auto' ? "var(--text)" : "var(--muted)",
+                      background: sortMode === 'auto' ? "rgba(167, 139, 250, 0.15)" : "none",
+                      border: sortMode === 'auto' ? "1px solid rgba(167, 139, 250, 0.3)" : "1px solid transparent",
+                      borderRadius: borderRadius.full,
+                      cursor: "pointer",
+                      padding: "5px 10px",
+                      fontFamily: FONT_FAMILY,
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    aria-label={sortMode === 'auto' ? "Switch to manual category order" : "Switch to auto-sorted categories"}
+                    aria-pressed={sortMode === 'auto'}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    Auto
+                  </motion.button>
+                  {/* Customize button — hidden when in auto mode */}
+                  {sortMode !== 'auto' && (
+                    <motion.button
+                      type="button"
+                      onClick={handleStartCustomize}
+                      style={{
+                        fontSize: 12,
+                        color: "var(--muted)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px 0",
+                        fontFamily: FONT_FAMILY,
+                      }}
+                      whileTap={{ scale: 0.95 }}
+                      aria-label="Customize category order and labels"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      Customize
+                    </motion.button>
+                  )}
+                </>
               )}
               {selectedCategory && !showCustomInput && (
                 <motion.button
@@ -1059,51 +1252,58 @@ export function QuickLogArea({
         </div>
       ) : (
         /* ── Normal mode: category grid (task 252 — icon-centric pills) ── */
-        <div
-          className="flex flex-wrap gap-2 justify-center"
-          role="group"
-          aria-label="Expense categories"
-          onKeyDown={(e) => {
-            const items = sortedCategories
-            const currentIndex = selectedCategory
-              ? items.findIndex(c => c.category === selectedCategory)
-              : -1
-            let nextIndex = -1
-            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-              e.preventDefault()
-              nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
-            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-              e.preventDefault()
-              nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
-            }
-            if (nextIndex >= 0) {
-              handleCategorySelect(items[nextIndex].category)
-              // Focus the next button
-              const container = e.currentTarget
-              const buttons = container.querySelectorAll<HTMLButtonElement>('[role="group"] > button, button[aria-pressed]')
-              buttons[nextIndex]?.focus()
-            }
-          }}
-        >
-          {sortedCategories.map((cat, index) => (
-            <CategoryButton
-              key={'customId' in cat && cat.customId ? `custom-${cat.customId}` : cat.category}
-              category={cat.category}
-              emoji={cat.emoji}
-              label={cat.label}
-              isCustom={'customId' in cat && !!cat.customId}
-              iconName={'icon' in cat && cat.icon ? (cat.icon as IconName) : undefined}
-              isSelected={selectedCategory === cat.category}
-              onSelect={() => handleCategorySelect(cat.category)}
-              reducedMotion={prefersReducedMotion}
-              tabIndex={
-                selectedCategory === cat.category ? 0
-                  : selectedCategory === null && index === 0 ? 0
-                  : -1
+        <LayoutGroup>
+          <div
+            className="flex flex-wrap gap-2 justify-center"
+            role="group"
+            aria-label="Expense categories"
+            onKeyDown={(e) => {
+              const items = sortedCategories
+              const currentIndex = selectedCategory
+                ? items.findIndex(c => c.category === selectedCategory)
+                : -1
+              let nextIndex = -1
+              if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                e.preventDefault()
+                nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+              } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                e.preventDefault()
+                nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
               }
-            />
-          ))}
-        </div>
+              if (nextIndex >= 0) {
+                handleCategorySelect(items[nextIndex].category)
+                // Focus the next button
+                const container = e.currentTarget
+                const buttons = container.querySelectorAll<HTMLButtonElement>('[role="group"] > button, button[aria-pressed]')
+                buttons[nextIndex]?.focus()
+              }
+            }}
+          >
+            {sortedCategories.map((cat, index) => (
+              <motion.div
+                key={'customId' in cat && cat.customId ? `custom-${cat.customId}` : cat.category}
+                layout={!prefersReducedMotion}
+                transition={springs.snappy}
+              >
+                <CategoryButton
+                  category={cat.category}
+                  emoji={cat.emoji}
+                  label={cat.label}
+                  isCustom={'customId' in cat && !!cat.customId}
+                  iconName={'icon' in cat && cat.icon ? (cat.icon as IconName) : undefined}
+                  isSelected={selectedCategory === cat.category}
+                  onSelect={() => handleCategorySelect(cat.category)}
+                  reducedMotion={prefersReducedMotion}
+                  tabIndex={
+                    selectedCategory === cat.category ? 0
+                      : selectedCategory === null && index === 0 ? 0
+                      : -1
+                  }
+                />
+              </motion.div>
+            ))}
+          </div>
+        </LayoutGroup>
       )}
 
       {/* ── First-time user prompt (Requirement 14.4) ── */}
@@ -1123,6 +1323,38 @@ export function QuickLogArea({
           Tap a category to see common amounts and log your first expense
         </motion.p>
       )}
+
+      {/* ── Category budget insight (Task 341.1, Requirement 18.4) ── */}
+      <AnimatePresence>
+        {selectedCategory && categoryInsight && !dismissedCategoryInsight && (
+          <motion.button
+            key="category-insight"
+            type="button"
+            onClick={() => setDismissedCategoryInsight(true)}
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "center",
+              fontSize: 12,
+              fontFamily: FONT_FAMILY,
+              color: "var(--muted)",
+              background: "none",
+              border: "none",
+              padding: "6px 0",
+              cursor: "pointer",
+              lineHeight: 1.4,
+            }}
+            aria-label={`${categoryInsight}. Tap to dismiss.`}
+            role="status"
+          >
+            {categoryInsight}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* ── Suggestions & custom input area (Requirements 3.3, 3.4, 3.5, 3.6) ── */}
       <AnimatePresence mode="wait">

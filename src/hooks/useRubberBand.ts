@@ -84,29 +84,47 @@ export function useRubberBand(
       const el = containerRef.current
       if (!el) return
 
-      // Only apply rubber-band if the element is independently scrollable
-      // (has its own scrollable content). If scrollHeight <= clientHeight,
-      // the element doesn't scroll and we should not intercept touch events.
-      if (el.scrollHeight <= el.clientHeight) return
+      // Determine the actual scroll container: if the element itself doesn't
+      // scroll (scrollHeight <= clientHeight), fall back to window-level scroll.
+      const isElementScrollable = el.scrollHeight > el.clientHeight
+      const scrollTop = isElementScrollable
+        ? el.scrollTop
+        : (window.scrollY || document.documentElement.scrollTop)
+      const scrollHeight = isElementScrollable
+        ? el.scrollHeight
+        : document.documentElement.scrollHeight
+      const clientHeight = isElementScrollable
+        ? el.clientHeight
+        : window.innerHeight
 
       const touchY = e.touches[0].clientY
       const deltaY = touchY - touchStartY.current
 
-      const atTop = el.scrollTop <= 0
-      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
+      const atTop = scrollTop <= 0
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 1
 
-      if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
-        // User is pulling past bounds
+      // Only activate rubber-band when genuinely past bounds AND pulling away
+      // from the content. Require a minimum delta of 10px to avoid false triggers
+      // that block normal scrolling.
+      if (atTop && deltaY > 10) {
+        // User is pulling down past the top
         isOverscrolling.current = true
-        const overDelta = atTop ? deltaY : deltaY // raw delta past the edge
-        overscrollY.set(overDelta)
+        overscrollY.set(deltaY)
 
-        // Prevent native scroll bounce on iOS
-        if (Math.abs(overDelta) > 2) {
+        // Prevent native scroll bounce on iOS only when clearly overscrolling
+        if (deltaY > 15) {
+          e.preventDefault()
+        }
+      } else if (atBottom && deltaY < -10) {
+        // User is pulling up past the bottom
+        isOverscrolling.current = true
+        overscrollY.set(deltaY)
+
+        if (deltaY < -15) {
           e.preventDefault()
         }
       } else if (isOverscrolling.current) {
-        // User scrolled back within bounds
+        // User scrolled back within bounds — release the overscroll
         isOverscrolling.current = false
         overscrollY.set(0)
       }

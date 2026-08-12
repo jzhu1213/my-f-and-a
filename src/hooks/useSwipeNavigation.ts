@@ -67,8 +67,8 @@ export function useSwipeNavigation({
   const { gestureRef, state } = useGesture({
     enabled,
     horizontalSwipe: {
-      threshold: 10,
-      maxAngle: 30,
+      threshold: 20,
+      maxAngle: 25,
       commitDistanceFraction: 0.3,
       commitVelocity: 400,
       settleMs: 400,

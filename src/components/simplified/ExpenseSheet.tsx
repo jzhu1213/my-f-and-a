@@ -9,7 +9,7 @@ import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePer
 import { autoCategorizeWithRules } from '@/lib/autoCategorize'
 import type { CategorizationRule } from '@/lib/categorizationRules'
 import { hasExistingRule, applyRouteRule } from '@/lib/categorizationRules'
-import { lookupMerchant, recordMerchant } from '@/lib/merchantMemory'
+import { lookupMerchant, recordMerchant, getMerchantCategoryContext, getMerchantAverageAmount } from '@/lib/merchantMemory'
 import { triggerHaptic } from '@/lib/haptics'
 import { listFriends, type Friendship } from '@/lib/social/friends'
 import { searchPublicProfiles, type PublicProfile } from '@/lib/social/profiles'
@@ -220,6 +220,10 @@ export function ExpenseSheet({
   const [isAutoSuggested, setIsAutoSuggested] = useState(false)
   // Tracks whether merchant memory pre-filled category/amount (task 130.3)
   const [merchantMatched, setMerchantMatched] = useState(false)
+  // Merchant context message — "You usually file X under Y" (task 340.1)
+  const [merchantContextMsg, setMerchantContextMsg] = useState<string | null>(null)
+  // Merchant average amount for suggestion chip (task 340.2)
+  const [merchantAvg, setMerchantAvg] = useState<{ amount: number; label: string } | null>(null)
 
   // ── Date selection state (task 87.1) ────────────────────────────────────
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -299,6 +303,8 @@ export function ExpenseSheet({
       setManualCategorySelection(!!effectiveDefault)
       setIsAutoSuggested(!!(!defaultCategory && !effectiveDefault && habitPrediction))
       setMerchantMatched(false)
+      setMerchantContextMsg(null)
+      setMerchantAvg(null)
       setShowAddCategoryForm(false)
       setNewCategoryLabel('')
       setNewCategoryEmoji('✨')
@@ -632,11 +638,20 @@ export function ExpenseSheet({
         setAmount(merchant.amount % 1 === 0 ? String(merchant.amount) : merchant.amount.toFixed(2))
         setIsAutoSuggested(true)
         setMerchantMatched(true)
+
+        // Enhanced merchant context (task 340.1, 340.2)
+        const catContext = getMerchantCategoryContext(sanitized)
+        setMerchantContextMsg(catContext?.message ?? null)
+        const avgContext = getMerchantAverageAmount(sanitized)
+        setMerchantAvg(avgContext)
+
         return
       }
     }
 
     setMerchantMatched(false)
+    setMerchantContextMsg(null)
+    setMerchantAvg(null)
 
     // Auto-categorize: only apply if user hasn't manually picked a category
     if (!manualCategorySelection) {
@@ -818,6 +833,35 @@ export function ExpenseSheet({
                         </button>
                       )
                     })}
+                    {/* Merchant average amount chip (task 340.2) */}
+                    {merchantAvg && merchantMatched && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAmount(merchantAvg.amount % 1 === 0 ? String(merchantAvg.amount) : merchantAvg.amount.toFixed(2))
+                          triggerHaptic('light')
+                        }}
+                        aria-label={`Use average amount: ${merchantAvg.label}`}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 2,
+                          padding: '8px 14px',
+                          background: fills[6],
+                          border: `1px solid ${colorRamp.success[400]}40`,
+                          borderRadius: borderRadius.full,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <span style={{ fontSize: 14, fontWeight: 500, fontFamily: FONT_FAMILY, color: colorRamp.success[400] }}>
+                          {merchantAvg.amount % 1 === 0 ? `$${merchantAvg.amount}` : `$${merchantAvg.amount.toFixed(2)}`}
+                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--sub)', fontFamily: FONT_FAMILY, whiteSpace: 'nowrap' }}>
+                          avg
+                        </span>
+                      </button>
+                    )}
                     {/* Custom chip */}
                     <button
                       type="button"
@@ -1534,7 +1578,7 @@ export function ExpenseSheet({
                         {note.length}/60
                       </span>
                     )}
-                    {/* Merchant remembered indicator (task 130.3) */}
+                    {/* Merchant remembered indicator (task 130.3, enhanced task 340.1) */}
                     {merchantMatched && note.length < 50 && (
                       <span
                         style={{
@@ -1551,6 +1595,22 @@ export function ExpenseSheet({
                       </span>
                     )}
                   </div>
+
+                  {/* Merchant category context message (task 340.1) */}
+                  {merchantContextMsg && merchantMatched && (
+                    <p
+                      style={{
+                        fontSize: 12,
+                        fontFamily: FONT_FAMILY,
+                        fontWeight: 400,
+                        color: 'var(--sub)',
+                        marginTop: 4,
+                        marginBottom: 0,
+                      }}
+                    >
+                      {merchantContextMsg}
+                    </p>
+                  )}
 
                   {/* Note suggestion chips */}
                   {category && recentNotes.length > 0 && (

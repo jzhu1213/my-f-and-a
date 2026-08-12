@@ -239,6 +239,10 @@ export interface UserContext {
   spendAnomaly?: { category: TransactionCategory; amount: number; typicalAmount: number; message: string }
   /** The user's primary financial goal — drives tip tone/priority boosting (Task 222.3) */
   userGoal?: import('@/types').UserGoal
+  /** Income shortfall signal — projected income is overdue (Task 336.2) */
+  incomeOverdue?: { expectedAmount: number; daysPastDue: number }
+  /** Seasonal mode suggestion — detected spending pattern shift (Task 338.1) */
+  seasonalModeSuggestion?: { modeId: string; modeName: string; reason: string }
 }
 
 /** Inputs required to derive a {@link UserContext} for tip selection. */
@@ -276,6 +280,10 @@ export interface BuildUserContextParams {
   lastLoggedTransaction?: { amount: number; category: TransactionCategory } | null
   /** The user's primary financial goal — passed through to UserContext for tone (Task 222.3) */
   userGoal?: import('@/types').UserGoal
+  /** Income overdue signal from mid-month adjustment detection (Task 336.2) */
+  incomeOverdue?: { expectedAmount: number; daysPastDue: number }
+  /** Seasonal mode suggestion from seasonal intelligence detection (Task 338.1) */
+  seasonalModeSuggestion?: { modeId: string; modeName: string; reason: string }
 }
 
 /**
@@ -291,7 +299,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds, lastLoggedTransaction, userGoal } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds, lastLoggedTransaction, userGoal, incomeOverdue, seasonalModeSuggestion } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -403,6 +411,8 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     completedLessonIds,
     spendAnomaly,
     userGoal,
+    incomeOverdue,
+    seasonalModeSuggestion,
   }
 }
 
@@ -996,6 +1006,54 @@ export function selectContextualTip(
         category: context.spendAnomaly.category,
         amount: context.spendAnomaly.amount,
         typicalAmount: context.spendAnomaly.typicalAmount,
+      },
+    })
+  }
+
+  // Step 2m: Income shortfall tip — projected income is overdue (Task 336.2).
+  // Gently surfaces when income usually arrives by now but hasn't this cycle.
+  // Warm, non-judgmental, with a one-tap action to re-project from actuals.
+  if (context.incomeOverdue && context.incomeOverdue.daysPastDue > 0) {
+    const currentMonthPrefix = new Date().toISOString().slice(0, 7)
+    candidates.push({
+      id: `income-shortfall-${currentMonthPrefix}`,
+      type: 'gentle_nudge',
+      title: 'Income check-in',
+      message: "Income usually arrives by now — want to adjust your daily budget?",
+      emoji: '💸',
+      iconName: 'tip:low-balance',
+      priority: 'medium',
+      actionLabel: 'Adjust budget',
+      actionType: 'adjust_budget',
+      triggerCondition: {
+        type: 'income_shortfall',
+        expectedAmount: context.incomeOverdue.expectedAmount,
+        daysPastDue: context.incomeOverdue.daysPastDue,
+      },
+    })
+  }
+
+  // Step 2n: Seasonal mode suggestion — spending pattern shift detected (Task 338.1).
+  // Gently suggests switching to a different budget mode when a seasonal change
+  // is detected (e.g., fixed expenses drop → break starting). Never auto-switches;
+  // always user-initiated. Monthly tip ID ensures at most once per month.
+  if (context.seasonalModeSuggestion) {
+    const { modeId, modeName, reason } = context.seasonalModeSuggestion
+    const currentMonthPrefix = new Date().toISOString().slice(0, 7)
+    candidates.push({
+      id: `seasonal-mode-suggestion-${currentMonthPrefix}`,
+      type: 'gentle_nudge',
+      title: 'Season shifting?',
+      message: `Looks like ${reason} — want to switch to your ${modeName} budget?`,
+      emoji: '🌱',
+      iconName: 'tip:pacing',
+      priority: 'medium',
+      actionLabel: 'Switch mode',
+      actionType: 'adjust_budget',
+      triggerCondition: {
+        type: 'seasonal_mode_suggestion',
+        suggestedMode: modeId,
+        reason,
       },
     })
   }

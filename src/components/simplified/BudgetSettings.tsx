@@ -6,8 +6,9 @@ import { springs, timings } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { isCategoryRolloverEnabled, setCategoryRolloverEnabled } from "@/lib/budgetUtils"
 import { computeBudgetSummary, computeDailyEquivalent } from "@/lib/budgetSummary"
+import { getIncomeProjection } from "@/lib/incomePatterns"
 import { BUDGET_CATEGORIES } from "@/types"
-import type { Budget, TransactionCategory } from "@/types"
+import type { Budget, Transaction, TransactionCategory } from "@/types"
 import { FONT_FAMILY } from "@/styles/typography"
 import { borderRadius, segmentedControl, segmentedButtonBase, shadows, fills, colorRamp } from "@/styles/shared"
 
@@ -134,6 +135,10 @@ export interface BudgetSettingsProps {
    * pay cycle instead of calendar-month boundaries.
    */
   paySchedule?: { cadence: string } | null
+  /** All transactions, used for income projection (optional) */
+  transactions?: Transaction[]
+  /** Called when user accepts the projected income as their budget basis */
+  onAcceptProjectedIncome?: (projectedIncome: number) => void
 }
 
 // ============================================================================
@@ -165,7 +170,7 @@ const DEFAULT_LIMITS: Record<string, number> = {
  *
  * Validates: Requirements 12.1, 12.2, 1.1
  */
-export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onUpdatePeriod, onUpdatePerTransactionAlert, onBack, paySchedule }: BudgetSettingsProps) {
+export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onUpdatePeriod, onUpdatePerTransactionAlert, onBack, paySchedule, transactions, onAcceptProjectedIncome }: BudgetSettingsProps) {
   const [expandedCategory, setExpandedCategory] = useState<TransactionCategory | null>(null)
   const [localLimits, setLocalLimits] = useState<Record<string, number>>({})
   const [limitTypes, setLimitTypes] = useState<Record<string, "soft" | "hard">>({})
@@ -173,6 +178,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
   const [perTxAlerts, setPerTxAlerts] = useState<Record<string, number>>({})
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [rolloverEnabled, setRolloverEnabled] = useState(false)
+  const [projectionDismissed, setProjectionDismissed] = useState(false)
   const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   // Hydrate rollover toggle from localStorage
@@ -199,6 +205,12 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
   const { totalMonthly, dailyBudget } = useMemo(() => {
     return computeBudgetSummary(budgets, localLimits)
   }, [budgets, localLimits])
+
+  // ── Compute income projection from transaction history ────────────────────
+  const incomeProjection = useMemo(() => {
+    if (!transactions || transactions.length === 0) return null
+    return getIncomeProjection(transactions, new Date())
+  }, [transactions])
 
   // ── Get the effective limit for a category ────────────────────────────────
   const getLimit = useCallback(
@@ -436,6 +448,105 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
           ≈ ${dailyBudget.toFixed(0)}/day
         </p>
       </GlassCard>
+
+      {/* ── Income Projection Card (Task 335.2) ────────────────────────────── */}
+      {incomeProjection && incomeProjection.confidence >= 0.4 && !projectionDismissed && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={springs.gentle}
+        >
+          <GlassCard elevation="low" style={{ padding: "14px 18px", marginBottom: 20, position: "relative" }}>
+            {/* Dismiss button */}
+            <button
+              onClick={() => setProjectionDismissed(true)}
+              aria-label="Dismiss income projection"
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 12,
+                background: "none",
+                border: "none",
+                color: "var(--muted)",
+                cursor: "pointer",
+                padding: 4,
+                lineHeight: 1,
+                fontSize: 16,
+              }}
+            >
+              ✕
+            </button>
+
+            <p
+              style={{
+                fontSize: 13,
+                color: "var(--muted)",
+                fontFamily: FONT_FAMILY,
+                marginBottom: 6,
+                paddingRight: 24,
+              }}
+            >
+              {incomeProjection.confidence >= 0.7
+                ? "Based on your last few months, you'll likely earn around"
+                : "We're still learning your pattern, but you might earn around"}
+            </p>
+            <p
+              style={{
+                fontSize: 18,
+                fontWeight: 600,
+                color: "var(--text)",
+                fontFamily: FONT_FAMILY,
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1.2,
+              }}
+            >
+              ${Math.round(incomeProjection.projectedMonthlyIncome).toLocaleString("en-US")}
+              <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 4 }}>
+                /mo
+              </span>
+            </p>
+
+            {/* Confidence band — shown for high confidence */}
+            {incomeProjection.confidence >= 0.7 && (
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--sub)",
+                  fontFamily: FONT_FAMILY,
+                  marginTop: 4,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                Usually between ${Math.round(incomeProjection.confidenceBand.low).toLocaleString("en-US")}–${Math.round(incomeProjection.confidenceBand.high).toLocaleString("en-US")}
+              </p>
+            )}
+
+            {/* Accept button */}
+            {onAcceptProjectedIncome && (
+              <motion.button
+                onClick={() => onAcceptProjectedIncome(incomeProjection.projectedMonthlyIncome)}
+                whileTap={{ scale: 0.96 }}
+                transition={springs.bouncy}
+                style={{
+                  marginTop: 10,
+                  padding: "6px 14px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontFamily: FONT_FAMILY,
+                  background: "var(--accent)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 20,
+                  cursor: "pointer",
+                }}
+              >
+                Use this
+              </motion.button>
+            )}
+          </GlassCard>
+        </motion.div>
+      )}
 
       {/* ── Category Limits List (Task 12.1 & 12.2) ────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "8px 0", marginBottom: 20 }}>

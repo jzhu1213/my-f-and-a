@@ -230,6 +230,45 @@ export function computeSmoothedIncome(
 }
 
 /**
+ * Computes a blended income pool for mid-month income adjustment (Task 336.1).
+ *
+ * When projected income is the active source AND actual income has arrived this
+ * month, we blend: actual income received + pro-rated remaining projection for
+ * the rest of the month. This ensures the daily budget reflects reality while
+ * still accounting for expected future income.
+ *
+ * @param actualIncomeThisMonth - Total income logged this month so far
+ * @param projectedMonthlyIncome - The projected monthly income from pattern analysis
+ * @param currentDate - Today's date
+ * @returns Blended monthly income pool
+ *
+ * @pure Deterministic, no side effects.
+ */
+export function computeMidMonthBlendedIncome(
+  actualIncomeThisMonth: number,
+  projectedMonthlyIncome: number,
+  currentDate: Date
+): number {
+  const dayOfMonth = currentDate.getDate()
+  const daysInMonth = getDaysInMonthLocal(currentDate)
+  const daysRemaining = daysInMonth - dayOfMonth
+
+  // End of month: just use actuals
+  if (daysRemaining <= 0) return actualIncomeThisMonth
+
+  // Pro-rate the remaining projected income for the rest of the month.
+  // This represents income we still expect to arrive this month.
+  const remainingProjectedFraction = daysRemaining / daysInMonth
+  const remainingProjected = Math.max(
+    0,
+    projectedMonthlyIncome * remainingProjectedFraction
+  )
+
+  // Blended pool: what we actually received + what we still expect
+  return actualIncomeThisMonth + remainingProjected
+}
+
+/**
  * Computes a confidence band for variable income — the "usually $X–$Y/day" range.
  *
  * Only meaningful when income smoothing uses 'trailing_average' (indicating variable
@@ -440,7 +479,8 @@ export function computeDailyAllowance(
   incomeHistory?: Transaction[],
   termSchedule?: TermSchedule | null,
   rhythmWeights?: RhythmWeights | null,
-  incomeStreams?: IncomeStream[] | null
+  incomeStreams?: IncomeStream[] | null,
+  projectedIncome?: { amount: number; confidence: number } | null
 ): DailyAllowance {
   // Step 1: Calculate total monthly budget from all category limits.
   //
@@ -504,13 +544,20 @@ export function computeDailyAllowance(
   // Determine income source priority:
   // 1. Budget limits (if configured)
   // 2. Income streams (if provided with active streams — Task 176.1)
-  // 3. Actual logged income transactions (if any exist this month)
-  // 4. monthlyIncome parameter estimate (fallback)
+  // 3. Projected income (if provided with sufficient confidence — Task 335.3)
+  // 4. Actual logged income transactions (if any exist this month)
+  // 5. monthlyIncome parameter estimate (fallback)
+  //
+  // Projected income activates only when confidence >= 0.4 (medium or high).
+  // When confidence is low (< 0.4), the projection is ignored and existing
+  // behavior is preserved. This ensures unreliable projections never distort
+  // the daily number.
   const hasBudgets = totalMonthlyBudget > 0
   const streamsMonthly = (incomeStreams && incomeStreams.length > 0)
     ? computeMonthlyIncomeFromStreams(incomeStreams, currentDate)
     : 0
   const hasIncomeStreams = streamsMonthly > 0
+  const hasProjectedIncome = !!(projectedIncome && projectedIncome.amount > 0 && projectedIncome.confidence >= 0.4)
   const hasActualIncome = actualMonthlyIncome > 0
   const hasEstimate = typeof monthlyIncome === 'number' && monthlyIncome > 0
   
@@ -518,6 +565,8 @@ export function computeDailyAllowance(
   if (hasBudgets) {
     incomeSource = 'budget'
   } else if (hasIncomeStreams) {
+    incomeSource = 'transactions'
+  } else if (hasProjectedIncome) {
     incomeSource = 'transactions'
   } else if (hasActualIncome) {
     incomeSource = 'transactions'
@@ -529,11 +578,22 @@ export function computeDailyAllowance(
   // use smoothed income to stabilize the pool for gig workers with variable income.
   // When income streams are configured (Task 176.1), they take priority over
   // individual transaction sums — the combined stream monthly figure is the pool.
+  // When projected income is the active source (Task 335.3), use the projected
+  // monthly amount directly — it already incorporates pattern analysis and smoothing.
+  //
+  // Task 336.1: Mid-month income adjustment — when projected income is the active
+  // source AND actual income has arrived this month, blend actuals + pro-rated
+  // remaining projection. This ensures the daily budget reflects reality while
+  // still accounting for expected future income.
   const smoothedIncome = hasIncomeStreams
     ? streamsMonthly
-    : (incomeSource === 'transactions' && incomeSmoothing)
-      ? computeSmoothedIncome(transactions, currentDate, incomeSmoothing)
-      : actualMonthlyIncome
+    : hasProjectedIncome && hasActualIncome
+      ? computeMidMonthBlendedIncome(actualMonthlyIncome, projectedIncome!.amount, currentDate)
+      : hasProjectedIncome
+        ? projectedIncome!.amount
+        : (incomeSource === 'transactions' && incomeSmoothing)
+          ? computeSmoothedIncome(transactions, currentDate, incomeSmoothing)
+          : actualMonthlyIncome
 
   const isEstimated = incomeSource === 'estimate'
   

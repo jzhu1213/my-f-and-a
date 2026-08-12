@@ -11,6 +11,136 @@ import { BUDGET_CATEGORIES } from '@/types'
  */
 const STORAGE_KEY = 'folio-category-grid-prefs'
 
+// ============================================================================
+// Category Frequency Tracking (Task 339.1)
+// ============================================================================
+
+/** localStorage key for rolling 30-day frequency data. */
+const FREQUENCY_STORAGE_KEY = 'folio-category-frequency'
+
+/** localStorage key for sort mode preference. */
+const SORT_MODE_STORAGE_KEY = 'folio-category-sort-mode'
+
+/** Rolling window in milliseconds (30 days). */
+const FREQUENCY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
+
+/**
+ * A single usage event for a category.
+ * Stored as an array of timestamps per category for accurate rolling-window pruning.
+ */
+export interface CategoryFrequencyEntry {
+  /** Matches TransactionCategory id */
+  categoryId: string
+  /** ISO date strings of each usage event within the window */
+  timestamps: string[]
+}
+
+/** Sort mode for the category grid. */
+export type CategorySortMode = 'manual' | 'auto'
+
+/**
+ * Records a category usage event. Increments the rolling count
+ * and prunes entries older than 30 days.
+ *
+ * SSR-safe: no-op on the server.
+ */
+export function recordCategoryUsage(categoryId: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    const now = new Date().toISOString()
+    const entries = loadFrequencyEntries()
+    const existing = entries.find(e => e.categoryId === categoryId)
+
+    if (existing) {
+      existing.timestamps.push(now)
+    } else {
+      entries.push({ categoryId, timestamps: [now] })
+    }
+
+    // Prune old timestamps across all entries
+    const cutoff = Date.now() - FREQUENCY_WINDOW_MS
+    for (const entry of entries) {
+      entry.timestamps = entry.timestamps.filter(
+        ts => new Date(ts).getTime() >= cutoff
+      )
+    }
+
+    // Remove entries with no remaining timestamps
+    const pruned = entries.filter(e => e.timestamps.length > 0)
+    localStorage.setItem(FREQUENCY_STORAGE_KEY, JSON.stringify(pruned))
+  } catch {
+    // Silently fail if storage is unavailable
+  }
+}
+
+/**
+ * Returns a Map of categoryId → usage count within the last 30 days.
+ *
+ * SSR-safe: returns empty map on the server.
+ */
+export function getCategoryFrequencies(): Map<string, number> {
+  if (typeof window === 'undefined') return new Map()
+  const entries = loadFrequencyEntries()
+  const cutoff = Date.now() - FREQUENCY_WINDOW_MS
+  const map = new Map<string, number>()
+
+  for (const entry of entries) {
+    const validCount = entry.timestamps.filter(
+      ts => new Date(ts).getTime() >= cutoff
+    ).length
+    if (validCount > 0) {
+      map.set(entry.categoryId, validCount)
+    }
+  }
+
+  return map
+}
+
+/**
+ * Loads raw frequency entries from localStorage.
+ * Returns an empty array if none exist or on parse failure.
+ */
+function loadFrequencyEntries(): CategoryFrequencyEntry[] {
+  try {
+    const stored = localStorage.getItem(FREQUENCY_STORAGE_KEY)
+    if (!stored) return []
+    const parsed = JSON.parse(stored)
+    if (!Array.isArray(parsed)) return []
+    return parsed as CategoryFrequencyEntry[]
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Loads the current sort mode preference.
+ * Defaults to 'manual' if not set.
+ *
+ * SSR-safe: returns 'manual' on the server.
+ */
+export function loadSortMode(): CategorySortMode {
+  if (typeof window === 'undefined') return 'manual'
+  try {
+    const stored = localStorage.getItem(SORT_MODE_STORAGE_KEY)
+    if (stored === 'auto') return 'auto'
+    return 'manual'
+  } catch {
+    return 'manual'
+  }
+}
+
+/**
+ * Saves the sort mode preference to localStorage.
+ */
+export function saveSortMode(mode: CategorySortMode): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(SORT_MODE_STORAGE_KEY, mode)
+  } catch {
+    // Silently fail
+  }
+}
+
 /**
  * A single category's position and optional label/emoji overrides.
  */

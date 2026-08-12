@@ -18,8 +18,11 @@ import type { AppNavKey } from '@/components/ui/AppShell'
  * Preserves scroll position per destination, saving when leaving and
  * restoring when arriving.
  *
+ * Since the app scrolls at the window/document level (not an internal
+ * element), we track window.scrollY rather than el.scrollTop.
+ *
  * @param activeNav - The currently active navigation destination.
- * @param scrollContainerRef - Ref to the scrollable element (e.g. <main>).
+ * @param scrollContainerRef - Ref to the scrollable element (unused, kept for API compat).
  */
 export function useScrollPreservation(
   activeNav: AppNavKey,
@@ -36,21 +39,15 @@ export function useScrollPreservation(
   useEffect(() => {
     // Save position when leaving a destination
     if (prevNav.current !== activeNav) {
-      const el = scrollContainerRef.current
-      if (el) {
-        positions.current[prevNav.current] = el.scrollTop
-      }
+      positions.current[prevNav.current] = window.scrollY || 0
       prevNav.current = activeNav
     }
   }, [activeNav, scrollContainerRef])
 
   useEffect(() => {
     // Restore position when arriving at a destination (after render)
-    const el = scrollContainerRef.current
-    if (el) {
-      requestAnimationFrame(() => {
-        el.scrollTop = positions.current[activeNav] ?? 0
-      })
-    }
-  }, [activeNav, scrollContainerRef])
+    requestAnimationFrame(() => {
+      window.scrollTo(0, positions.current[activeNav] ?? 0)
+    })
+  }, [activeNav])
 }

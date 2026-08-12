@@ -326,6 +326,10 @@ export interface HomeScreenProps {
   skippedSetupSteps?: string[]
   /** Called when the user taps a specific step to deep-link resume (task 223.3) */
   onResumeSetupStep?: (stepId: string) => void
+
+  // ── Income overdue signal (task 336.2) ─────────────────────────────────────
+  /** When set, projected income is overdue — drives the income shortfall tip. */
+  incomeOverdue?: { expectedAmount: number; daysPastDue: number }
 }
 
 // ============================================================================
@@ -394,6 +398,7 @@ export function HomeScreen({
   hasSkippedSetupSteps,
   skippedSetupSteps,
   onResumeSetupStep,
+  incomeOverdue,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -567,8 +572,9 @@ export function HomeScreen({
         completedLessonIds,
         lastLoggedTransaction,
         userGoal,
+        incomeOverdue,
       }),
-    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals, savingsAccounts, fundingSources, completedLessonIds, lastLoggedTransaction, userGoal]
+    [transactions, allowance, underBudgetStreak, upcomingBills, detectedSubscriptions, todayStr, spendingMode, goals, savingsAccounts, fundingSources, completedLessonIds, lastLoggedTransaction, userGoal, incomeOverdue]
   )
 
   const activeTip = useMemo(

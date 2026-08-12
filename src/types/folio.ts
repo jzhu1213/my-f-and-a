@@ -190,6 +190,8 @@ export type TipTrigger =
   | { type: 'first_savings_account_lesson' }
   | { type: 'first_contribution_lesson' }
   | { type: 'spend_anomaly'; category: TransactionCategory; amount: number; typicalAmount: number }
+  | { type: 'income_shortfall'; expectedAmount: number; daysPastDue: number }
+  | { type: 'seasonal_mode_suggestion'; suggestedMode: string; reason: string }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)

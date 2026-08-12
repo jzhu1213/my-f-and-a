@@ -98,6 +98,11 @@ export interface SettingsScreenProps {
   onAddSpendDownPlan?: (data: Omit<import('@/lib/spendDown').SpendDownPlan, 'id'>) => import('@/lib/spendDown').SpendDownPlan
   onRemoveSpendDownPlan?: (id: string) => void
   disbursements?: import('@/lib/disbursements').Disbursement[]
+  budgetModes?: import('@/lib/spendingModeConfig').BudgetMode[]
+  activeBudgetModeId?: string | null
+  onSetActiveBudgetMode?: (id: string | null) => void
+  onSaveBudgetMode?: (mode: import('@/lib/spendingModeConfig').BudgetMode) => void
+  onDeleteBudgetMode?: (id: string) => void
   userGoal?: import('@/types').UserGoal
   onGoalChange?: (goal: import('@/types').UserGoal) => void
   skippedSetupSteps?: string[]
@@ -299,6 +304,11 @@ export function SettingsScreen({
   onAddSpendDownPlan,
   onRemoveSpendDownPlan,
   disbursements = [],
+  budgetModes = [],
+  activeBudgetModeId,
+  onSetActiveBudgetMode,
+  onSaveBudgetMode,
+  onDeleteBudgetMode,
   userGoal,
   onGoalChange,
   skippedSetupSteps,
@@ -1038,6 +1048,88 @@ export function SettingsScreen({
                   </div>
                 </div>
               )}
+            </Card>
+          )}
+
+          {/* Budget Modes (Task 337.2) */}
+          {onSaveBudgetMode && onDeleteBudgetMode && onSetActiveBudgetMode && (
+            <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+              <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["4"] }}>
+                Budget Modes
+              </p>
+              <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
+                Switch between preset budgets for different life phases.
+              </p>
+              {(budgetModes ?? []).map(mode => {
+                const isActive = mode.id === activeBudgetModeId
+                return (
+                  <ListRow key={mode.id} variant="dense">
+                    <button
+                      type="button"
+                      onClick={() => onSetActiveBudgetMode(isActive ? null : mode.id)}
+                      aria-pressed={isActive}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: spacingScale["8"],
+                        flex: 1,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 0,
+                        textAlign: "left",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: spacingScale["16"],
+                          height: spacingScale["16"],
+                          borderRadius: radius.full,
+                          border: `2px solid ${isActive ? colorRamp.accent[500] : semanticColors.borderSubtle}`,
+                          background: isActive ? colorRamp.accent[500] : "transparent",
+                          display: "inline-block",
+                          flexShrink: 0,
+                        }}
+                        aria-hidden="true"
+                      />
+                      <span style={{ ...typography.body, color: textColors.text }}>
+                        {mode.icon} {mode.name}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteBudgetMode(mode.id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        ...typography.caption,
+                        color: textColors.muted,
+                        cursor: "pointer",
+                        padding: spacingScale["4"],
+                      }}
+                      aria-label={`Delete ${mode.name} mode`}
+                    >
+                      ✕
+                    </button>
+                  </ListRow>
+                )
+              })}
+              <button
+                type="button"
+                onClick={() => {
+                  const newMode = {
+                    id: `bmode_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    name: 'Custom',
+                    icon: '⚙️',
+                    isActive: false,
+                  }
+                  onSaveBudgetMode(newMode)
+                }}
+                style={{ background: "none", border: "none", ...typography["body-sm"], color: textColors.sub, cursor: "pointer", padding: 0, marginTop: spacingScale["8"] }}
+                aria-label="Add a custom budget mode"
+              >
+                + Add mode
+              </button>
             </Card>
           )}
 

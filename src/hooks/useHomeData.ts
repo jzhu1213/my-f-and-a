@@ -67,6 +67,10 @@ import { recordContribution, clearContributionHistory } from '@/lib/savingsContr
 import { computeRhythmWeights } from '@/lib/rhythmModel'
 import type { IncomeStream } from '@/types/folio'
 import { loadIncomeStreams, saveIncomeStreams, generateIncomeStreamId } from '@/lib/incomeStreams'
+import { getIncomeProjection } from '@/lib/incomePatterns'
+import { isIncomeOverdue as isIncomeOverdueFn } from '@/lib/midMonthIncomeAdjust'
+import type { BudgetMode } from '@/lib/spendingModeConfig'
+import { getBudgetModes, getActiveBudgetMode, setActiveBudgetMode as setActiveBudgetModeStorage, saveBudgetMode as saveBudgetModeStorage, deleteBudgetMode as deleteBudgetModeStorage, applyBudgetModeOverrides, generateBudgetModeId } from '@/lib/spendingModeConfig'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
 // Stored in localStorage as a fallback (no dedicated Supabase table yet).
@@ -301,6 +305,12 @@ export interface UseHomeDataReturn {
    * Empty array when none are set. Feeds the combined daily number.
    */
   incomeStreams: IncomeStream[]
+  /**
+   * Income overdue signal — set when projected income hasn't arrived by the
+   * expected date. Used by the tip system to surface a gentle shortfall tip.
+   * Undefined when income is on time or projection is inactive. (Task 336.2)
+   */
+  incomeOverdue?: { expectedAmount: number; daysPastDue: number }
   /**
    * The user's spending mode preference.
    * Controls how budget signals are communicated — never blocks logging.
@@ -552,6 +562,28 @@ export interface UseHomeDataReturn {
    * Remove an income stream by ID (persisted to localStorage).
    */
   removeIncomeStream: (id: string) => void
+  // ── Budget Mode (Task 337) ───────────────────────────────────────────
+  /**
+   * All persisted budget modes (presets + custom).
+   */
+  budgetModes: BudgetMode[]
+  /**
+   * The active budget mode ID, or null when no mode is active.
+   */
+  activeBudgetModeId: string | null
+  /**
+   * Set the active budget mode (or null to deactivate). Applies overrides
+   * to the allowance calculation immediately.
+   */
+  setActiveBudgetMode: (id: string | null) => void
+  /**
+   * Save (create or update) a budget mode (persisted to localStorage).
+   */
+  saveBudgetMode: (mode: BudgetMode) => void
+  /**
+   * Delete a budget mode by ID (persisted to localStorage).
+   */
+  deleteBudgetMode: (id: string) => void
 }
 
 /**
@@ -590,6 +622,12 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   const [spendDownPlans, setSpendDownPlans] = useState<SpendDownPlan[]>(() => loadSpendDownPlans())
   const [termSchedule, setTermScheduleState] = useState<TermSchedule | null>(() => loadTermSchedule())
   const [incomeStreams, setIncomeStreams] = useState<IncomeStream[]>(() => loadIncomeStreams())
+  // Budget mode state (Task 337)
+  const [budgetModes, setBudgetModes] = useState<BudgetMode[]>(() => getBudgetModes())
+  const [activeBudgetModeId, setActiveBudgetModeIdState] = useState<string | null>(() => {
+    const active = getActiveBudgetMode()
+    return active?.id ?? null
+  })
   const [disbursementBonus, setDisbursementBonus] = useState(0)
   const [incomeSmoothing, setIncomeSmoothingState] = useState<IncomeSmoothing | null>(
     () => loadIncomeSmoothingPreference()
@@ -1634,6 +1672,24 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     return computeRhythmWeights(transactions, currentDay)
   }, [transactions, currentDay])
 
+  // Task 335.3: Memoize income projection — uses pattern analysis to project
+  // monthly income from historical transactions. Only activates when confidence
+  // is sufficient (>= 0.4). The projection feeds into the allowance engine as
+  // a smarter fallback when no explicit budget or income streams are configured.
+  const incomeProjection = useMemo(() => {
+    if (transactions.length === 0) return null
+    return getIncomeProjection(transactions, currentDay)
+  }, [transactions, currentDay])
+
+  // Task 336.2: Detect income shortfall — surface a tip when projected income
+  // is overdue based on detected regularity. Pure derivation, no side effects.
+  const incomeOverdue = useMemo(() => {
+    if (!incomeProjection || incomeProjection.confidence < 0.4) return undefined
+    const result = isIncomeOverdueFn(transactions, currentDay, incomeProjection)
+    if (!result.isOverdue) return undefined
+    return { expectedAmount: result.expectedAmount, daysPastDue: result.daysPastDue }
+  }, [transactions, currentDay, incomeProjection])
+
   // ── Memoized Computations ──────────────────────────────────────
   /**
    * Daily allowance calculation (memoized)
@@ -1701,13 +1757,19 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
 
     // Task 210.3: Parse setupDate so mid-month logic divides by remaining days
     const setupDate = userProfile?.setupDate ? new Date(userProfile.setupDate + 'T00:00:00') : undefined
+
+    // Task 337.3: Apply active budget mode overrides before passing to allowance engine.
+    // The base values in state stay untouched — switching back restores them.
+    const activeModeForCalc = budgetModes.find(m => m.id === activeBudgetModeId) ?? null
+    const { budgets: overriddenBudgets, fixedExpenses: overriddenFixedExpenses } =
+      applyBudgetModeOverrides(budgets, allFixedExpenses, activeModeForCalc)
     
     return computeDailyAllowance(
-      budgets,
+      overriddenBudgets,
       transactions,
       currentDay,
       (monthlyIncome ?? 0) + computeActiveDisbursementBonus(disbursements, currentDay),
-      allFixedExpenses,
+      overriddenFixedExpenses,
       setupDate,
       incomeSmoothing ?? undefined,
       undefined, // carryoverEnabled
@@ -1717,9 +1779,14 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       transactions,  // Task 103.1: income history for irregular cadence estimation
       termSchedule,  // Task 121.1: term schedule for semester-based budget periods
       rhythmWeights, // Task 164.1: weekly spending rhythm weights
-      incomeStreams.length > 0 ? incomeStreams : null  // Task 176.1: multiple income streams
+      incomeStreams.length > 0 ? incomeStreams : null,  // Task 176.1: multiple income streams
+      // Task 335.3: projected income from pattern analysis — feeds into allowance
+      // engine when confidence is sufficient (>= 0.4) and no budget/streams are set
+      incomeProjection && incomeProjection.confidence >= 0.4
+        ? { amount: incomeProjection.projectedMonthlyIncome, confidence: incomeProjection.confidence }
+        : undefined
     )
-  }, [budgets, transactions, debts, sinkingFunds, recurringBills, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights, incomeStreams])
+  }, [budgets, transactions, debts, sinkingFunds, recurringBills, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights, incomeStreams, incomeProjection, budgetModes, activeBudgetModeId])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
@@ -1951,6 +2018,54 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       return next
     })
   }, [])
+
+  // ── Budget Mode Mutations (Task 337) ─────────────────────────────────
+  /**
+   * Set the active budget mode (or null to deactivate all).
+   */
+  const setActiveBudgetModeFn = useCallback((id: string | null): void => {
+    setActiveBudgetModeIdState(id)
+    setActiveBudgetModeStorage(id)
+    // Update isActive flags on local state
+    setBudgetModes(prev => prev.map(m => ({ ...m, isActive: m.id === id })))
+  }, [])
+
+  /**
+   * Save (create or update) a budget mode.
+   */
+  const saveBudgetModeFn = useCallback((mode: BudgetMode): void => {
+    setBudgetModes(prev => {
+      const idx = prev.findIndex(m => m.id === mode.id)
+      let next: BudgetMode[]
+      if (idx >= 0) {
+        next = [...prev]
+        next[idx] = mode
+      } else {
+        next = [...prev, mode]
+      }
+      saveBudgetModeStorage(mode)
+      return next
+    })
+  }, [])
+
+  /**
+   * Delete a budget mode by ID.
+   */
+  const deleteBudgetModeFn = useCallback((id: string): void => {
+    setBudgetModes(prev => {
+      const next = prev.filter(m => m.id !== id)
+      deleteBudgetModeStorage(id)
+      return next
+    })
+    // If this was the active mode, clear it
+    setActiveBudgetModeIdState(prev => {
+      if (prev === id) {
+        setActiveBudgetModeStorage(null)
+        return null
+      }
+      return prev
+    })
+  }, [])
   
   // ── Return Hook Interface ──────────────────────────────────────
   return {
@@ -2047,5 +2162,13 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     addIncomeStream,
     updateIncomeStream,
     removeIncomeStream,
+    // Budget mode (Task 337)
+    budgetModes,
+    activeBudgetModeId,
+    setActiveBudgetMode: setActiveBudgetModeFn,
+    saveBudgetMode: saveBudgetModeFn,
+    deleteBudgetMode: deleteBudgetModeFn,
+    // Income overdue signal (Task 336.2)
+    incomeOverdue,
   }
 }
