@@ -92,7 +92,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
-  background: "rgba(0, 0, 0, 0.2)",
+  background: "var(--color-sunken)",
   border: "1px solid var(--border)",
   borderRadius: 10,
   outline: "none",
@@ -579,7 +579,7 @@ function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelP
 
         <p style={{ fontSize: 12, color: "var(--sub)", margin: "0 0 8px", lineHeight: 1.5 }}>
           Current balance: {formatDollars(account.balance)}. Enter the latest
-          total — we'll log the change so you can watch it grow over time.
+          total — we&apos;ll log the change so you can watch it grow over time.
         </p>
 
         <label style={labelStyle} htmlFor={`balance-input-${account.id}`}>

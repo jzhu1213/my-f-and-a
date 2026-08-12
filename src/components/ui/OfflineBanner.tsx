@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { Icon } from '@/components/ui/Icon'
 import { semanticColors } from '@/styles/colors'
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ============================================================================
 // OfflineBanner — warm, on-brand offline status bar
@@ -80,7 +81,7 @@ export function OfflineBanner({ visible }: OfflineBannerProps) {
             className="text-xs flex-1 leading-snug"
             style={{
               color: 'var(--text)',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: FONT_FAMILY,
               fontWeight: 400,
             }}
           >

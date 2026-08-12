@@ -6,6 +6,7 @@ import { springs, useReducedMotion } from '@/lib/animations'
 import { triggerHaptic } from '@/lib/haptics'
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius } from '@/styles/shared'
+import { Icon } from '@/components/ui/Icon'
 
 // ── Date helper utilities ────────────────────────────────────────────────────
 
@@ -156,8 +157,8 @@ export function DatePickerChips({
             selectedDate !== todayStr ? 'var(--text)' : 'var(--sub)',
         }}
       >
-        <span style={{ fontSize: 14 }} aria-hidden="true">
-          📅
+        <span style={{ display: "inline-flex" }} aria-hidden="true">
+          <Icon name="breakdown:scheduled" size={16} />
         </span>
         <span>{displayLabel}</span>
       </button>

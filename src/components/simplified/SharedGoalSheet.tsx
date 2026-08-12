@@ -189,7 +189,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(0,0,0,0.5)",
+              background: "rgba(14, 14, 26, 0.6)",
               zIndex: 1000,
             }}
           />

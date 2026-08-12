@@ -15,7 +15,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { springPresets } from '@/styles/motion'
+import { springs, useReducedMotion } from '@/lib/animations'
 import { radius } from '@/styles/surfaces'
 import { textColors, semanticColors } from '@/styles/colors'
 
@@ -91,6 +91,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
   onClick,
   'aria-label': ariaLabel,
 }) => {
+  const { prefersReducedMotion } = useReducedMotion()
+
   const baseStyles: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
@@ -113,13 +115,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
       aria-disabled={disabled}
       className="focus-ring"
       style={baseStyles}
-      whileTap={disabled ? undefined : { scale: 0.98 }}
-      transition={{
-        type: 'spring',
-        stiffness: springPresets.snappy.stiffness,
-        damping: springPresets.snappy.damping,
-        mass: springPresets.snappy.mass,
-      }}
+      whileTap={disabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.98 })}
+      transition={springs.snappy}
     >
       {children}
     </motion.button>

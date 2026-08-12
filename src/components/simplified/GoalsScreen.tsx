@@ -59,6 +59,10 @@ export interface GoalsScreenProps {
   onDeleteGoal: (id: string) => Promise<boolean> | void
   /** Optional back navigation, shown as a back button when provided. */
   onBack?: () => void
+  /** Authenticated user ID — enables Supabase persistence for shared goals. */
+  userId?: string | null
+  /** Called after shared goal state changes so the parent can refresh goal data. */
+  onGoalUpdated?: () => void
 }
 
 // ============================================================================
@@ -443,6 +447,8 @@ export function GoalsScreen({
   onContributeToGoal,
   onDeleteGoal,
   onBack,
+  userId,
+  onGoalUpdated,
 }: GoalsScreenProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
@@ -971,6 +977,8 @@ export function GoalsScreen({
         isOpen={sharedGoal !== null}
         goal={sharedGoal}
         onClose={closeSharedSheet}
+        onGoalUpdated={onGoalUpdated}
+        userId={userId}
       />
     </div>
   )

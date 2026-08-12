@@ -89,7 +89,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
-  background: "rgba(0, 0, 0, 0.2)",
+  background: "var(--color-sunken)",
   border: "1px solid var(--border)",
   borderRadius: 10,
   outline: "none",

@@ -2,7 +2,7 @@
 
 import { useId } from "react"
 import { motion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { elevations, radius } from "@/styles/surfaces"
 import { spacingScale } from "@/styles/layout"
 import { textColors } from "@/styles/colors"
@@ -90,6 +90,7 @@ export function SegmentedControl({
 }: SegmentedControlProps) {
   const id = useId()
   const layoutId = `${id}-indicator`
+  const { prefersReducedMotion } = useReducedMotion()
 
   const handleSelect = (index: number) => {
     if (disabled) return
@@ -141,8 +142,8 @@ export function SegmentedControl({
             onClick={() => handleSelect(index)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             className="focus-ring"
-            whileTap={disabled ? undefined : { scale: 0.96 }}
-            transition={springs.snappy}
+            whileTap={disabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.96 })}
+            transition={prefersReducedMotion ? timings.fast : springs.snappy}
             style={{
               ...segmentStyles,
               color: isSelected ? textColors.text : textColors.muted,
@@ -153,7 +154,7 @@ export function SegmentedControl({
             {isSelected && (
               <motion.div
                 layoutId={layoutId}
-                transition={springs.responsive}
+                transition={prefersReducedMotion ? timings.fast : springs.responsive}
                 style={{
                   position: "absolute",
                   inset: 0,

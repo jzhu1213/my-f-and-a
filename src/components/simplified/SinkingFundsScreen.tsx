@@ -97,7 +97,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
-  background: "rgba(0, 0, 0, 0.2)",
+  background: "var(--color-sunken)",
   border: "1px solid var(--border)",
   borderRadius: 10,
   outline: "none",
@@ -272,7 +272,7 @@ export function SinkingFundsScreen({
       <GlassCard elevation="low" style={{ padding: "14px 18px", marginBottom: 20 }}>
         <p style={{ fontSize: 13, color: "var(--sub)", margin: 0, lineHeight: 1.5 }}>
           Save a little each month toward big upcoming costs — textbooks, travel, gifts —
-          so they don't blow up your daily budget when they arrive. 💡
+          so they don&apos;t blow up your daily budget when they arrive. 💡
         </p>
       </GlassCard>
 
@@ -620,7 +620,7 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
                         : "1px solid var(--border)",
                       background: disbursementType === opt.value
                         ? "rgba(129, 140, 248, 0.1)"
-                        : "rgba(0,0,0,0.15)",
+                        : "var(--fill-04)",
                       color: disbursementType === opt.value ? "var(--accent)" : "var(--sub)",
                       fontSize: 12,
                       fontWeight: 500,
@@ -961,7 +961,7 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
                   padding: "8px 14px",
                   borderRadius: borderRadius.full,
                   border: isActive ? "1.5px solid var(--success)" : "1px solid var(--border)",
-                  background: isActive ? "rgba(6, 214, 160, 0.1)" : "rgba(0,0,0,0.15)",
+                  background: isActive ? "rgba(6, 214, 160, 0.1)" : "var(--fill-04)",
                   color: isActive ? "var(--success)" : "var(--sub)",
                   fontSize: 13,
                   fontWeight: 500,

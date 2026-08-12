@@ -14,7 +14,7 @@ import { listFriends } from '@/lib/social/friends'
 import { searchPublicProfiles } from '@/lib/social/profiles'
 import { createSplit } from '@/lib/social/splits'
 import type { SplitMethod } from '@/lib/social/splits.types'
-import { computeSplitAmount, computePerFriendOwed, computePerFriendOwedCustom, computePercentSplit, computeShareSplit } from '@/lib/splitUtils'
+import { computeSplitAmount, computePerFriendOwed, computePerFriendOwedCustom, computeShareSplit } from '@/lib/splitUtils'
 import type { Transaction } from '@/types'
 import type { SavingsAccount } from '@/types/folio'
 import { getAccountTypeMetadata } from '@/lib/savingsAccountUtils'
@@ -1418,10 +1418,11 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                           userShare = (customVal > 0 && customVal <= parsed) ? customVal : parsed
                           perFriendBreakdown = friends.length > 0 ? computePerFriendOwedCustom(parsed, userShare, friends) : []
                         } else if (splitMode === 'percent' && splitParticipants.length > 0) {
-                          const yourPct = 100 - percentInputs.reduce((s, v) => s + v, 0)
-                          userShare = Math.round((parsed * Math.max(0, yourPct)) / 100 * 100) / 100
-                          const amounts = computePercentSplit(parsed, percentInputs)
-                          perFriendBreakdown = splitParticipants.map((p, i) => ({ name: p.name, owes: amounts[i] ?? 0 }))
+                          // Compute participant amounts as raw rounded values (not reconciled against totalAmount)
+                          const participantAmounts = percentInputs.map((p) => Math.round((parsed * p) / 100 * 100) / 100)
+                          const participantSum = participantAmounts.reduce((s, a) => s + a, 0)
+                          userShare = Math.round((parsed - participantSum) * 100) / 100
+                          perFriendBreakdown = splitParticipants.map((p, i) => ({ name: p.name, owes: participantAmounts[i] ?? 0 }))
                         } else if (splitMode === 'shares' && splitParticipants.length > 0) {
                           const allShares = [1, ...shareInputs.slice(0, splitParticipants.length)]
                           const amounts = computeShareSplit(parsed, allShares)

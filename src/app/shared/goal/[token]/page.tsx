@@ -27,7 +27,7 @@ import {
   recordParticipantContribution,
   getParticipantBreakdown,
 } from "@/lib/sharedGoalUtils"
-import type { GoalParticipant } from "@/types"
+import type { Goal, GoalParticipant } from "@/types"
 import {
   sharedPageContainer,
   headerBadge,
@@ -42,11 +42,13 @@ import {
   footerAttribution,
   sharedInput,
   sharedActionButton,
+  progressTrack,
   colorRamp,
   typography,
   TABULAR_NUMS,
   spacingScale,
   textColors,
+  radius,
   elevations,
 } from "../../sharedPageStyles"
 
@@ -59,6 +61,7 @@ export default function SharedGoalViewPage() {
   const token = params?.token as string | undefined
 
   const [goalId, setGoalId] = useState<string | null>(null)
+  const [goal, setGoal] = useState<Goal | null>(null)
   const [participants, setParticipants] = useState<GoalParticipant[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -88,6 +91,7 @@ export default function SharedGoalViewPage() {
       }
 
       setGoalId(goal.id)
+      setGoal(goal)
       const breakdown = await getParticipantBreakdown(goal.id)
       setParticipants(breakdown)
 
@@ -158,6 +162,10 @@ export default function SharedGoalViewPage() {
 
   const totalContributed = participants.reduce((sum, p) => sum + p.contributedAmount, 0)
   const myParticipant = participants.find(p => p.id === myParticipantId)
+  const targetAmount = goal?.targetAmount ?? 0
+  const progressPct = targetAmount > 0
+    ? Math.min(1, totalContributed / targetAmount)
+    : 0
 
   return (
     <div style={sharedPageContainer}>
@@ -171,6 +179,19 @@ export default function SharedGoalViewPage() {
 
       {/* Goal info — hero card */}
       <Card elevation="raised" style={{ padding: spacingScale["20"], marginBottom: spacingScale["16"] }}>
+        {goal && (
+          <div style={{ textAlign: "center", marginBottom: spacingScale["16"] }}>
+            <span style={{ fontSize: 36 }} aria-hidden="true">{goal.emoji}</span>
+            <h1 style={{ ...typography.title, color: textColors.text, marginTop: spacingScale["8"], marginBottom: spacingScale["4"] }}>
+              {goal.name}
+            </h1>
+            {targetAmount > 0 && (
+              <p style={{ ...typography.caption, color: textColors.sub }}>
+                Goal: ${targetAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </p>
+            )}
+          </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: spacingScale["12"], marginBottom: spacingScale["12"] }}>
           <span style={{ color: colorRamp.accent[500] }}>
             <Icon name="shared:group" size={18} />
@@ -188,10 +209,28 @@ export default function SharedGoalViewPage() {
           }}
         >
           ${totalContributed.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+          {targetAmount > 0 && (
+            <span style={{ ...typography.body, color: textColors.sub, fontWeight: 400 }}>
+              {" "}/ ${targetAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            </span>
+          )}
         </p>
-        <p style={{ ...typography.caption, color: textColors.sub }}>
+        <p style={{ ...typography.caption, color: textColors.sub, marginBottom: spacingScale["12"] }}>
           contributed so far
         </p>
+        {targetAmount > 0 && (
+          <div style={progressTrack}>
+            <div
+              style={{
+                width: `${progressPct * 100}%`,
+                height: "100%",
+                borderRadius: radius.min,
+                background: progressPct >= 1 ? colorRamp.success[500] : colorRamp.accent[500],
+                transition: "width 0.3s ease",
+              }}
+            />
+          </div>
+        )}
       </Card>
 
       {/* Participant breakdown */}

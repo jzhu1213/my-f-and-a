@@ -24,6 +24,7 @@ import { useEffect, useState } from "react"
 import { motion, useReducedMotion as useFramerReducedMotion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { colorRamp } from "@/styles/colors"
+import { FONT_FAMILY } from "@/styles/typography"
 
 // ============================================================================
 // Types
@@ -193,7 +194,7 @@ export function ProgressRing({
             fontSize,
             fontWeight: 600,
             color: "var(--text)",
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: FONT_FAMILY,
             fontVariantNumeric: "tabular-nums",
             position: "relative",
             zIndex: 1,

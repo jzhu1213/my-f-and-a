@@ -31,6 +31,7 @@ import { getCategorizationRules, saveCategorizationRule, updateCategorizationRul
 import { getActiveShareLinksSync } from '@/lib/sharingUtils'
 import type { CategorizationRule, CategorizationRuleUpdate } from '@/lib/categorizationRules'
 import { shadows } from '@/styles/shared'
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ── Code-split: heavy/advanced features loaded on demand ─────────────────────
 // These screens are behind progressive disclosure (Tools tab, settings overlays)
@@ -2502,7 +2503,7 @@ export default function FolioApp() {
           role="status"
           aria-live="polite"
         >
-          <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'Inter, sans-serif', lineHeight: 1.4 }}>
+          <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: FONT_FAMILY, lineHeight: 1.4 }}>
             {perTxAlertMessage}
           </span>
           <button

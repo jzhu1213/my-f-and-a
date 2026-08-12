@@ -10,7 +10,6 @@ import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
-  glassSurface,
   segmentedControl,
   segmentedButtonBase,
   segmentedButtonActive,
@@ -231,7 +230,7 @@ export function FundingSourcesScreen({
 
       {/* ── Add/Edit Form ────────────────────────────────────────────── */}
       {showForm && (
-        <div style={{ ...glassSurface, padding: 16, marginBottom: 20 }}>
+        <div style={{ background: fills[4], border: `1px solid ${fills[8]}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
           <p
             style={{
               fontSize: 13,

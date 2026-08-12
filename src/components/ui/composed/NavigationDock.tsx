@@ -22,6 +22,7 @@ import { elevations, radius } from "@/styles/surfaces"
 import { spacingScale, safeArea } from "@/styles/layout"
 import { textColors, colorRamp } from "@/styles/colors"
 import { springPresets } from "@/styles/motion"
+import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { typography, FONT_FAMILY } from "@/styles/typography"
 import type { IconName } from "@/lib/icons"
 
@@ -70,6 +71,8 @@ const highlightSpring = {
 // ============================================================================
 
 export function NavigationDock({ active, onNavigate, hidden = false }: NavigationDockProps) {
+  const { prefersReducedMotion } = useReducedMotion()
+
   if (hidden) return null
 
   const tier = elevations.overlay
@@ -128,7 +131,7 @@ export function NavigationDock({ active, onNavigate, hidden = false }: Navigatio
             {isActive && (
               <motion.div
                 layoutId="dock-highlight"
-                transition={highlightSpring}
+                transition={prefersReducedMotion ? timings.fast : highlightSpring}
                 style={{
                   position: "absolute",
                   inset: spacingScale["2"],
@@ -139,7 +142,7 @@ export function NavigationDock({ active, onNavigate, hidden = false }: Navigatio
               />
             )}
 
-            <Icon name={item.icon} size={22} />
+            <Icon name={item.icon} size={24} />
 
             <span
               style={{

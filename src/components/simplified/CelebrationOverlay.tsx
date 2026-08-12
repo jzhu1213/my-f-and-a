@@ -131,7 +131,7 @@ function MilestoneStarburst() {
       initial={{ opacity: 0, scale: 0.3, rotate: -30 }}
       animate={{ opacity: 1, scale: 1, rotate: 0 }}
       exit={{ opacity: 0, scale: 0.6 }}
-      transition={{ type: "spring", stiffness: 350, damping: 18 }}
+      transition={springs.dramatic}
     >
       {Array.from({ length: rays }, (_, i) => {
         const angle = (i / rays) * 360

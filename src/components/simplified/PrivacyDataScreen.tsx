@@ -373,7 +373,7 @@ export function PrivacyDataScreen({
                   fontSize: 14,
                   fontFamily: FONT_FAMILY,
                   color: "var(--text)",
-                  background: "rgba(0, 0, 0, 0.2)",
+                  background: "var(--color-sunken)",
                   border: "1px solid var(--border)",
                   borderRadius: borderRadius.sm,
                   outline: "none",

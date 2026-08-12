@@ -141,9 +141,6 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
   const [isLoading, setIsLoading] = useState(false)
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Don't render if not signed in
-  if (!userId) return null
-
   const totalCount = friends.length + pendingRequests.length
 
   // Fetch data on mount / expand
@@ -249,6 +246,9 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
 
   const isEmpty = friends.length === 0 && pendingRequests.length === 0 && outgoingRequests.length === 0
 
+  // Don't render if not signed in
+  if (!userId) return null
+
   return (
     <div style={{ marginBottom: 12 }}>
       {/* Section toggle header */}
@@ -274,8 +274,8 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
             <span
               style={{
                 ...badgeStyle,
-                background: 'rgba(251, 146, 60, 0.2)',
-                color: '#fb923c',
+                background: 'rgba(251, 191, 36, 0.2)',
+                color: 'var(--warning, #fbbf24)',
               }}
             >
               {pendingRequests.length} new

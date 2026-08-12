@@ -8,6 +8,7 @@ import type { BudgetPreset, OnboardingResult } from '@/types/folio'
 import type { TransactionCategory, OnboardingPath, UserGoal } from '@/types'
 import { getCategoryEmoji, PRESET_EMOJI } from '@/lib/vocabulary'
 import { borderRadius } from '@/styles/shared'
+import { FONT_FAMILY } from '@/styles/typography'
 import type { PayCadence } from '@/lib/paySchedule'
 
 // ============================================================================
@@ -304,7 +305,7 @@ function TryLogExpense({ onComplete }: { onComplete: () => void }) {
               <span
                 style={{
                   fontSize: 12,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontWeight: 500,
                   color: selected ? 'var(--text)' : 'var(--sub)',
                 }}
@@ -338,7 +339,7 @@ function TryLogExpense({ onComplete }: { onComplete: () => void }) {
                 background: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 color: 'var(--text)',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 fontSize: 15,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -355,7 +356,7 @@ function TryLogExpense({ onComplete }: { onComplete: () => void }) {
           style={{
             fontSize: 13,
             color: 'var(--muted)',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             textAlign: 'center',
           }}
         >
@@ -402,7 +403,7 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
         <span
           style={{
             fontSize: 38,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             fontWeight: 700,
             color: 'var(--success)',
           }}
@@ -413,7 +414,7 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
           style={{
             fontSize: 13,
             color: 'var(--sub)',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
           }}
         >
           left today
@@ -444,7 +445,7 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
               className="flex items-center justify-between"
               style={{
                 padding: '8px 0',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 fontSize: 13,
                 color: 'var(--sub)',
               }}
@@ -462,7 +463,7 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
               marginTop: 8,
               fontSize: 12,
               color: 'var(--muted)',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               textAlign: 'center',
             }}
           >
@@ -513,7 +514,7 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
             style={{
               fontSize: 15,
               fontWeight: 600,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               color: 'var(--text)',
             }}
           >
@@ -522,7 +523,7 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
           <span
             style={{
               fontSize: 12,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               color: 'var(--sub)',
             }}
           >
@@ -575,7 +576,7 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
               className="flex items-center justify-between"
               style={{
                 padding: '7px 0',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 fontSize: 13,
                 color: 'var(--sub)',
                 borderBottom: '1px solid rgba(255,255,255,0.04)',
@@ -591,7 +592,7 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
               marginTop: 8,
               fontSize: 12,
               color: 'var(--muted)',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               textAlign: 'center',
             }}
           >
@@ -633,7 +634,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
         style={{
           fontSize: 20,
           fontWeight: 700,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--text)',
           marginBottom: 6,
         }}
@@ -643,7 +644,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
       <p
         style={{
           fontSize: 13,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
           lineHeight: 1.5,
@@ -675,7 +676,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
               style={{
                 fontSize: 13,
                 fontWeight: 600,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
             >
@@ -687,7 +688,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
               style={{
                 fontSize: 28,
                 fontWeight: 700,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 color: 'var(--success)',
                 fontVariantNumeric: 'tabular-nums',
               }}
@@ -697,7 +698,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
             <span
               style={{
                 fontSize: 12,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 color: 'var(--sub)',
               }}
             >
@@ -721,7 +722,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
               style={{
                 fontSize: 13,
                 fontWeight: 600,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
             >
@@ -742,7 +743,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
                   background: 'rgba(255, 255, 255, 0.06)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   fontSize: 12,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   color: 'var(--sub)',
                   display: 'flex',
                   alignItems: 'center',
@@ -758,7 +759,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
             style={{
               marginTop: 8,
               fontSize: 11,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               color: 'var(--muted)',
             }}
           >
@@ -781,7 +782,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
               style={{
                 fontSize: 13,
                 fontWeight: 600,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
             >
@@ -796,7 +797,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
                   style={{
                     fontSize: 13,
                     fontWeight: 500,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
                   }}
                 >
@@ -805,7 +806,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
                 <span
                   style={{
                     fontSize: 11,
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     color: 'var(--sub)',
                   }}
                 >
@@ -871,13 +872,13 @@ export function TutorialStepRenderer({
   step,
   completeInteraction,
 }: TutorialStepRendererProps) {
+  // Reduced motion support (task 226.2) - must be called before any early returns
+  const { prefersReducedMotion } = useReducedMotion()
+
   // Setup steps are handled by TutorialSetupStepRenderer, not here
   if (step.type === 'setup') return null
   // Branch steps are handled by the parent (path selection UI)
   if (step.type === 'branch') return null
-
-  // Reduced motion support (task 226.2)
-  const { prefersReducedMotion } = useReducedMotion()
 
   return (
     <div className="flex flex-col items-center text-center flex-1">
@@ -897,7 +898,7 @@ export function TutorialStepRenderer({
         style={{
           fontSize: 22,
           fontWeight: 700,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--text)',
           marginBottom: 8,
         }}
@@ -909,7 +910,7 @@ export function TutorialStepRenderer({
       <p
         style={{
           fontSize: 14,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
           lineHeight: 1.5,
@@ -925,7 +926,7 @@ export function TutorialStepRenderer({
           <p
             style={{
               fontSize: 13,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               color: 'var(--muted)',
               marginBottom: 4,
             }}
@@ -953,7 +954,7 @@ export function TutorialStepRenderer({
             style={{
               fontSize: 13,
               color: 'var(--muted)',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
             }}
           >
             Tap Next when you&apos;re ready
@@ -1322,12 +1323,12 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
         💰
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         What&apos;s your monthly income?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 32, lineHeight: 1.5 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 32, lineHeight: 1.5 }}
       >
         Rough estimate is fine — you can change this later.
       </p>
@@ -1375,7 +1376,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
           className="text-sm mx-auto block"
           style={{
             color: 'var(--accent)',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             fontWeight: 500,
             cursor: 'pointer',
             background: 'none',
@@ -1403,7 +1404,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                 style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}
               >
                 <p
-                  style={{ fontSize: 13, color: 'var(--sub)', fontFamily: 'Inter, sans-serif', marginBottom: 12, textAlign: 'center' }}
+                  style={{ fontSize: 13, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginBottom: 12, textAlign: 'center' }}
                 >
                   A rough guess is perfect — you can always adjust later.
                 </p>
@@ -1419,7 +1420,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         background: 'var(--bg)',
                         border: '1px solid var(--border)',
                         color: 'var(--text)',
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         cursor: 'pointer',
                         borderRadius: 8,
                       }}
@@ -1434,7 +1435,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         background: 'var(--bg)',
                         border: '1px solid var(--border)',
                         color: 'var(--text)',
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         cursor: 'pointer',
                         borderRadius: 8,
                       }}
@@ -1460,7 +1461,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                           background: 'var(--bg)',
                           border: '1px solid var(--border)',
                           color: 'var(--text)',
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           outline: 'none',
                           borderRadius: 8,
                         }}
@@ -1480,7 +1481,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                           background: 'var(--bg)',
                           border: '1px solid var(--border)',
                           color: 'var(--text)',
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           outline: 'none',
                           borderRadius: 8,
                         }}
@@ -1488,7 +1489,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                       />
                     </div>
                     {parseFloat(hourlyRate) > 0 && parseFloat(hoursPerWeek) > 0 && (
-                      <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Inter, sans-serif', textAlign: 'center' }}>
+                      <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, textAlign: 'center' }}>
                         ≈ ${Math.round(parseFloat(hourlyRate) * parseFloat(hoursPerWeek) * WEEKS_PER_MONTH).toLocaleString()}/mo
                       </p>
                     )}
@@ -1497,7 +1498,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         type="button"
                         onClick={() => setHelperMode(null)}
                         className="flex-1 py-2 rounded-lg text-sm"
-                        style={{ color: 'var(--sub)', fontFamily: 'Inter, sans-serif' }}
+                        style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}
                       >
                         ← Back
                       </button>
@@ -1509,7 +1510,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         style={{
                           background: (parseFloat(hourlyRate) && parseFloat(hoursPerWeek)) ? 'var(--accent)' : 'var(--muted)',
                           color: 'var(--text)',
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           opacity: (parseFloat(hourlyRate) && parseFloat(hoursPerWeek)) ? 1 : 0.5,
                           borderRadius: 8,
                         }}
@@ -1536,7 +1537,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                           background: 'var(--bg)',
                           border: '1px solid var(--border)',
                           color: 'var(--text)',
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           outline: 'none',
                           borderRadius: 8,
                         }}
@@ -1544,7 +1545,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                       />
                     </div>
                     {parseFloat(weeklyAmount) > 0 && (
-                      <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Inter, sans-serif', textAlign: 'center' }}>
+                      <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, textAlign: 'center' }}>
                         ≈ ${Math.round(parseFloat(weeklyAmount) * WEEKS_PER_MONTH).toLocaleString()}/mo
                       </p>
                     )}
@@ -1553,7 +1554,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         type="button"
                         onClick={() => setHelperMode(null)}
                         className="flex-1 py-2 rounded-lg text-sm"
-                        style={{ color: 'var(--sub)', fontFamily: 'Inter, sans-serif' }}
+                        style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}
                       >
                         ← Back
                       </button>
@@ -1565,7 +1566,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         style={{
                           background: parseFloat(weeklyAmount) ? 'var(--accent)' : 'var(--muted)',
                           color: 'var(--text)',
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           opacity: parseFloat(weeklyAmount) ? 1 : 0.5,
                           borderRadius: 8,
                         }}
@@ -1602,12 +1603,12 @@ function SetupBudgetStyleStep({ selected, onChange, monthlyIncome }: SetupBudget
           📊
         </div>
         <h2
-          style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+          style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
         >
           What fits your life?
         </h2>
         <p
-          style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)' }}
+          style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}
         >
           Pick a starting point — you can always adjust.
         </p>
@@ -1694,12 +1695,12 @@ function SetupCategoryLimitsStep({ values, onChange }: SetupCategoryLimitsProps)
           🎯
         </div>
         <h2
-          style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+          style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
         >
           Set category limits
         </h2>
         <p
-          style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', lineHeight: 1.5 }}
+          style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', lineHeight: 1.5 }}
         >
           Totally optional — leave any blank and move on.
         </p>
@@ -1717,7 +1718,7 @@ function SetupCategoryLimitsStep({ values, onChange }: SetupCategoryLimitsProps)
             <div key={cat.key} className="flex flex-col gap-1">
               <label
                 className="flex items-center gap-2"
-                style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--text)', fontWeight: 500 }}
+                style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--text)', fontWeight: 500 }}
               >
                 <span>{cat.emoji}</span>
                 <span>{cat.label}</span>
@@ -1738,7 +1739,7 @@ function SetupCategoryLimitsStep({ values, onChange }: SetupCategoryLimitsProps)
                     background: 'var(--surface)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     outline: 'none',
                   }}
                   aria-label={`${cat.label} amount`}
@@ -1783,12 +1784,12 @@ function SetupConfirmationStep({ monthlyIncome, budgetPreset, dailyAllowance, ca
         ✨
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         You&apos;re all set!
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 24 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24 }}
       >
         Here&apos;s your starting daily budget:
       </p>
@@ -1895,7 +1896,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
         style={{
           fontSize: 22,
           fontWeight: 700,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--text)',
           marginBottom: 8,
           lineHeight: 1.3,
@@ -1906,7 +1907,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
       <p
         style={{
           fontSize: 14,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           marginBottom: 24,
           lineHeight: 1.5,
@@ -1931,7 +1932,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
           <span
             style={{
               fontSize: 18,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               color: 'var(--sub)',
               marginRight: 4,
             }}
@@ -1952,7 +1953,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
               border: 'none',
               outline: 'none',
               fontSize: 18,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               fontVariantNumeric: 'tabular-nums',
               color: 'var(--text)',
             }}
@@ -1969,7 +1970,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
           transition={springs.gentle}
           style={{
             fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             color: 'var(--accent)',
             marginTop: 4,
             lineHeight: 1.4,
@@ -2073,7 +2074,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
         style={{
           fontSize: 22,
           fontWeight: 700,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--text)',
           marginBottom: 8,
           lineHeight: 1.3,
@@ -2084,14 +2085,14 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
       <p
         style={{
           fontSize: 14,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           marginBottom: 24,
           lineHeight: 1.5,
           maxWidth: 300,
         }}
       >
-        This logs a quick expense and shows how fast logging works. Skip if you'd rather start fresh.
+        This logs a quick expense and shows how fast logging works. Skip if you&apos;d rather start fresh.
       </p>
 
       {/* Category quick-pick chips */}
@@ -2100,7 +2101,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           style={{
             display: 'block',
             fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
             textAlign: 'left',
@@ -2127,7 +2128,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
                   borderRadius: 8,
                   cursor: 'pointer',
                   fontSize: 13,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontWeight: 500,
                   color: isSelected ? 'var(--text)' : 'var(--sub)',
                 }}
@@ -2148,7 +2149,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           style={{
             display: 'block',
             fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
             textAlign: 'left',
@@ -2169,7 +2170,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           <span
             style={{
               fontSize: 18,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               color: 'var(--sub)',
               marginRight: 4,
             }}
@@ -2190,7 +2191,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
               border: 'none',
               outline: 'none',
               fontSize: 18,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               fontVariantNumeric: 'tabular-nums',
               color: 'var(--text)',
             }}
@@ -2205,7 +2206,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           style={{
             display: 'block',
             fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
             textAlign: 'left',
@@ -2231,7 +2232,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
                     : '1.5px solid var(--border)',
                   cursor: 'pointer',
                   fontSize: 13,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontWeight: 500,
                   color: isSelected ? 'var(--text)' : 'var(--sub)',
                 }}
@@ -2252,7 +2253,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           style={{
             display: 'block',
             fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
             textAlign: 'left',
@@ -2274,7 +2275,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
             background: 'var(--surface)',
             border: '1.5px solid var(--border)',
             color: 'var(--text)',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             fontSize: 14,
             outline: 'none',
           }}
@@ -2290,7 +2291,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           transition={springs.gentle}
           style={{
             fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             color: 'var(--accent)',
             marginTop: 4,
             lineHeight: 1.4,
@@ -2345,7 +2346,7 @@ function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
         style={{
           fontSize: 22,
           fontWeight: 700,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--text)',
           marginBottom: 8,
           lineHeight: 1.3,
@@ -2356,7 +2357,7 @@ function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
       <p
         style={{
           fontSize: 14,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           marginBottom: 24,
           lineHeight: 1.5,
@@ -2392,13 +2393,13 @@ function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
               <div className="flex-1 min-w-0">
                 <div
                   className="text-sm font-medium"
-                  style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}
+                  style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}
                 >
                   {opt.label}
                 </div>
                 <div
                   className="text-xs"
-                  style={{ color: 'var(--sub)', fontFamily: 'Inter, sans-serif' }}
+                  style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}
                 >
                   {opt.description}
                 </div>
@@ -2435,12 +2436,12 @@ function DailyNumberPreview({ dailyAllowance }: { dailyAllowance: number }) {
       aria-live="polite"
       aria-label={`Estimated daily budget: $${dailyAllowance}`}
     >
-      <span style={{ fontSize: 13, fontFamily: 'Inter, sans-serif', color: 'var(--sub)' }}>
+      <span style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}>
         Your daily number
       </span>
       <span
         className="tabular-nums"
-        style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--accent)' }}
+        style={{ fontSize: 18, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--accent)' }}
       >
         ${dailyAllowance}/day
       </span>
@@ -2483,7 +2484,7 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
         style={{
           fontSize: 22,
           fontWeight: 700,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--text)',
           marginBottom: 8,
           lineHeight: 1.3,
@@ -2494,7 +2495,7 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
       <p
         style={{
           fontSize: 14,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           marginBottom: 24,
           lineHeight: 1.5,
@@ -2523,7 +2524,7 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
               style={{
                 fontSize: 15,
                 fontWeight: 600,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
             >
@@ -2532,7 +2533,7 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
             <span
               style={{
                 fontSize: 13,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 color: 'var(--sub)',
               }}
             >
@@ -2545,7 +2546,7 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
         <p
           style={{
             fontSize: 13,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             color: 'var(--accent)',
             marginTop: 16,
             lineHeight: 1.4,
@@ -2606,12 +2607,12 @@ function ExpressIncomeStep({ value, onChange, dailyAllowance }: ExpressIncomeSte
         💰
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         What&apos;s your monthly income?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
       >
         A rough number is fine — change it anytime.
       </p>
@@ -2630,7 +2631,7 @@ function ExpressIncomeStep({ value, onChange, dailyAllowance }: ExpressIncomeSte
             background: 'var(--surface)',
             border: '1.5px solid var(--border)',
             color: 'var(--text)',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             outline: 'none',
           }}
           aria-label="Monthly income amount"
@@ -2713,12 +2714,12 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
         🧾
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         Any fixed monthly bills?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
       >
         Rent, subscriptions, utilities — these come out first so your daily number stays honest.
       </p>
@@ -2733,15 +2734,15 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
               style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
             >
               <div className="flex flex-col text-left">
-                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {exp.label}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>
+                <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
                   Due day {exp.dueDay}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="tabular-nums" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+                <span className="tabular-nums" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   ${exp.amount}
                 </span>
                 <button
@@ -2755,7 +2756,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
               </div>
             </div>
           ))}
-          <div className="text-right" style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>
+          <div className="text-right" style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
             Total: ${totalFixed}/mo
           </div>
         </div>
@@ -2773,7 +2774,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             className="w-full py-2 px-3 rounded-lg text-sm"
-            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'Inter, sans-serif', outline: 'none' }}
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: FONT_FAMILY, outline: 'none' }}
             aria-label="Expense label"
           />
           <div className="flex gap-2">
@@ -2786,7 +2787,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                 className="flex-1 py-2 px-3 rounded-lg text-sm"
-                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'Inter, sans-serif', outline: 'none' }}
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: FONT_FAMILY, outline: 'none' }}
                 aria-label="Monthly amount"
               />
             </div>
@@ -2797,7 +2798,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
               value={dueDay}
               onChange={(e) => setDueDay(e.target.value.replace(/[^0-9]/g, ''))}
               className="w-24 py-2 px-3 rounded-lg text-sm"
-              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'Inter, sans-serif', outline: 'none' }}
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: FONT_FAMILY, outline: 'none' }}
               aria-label="Due day of month"
             />
           </div>
@@ -2805,7 +2806,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
             <button
               onClick={() => setShowForm(false)}
               className="flex-1 py-2 rounded-lg text-sm"
-              style={{ color: 'var(--sub)', fontFamily: 'Inter, sans-serif' }}
+              style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}
             >
               Cancel
             </button>
@@ -2816,7 +2817,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
               style={{
                 background: label.trim() && amount ? 'var(--accent)' : 'var(--muted)',
                 color: 'var(--text)',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 opacity: label.trim() && amount ? 1 : 0.5,
                 borderRadius: 8,
               }}
@@ -2834,7 +2835,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
             background: 'var(--surface)',
             border: '1.5px dashed var(--border)',
             color: 'var(--sub)',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             cursor: 'pointer',
             borderRadius: 12,
           }}
@@ -2845,7 +2846,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
       )}
 
       {expenses.length === 0 && !showForm && (
-        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Inter, sans-serif', marginTop: 12 }}>
+        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 12 }}>
           No worries if you skip this — you can add bills later from Settings.
         </p>
       )}
@@ -2881,12 +2882,12 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
           🎯
         </div>
         <h2
-          style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+          style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
         >
           Set category budgets
         </h2>
         <p
-          style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', lineHeight: 1.5 }}
+          style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', lineHeight: 1.5 }}
         >
           Totally optional — leave any blank and move on.
         </p>
@@ -2908,7 +2909,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
               <div className="flex items-center justify-between">
                 <label
                   className="flex items-center gap-2"
-                  style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--text)', fontWeight: 500 }}
+                  style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--text)', fontWeight: 500 }}
                 >
                   <span>{cat.emoji}</span>
                   <span>{cat.label.replace(/ per week$/, '')}</span>
@@ -2921,7 +2922,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
                     style={{
                       background: period === 'weekly' ? 'var(--accent)' : 'transparent',
                       color: period === 'weekly' ? 'var(--text)' : 'var(--muted)',
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: FONT_FAMILY,
                       fontWeight: 500,
                     }}
                     aria-label={`Set ${cat.label} to weekly`}
@@ -2935,7 +2936,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
                     style={{
                       background: period === 'monthly' ? 'var(--accent)' : 'transparent',
                       color: period === 'monthly' ? 'var(--text)' : 'var(--muted)',
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: FONT_FAMILY,
                       fontWeight: 500,
                     }}
                     aria-label={`Set ${cat.label} to monthly`}
@@ -2958,7 +2959,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
                     background: 'var(--surface)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     outline: 'none',
                   }}
                   aria-label={`${cat.label} budget amount`}
@@ -2998,12 +2999,12 @@ function ExpressConfirmationStep({ setupState, dailyAllowance }: ExpressConfirma
         ✨
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         Here&apos;s your daily number
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 24 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24 }}
       >
         This is your easy daily spending number — no math needed.
       </p>
@@ -3034,25 +3035,25 @@ function ExpressConfirmationStep({ setupState, dailyAllowance }: ExpressConfirma
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>Monthly income</span>
-          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}>Monthly income</span>
+          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}>
             ${setupState.monthlyIncome.toLocaleString()}
           </span>
         </div>
         {savingsPercent > 0 && (
           <div className="flex justify-between items-center mb-2">
-            <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>Savings ({savingsPercent}%)</span>
-            <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+            <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}>Savings ({savingsPercent}%)</span>
+            <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}>
               −${Math.round(setupState.monthlyIncome * savingsPercent / 100).toLocaleString()}
             </span>
           </div>
         )}
         {totalFixed > 0 && (
           <div className="flex justify-between items-center mb-2">
-            <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>
+            <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
               Fixed bills ({setupState.fixedExpenses.length})
             </span>
-            <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+            <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}>
               −${totalFixed.toLocaleString()}
             </span>
           </div>
@@ -3061,14 +3062,14 @@ function ExpressConfirmationStep({ setupState, dailyAllowance }: ExpressConfirma
           className="flex justify-between items-center pt-2 mt-2"
           style={{ borderTop: '1px solid var(--border)' }}
         >
-          <span className="text-xs font-medium" style={{ color: 'var(--sub)', fontFamily: 'Inter, sans-serif' }}>Daily spending pool</span>
-          <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--accent)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs font-medium" style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}>Daily spending pool</span>
+          <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--accent)', fontFamily: FONT_FAMILY }}>
             ${dailyAllowance}/day
           </span>
         </div>
       </div>
 
-      <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Inter, sans-serif', marginTop: 16 }}>
+      <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 16 }}>
         You can always tweak these numbers in Settings.
       </p>
     </div>
@@ -3134,12 +3135,12 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
         💵
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         When do you get paid?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
       >
         We&apos;ll align your daily number to your pay cycle — no more running out before payday.
       </p>
@@ -3164,10 +3165,10 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
             >
               <span className="text-lg flex-shrink-0">{opt.emoji}</span>
               <div className="flex-1 min-w-0">
-                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {opt.label}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>
+                <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
                   {opt.description}
                 </div>
               </div>
@@ -3190,7 +3191,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
       {!isIrregular && (
         <div className="w-full mb-4">
           <label
-            style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: 'Inter, sans-serif', display: 'block', marginBottom: 6, textAlign: 'left' }}
+            style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
           >
             Your most recent payday
           </label>
@@ -3203,7 +3204,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
               background: 'var(--surface)',
               border: '1.5px solid var(--border)',
               color: 'var(--text)',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               outline: 'none',
               borderRadius: 8,
             }}
@@ -3217,7 +3218,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
           className="w-full mb-4 p-3 rounded-xl text-left"
           style={{ background: 'rgba(129, 140, 248, 0.06)', border: '1px solid rgba(129, 140, 248, 0.15)', borderRadius: 12 }}
         >
-          <p style={{ fontSize: 13, color: 'var(--sub)', fontFamily: 'Inter, sans-serif', lineHeight: 1.5 }}>
+          <p style={{ fontSize: 13, color: 'var(--sub)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
             No worries — we&apos;ll use a trailing average of your income to smooth things out and show you a &quot;usually $X–$Y&quot; range.
           </p>
         </div>
@@ -3226,7 +3227,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
       {/* Expected paycheck amount */}
       <div className="w-full">
         <label
-          style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: 'Inter, sans-serif', display: 'block', marginBottom: 6, textAlign: 'left' }}
+          style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
         >
           {isIrregular ? 'Typical paycheck (rough estimate)' : 'Expected paycheck amount'}
         </label>
@@ -3243,7 +3244,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
               background: 'var(--surface)',
               border: '1.5px solid var(--border)',
               color: 'var(--text)',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               outline: 'none',
               borderRadius: 8,
             }}
@@ -3260,7 +3261,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
           className="text-sm mt-5"
           style={{
             color: 'var(--accent)',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -3337,12 +3338,12 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
         🪣
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         Split your paycheck
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
       >
         Your &quot;Spend&quot; bucket becomes your daily number. The rest is tucked away for you automatically.
       </p>
@@ -3361,7 +3362,7 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
                 background: isActive ? 'var(--accent)' : 'var(--surface)',
                 color: isActive ? 'var(--text)' : 'var(--text)',
                 border: `1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 cursor: 'pointer',
               }}
               aria-pressed={isActive}
@@ -3380,10 +3381,10 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
           return (
             <div key={bucket.key} className="w-full">
               <div className="flex items-center justify-between mb-1">
-                <span style={{ fontSize: 13, fontWeight: 500, color: bucket.color, fontFamily: 'Inter, sans-serif' }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: bucket.color, fontFamily: FONT_FAMILY }}>
                   {bucket.emoji} {bucket.label}
                 </span>
-                <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+                <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {pct}%{paycheckAmount > 0 && ` · $${dollars}`}
                 </span>
               </div>
@@ -3411,7 +3412,7 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
 
       {/* Total check */}
       {total !== 100 && (
-        <p style={{ fontSize: 12, color: 'var(--warning)', fontFamily: 'Inter, sans-serif', marginTop: 8 }}>
+        <p style={{ fontSize: 12, color: 'var(--warning)', fontFamily: FONT_FAMILY, marginTop: 8 }}>
           Total is {total}% — should be 100%
         </p>
       )}
@@ -3426,10 +3427,10 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
           }}
           aria-live="polite"
         >
-          <span style={{ fontSize: 13, fontFamily: 'Inter, sans-serif', color: 'var(--sub)' }}>
+          <span style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}>
             Spending pool
           </span>
-          <span className="tabular-nums" style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--accent)' }}>
+          <span className="tabular-nums" style={{ fontSize: 16, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--accent)' }}>
             ${spendDollars}
           </span>
         </div>
@@ -3489,12 +3490,12 @@ function PaycheckConfirmationStep({ setupState }: PaycheckConfirmationStepProps)
         ✨
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         You&apos;re all set!
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
       >
         {isIrregular
           ? "Your daily number will smooth out over time as we learn your rhythm."
@@ -3530,20 +3531,20 @@ function PaycheckConfirmationStep({ setupState }: PaycheckConfirmationStepProps)
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>Paycheck</span>
-          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}>Paycheck</span>
+          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}>
             ${paycheckAmount.toLocaleString()}
           </span>
         </div>
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>Pay cadence</span>
-          <span className="text-sm font-medium" style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}>Pay cadence</span>
+          <span className="text-sm font-medium" style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}>
             {CADENCE_OPTIONS.find(c => c.value === schedule?.cadence)?.label ?? 'Biweekly'}
           </span>
         </div>
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>Spend ({spendPercent}%)</span>
-          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}>Spend ({spendPercent}%)</span>
+          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}>
             ${spendPool.toLocaleString()} per cycle
           </span>
         </div>
@@ -3551,17 +3552,17 @@ function PaycheckConfirmationStep({ setupState }: PaycheckConfirmationStepProps)
           className="flex justify-between items-center pt-2 mt-2"
           style={{ borderTop: '1px solid var(--border)' }}
         >
-          <span className="text-xs font-medium" style={{ color: 'var(--sub)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs font-medium" style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}>
             ÷ {cycleDays} days
           </span>
-          <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--accent)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--accent)', fontFamily: FONT_FAMILY }}>
             {isIrregular ? '~' : ''}${dailyNumber}/day
           </span>
         </div>
       </div>
 
       {monthlyEquivalent > 0 && (
-        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Inter, sans-serif', marginTop: 12 }}>
+        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 12 }}>
           ≈ ${Math.round(monthlyEquivalent).toLocaleString()}/mo · You can tweak all of this in Settings.
         </p>
       )}
@@ -3596,12 +3597,12 @@ function PaycheckModeStep({ mode, onModeChange }: PaycheckModeStepProps) {
         💵
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         How would you like to set up?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
       >
         Both paths give you a daily number — pick what feels right. You can always switch later.
       </p>
@@ -3626,10 +3627,10 @@ function PaycheckModeStep({ mode, onModeChange }: PaycheckModeStepProps) {
             >
               <span className="text-2xl flex-shrink-0">{opt.emoji}</span>
               <div className="flex-1 min-w-0">
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {opt.label}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Inter, sans-serif', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 2 }}>
                   {opt.description}
                 </div>
               </div>
@@ -3727,12 +3728,12 @@ function SimpleSplitStep({
         🪣
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         Split your paycheck
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
       >
         A rough number is fine — you can change it anytime.
       </p>
@@ -3740,7 +3741,7 @@ function SimpleSplitStep({
       {/* Paycheck amount input */}
       <div className="w-full mb-5">
         <label
-          style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: 'Inter, sans-serif', display: 'block', marginBottom: 6, textAlign: 'left' }}
+          style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
         >
           Paycheck amount
         </label>
@@ -3757,7 +3758,7 @@ function SimpleSplitStep({
               background: 'var(--surface)',
               border: '1.5px solid var(--border)',
               color: 'var(--text)',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               outline: 'none',
               borderRadius: 8,
             }}
@@ -3769,7 +3770,7 @@ function SimpleSplitStep({
       {/* Cadence assumption (task 217.2) */}
       <div className="w-full mb-5">
         <label
-          style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: 'Inter, sans-serif', display: 'block', marginBottom: 6, textAlign: 'left' }}
+          style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
         >
           How often do you get paid?
         </label>
@@ -3786,7 +3787,7 @@ function SimpleSplitStep({
                   background: isActive ? 'var(--accent)' : 'var(--surface)',
                   color: isActive ? 'var(--text)' : 'var(--text)',
                   border: `1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   cursor: 'pointer',
                   borderRadius: 8,
                 }}
@@ -3813,7 +3814,7 @@ function SimpleSplitStep({
                 background: isActive ? 'var(--accent)' : 'var(--surface)',
                 color: isActive ? 'var(--text)' : 'var(--text)',
                 border: `1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 cursor: 'pointer',
               }}
               aria-pressed={isActive}
@@ -3832,10 +3833,10 @@ function SimpleSplitStep({
           return (
             <div key={bucket.key} className="w-full">
               <div className="flex items-center justify-between mb-1">
-                <span style={{ fontSize: 13, fontWeight: 500, color: bucket.color, fontFamily: 'Inter, sans-serif' }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: bucket.color, fontFamily: FONT_FAMILY }}>
                   {bucket.emoji} {bucket.label}
                 </span>
-                <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+                <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {pct}%{amount > 0 && ` · $${dollars}`}
                 </span>
               </div>
@@ -3872,10 +3873,10 @@ function SimpleSplitStep({
           }}
           aria-live="polite"
         >
-          <span style={{ fontSize: 13, fontFamily: 'Inter, sans-serif', color: 'var(--sub)' }}>
+          <span style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}>
             Your daily number
           </span>
-          <span className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--accent)' }}>
+          <span className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--accent)' }}>
             ${dailyNumber}/day
           </span>
         </div>
@@ -3888,7 +3889,7 @@ function SimpleSplitStep({
         className="text-sm mt-1"
         style={{
           color: 'var(--accent)',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -3930,12 +3931,12 @@ function SimpleConfirmationStep({ amount, allocation, cadence }: SimpleConfirmat
         ✨
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
       >
         You&apos;re all set!
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
       >
         Your spending money, turned into one simple daily number. Nice and easy.
       </p>
@@ -3963,20 +3964,20 @@ function SimpleConfirmationStep({ amount, allocation, cadence }: SimpleConfirmat
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>Paycheck</span>
-          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}>Paycheck</span>
+          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}>
             ${amount.toLocaleString()}
           </span>
         </div>
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>Paid</span>
-          <span className="text-sm font-medium" style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}>Paid</span>
+          <span className="text-sm font-medium" style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}>
             {cadenceLabel}
           </span>
         </div>
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'Inter, sans-serif' }}>Spend ({allocation.spend}%)</span>
-          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs" style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}>Spend ({allocation.spend}%)</span>
+          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)', fontFamily: FONT_FAMILY }}>
             ${spendPool.toLocaleString()} per cycle
           </span>
         </div>
@@ -3984,17 +3985,17 @@ function SimpleConfirmationStep({ amount, allocation, cadence }: SimpleConfirmat
           className="flex justify-between items-center pt-2 mt-2"
           style={{ borderTop: '1px solid var(--border)' }}
         >
-          <span className="text-xs font-medium" style={{ color: 'var(--sub)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-xs font-medium" style={{ color: 'var(--sub)', fontFamily: FONT_FAMILY }}>
             ÷ {cycleDays} days
           </span>
-          <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--accent)', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--accent)', fontFamily: FONT_FAMILY }}>
             ${dailyNumber}/day
           </span>
         </div>
       </div>
 
       {monthlyEquivalent > 0 && (
-        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'Inter, sans-serif', marginTop: 12 }}>
+        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 12 }}>
           ≈ ${monthlyEquivalent.toLocaleString()}/mo · You can tweak all of this in Settings.
         </p>
       )}
@@ -4264,7 +4265,7 @@ export function TutorialSetupStepRenderer({
         style={{
           fontSize: 22,
           fontWeight: 700,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--text)',
           marginBottom: 8,
         }}
@@ -4276,7 +4277,7 @@ export function TutorialSetupStepRenderer({
       <p
         style={{
           fontSize: 14,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
           lineHeight: 1.5,
@@ -4291,7 +4292,7 @@ export function TutorialSetupStepRenderer({
           <p
             style={{
               fontSize: 13,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               color: 'var(--muted)',
               marginBottom: 4,
             }}
@@ -4318,7 +4319,7 @@ export function TutorialSetupStepRenderer({
             style={{
               fontSize: 13,
               color: 'var(--muted)',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
             }}
           >
             Tap Next when you&apos;re ready

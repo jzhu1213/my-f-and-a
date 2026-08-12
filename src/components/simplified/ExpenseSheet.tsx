@@ -5,7 +5,7 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { Sheet } from '@/components/ui/primitives/Sheet'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
-import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePerFriendOwedCustom, computePercentSplit, computeShareSplit } from '@/lib/splitUtils'
+import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePerFriendOwedCustom, computeShareSplit } from '@/lib/splitUtils'
 import { autoCategorizeWithRules } from '@/lib/autoCategorize'
 import type { CategorizationRule } from '@/lib/categorizationRules'
 import { hasExistingRule, applyRouteRule } from '@/lib/categorizationRules'
@@ -13,7 +13,6 @@ import { lookupMerchant, recordMerchant } from '@/lib/merchantMemory'
 import { triggerHaptic } from '@/lib/haptics'
 import { listFriends, type Friendship } from '@/lib/social/friends'
 import { searchPublicProfiles, type PublicProfile } from '@/lib/social/profiles'
-import { createSplit, type CreateSplitInput, type CreateSplitParticipantInput } from '@/lib/social/splits'
 import type { SplitMethod } from '@/lib/social/splits.types'
 import { predictHabit, getTopHabitChips } from '@/lib/habitEngine'
 import { getMostRecentExpenseCategory } from '@/lib/transactionUtils'
@@ -46,7 +45,7 @@ interface SplitParticipant {
 interface ExpenseSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string; date?: string; fundingSourceId?: string; trackAsIOU?: boolean; splitWith?: string; splitOwedAmount?: number; tags?: string[] }) => void
+  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string; date?: string; fundingSourceId?: string; trackAsIOU?: boolean; splitWith?: string; splitOwedAmount?: number; tags?: string[]; splitData?: { totalAmount: number; splitMethod: SplitMethod; participants: { name: string; userId: string | null; shareAmount: number; isPayer: boolean }[] } }) => void
   onUndo?: () => void
   defaultCategory?: TransactionCategory
   transactions?: Transaction[]
@@ -456,10 +455,24 @@ export function ExpenseSheet({
 
     // Determine the user's share based on split mode
     let submittedAmount: number
+    // Per-participant amounts for percent/shares modes
+    let perParticipantAmounts: number[] = []
     if (splitEnabled) {
       if (splitMode === 'custom') {
         const customShare = parseFloat(customShareInput)
         submittedAmount = (customShare > 0 && customShare <= parsed) ? customShare : parsed
+      } else if (splitMode === 'percent' && splitParticipants.length > 0) {
+        // Compute participant amounts as raw rounded values (not reconciled against totalAmount
+        // since percentInputs only contains non-payer percents, not the full 100%)
+        const participantAmounts = percentInputs.map((p) => Math.round((parsed * p) / 100 * 100) / 100)
+        const participantSum = participantAmounts.reduce((s, a) => s + a, 0)
+        submittedAmount = Math.round((parsed - participantSum) * 100) / 100
+        perParticipantAmounts = participantAmounts
+      } else if (splitMode === 'shares' && splitParticipants.length > 0) {
+        const allShares = [1, ...shareInputs.slice(0, splitParticipants.length)]
+        const amounts = computeShareSplit(parsed, allShares)
+        submittedAmount = amounts[0] ?? parsed
+        perParticipantAmounts = amounts.slice(1)
       } else {
         submittedAmount = computeSplitAmount(parsed, splitCount)
       }
@@ -480,9 +493,37 @@ export function ExpenseSheet({
     if (splitEnabled && allFriends) {
       if (splitMode === 'custom') {
         totalOwed = Math.round((parsed - submittedAmount) * 100) / 100
+      } else if ((splitMode === 'percent' || splitMode === 'shares') && perParticipantAmounts.length > 0) {
+        totalOwed = Math.round(perParticipantAmounts.reduce((s, a) => s + a, 0) * 100) / 100
       } else {
         totalOwed = computeOwedAmount(parsed, splitCount)
       }
+    }
+
+    // Build per-participant split data for createSplit when participants are present
+    let splitData: { totalAmount: number; splitMethod: SplitMethod; participants: { name: string; userId: string | null; shareAmount: number; isPayer: boolean }[] } | undefined
+    if (splitEnabled && splitParticipants.length > 0) {
+      const participantEntries: { name: string; userId: string | null; shareAmount: number; isPayer: boolean }[] = []
+      // Payer (the user) gets their share
+      participantEntries.push({ name: 'You', userId: null, shareAmount: submittedAmount, isPayer: true })
+      // Each other participant gets their computed amount
+      for (let i = 0; i < splitParticipants.length; i++) {
+        const p = splitParticipants[i]
+        let shareAmt: number
+        if (splitMode === 'percent' || splitMode === 'shares') {
+          shareAmt = perParticipantAmounts[i] ?? 0
+        } else if (splitMode === 'custom') {
+          const perFriend = splitParticipants.length > 0
+            ? Math.round((parsed - submittedAmount) / splitParticipants.length * 100) / 100
+            : 0
+          shareAmt = perFriend
+        } else {
+          // even
+          shareAmt = computeSplitAmount(parsed, splitParticipants.length + 1)
+        }
+        participantEntries.push({ name: p.name, userId: p.userId, shareAmount: shareAmt, isPayer: false })
+      }
+      splitData = { totalAmount: parsed, splitMethod: splitMode, participants: participantEntries }
     }
 
     onSubmit({
@@ -495,6 +536,7 @@ export function ExpenseSheet({
       splitWith: splitEnabled && allFriends ? allFriends : undefined,
       splitOwedAmount: splitEnabled && allFriends && totalOwed > 0 ? totalOwed : undefined,
       tags: tags.length > 0 ? tags : undefined,
+      splitData,
     })
     // Show success toast with split-aware copy (task 123.1 — Splitwise-level ease)
     const categoryLabel = displayCategories.find(c => c.categoryValue === effectiveCategory)?.label ?? effectiveCategory
@@ -534,7 +576,7 @@ export function ExpenseSheet({
     }
 
     onClose()
-  }, [amount, category, spendingMode, note, tags, splitEnabled, splitCount, splitWith, splitFriends, splitMode, customShareInput, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage])
+  }, [amount, category, spendingMode, note, tags, splitEnabled, splitCount, splitWith, splitFriends, splitMode, splitParticipants, percentInputs, shareInputs, customShareInput, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -2571,12 +2613,13 @@ export function ExpenseSheet({
                             ? computePerFriendOwedCustom(parsed, userShare, friends)
                             : []
                         } else if (splitMode === 'percent' && splitParticipants.length > 0) {
-                          const yourPct = 100 - percentInputs.reduce((s, v) => s + v, 0)
-                          userShare = Math.round((parsed * Math.max(0, yourPct)) / 100 * 100) / 100
-                          const amounts = computePercentSplit(parsed, percentInputs)
+                          // Compute participant amounts as raw rounded values (not reconciled against totalAmount)
+                          const participantAmounts = percentInputs.map((p) => Math.round((parsed * p) / 100 * 100) / 100)
+                          const participantSum = participantAmounts.reduce((s, a) => s + a, 0)
+                          userShare = Math.round((parsed - participantSum) * 100) / 100
                           perFriendBreakdown = splitParticipants.map((p, i) => ({
                             name: p.name,
-                            owes: amounts[i] ?? 0,
+                            owes: participantAmounts[i] ?? 0,
                           }))
                         } else if (splitMode === 'shares' && splitParticipants.length > 0) {
                           const allShares = [1, ...shareInputs.slice(0, splitParticipants.length)]

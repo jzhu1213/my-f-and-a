@@ -10,6 +10,7 @@ import { springs, timings } from '@/lib/animations'
 import { computeDailyTotal } from '@/lib/transactionUtils'
 import { getTagsForTransaction, getRecentTags, parseTagInput } from '@/lib/tagUtils'
 import { borderRadius, shadows } from '@/styles/shared'
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ── Session storage key ──────────────────────────────────────────
 const SESSION_FILTERS_KEY = 'folio-history-filters'
@@ -144,7 +145,7 @@ function SwipeableRow({ onDelete, children }: SwipeableRowProps) {
         <button
           onClick={e => { e.stopPropagation(); snapTo(0); onDelete() }}
           style={{
-            fontFamily: 'Inter, sans-serif', fontSize: '12px',
+            fontFamily: FONT_FAMILY, fontSize: '12px',
             fontWeight: 600,
             color: 'var(--text)', width: '100%', height: '100%',
           }}
@@ -461,7 +462,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
   const pillStyle = (active: boolean): React.CSSProperties => ({
     flexShrink: 0,
     padding: '8px 16px',
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: FONT_FAMILY,
     fontSize: '13px',
     fontWeight: 500,
     borderRadius: 99,
@@ -490,7 +491,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             outline: 'none',
             padding: '14px 16px',
             fontSize: 15,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             color: 'var(--text)',
             borderRadius: 12,
           }}
@@ -507,7 +508,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             transition={springs.snappy}
             style={{
               padding: '6px 14px',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               fontSize: '12px',
               fontWeight: 500,
               color: 'var(--accent)',
@@ -533,7 +534,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             aria-label="Enter multi-select mode"
             style={{
               padding: '6px 14px',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
               fontSize: '12px',
               fontWeight: 500,
               color: 'var(--sub)',
@@ -557,7 +558,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
           marginBottom: 8,
         }}>
           <span style={{
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: FONT_FAMILY,
             fontSize: '13px',
             fontWeight: 500,
             color: 'var(--text)',
@@ -572,7 +573,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               transition={springs.snappy}
               style={{
                 padding: '6px 12px',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 fontSize: '12px',
                 fontWeight: 500,
                 color: 'var(--accent)',
@@ -591,7 +592,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               transition={springs.snappy}
               style={{
                 padding: '6px 12px',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 fontSize: '12px',
                 fontWeight: 500,
                 color: 'var(--sub)',
@@ -762,7 +763,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   fontSize: '13px',
                   fontWeight: 500,
                   color: 'var(--sub)',
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                 }}>
                   Week of {new Date(weekKey + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
@@ -770,7 +771,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   fontSize: '13px',
                   fontWeight: 600,
                   color: 'var(--text)',
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontVariantNumeric: 'tabular-nums',
                 }}>
                   ${weeklyTotals[weekKey].toFixed(2)} spent
@@ -784,7 +785,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               fontSize: '13px',
               fontWeight: 500,
               color: 'var(--sub)',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
             }}>
               {formatDate(date)}
             </p>
@@ -793,7 +794,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                 fontSize: '12px',
                 fontWeight: 500,
                 color: 'var(--muted)',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 fontVariantNumeric: 'tabular-nums',
               }}>
                 ${dailyTotal.toFixed(2)} spent
@@ -896,7 +897,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         fontSize: '15px',
                         color: 'var(--text)',
                         lineHeight: 1.4,
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         fontWeight: 500,
                       }} className="truncate">
                         <HighlightText text={tx.note || getLabel(tx.category)} query={searchNorm} />
@@ -905,14 +906,14 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         <p style={{
                           fontSize: '12px',
                           color: 'var(--sub)',
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                         }}>
                           <HighlightText text={getLabel(tx.category)} query={searchNorm} />
                         </p>
                         {txSource && (
                           <span style={{
                             fontSize: '10px',
-                            fontFamily: 'Inter, sans-serif',
+                            fontFamily: FONT_FAMILY,
                             fontWeight: 500,
                             color: 'var(--sub)',
                             background: 'rgba(255, 255, 255, 0.06)',
@@ -925,7 +926,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         {isLoggedLate(tx) && (
                           <span style={{
                             fontSize: '10px',
-                            fontFamily: 'Inter, sans-serif',
+                            fontFamily: FONT_FAMILY,
                             fontWeight: 500,
                             color: 'var(--muted)',
                             background: 'rgba(255, 255, 255, 0.06)',
@@ -943,7 +944,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                             key={tag}
                             style={{
                               fontSize: '10px',
-                              fontFamily: 'Inter, sans-serif',
+                              fontFamily: FONT_FAMILY,
                               fontWeight: 500,
                               color: 'rgba(129, 140, 248, 0.85)',
                               background: 'rgba(129, 140, 248, 0.08)',
@@ -960,7 +961,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <span style={{
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: FONT_FAMILY,
                         fontSize: '15px',
                         fontWeight: 600,
                         fontVariantNumeric: 'tabular-nums',
@@ -1000,7 +1001,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                           transition={springs.snappy}
                           style={{
                             flex: 1, padding: '10px',
-                            fontFamily: 'Inter, sans-serif', fontSize: '13px',
+                            fontFamily: FONT_FAMILY, fontSize: '13px',
                             fontWeight: 500,
                             color: 'var(--text)', border: '1px solid rgba(255, 255, 255, 0.1)',
                             borderRadius: '8px', transition: 'all 0.15s',
@@ -1019,7 +1020,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                           transition={springs.snappy}
                           style={{
                             flex: 1, padding: '10px',
-                            fontFamily: 'Inter, sans-serif', fontSize: '13px',
+                            fontFamily: FONT_FAMILY, fontSize: '13px',
                             fontWeight: 500,
                             color: 'var(--text)', border: '1px solid rgba(129, 140, 248, 0.2)',
                             borderRadius: '8px', transition: 'all 0.15s',
@@ -1038,7 +1039,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                           transition={springs.snappy}
                           style={{
                             flex: 1, padding: '10px',
-                            fontFamily: 'Inter, sans-serif', fontSize: '13px',
+                            fontFamily: FONT_FAMILY, fontSize: '13px',
                             fontWeight: 500,
                             color: 'var(--error)', border: '1px solid rgba(248, 113, 113, 0.2)',
                             borderRadius: '8px', transition: 'all 0.15s',
@@ -1110,7 +1111,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               borderRadius: borderRadius.lg,
               boxShadow: shadows.xl,
               zIndex: 100,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: FONT_FAMILY,
             }}
             aria-label="Bulk actions"
             role="toolbar"
@@ -1130,7 +1131,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   padding: '8px 12px',
                   fontSize: 12,
                   fontWeight: 500,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   color: 'var(--error)',
                   background: 'rgba(248, 113, 113, 0.1)',
                   border: '1px solid rgba(248, 113, 113, 0.25)',
@@ -1159,7 +1160,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   padding: '8px 12px',
                   fontSize: 12,
                   fontWeight: 500,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   color: 'var(--text)',
                   background: 'rgba(255, 255, 255, 0.06)',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -1182,7 +1183,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   padding: '8px 12px',
                   fontSize: 12,
                   fontWeight: 500,
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   color: 'var(--text)',
                   background: 'rgba(255, 255, 255, 0.06)',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -1208,7 +1209,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.6)',
+              background: 'rgba(14, 14, 26, 0.7)',
               zIndex: 200,
               display: 'flex',
               alignItems: 'flex-end',
@@ -1235,7 +1236,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               aria-label="Choose category"
             >
               <p style={{
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 fontSize: 15,
                 fontWeight: 600,
                 color: 'var(--text)',
@@ -1253,7 +1254,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     transition={springs.snappy}
                     style={{
                       padding: '12px',
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: FONT_FAMILY,
                       fontSize: 13,
                       fontWeight: 500,
                       color: 'var(--text)',
@@ -1277,7 +1278,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   width: '100%',
                   marginTop: 16,
                   padding: '12px',
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontSize: 13,
                   fontWeight: 500,
                   color: 'var(--sub)',
@@ -1305,7 +1306,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.6)',
+              background: 'rgba(14, 14, 26, 0.7)',
               zIndex: 200,
               display: 'flex',
               alignItems: 'flex-end',
@@ -1330,7 +1331,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               aria-label="Add tags"
             >
               <p style={{
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
                 fontSize: 15,
                 fontWeight: 600,
                 color: 'var(--text)',
@@ -1348,7 +1349,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                 style={{
                   width: '100%',
                   padding: '12px 16px',
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontSize: 14,
                   color: 'var(--text)',
                   background: 'rgba(255, 255, 255, 0.04)',
@@ -1373,7 +1374,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         transition={springs.snappy}
                         style={{
                           padding: '4px 10px',
-                          fontFamily: 'Inter, sans-serif',
+                          fontFamily: FONT_FAMILY,
                           fontSize: 12,
                           fontWeight: 500,
                           color: 'rgba(129, 140, 248, 0.85)',
@@ -1398,7 +1399,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   style={{
                     flex: 1,
                     padding: '12px',
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontSize: 13,
                     fontWeight: 500,
                     color: 'var(--sub)',
@@ -1418,7 +1419,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   style={{
                     flex: 1,
                     padding: '12px',
-                    fontFamily: 'Inter, sans-serif',
+                    fontFamily: FONT_FAMILY,
                     fontSize: 13,
                     fontWeight: 600,
                     color: 'var(--text)',

@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { elevations, radius } from "@/styles/surfaces"
 import { colorRamp } from "@/styles/colors"
 
@@ -99,6 +99,7 @@ export function Toggle({
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
 }: ToggleProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   const config = sizeConfigs[size]
   const knobTravel = config.trackWidth - config.knobSize - config.padding * 2
 
@@ -127,8 +128,8 @@ export function Toggle({
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       className="focus-ring"
-      whileTap={disabled ? undefined : { scale: 0.96 }}
-      transition={springs.snappy}
+      whileTap={disabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.96 })}
+      transition={prefersReducedMotion ? timings.fast : springs.snappy}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -166,7 +167,7 @@ export function Toggle({
           animate={{
             x: checked ? knobTravel : 0,
           }}
-          transition={springs.bouncy}
+          transition={prefersReducedMotion ? { type: "tween", duration: 0 } : springs.bouncy}
           style={{
             position: "absolute",
             top: `${config.padding}px`,

@@ -18,7 +18,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
-import { SectionHeader, ListRow, Toggle, SegmentedControl, Card, Button } from "@/components/ui"
+import { SectionHeader, ListRow, Toggle, SegmentedControl, Card } from "@/components/ui"
 import { useTheme } from "@/contexts/ThemeContext"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Goal, TransactionCategory } from "@/types"
@@ -272,7 +272,7 @@ export function SettingsScreen({
   onUpdateCountCreditImmediately,
   onOpenBudgetSettings,
   onOpenGoals,
-  onOpenTools,
+  onOpenTools: _onOpenTools,
   onOpenProfile,
   onOpenFundingSources,
   onOpenLinkedAccounts,
@@ -1235,6 +1235,11 @@ export function SettingsScreen({
               <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>Account</span>
               <span style={{ ...typography.caption, color: textColors.muted }}>→</span>
             </ListRow>
+            {userEmail && (
+              <p style={{ ...typography["body-sm"], color: textColors.sub, paddingLeft: spacingScale["4"], marginTop: spacingScale["4"] }}>
+                {userEmail}
+              </p>
+            )}
           </Card>
 
           {/* Sharing */}

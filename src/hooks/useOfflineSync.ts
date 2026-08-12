@@ -8,6 +8,7 @@ import {
   getRecentlySyncedIds,
   markRecentlySynced,
   QUEUE_CHANGE_EVENT,
+  dispatchQueueChange,
 } from '@/lib/offlineQueue'
 
 // ============================================================================
@@ -85,13 +86,15 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     if (hasPending) {
       // Slight delay to avoid blocking initial render
       const timer = setTimeout(() => {
+        const preProcessIds = getOfflineQueue()
+          .filter((i) => i.userId === userId && i.status === 'pending')
+          .map((i) => i.id)
         processOfflineQueue(userId).then((result) => {
           if (result.succeeded > 0) {
-            markRecentlySynced(
-              queue
-                .filter((i) => i.userId === userId && i.status === 'pending')
-                .map((i) => i.id)
-            )
+            // Mark only the items that were actually removed (succeeded)
+            const postProcessIds = new Set(getOfflineQueue().map((i) => i.id))
+            const syncedIds = preProcessIds.filter((id) => !postProcessIds.has(id))
+            markRecentlySynced(syncedIds)
           }
           refresh()
         })
@@ -106,14 +109,15 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
   useEffect(() => {
     if (!userId || typeof window === 'undefined') return
     const handleOnline = () => {
-      const queue = getOfflineQueue()
+      const preProcessIds = getOfflineQueue()
+        .filter((i) => i.userId === userId && i.status !== 'failed')
+        .map((i) => i.id)
       processOfflineQueue(userId).then((result) => {
         if (result.succeeded > 0) {
-          markRecentlySynced(
-            queue
-              .filter((i) => i.userId === userId && i.status !== 'failed')
-              .map((i) => i.id)
-          )
+          // Mark only the items that were actually removed (succeeded)
+          const postProcessIds = new Set(getOfflineQueue().map((i) => i.id))
+          const syncedIds = preProcessIds.filter((id) => !postProcessIds.has(id))
+          markRecentlySynced(syncedIds)
         }
         refresh()
       })
@@ -134,11 +138,14 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
       }
     }
 
+    const preProcessIds = getOfflineQueue()
+      .filter((i) => i.userId === userId)
+      .map((i) => i.id)
     const result = await processOfflineQueue(userId)
     if (result.succeeded > 0) {
-      markRecentlySynced(
-        queue.filter((i) => i.userId === userId).map((i) => i.id)
-      )
+      const postProcessIds = new Set(getOfflineQueue().map((i) => i.id))
+      const syncedIds = preProcessIds.filter((id) => !postProcessIds.has(id))
+      markRecentlySynced(syncedIds)
     }
     refresh()
     setIsSyncing(false)
@@ -159,6 +166,7 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
       const remaining = queue.filter((item) => item.status !== 'failed')
       if (typeof window !== 'undefined') {
         localStorage.setItem('folio-offline-queue', JSON.stringify(remaining))
+        dispatchQueueChange()
       }
     }
     refresh()

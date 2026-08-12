@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings } from '@/lib/animations'
 import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Icon } from '@/components/ui/Icon'
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius, chipButton } from '@/styles/shared'
 import type { TransactionCategory } from '@/types'
@@ -366,8 +367,8 @@ export function BackfillSheet({
               )}
 
               {/* Selected date display */}
-              <p style={{ fontSize: 13, color: 'var(--sub)', marginBottom: 16 }}>
-                📅 Payday: {getRelativeDateLabel(paydayDate)}
+              <p style={{ fontSize: 13, color: 'var(--sub)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon name="breakdown:scheduled" size={14} /> Payday: {getRelativeDateLabel(paydayDate)}
               </p>
 
               {/* Amount input */}
@@ -677,7 +678,7 @@ export function BackfillSheet({
                     }}
                     aria-label={`Repeat last expense: ${lastExpense.label}`}
                   >
-                    🔁 {lastExpense.label}
+                    <Icon name="category:subscriptions" size={14} /> {lastExpense.label}
                   </motion.button>
                 )}
               </div>

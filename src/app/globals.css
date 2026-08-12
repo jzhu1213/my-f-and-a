@@ -462,6 +462,35 @@ body {
   outline: none;
 }
 
+/* ── Global focus-visible catch-all (Req 18.4, WCAG 2.4.7) ─────── */
+/*
+ * Ensures ALL interactive elements show a visible focus ring when
+ * navigated via keyboard, even if they lack the .focus-ring class.
+ * Elements with their own :focus-visible rules override via specificity.
+ */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, #818cf8);
+  outline-offset: var(--focus-ring-offset, 2px);
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible),
+[role="tab"]:focus:not(:focus-visible),
+[tabindex]:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* ── Label utility ──────────────────────────────────────────────── */
 .label {
   font-family: 'Inter', sans-serif;

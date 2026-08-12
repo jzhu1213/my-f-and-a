@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useMemo, type ReactNode } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from "react"
 import { motion, useMotionValue, useTransform, animate, type MotionValue } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 
@@ -59,14 +59,14 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
     return el.scrollTop <= 0
   }
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = useCallback((e: TouchEvent) => {
     if (disabled || isRefreshing) return
     if (!isAtTop()) return
     isDragging.current = true
     startY.current = e.touches[0].clientY
-  }
+  }, [disabled, isRefreshing])
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!isDragging.current || disabled || isRefreshing) return
     const currentY = e.touches[0].clientY
     const delta = currentY - startY.current
@@ -90,13 +90,13 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
     const clamped = Math.min(rubberBand, MAX_PULL)
     pullY.set(clamped)
 
-    // Prevent default scroll while pulling
+    // Prevent native scroll while pulling — requires { passive: false }
     if (clamped > 0) {
       e.preventDefault()
     }
-  }
+  }, [disabled, isRefreshing, pullY])
 
-  const handleTouchEnd = async () => {
+  const handleTouchEnd = useCallback(async () => {
     if (!isDragging.current) return
     isDragging.current = false
 
@@ -119,7 +119,23 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
       // Snap back with snappy spring
       animate(pullY, 0, { ...springs.snappy })
     }
-  }
+  }, [isRefreshing, onRefresh, pullY])
+
+  // Register touch event listeners with { passive: false } so preventDefault works
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    el.addEventListener("touchstart", handleTouchStart, { passive: true })
+    el.addEventListener("touchmove", handleTouchMove, { passive: false })
+    el.addEventListener("touchend", handleTouchEnd, { passive: true })
+
+    return () => {
+      el.removeEventListener("touchstart", handleTouchStart)
+      el.removeEventListener("touchmove", handleTouchMove)
+      el.removeEventListener("touchend", handleTouchEnd)
+    }
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd])
 
   return (
     <div
@@ -132,9 +148,6 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
         overflowX: "hidden",
         WebkitOverflowScrolling: "touch",
       }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       {/* Refresh indicator */}
       <motion.div

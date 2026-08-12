@@ -1,10 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { motion, useReducedMotion } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { motion } from "framer-motion"
+import { springs, useReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY } from "@/styles/typography"
 import { borderRadius } from "@/styles/shared"
+import { Icon } from "@/components/ui/Icon"
 import {
   getAppLockPreferences,
   verifyPin,
@@ -32,7 +33,7 @@ import {
  * accessible with labelled controls.
  */
 export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
-  const reduceMotion = useReducedMotion()
+  const { prefersReducedMotion } = useReducedMotion()
   const prefs = getAppLockPreferences()
   const method = prefs.method
 
@@ -123,7 +124,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
       }}
     >
       <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springs.gentle}
         style={{
@@ -146,10 +147,10 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 30,
+            color: "var(--sub)",
           }}
         >
-          🔒
+          <Icon name="breakdown:total-locked" size={28} />
         </div>
 
         <div style={{ textAlign: "center" }}>
@@ -195,7 +196,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
             <motion.button
               type="button"
               onClick={() => void submitPin()}
-              whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
               transition={springs.snappy}
               disabled={busy || pin.length < MIN_PIN_LENGTH}
               style={{
@@ -224,7 +225,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
           <motion.button
             type="button"
             onClick={() => void runBiometric()}
-            whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
             transition={springs.snappy}
             disabled={busy}
             style={{

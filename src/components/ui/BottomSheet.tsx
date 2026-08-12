@@ -246,7 +246,7 @@ export function BottomSheet({
               position: "fixed",
               inset: 0,
               zIndex: 40,
-              background: "rgba(0, 0, 0, 1)",
+              background: "rgba(14, 14, 26, 0.95)",
             }}
           />
 

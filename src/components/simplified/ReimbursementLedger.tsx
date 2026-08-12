@@ -371,7 +371,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                 style={{
                   position: "fixed",
                   inset: 0,
-                  background: "rgba(0,0,0,0.6)",
+                  background: "rgba(14, 14, 26, 0.7)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -968,7 +968,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
-  background: "rgba(0, 0, 0, 0.2)",
+  background: "var(--color-sunken)",
   border: "1px solid var(--border)",
   borderRadius: 8,
   outline: "none",

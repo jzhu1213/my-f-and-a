@@ -655,7 +655,7 @@ export function DailyAllowanceHero({
             aria-hidden="true"
             style={{ marginRight: 6, display: "inline-flex", verticalAlign: "middle" }}
           >
-            <Icon name={instantStatus.iconName} size={22} />
+            <Icon name={instantStatus.iconName} size={20} />
           </span>
           {instantStatus.phrase}
         </p>
@@ -746,8 +746,8 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`Usually ${formatBandAmount(confidenceBand.low)} to ${formatBandAmount(confidenceBand.high)} per day`}
           >
-            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.7 }}>
-              📊
+            <span aria-hidden="true" style={{ opacity: 0.7, display: "inline-flex" }}>
+              <Icon name="status:tracking" size={16} />
             </span>
             <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.85 }}>
               Usually {formatBandAmount(confidenceBand.low)}–{formatBandAmount(confidenceBand.high)}/day
@@ -773,8 +773,8 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`${formatCurrency(reservedForBills + reservedForScheduled)} total reserved for upcoming bills and scheduled items`}
           >
-            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.8 }}>
-              🔒
+            <span aria-hidden="true" style={{ opacity: 0.8, display: "inline-flex" }}>
+              <Icon name="breakdown:total-locked" size={16} />
             </span>
             <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.9 }}>
               {formatCurrency(reservedForBills + reservedForScheduled)} reserved total
@@ -798,8 +798,8 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}`}
           >
-            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.7 }}>
-              🛡️
+            <span aria-hidden="true" style={{ opacity: 0.7, display: "inline-flex" }}>
+              <Icon name="breakdown:reserved" size={16} />
             </span>
             <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.85 }}>
               {formatCurrency(reservedForBills)} set aside for {upcomingBillCount} upcoming bill{upcomingBillCount === 1 ? '' : 's'}
@@ -823,8 +823,8 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`On credit: ${formatCurrency(deferredSpending)}`}
           >
-            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.7 }}>
-              💳
+            <span aria-hidden="true" style={{ opacity: 0.7, display: "inline-flex" }}>
+              <Icon name="tool:debt" size={16} />
             </span>
             <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.85 }}>
               On credit: {formatCurrency(deferredSpending)}
@@ -848,8 +848,8 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`${formatCurrency(reservedForScheduled)} scheduled for ${scheduledCount} upcoming item${scheduledCount === 1 ? '' : 's'}`}
           >
-            <span aria-hidden="true" style={{ fontSize: pxToRem(13), opacity: 0.7 }}>
-              📅
+            <span aria-hidden="true" style={{ opacity: 0.7, display: "inline-flex" }}>
+              <Icon name="breakdown:scheduled" size={16} />
             </span>
             <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.85 }}>
               {formatCurrency(reservedForScheduled)} scheduled

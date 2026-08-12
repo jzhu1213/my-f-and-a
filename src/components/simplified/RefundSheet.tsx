@@ -115,6 +115,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
                 fontSize: 16,
                 fontFamily: FONT_FAMILY,
                 fontWeight: 600,
+                fontVariantNumeric: 'tabular-nums',
                 color: 'var(--text)',
               }}>
                 ${transaction.amount % 1 === 0 ? transaction.amount : transaction.amount.toFixed(2)}
@@ -172,6 +173,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
                   fontSize: 48,
                   fontFamily: FONT_FAMILY,
                   fontWeight: 600,
+                  fontVariantNumeric: 'tabular-nums',
                   color: 'var(--text)',
                   textAlign: 'center',
                   width: '100%',

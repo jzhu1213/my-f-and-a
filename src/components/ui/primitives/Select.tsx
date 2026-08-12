@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useId, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { springs } from "@/lib/animations"
+import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { elevations, radius } from "@/styles/surfaces"
 import { spacingScale } from "@/styles/layout"
 import { textColors, colorRamp } from "@/styles/colors"
@@ -153,6 +153,7 @@ export function Select({
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
 }: SelectProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   const [isOpen, setIsOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -248,8 +249,8 @@ export function Select({
         onClick={toggleOpen}
         onKeyDown={handleKeyDown}
         className="focus-ring"
-        whileTap={disabled ? undefined : { scale: 0.98 }}
-        transition={springs.snappy}
+        whileTap={disabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.98 })}
+        transition={prefersReducedMotion ? timings.fast : springs.snappy}
         style={{
           ...baseStyles,
           ...variantStyles[variant],
@@ -276,10 +277,10 @@ export function Select({
             id={listboxId}
             role="listbox"
             aria-label={ariaLabel}
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
-            transition={springs.snappy}
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.98 }}
+            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.98 }}
+            transition={prefersReducedMotion ? timings.fast : springs.snappy}
             style={dropdownStyles}
           >
             {options.map((option, index) => (

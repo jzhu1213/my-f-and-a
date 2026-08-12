@@ -486,13 +486,13 @@ export function DayGroupTimeline({
                             ? { duration: 0 }
                             : {
                                 opacity: { type: "tween", duration: 0.15 },
-                                height: { type: "spring", stiffness: 500, damping: 35, mass: 0.8 },
+                                height: springs.responsive,
                               },
                         }}
                         transition={
                           reducedMotion
                             ? { duration: 0 }
-                            : { type: "spring", stiffness: 500, damping: 35, mass: 0.8 }
+                            : springs.responsive
                         }
                         style={{ overflow: "hidden" }}
                       >
@@ -598,7 +598,7 @@ export function DayGroupTimeline({
               transition={
                 reducedMotion
                   ? { duration: 0 }
-                  : { type: "spring", stiffness: 500, damping: 35, mass: 0.8 }
+                  : springs.responsive
               }
               style={{ overflow: "hidden" }}
             >

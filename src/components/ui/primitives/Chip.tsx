@@ -16,7 +16,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { springPresets } from '@/styles/motion'
+import { springs, useReducedMotion } from '@/lib/animations'
 import { FONT_FAMILY, typography } from '@/styles/typography'
 import { radius } from '@/styles/surfaces'
 import { spacingScale } from '@/styles/layout'
@@ -103,6 +103,7 @@ export const Chip: React.FC<ChipProps> = ({
   'aria-label': ariaLabel,
 }) => {
   const isDisabled = disabled
+  const { prefersReducedMotion } = useReducedMotion()
 
   const baseStyles: React.CSSProperties = {
     display: 'inline-flex',
@@ -141,13 +142,8 @@ export const Chip: React.FC<ChipProps> = ({
       role="option"
       className="focus-ring"
       style={baseStyles}
-      whileTap={isDisabled ? undefined : { scale: 0.98 }}
-      transition={{
-        type: 'spring',
-        stiffness: springPresets.snappy.stiffness,
-        damping: springPresets.snappy.damping,
-        mass: springPresets.snappy.mass,
-      }}
+      whileTap={isDisabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.98 })}
+      transition={springs.snappy}
     >
       {children}
     </motion.button>

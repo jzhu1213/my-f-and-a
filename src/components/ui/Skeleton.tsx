@@ -21,6 +21,7 @@
 
 import type { CSSProperties, ReactNode } from "react"
 import { motion } from "framer-motion"
+import { FONT_FAMILY } from "@/styles/typography"
 
 // ── Base ──────────────────────────────────────────────────────────────────
 
@@ -262,7 +263,7 @@ export function LogoPulse({
         background: "linear-gradient(135deg, var(--raised), var(--surface))",
         border: "1px solid var(--border)",
         color: "var(--text)",
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: FONT_FAMILY,
         fontWeight: 700,
         fontSize: size * 0.42,
         ...style,

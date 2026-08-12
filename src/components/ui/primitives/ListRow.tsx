@@ -147,7 +147,7 @@ const editExpandVariants: Variants = {
     opacity: 0,
     height: 0,
     transition: {
-      height: { type: "spring", stiffness: 400, damping: 32, mass: 0.8 },
+      height: springs.responsive,
       opacity: { type: "tween", duration: 0.15 },
     },
   },
@@ -155,7 +155,7 @@ const editExpandVariants: Variants = {
     opacity: 1,
     height: "auto",
     transition: {
-      height: { type: "spring", stiffness: 400, damping: 32, mass: 0.8 },
+      height: springs.responsive,
       opacity: { type: "tween", duration: 0.2, delay: 0.1 },
     },
   },
@@ -362,10 +362,7 @@ export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(function ListRow
           x: isRevealed ? -REVEAL_WIDTH : 0,
         }}
         transition={{
-          type: "spring",
-          stiffness: 500,
-          damping: 35,
-          mass: 0.8,
+          ...springs.responsive,
           // Spring back within 300ms (Req 14.10)
         }}
         whileTap={!isRevealed ? { scale: 0.98, transition: springs.snappy } : undefined}

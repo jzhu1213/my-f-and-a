@@ -25,6 +25,12 @@ export function getDaysInMonthForDate(date: Date): number {
  * Computes the total monthly budget across all categories.
  * Accepts optional local overrides (e.g. from an unsaved slider state)
  * that take priority over persisted budget records.
+ *
+ * Weekly-period budgets (`period === 'weekly'`) store a weekly amount in
+ * `monthlyLimit` — to get the monthly equivalent we multiply by 4.33.
+ * Local overrides inherit the period from the persisted budget record so
+ * the slider value (which is in the budget's native period) is scaled
+ * consistently.
  */
 export function computeTotalMonthlyBudget(
   budgets: Budget[],
@@ -32,12 +38,15 @@ export function computeTotalMonthlyBudget(
 ): number {
   let total = 0
   for (const cat of BUDGET_CATEGORIES) {
+    const budget = budgets.find(b => b.category === cat.category)
+    const isWeeklyPeriod = budget?.period === 'weekly'
     const override = localOverrides?.[cat.category]
     if (override !== undefined) {
-      total += override
+      // Local override is in the budget's native period
+      total += isWeeklyPeriod ? override * 4.33 : override
     } else {
-      const budget = budgets.find(b => b.category === cat.category)
-      total += budget?.monthlyLimit ?? 0
+      const limit = budget?.monthlyLimit ?? 0
+      total += isWeeklyPeriod ? limit * 4.33 : limit
     }
   }
   return total

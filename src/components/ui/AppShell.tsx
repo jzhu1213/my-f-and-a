@@ -238,7 +238,7 @@ export function AppShell({
             onClick={handleSettingsTop}
             aria-label="Open settings"
           >
-            <Icon name="nav:settings" size={22} />
+            <Icon name="nav:settings" size={24} />
           </button>
         </motion.header>
       )}

@@ -4,6 +4,7 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { Icon } from '@/components/ui/Icon'
+import { FONT_FAMILY } from '@/styles/typography'
 
 // ============================================================================
 // SyncIndicator — premium glass-card sync status (warm, on-brand)
@@ -49,7 +50,7 @@ const glassCardStyle: React.CSSProperties = {
 }
 
 const pillButtonStyle: React.CSSProperties = {
-  fontFamily: "'Inter', sans-serif",
+  fontFamily: FONT_FAMILY,
   fontSize: '11px',
   fontWeight: 600,
   letterSpacing: '0.04em',
@@ -105,7 +106,7 @@ export function SyncIndicator({
             className="text-xs flex-1 leading-snug"
             style={{
               color: 'var(--text)',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: FONT_FAMILY,
               fontWeight: 400,
             }}
           >
@@ -135,7 +136,7 @@ export function SyncIndicator({
             className="text-xs flex-1 leading-snug"
             style={{
               color: 'var(--text)',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: FONT_FAMILY,
               fontWeight: 400,
             }}
           >
@@ -203,7 +204,7 @@ export function SyncIndicator({
             className="text-xs flex-1 leading-snug"
             style={{
               color: 'var(--text)',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: FONT_FAMILY,
               fontWeight: 400,
             }}
           >

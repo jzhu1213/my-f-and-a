@@ -1495,6 +1495,10 @@ export function HomeScreen({
                           fontWeight: 500,
                           color: "var(--text)",
                           fontFamily: FONT_FAMILY,
+                          maxWidth: "100%",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {row.label}
@@ -1762,16 +1766,22 @@ export function HomeScreen({
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 8,
+                                    flex: 1,
+                                    minWidth: 0,
+                                    overflow: "hidden",
                                   }}
                                 >
                                   <CategoryIcon category={tx.category} size={32} />
-                                  {label}
+                                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {label}
+                                  </span>
                                   {splitTransactionIds?.has(tx.id) && (
                                     <span
                                       style={{
                                         fontSize: 11,
                                         opacity: 0.6,
                                         marginLeft: 2,
+                                        flexShrink: 0,
                                       }}
                                       aria-label="Split expense"
                                       title="Split"
@@ -1786,6 +1796,7 @@ export function HomeScreen({
                                     fontWeight: 500,
                                     fontFamily: FONT_FAMILY,
                                     fontVariantNumeric: "tabular-nums",
+                                    flexShrink: 0,
                                     color:
                                       tx.type === "income"
                                         ? "var(--success)"

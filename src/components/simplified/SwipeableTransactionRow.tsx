@@ -3,6 +3,7 @@
 import { useState, useRef } from "react"
 import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
+import { springPresets } from "@/styles/motion"
 import { Icon } from "@/components/ui/Icon"
 
 // ============================================================================
@@ -60,8 +61,8 @@ export function SwipeableTransactionRow({
   // Smooth spring for icon scale — gives a haptic-like bounce at threshold
   const rawDeleteScale = useTransform(dragX, [0, -40, -80, -100], [0.5, 0.7, 1, 1.15])
   const rawEditScale = useTransform(dragX, [0, 40, 80, 100], [0.5, 0.7, 1, 1.15])
-  const deleteIconScale = useSpring(rawDeleteScale, { stiffness: 400, damping: 25 })
-  const editIconScale = useSpring(rawEditScale, { stiffness: 400, damping: 25 })
+  const deleteIconScale = useSpring(rawDeleteScale, { stiffness: springPresets.snappy.stiffness, damping: 25 })
+  const editIconScale = useSpring(rawEditScale, { stiffness: springPresets.snappy.stiffness, damping: 25 })
 
   // Map drag progress to reveal opacity
   const deleteOpacity = useTransform(dragX, [0, -30, -60], [0, 0.4, 1])
@@ -197,7 +198,7 @@ export function SwipeableTransactionRow({
             dragConstraints={{ left: MAX_DRAG_LEFT, right: onEdit ? MAX_DRAG_RIGHT : 0 }}
             dragElastic={{ left: 0.08, right: onEdit ? 0.08 : 0 }}
             dragMomentum
-            dragTransition={{ bounceStiffness: 400, bounceDamping: 30 }}
+            dragTransition={{ bounceStiffness: springPresets.snappy.stiffness, bounceDamping: springPresets.snappy.damping }}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleTap}

@@ -167,7 +167,7 @@ export function QuickLogConfirmSheet({
             {headline}
           </h2>
           <p style={{ margin: 0, fontSize: 13, color: "var(--sub)" }}>
-            Nothing's saved yet — check it over first.
+            Nothing&apos;s saved yet — check it over first.
           </p>
         </div>
 

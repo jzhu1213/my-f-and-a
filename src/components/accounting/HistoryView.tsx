@@ -8,6 +8,7 @@ import { shiftMonth, toMonthString } from '@/lib/budgetUtils'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { springs } from '@/lib/animations'
 import { borderRadius } from '@/styles/shared'
+import { FONT_FAMILY } from '@/styles/typography'
 
 interface HistoryViewProps {
   transactions: Transaction[]
@@ -46,7 +47,7 @@ export function HistoryView({
           padding: "0 20px",
           display: "flex",
           flexDirection: "column",
-          gap: 24,
+          gap: 32,
           paddingTop: 16,
           paddingBottom: 120, // room for dock
         }}
@@ -96,7 +97,7 @@ export function HistoryView({
                 fontSize: '16px',
                 fontWeight: 500,
                 color: 'var(--text)',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: FONT_FAMILY,
               }}
             >
               {monthLabel}
@@ -141,7 +142,7 @@ export function HistoryView({
                 style={{
                   fontSize: 13,
                   color: 'var(--sub)',
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: FONT_FAMILY,
                   fontWeight: 500,
                 }}
               >

@@ -178,7 +178,7 @@ export function SavingsProjectionsScreen({
             illustration="goals"
             title="Start tracking your savings"
             subtitle="Add your savings and investment accounts to see how they could grow over time. Every dollar counts."
-            actionLabel="+ Add Your First Account"
+            actionLabel="+ Add your first account"
             onAction={() => setShowAddForm(true)}
             actionColor="success"
           />

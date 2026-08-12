@@ -95,7 +95,7 @@ export function SourceBalancesView({
                   color: "var(--accent)",
                 }}
               >
-                <Icon name="category:fallback" size={14} />
+                <Icon name="category:fallback" size={16} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p

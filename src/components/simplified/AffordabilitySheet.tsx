@@ -10,6 +10,7 @@ import type { Budget, Transaction } from '@/types'
 import type { IncomeSmoothing } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { Icon } from '@/components/ui/Icon'
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius } from '@/styles/shared'
 
@@ -197,9 +198,9 @@ export function AffordabilitySheet({
                         textAlign: 'center',
                       }}
                     >
-                      {/* Verdict emoji */}
-                      <p style={{ fontSize: 28, marginBottom: 8 }} aria-hidden="true">
-                        {result.canAfford ? '✅' : '🤔'}
+                      {/* Verdict icon */}
+                      <p style={{ fontSize: 28, marginBottom: 8, display: "flex", justifyContent: "center" }} aria-hidden="true">
+                        <Icon name={result.canAfford ? 'toast:success' : 'status:caution'} size={28} />
                       </p>
 
                       {/* Message */}

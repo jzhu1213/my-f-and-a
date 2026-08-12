@@ -34,8 +34,9 @@ export function validateHandle(handle: string): { valid: boolean; error?: string
  * Normalize user input into handle format:
  * - Strip leading `@` if present
  * - Lowercase everything
+ * - Remove characters that aren't valid in a handle (only a-z, 0-9, _ allowed)
  */
 export function normalizeHandle(input: string): string {
   const stripped = input.startsWith('@') ? input.slice(1) : input
-  return stripped.toLowerCase()
+  return stripped.toLowerCase().replace(/[^a-z0-9_]/g, '')
 }

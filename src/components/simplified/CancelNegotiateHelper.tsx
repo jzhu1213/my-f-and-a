@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { Icon } from "@/components/ui/Icon"
 import type { DetectedSubscription } from "@/lib/subscriptionDetector"
 import { emojiForCategory } from "@/lib/subscriptionDetector"
 import { FONT_FAMILY } from "@/styles/typography"
@@ -242,8 +243,8 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
             </div>
           </div>
           {subscription.studentDiscountHint && (
-            <p style={{ fontSize: 12.5, color: "var(--sub)", marginTop: 10, lineHeight: 1.5 }}>
-              💡 {subscription.studentDiscountHint}
+            <p style={{ fontSize: 12.5, color: "var(--sub)", marginTop: 10, lineHeight: 1.5, display: "flex", alignItems: "center", gap: 6 }}>
+              <Icon name="status:caution" size={14} /> {subscription.studentDiscountHint}
             </p>
           )}
         </GlassCard>
@@ -286,7 +287,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
             ...(mode === "negotiate" ? segmentedButtonActive : segmentedButtonInactive),
           }}
         >
-          💬 Negotiate
+          <Icon name="tool:cancel-negotiate" size={16} /> Negotiate
         </button>
         <button
           role="tab"
@@ -297,7 +298,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
             ...(mode === "cancel" ? segmentedButtonActive : segmentedButtonInactive),
           }}
         >
-          ✂️ Cancel
+          <Icon name="action:delete" size={16} /> Cancel
         </button>
       </div>
 
@@ -314,7 +315,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
             style={{
               padding: "14px 16px",
               borderRadius: borderRadius.md,
-              background: "rgba(0, 0, 0, 0.2)",
+              background: "var(--color-sunken)",
               border: "1px solid var(--border)",
               fontSize: 13.5,
               color: "var(--text)",

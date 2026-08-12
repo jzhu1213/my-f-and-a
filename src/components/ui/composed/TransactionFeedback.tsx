@@ -126,12 +126,7 @@ function RadialPulse({
       transition={
         prefersReducedMotion
           ? { type: "tween", duration: 0.15, ease: "easeOut" }
-          : {
-              type: "spring",
-              stiffness: 400,
-              damping: 30,
-              mass: 1.0,
-            }
+          : springs.snappy
       }
       onAnimationComplete={onComplete}
       style={{

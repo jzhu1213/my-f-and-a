@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { triggerHaptic } from "@/lib/haptics"
@@ -44,6 +44,19 @@ export function ReceiptAttachment({
   )
   const [isUploading, setIsUploading] = useState(false)
   const [showLightbox, setShowLightbox] = useState(false)
+
+  // Escape key dismissal for lightbox
+  useEffect(() => {
+    if (!showLightbox) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        setShowLightbox(false)
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [showLightbox])
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -207,7 +220,7 @@ export function ReceiptAttachment({
               position: "fixed",
               inset: 0,
               zIndex: 9999,
-              background: "rgba(0, 0, 0, 0.9)",
+              background: "rgba(14, 14, 26, 0.95)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

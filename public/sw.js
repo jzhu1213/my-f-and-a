@@ -104,12 +104,37 @@ sw.addEventListener("notificationclick", (event) => {
 })
 
 // ─── Install & Activate ──────────────────────────────────────────────────────
-sw.addEventListener("install", () => {
+
+const CACHE_NAME = "folio-shell-v1"
+
+// Critical assets to precache for offline-first app shell experience.
+// Next.js hashed assets are cached at runtime via the fetch handler below.
+const SHELL_ASSETS = [
+  "/",
+  "/manifest.json",
+  "/icon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+]
+
+sw.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
+  )
   sw.skipWaiting()
 })
 
 sw.addEventListener("activate", (event) => {
-  event.waitUntil(sw.clients.claim())
+  // Clean up old cache versions
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith("folio-shell-") && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
+    ).then(() => sw.clients.claim())
+  )
 })
 
 // ─── Widget Data Cache ───────────────────────────────────────────────────────
@@ -131,6 +156,8 @@ sw.addEventListener("message", (event) => {
 // Intercept widget data requests and respond from cache
 sw.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url)
+
+  // Widget data endpoint — respond from in-memory cache
   if (url.pathname === "/api/widget/daily-allowance" && cachedWidgetData) {
     // Mark data as stale if cached data is older than 2 hours
     const TWO_HOURS_MS = 2 * 60 * 60 * 1000
@@ -151,6 +178,32 @@ sw.addEventListener("fetch", (event) => {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Access-Control-Allow-Origin": "*",
         },
+      })
+    )
+    return
+  }
+
+  // For navigation requests: network-first, fall back to cached shell
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match("/"))
+    )
+    return
+  }
+
+  // For same-origin static assets: stale-while-revalidate
+  if (url.origin === sw.location.origin) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        const fetchPromise = fetch(event.request).then((response) => {
+          if (response && response.status === 200 && response.type === "basic") {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+          }
+          return response
+        }).catch(() => cached)
+
+        return cached || fetchPromise
       })
     )
   }

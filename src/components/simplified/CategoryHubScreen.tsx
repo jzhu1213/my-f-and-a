@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
+import { Icon } from "@/components/ui/Icon"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -142,7 +143,7 @@ function EmojiPicker({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(0,0,0,0.6)",
+        background: "rgba(14, 14, 26, 0.7)",
         backdropFilter: "blur(4px)",
       }}
       onClick={onClose}
@@ -629,7 +630,7 @@ export function CategoryHubScreen({
                     aria-label={`Archive ${item.label}`}
                     title="Archive"
                   >
-                    📥
+                    <Icon name="category:other" size={16} />
                   </motion.button>
 
                   {/* Delete (only custom) */}
@@ -666,7 +667,7 @@ export function CategoryHubScreen({
             Archived ({archivedItems.length})
           </p>
           <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12, lineHeight: 1.4 }}>
-            These won't appear in the quick-log grid but your history stays intact.
+            These won&apos;t appear in the quick-log grid but your history stays intact.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
             {archivedItems.map(item => (

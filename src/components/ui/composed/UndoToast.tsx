@@ -19,7 +19,7 @@ import { elevations, radius } from "@/styles/surfaces"
 import { spacingScale } from "@/styles/layout"
 import { typography, FONT_FAMILY } from "@/styles/typography"
 import { textColors, colorRamp } from "@/styles/colors"
-import { springs } from "@/lib/animations"
+import { springs, timings, useReducedMotion } from "@/lib/animations"
 
 // ============================================================================
 // Types
@@ -49,6 +49,7 @@ export function UndoToast({
   onUndo,
   onDismiss,
 }: UndoToastProps) {
+  const { prefersReducedMotion } = useReducedMotion()
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Auto-dismiss after duration
@@ -73,9 +74,9 @@ export function UndoToast({
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1, transition: springs.sheet }}
-          exit={{ opacity: 0, y: 10, scale: 0.98, transition: { type: "tween", duration: 0.15 } }}
+          initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.95 }}
+          animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, transition: springs.sheet }}
+          exit={prefersReducedMotion ? { opacity: 0, transition: timings.fast } : { opacity: 0, y: 10, scale: 0.98, transition: { type: "tween", duration: 0.15 } }}
           style={{
             position: "fixed",
             bottom: "calc(80px + env(safe-area-inset-bottom, 0px))",

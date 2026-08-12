@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { ChartFrame } from "@/components/ui/primitives/ChartFrame"
+import { Icon } from "@/components/ui/Icon"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -244,8 +245,8 @@ export function CashFlowForecastScreen({
         >
           <GlassCard elevation="low" style={{ padding: "14px 16px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-              <span style={{ fontSize: 16, lineHeight: 1.3, flexShrink: 0 }} aria-hidden="true">
-                {incomeValidation.hasAidIncome ? "🎓" : "📊"}
+              <span style={{ lineHeight: 1.3, flexShrink: 0, display: "inline-flex", opacity: 0.8 }} aria-hidden="true">
+                <Icon name={incomeValidation.hasAidIncome ? "category:school" : "status:tracking"} size={16} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
@@ -366,8 +367,8 @@ export function CashFlowForecastScreen({
                   key={`${event.date}-${event.label}-${i}`}
                   style={{ display: "flex", alignItems: "center", gap: 10 }}
                 >
-                  <span style={{ fontSize: 14, flexShrink: 0 }} aria-hidden="true">
-                    {event.type === "income" ? "💰" : event.type === "bill" ? "📅" : "📝"}
+                  <span style={{ flexShrink: 0, display: "inline-flex", opacity: 0.8 }} aria-hidden="true">
+                    <Icon name={event.type === "income" ? "category:income" : event.type === "bill" ? "breakdown:scheduled" : "action:edit"} size={16} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 13, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

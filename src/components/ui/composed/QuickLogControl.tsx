@@ -16,10 +16,10 @@
  */
 
 import React from "react"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion } from "framer-motion"
 import { Icon } from "@/components/ui/Icon"
 import { gradients, colorRamp, surfaceColors } from "@/styles/colors"
-import { springPresets } from "@/styles/motion"
+import { springs, useReducedMotion } from "@/lib/animations"
 
 // ============================================================================
 // Types
@@ -54,12 +54,7 @@ const GLOW_PULSE_VARIANTS = {
   },
 }
 
-const PRESS_SPRING = {
-  type: "spring" as const,
-  stiffness: springPresets.snappy.stiffness,
-  damping: springPresets.snappy.damping,
-  mass: springPresets.snappy.mass,
-}
+const PRESS_SPRING = springs.snappy
 
 // ============================================================================
 // Component
@@ -70,7 +65,7 @@ export function QuickLogControl({
   "aria-label": ariaLabel = "Log expense",
   size = 56,
 }: QuickLogControlProps) {
-  const prefersReducedMotion = useReducedMotion()
+  const { prefersReducedMotion } = useReducedMotion()
 
   const buttonStyle: React.CSSProperties = {
     position: "relative",

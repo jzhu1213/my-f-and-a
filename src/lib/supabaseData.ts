@@ -33,6 +33,7 @@ interface DbTransaction {
   recurring_id?: string
   account_type: string
   created_at: string
+  funding_source_id?: string
 }
 
 interface DbProfile {
@@ -166,6 +167,7 @@ function dbTransactionToApp(db: DbTransaction): Transaction {
     recurringId: db.recurring_id,
     accountType: (db.account_type || 'personal') as AccountType,
     createdAt: db.created_at,
+    fundingSourceId: db.funding_source_id,
   }
 }
 
@@ -421,6 +423,7 @@ export async function insertTransaction(
     note?: string
     isRecurring?: boolean
     accountType?: AccountType
+    fundingSourceId?: string
   }
 ): Promise<Transaction | null> {
   const { data, error } = await supabase
@@ -434,6 +437,7 @@ export async function insertTransaction(
       note: tx.note ?? null,
       is_recurring: tx.isRecurring ?? false,
       account_type: tx.accountType ?? 'personal',
+      ...(tx.fundingSourceId ? { funding_source_id: tx.fundingSourceId } : {}),
     })
     .select()
     .single()

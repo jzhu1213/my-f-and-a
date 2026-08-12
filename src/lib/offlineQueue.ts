@@ -151,12 +151,14 @@ export function updateQueueItem(
     item.id === id ? { ...item, ...updates } : item
   )
   persistQueue(queue)
+  dispatchQueueChange()
 }
 
 /** Clears the entire offline queue */
 export function clearOfflineQueue(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(STORAGE_KEY)
+  dispatchQueueChange()
 }
 
 /** Returns the current queue length */
@@ -193,6 +195,9 @@ export function getPendingTransactionIds(userId: string): Set<string> {
 // Background processing — dispatches based on operation kind
 // ============================================================================
 
+/** In-memory lock to prevent concurrent processOfflineQueue calls (avoids duplicate inserts) */
+let _processingLock = false
+
 /**
  * Processes all pending/failed items in the queue sequentially.
  * - create: inserts a new transaction (expense or income)
@@ -208,6 +213,21 @@ export function getPendingTransactionIds(userId: string): Set<string> {
  * Returns counts of succeeded and failed items.
  */
 export async function processOfflineQueue(
+  userId: string
+): Promise<{ succeeded: number; failed: number }> {
+  // Prevent concurrent processing — avoids duplicate inserts when both
+  // the mount-timer and 'online' event fire close together
+  if (_processingLock) return { succeeded: 0, failed: 0 }
+  _processingLock = true
+
+  try {
+    return await _processQueueInternal(userId)
+  } finally {
+    _processingLock = false
+  }
+}
+
+async function _processQueueInternal(
   userId: string
 ): Promise<{ succeeded: number; failed: number }> {
   const queue = getOfflineQueue()

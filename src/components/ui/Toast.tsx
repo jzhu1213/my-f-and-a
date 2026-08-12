@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { Icon } from '@/components/ui/Icon'
 import type { IconName } from '@/lib/icons'
+import { FONT_FAMILY } from '@/styles/typography'
 
 /** Map toast type to its semantic icon name. */
 function getToastIcon(type: ToastType['type']): IconName {
@@ -86,7 +87,7 @@ export function Toast() {
               className="text-xs flex-1 leading-snug"
               style={{
                 color: 'var(--text)',
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: FONT_FAMILY,
                 fontWeight: 400,
               }}
             >
@@ -99,7 +100,7 @@ export function Toast() {
                 onClick={() => { toast.action!.onClick(); removeToast(toast.id) }}
                 className="flex-shrink-0 text-xs transition-all duration-150"
                 style={{
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: FONT_FAMILY,
                   fontSize: '11px',
                   fontWeight: 600,
                   letterSpacing: '0.04em',

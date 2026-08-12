@@ -6,6 +6,7 @@ import { GlassCard, type GlassGlow } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import { getTipIconName } from "@/lib/icons"
 import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY } from "@/styles/typography"
 import { colorRamp } from "@/styles/colors"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import type { ContextualTip, TipType } from "@/types/folio"
@@ -205,7 +206,7 @@ export function ContextualTipCard({
                 color: style.accentFrom,
               }}
             >
-              <Icon name={iconName} size={22} />
+              <Icon name={iconName} size={20} />
             </span>
 
             <div className="flex flex-col gap-1 min-w-0">
@@ -214,7 +215,7 @@ export function ContextualTipCard({
                 className="text-sm font-medium"
                 style={{
                   color: "var(--text)",
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: FONT_FAMILY,
                 }}
               >
                 {tip.title}

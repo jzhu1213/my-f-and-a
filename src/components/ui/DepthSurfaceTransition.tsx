@@ -19,7 +19,7 @@
  * Requirements: 15.6, 15.7
  */
 
-import { type ReactNode, forwardRef } from "react"
+import { type ReactNode, forwardRef, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useReducedMotion } from "@/lib/animations"
 import {
@@ -51,6 +51,8 @@ export interface DepthSurfaceTransitionProps {
   children?: ReactNode
   /** Accessible label for the depth surface. */
   "aria-label"?: string
+  /** Called when the surface should dismiss (e.g. Escape key). */
+  onClose?: () => void
 }
 
 // ============================================================================
@@ -59,11 +61,67 @@ export interface DepthSurfaceTransitionProps {
 
 export const DepthSurfaceTransition = forwardRef<HTMLDivElement, DepthSurfaceTransitionProps>(
   function DepthSurfaceTransition(
-    { open, layoutId, children, "aria-label": ariaLabel },
+    { open, layoutId, children, "aria-label": ariaLabel, onClose },
     ref
   ) {
     const { prefersReducedMotion } = useReducedMotion()
     const tier = elevations.canvas
+    const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+    const containerRef = useRef<HTMLDivElement | null>(null)
+
+    // Focus restoration: store previously focused element on open, restore on close
+    useEffect(() => {
+      if (open) {
+        previouslyFocusedRef.current = document.activeElement as HTMLElement | null
+      } else if (previouslyFocusedRef.current) {
+        previouslyFocusedRef.current.focus()
+        previouslyFocusedRef.current = null
+      }
+    }, [open])
+
+    // Escape key dismissal
+    useEffect(() => {
+      if (!open || !onClose) return
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          e.preventDefault()
+          onClose()
+        }
+      }
+      document.addEventListener("keydown", handleKeyDown)
+      return () => document.removeEventListener("keydown", handleKeyDown)
+    }, [open, onClose])
+
+    // Focus trap: cycle Tab/Shift+Tab within the surface
+    useEffect(() => {
+      if (!open) return
+      const handleTabKey = (e: KeyboardEvent) => {
+        if (e.key !== "Tab") return
+        const container = containerRef.current
+        if (!container) return
+        const focusableSelector =
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        const focusableElements = Array.from(
+          container.querySelectorAll<HTMLElement>(focusableSelector)
+        )
+        if (focusableElements.length === 0) return
+        const first = focusableElements[0]
+        const last = focusableElements[focusableElements.length - 1]
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
+      document.addEventListener("keydown", handleTabKey)
+      return () => document.removeEventListener("keydown", handleTabKey)
+    }, [open])
 
     const containerStyle: React.CSSProperties = {
       position: "fixed",
@@ -95,7 +153,11 @@ export const DepthSurfaceTransition = forwardRef<HTMLDivElement, DepthSurfaceTra
       <AnimatePresence mode="wait">
         {open && (
           <motion.div
-            ref={ref}
+            ref={(node) => {
+              containerRef.current = node
+              if (typeof ref === "function") ref(node)
+              else if (ref) ref.current = node
+            }}
             key="depth-surface"
             layoutId={layoutId}
             style={containerStyle}
