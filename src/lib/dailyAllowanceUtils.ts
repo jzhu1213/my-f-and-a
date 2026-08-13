@@ -5,11 +5,13 @@ import type { FixedExpense } from '@/lib/fixedExpenses'
 import type { FundingSource } from '@/lib/fundingSources'
 import type { PaySchedule } from '@/lib/paySchedule'
 import type { TermSchedule } from '@/lib/termSchedule'
+import type { BudgetPeriodPreference } from '@/lib/budgetPeriod'
 import { getTotalFixedMonthly, isFixedTransaction, getUpcomingBillsList, isScheduledForKnownBill } from '@/lib/fixedExpenses'
 import { isBorrowedTransaction } from '@/lib/fundingSources'
 import { getStatusMessage } from '@/lib/vocabulary'
 import { getNextPayday, getLastPayday, AVG_DAYS_PER_MONTH } from '@/lib/paySchedule'
 import { isTermActive, getDaysInTerm, getDaysRemainingInTerm } from '@/lib/termSchedule'
+import { getEffectiveDaysForPeriod, getPeriodStartDate, getTotalDaysInPeriod } from '@/lib/budgetPeriod'
 import { computeMonthlyIncomeFromStreams } from '@/lib/incomeStreams'
 import { 
   formatDateLocal, 
@@ -480,7 +482,8 @@ export function computeDailyAllowance(
   termSchedule?: TermSchedule | null,
   rhythmWeights?: RhythmWeights | null,
   incomeStreams?: IncomeStream[] | null,
-  projectedIncome?: { amount: number; confidence: number } | null
+  projectedIncome?: { amount: number; confidence: number } | null,
+  budgetPeriod?: BudgetPeriodPreference | null
 ): DailyAllowance {
   // Step 1: Calculate total monthly budget from all category limits.
   //
@@ -624,13 +627,25 @@ export function computeDailyAllowance(
   // the monthly pool is converted to a pay-period pool via AVG_DAYS_PER_MONTH.
   // When mid-month setup (calendar mode), divide by remaining days from setupDate.
   // Otherwise use the full calendar month.
-  const effectiveDays = useTermCycle
-    ? termDaysTotal
-    : usePaydayCycle
-      ? daysInPayCycle
-      : isSetupMidMonth
-        ? getDaysRemainingFromLocal(setupDate!, currentDate)
-        : daysInMonth
+  //
+  // BUDGET PERIOD OVERRIDE (Task 342.2):
+  // When the user has set a budgetPeriod preference (weekly/biweekly/term), it
+  // overrides the effectiveDays calculation. This is a user-facing period choice
+  // that doesn't require budget-level annotations. It takes precedence over the
+  // automatic term/payday detection (which requires specific budget period fields).
+  const budgetPeriodDays = getEffectiveDaysForPeriod(budgetPeriod ?? null, currentDate, termSchedule)
+  const budgetPeriodTotalDays = getTotalDaysInPeriod(budgetPeriod ?? null, currentDate, termSchedule)
+  const useBudgetPeriod = budgetPeriodDays !== null && budgetPeriodTotalDays !== null
+
+  const effectiveDays = useBudgetPeriod
+    ? budgetPeriodDays
+    : useTermCycle
+      ? termDaysTotal
+      : usePaydayCycle
+        ? daysInPayCycle
+        : isSetupMidMonth
+          ? getDaysRemainingFromLocal(setupDate!, currentDate)
+          : daysInMonth
 
   // For term-based budgets, the pool is the term-length equivalent of the monthly pool.
   // termPool = monthlyPool * (daysInTerm / AVG_DAYS_PER_MONTH)
@@ -638,12 +653,16 @@ export function computeDailyAllowance(
   // For payday-aligned budgets, the pool is the pay-period equivalent of the monthly pool.
   // periodPool = monthlyPool * (daysInPayCycle / AVG_DAYS_PER_MONTH)
   // dailyBudget = periodPool / daysInPayCycle = monthlyPool / AVG_DAYS_PER_MONTH
+  // For budget period override (Task 342.2), scale the monthly pool to the period length.
+  // periodPool = monthlyPool * (totalDaysInPeriod / AVG_DAYS_PER_MONTH)
   // We route through effectiveDays for the division, so we adjust the pool here.
-  const scaledPool = useTermCycle && termDaysTotal > 0
-    ? (pool: number) => pool * (termDaysTotal / AVG_DAYS_PER_MONTH)
-    : usePaydayCycle && daysInPayCycle > 0
-      ? (pool: number) => pool * (daysInPayCycle / AVG_DAYS_PER_MONTH)
-      : (pool: number) => pool
+  const scaledPool = useBudgetPeriod && budgetPeriodTotalDays > 0
+    ? (pool: number) => pool * (budgetPeriodTotalDays / AVG_DAYS_PER_MONTH)
+    : useTermCycle && termDaysTotal > 0
+      ? (pool: number) => pool * (termDaysTotal / AVG_DAYS_PER_MONTH)
+      : usePaydayCycle && daysInPayCycle > 0
+        ? (pool: number) => pool * (daysInPayCycle / AVG_DAYS_PER_MONTH)
+        : (pool: number) => pool
 
   let dailyBudget: number
   switch (incomeSource) {
@@ -735,20 +754,26 @@ export function computeDailyAllowance(
   // In term-cycle mode, rollover covers days from term start to yesterday.
   // In payday-cycle mode, rollover covers days from lastPayday to yesterday
   // instead of from month start / setupDate.
+  // In budget period mode (Task 342.2), rollover covers days from period start.
   // In calendar mode, the existing month-based logic applies.
-  const rolloverStart: Date = useTermCycle
-    ? parseDateLocal(termSchedule!.startDate)
-    : usePaydayCycle && lastPayday
-      ? lastPayday
-      : isSetupMidMonth
-        ? new Date(currentDate.getFullYear(), currentDate.getMonth(), setupDay)
-        : getMonthStartLocal(currentDate)
+  const budgetPeriodStart = getPeriodStartDate(budgetPeriod ?? null, currentDate, termSchedule)
+  const rolloverStart: Date = useBudgetPeriod && budgetPeriodStart
+    ? budgetPeriodStart
+    : useTermCycle
+      ? parseDateLocal(termSchedule!.startDate)
+      : usePaydayCycle && lastPayday
+        ? lastPayday
+        : isSetupMidMonth
+          ? new Date(currentDate.getFullYear(), currentDate.getMonth(), setupDay)
+          : getMonthStartLocal(currentDate)
 
-  const daysElapsedSinceSetup = useTermCycle
-    ? Math.max(0, Math.round((currentDate.getTime() - rolloverStart.getTime()) / (24 * 60 * 60 * 1000)))
-    : usePaydayCycle && lastPayday
-      ? Math.max(0, Math.round((currentDate.getTime() - lastPayday.getTime()) / (24 * 60 * 60 * 1000)))
-      : dayOfMonth - setupDay
+  const daysElapsedSinceSetup = useBudgetPeriod && budgetPeriodStart
+    ? Math.max(0, Math.round((currentDate.getTime() - budgetPeriodStart.getTime()) / (24 * 60 * 60 * 1000)))
+    : useTermCycle
+      ? Math.max(0, Math.round((currentDate.getTime() - rolloverStart.getTime()) / (24 * 60 * 60 * 1000)))
+      : usePaydayCycle && lastPayday
+        ? Math.max(0, Math.round((currentDate.getTime() - lastPayday.getTime()) / (24 * 60 * 60 * 1000)))
+        : dayOfMonth - setupDay
   
   let rollover = 0
   if (daysElapsedSinceSetup > 0) {

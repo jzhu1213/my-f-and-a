@@ -33,6 +33,8 @@ export type OverlayId =
   | 'categorizationRules'
   | 'privacyData'
   | 'inviteRoommate'
+  | 'wishList'
+  | 'incomeTrends'
 
 // ── Sheet IDs (bottom sheets — can be open alongside main content) ───────────
 
@@ -78,6 +80,8 @@ export interface OverlayPayloads {
   categorizationRules: undefined
   privacyData: undefined
   inviteRoommate: undefined
+  wishList: undefined
+  incomeTrends: undefined
 }
 
 export interface SheetPayloads {

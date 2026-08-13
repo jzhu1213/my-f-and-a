@@ -14,6 +14,9 @@ import type { IncomeAllocation } from '@/types/folio'
 import type { SinkingFund } from './sinkingFunds'
 import type { PaySchedule, PayCadence } from './paySchedule'
 import type { ActiveSession } from './sessionManagement'
+import type { BudgetPeriodPreference } from './budgetPeriod'
+import { getTotalDaysInPeriod } from './budgetPeriod'
+import type { TermSchedule } from './termSchedule'
 
 import type { OnboardingPath, UserPriority } from '@/types'
 
@@ -524,8 +527,21 @@ export async function getBudgets(userId: string): Promise<Budget[]> {
  * previous month into the current month so users don't have to re-enter them.
  * Only runs when the current month has no limits set yet; already-tracked
  * `spent` values for the current month are preserved.
+ *
+ * EXTENDED (Task 343.2): When a non-monthly budgetPeriod is provided, the
+ * carried-forward limits are pro-rated to the period length:
+ * - Weekly: monthlyLimit / 4.33
+ * - Biweekly: monthlyLimit / (30.44 / 14) ≈ monthlyLimit / 2.17
+ * - Term: monthlyLimit * (termDays / 30.44)
+ *
+ * For monthly periods (or when no budgetPeriod is provided), behavior stays
+ * exactly the same (backward compatible).
  */
-export async function carryForwardBudgetLimits(userId: string): Promise<void> {
+export async function carryForwardBudgetLimits(
+  userId: string,
+  budgetPeriod?: BudgetPeriodPreference | null,
+  termSchedule?: TermSchedule | null
+): Promise<void> {
   const currentMonth = new Date().toISOString().slice(0, 7)
 
   // Fetch all current-month records
@@ -557,15 +573,23 @@ export async function carryForwardBudgetLimits(userId: string): Promise<void> {
   const currentByCategory: Record<string, DbBudget> = {}
   ;(current || []).forEach((b: DbBudget) => { currentByCategory[b.category] = b })
 
+  // Compute the pro-ration factor for non-monthly periods (Task 343.2)
+  const AVG_DAYS_PER_MONTH = 30.44
+  const proRationFactor = computeProRationFactor(budgetPeriod ?? null, termSchedule ?? null, AVG_DAYS_PER_MONTH)
+
   for (const prev of prevBudgets) {
     if (prev.monthly_limit <= 0) continue
+
+    // Apply pro-ration for non-monthly periods
+    const adjustedLimit = Math.round(prev.monthly_limit * proRationFactor * 100) / 100
+
     const existing = currentByCategory[prev.category]
 
     if (existing) {
       // Record exists — only update the limit, preserve spent
       await supabase
         .from('budgets')
-        .update({ monthly_limit: prev.monthly_limit })
+        .update({ monthly_limit: adjustedLimit })
         .eq('id', existing.id)
     } else {
       // No record yet — insert with carried limit and 0 spent
@@ -574,12 +598,44 @@ export async function carryForwardBudgetLimits(userId: string): Promise<void> {
         .insert({
           user_id: userId,
           category: prev.category,
-          monthly_limit: prev.monthly_limit,
+          monthly_limit: adjustedLimit,
           spent: 0,
           month: currentMonth,
         })
     }
   }
+}
+
+/**
+ * Compute the pro-ration factor for budget carry-forward based on period type.
+ *
+ * - monthly (or null): factor = 1.0 (no change)
+ * - weekly: factor = 1 / 4.33 ≈ 0.231
+ * - biweekly: factor = 14 / 30.44 ≈ 0.46
+ * - term: factor = termDays / 30.44
+ *
+ * @internal
+ */
+function computeProRationFactor(
+  budgetPeriod: BudgetPeriodPreference | null,
+  termSchedule: TermSchedule | null,
+  avgDaysPerMonth: number
+): number {
+  if (!budgetPeriod || budgetPeriod.type === 'monthly') return 1.0
+
+  const totalDays = getTotalDaysInPeriod(budgetPeriod, new Date(), termSchedule)
+
+  if (totalDays === null) {
+    // Fallback if period context can't be computed
+    switch (budgetPeriod.type) {
+      case 'weekly': return 7 / avgDaysPerMonth
+      case 'biweekly': return 14 / avgDaysPerMonth
+      case 'term': return 1.0 // Can't determine term length — no pro-ration
+      default: return 1.0
+    }
+  }
+
+  return totalDays / avgDaysPerMonth
 }
 
 export async function upsertBudget(

@@ -18,6 +18,12 @@ import {
   markReminderShownToday,
 } from "./reminderPreferences"
 import { shouldSuppressNotification } from "./engagementTracker"
+import {
+  getOptimalNudgeTime,
+  shouldSendReengagementNudge,
+  getReengagementPayload,
+  markReengagementFired,
+} from "./notificationTimingIntelligence"
 
 // ============================================================================
 // Types
@@ -221,9 +227,34 @@ function msUntilTime(timeStr: string): number {
 }
 
 /**
- * Schedule the daily reminder notification at the user's configured time.
- * If the app is open at that time, fires a notification. If the time has
- * already passed today, schedules for tomorrow.
+ * Determine the effective reminder time by combining the user's configured time
+ * with timing intelligence from app-open patterns. If timing intelligence has
+ * sufficient data and its recommended hour differs from the configured time,
+ * prefer the detected active window (it's when the user is most likely to see
+ * and act on the nudge). Falls back to the user's manual setting when data is
+ * insufficient.
+ *
+ * Task 347.1 — Notification timing intelligence integration.
+ */
+function getEffectiveReminderTime(): string {
+  const prefs = getReminderPreferences()
+  const timing = getOptimalNudgeTime()
+
+  // If timing intelligence has no confident recommendation, use user's config
+  if (timing.isFallback) return prefs.time
+
+  // Use the detected optimal hour (pad to HH:00 format)
+  const hourStr = timing.hour.toString().padStart(2, "0")
+  return `${hourStr}:00`
+}
+
+/**
+ * Schedule the daily reminder notification at the user's active time.
+ * Uses timing intelligence to detect the user's preferred app-open window
+ * and schedules near that time. Falls back to the user's configured time
+ * when insufficient data is available.
+ *
+ * Also checks for re-engagement nudge conditions (2+ days inactive).
  *
  * Returns true if a reminder was scheduled, false if reminders are disabled
  * or conditions aren't met.
@@ -234,7 +265,8 @@ export function scheduleLocalReminder(): boolean {
   const prefs = getReminderPreferences()
   if (!prefs.enabled) return false
 
-  const delay = msUntilTime(prefs.time)
+  const effectiveTime = getEffectiveReminderTime()
+  const delay = msUntilTime(effectiveTime)
 
   scheduledTimer = setTimeout(async () => {
     // Adaptive suppression: if user consistently ignores daily reminders,
@@ -256,7 +288,45 @@ export function scheduleLocalReminder(): boolean {
     scheduleLocalReminder()
   }, delay)
 
+  // Also check re-engagement nudge (Task 347.1)
+  checkReengagementNudge()
+
   return true
+}
+
+/**
+ * Check if we should send a re-engagement nudge (user inactive 2+ days).
+ * Fires via the service worker notification if conditions are met.
+ * Task 347.1.
+ */
+async function checkReengagementNudge(): Promise<void> {
+  if (!shouldSendReengagementNudge()) return
+
+  const permission = getNotificationPermissionStatus()
+  if (permission !== "granted") return
+
+  const payload = getReengagementPayload()
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready
+      const options: ActionableNotificationOptions = {
+        body: payload.body,
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        tag: payload.tag,
+        actions: FOLIO_NOTIFICATION_ACTIONS,
+        data: { defaultUrl: "/" },
+      }
+      await registration.showNotification(payload.title, options)
+      markReengagementFired()
+    } else {
+      new Notification(payload.title, { body: payload.body, icon: "/icon-192.png" })
+      markReengagementFired()
+    }
+  } catch {
+    // fail silently
+  }
 }
 
 /**

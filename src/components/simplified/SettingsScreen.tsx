@@ -38,7 +38,8 @@ import { RegionSettings } from "./RegionSettings"
 import { NotificationCenter } from "./NotificationCenter"
 import { AppLockSetting } from "./AppLockSetting"
 import { SessionsSetting } from "./SessionsSetting"
-import { getInsightsEnabled, setInsightsEnabled, getSavingsRateBadgeEnabled, setSavingsRateBadgeEnabled, getPeerContextEnabled, setPeerContextEnabled } from "@/lib/uiPreferences"
+import { getInsightsEnabled, setInsightsEnabled, getSavingsRateBadgeEnabled, setSavingsRateBadgeEnabled, getPeerContextEnabled, setPeerContextEnabled, getHomeStyle, setHomeStyle } from "@/lib/uiPreferences"
+import type { HomeStyle } from "@/lib/uiPreferences"
 import { getPaceIndicatorEnabled, setPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
 import { useFeatureFlags } from "@/hooks/useFeatureFlags"
 import type { FeatureFlags } from "@/lib/featureFlags"
@@ -50,6 +51,7 @@ import { formatDateLocal, addDaysLocal } from "@/lib/dateUtils"
 import type { UserGoal } from "@/types"
 import { getGoalDescription } from "@/lib/goalDefaults"
 import { SetupChecklistCard } from "./SetupChecklistCard"
+import { PinManagement } from "./PinManagement"
 
 // ============================================================================
 // Types
@@ -153,6 +155,7 @@ const GOAL_OPTIONS_SETTINGS: { key: UserGoal; label: string; emoji: string }[] =
 type SectionId =
   | 'spending-style'
   | 'hero-display'
+  | 'home-cards'
   | 'budget-income'
   | 'payment-methods'
   | 'appearance'
@@ -169,6 +172,7 @@ interface SectionDef {
 const SECTIONS: SectionDef[] = [
   { id: 'spending-style', title: 'Spending Style', keywords: ['spending', 'mode', 'tracker', 'guided', 'structured', 'over-limit', 'limit', 'response', 'goal', 'focus'] },
   { id: 'hero-display', title: 'Hero & Display', keywords: ['hero', 'big number', 'display', 'feature', 'visibility', 'toggle'] },
+  { id: 'home-cards', title: 'Home Cards', keywords: ['home', 'cards', 'pin', 'pinned', 'widgets', 'goal', 'bill', 'savings', 'income', 'pace'] },
   { id: 'budget-income', title: 'Budget & Income', keywords: ['budget', 'limits', 'income', 'category', 'smoothing', 'term', 'semester', 'spend-down', 'categorization', 'rules'] },
   { id: 'payment-methods', title: 'Payment Methods', keywords: ['payment', 'funding', 'sources', 'linked', 'accounts', 'bank', 'card'] },
   { id: 'appearance', title: 'Appearance', keywords: ['appearance', 'theme', 'warm', 'dark', 'insight', 'credit', 'tutorial', 'peer', 'region', 'currency'] },
@@ -323,6 +327,7 @@ export function SettingsScreen({
   const [savingsRateBadgeEnabled, setSavingsRateBadgeEnabledState] = useState(() => getSavingsRateBadgeEnabled())
   const [paceIndicatorEnabled, setPaceIndicatorEnabledState] = useState(() => getPaceIndicatorEnabled())
   const [peerContextEnabled, setPeerContextEnabledState] = useState(() => getPeerContextEnabled())
+  const [homeStyleState, setHomeStyleState] = useState<HomeStyle>(() => getHomeStyle())
   const [countCreditImmediately, setCountCreditImmediatelyState] = useState(countCreditImmediatelyProp ?? true)
 
   // ── Form state ─────────────────────────────────────────────────────────
@@ -343,6 +348,7 @@ export function SettingsScreen({
   const [openSections, setOpenSections] = useState<Record<SectionId, boolean>>({
     'spending-style': true,
     'hero-display': false,
+    'home-cards': false,
     'budget-income': false,
     'payment-methods': false,
     'appearance': false,
@@ -727,6 +733,43 @@ export function SettingsScreen({
               />
             </ListRow>
           </Card>
+        </CollapsibleSection>
+        </motion.div>
+      )}
+
+      {/* ═══ SECTION: Home Cards ═══════════════════════════════════════ */}
+      {isSectionVisible('home-cards') && (
+        <motion.div variants={listItem}>
+        <CollapsibleSection
+          title="Home Cards"
+          isOpen={isSectionOpen('home-cards')}
+          onToggle={() => toggleSection('home-cards')}
+        >
+          {/* Home style selector (task 345.1) */}
+          <Card style={{ padding: `${spacingScale["16"]} ${spacingScale["20"]}`, marginBottom: spacingScale["16"] }}>
+            <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["4"] }}>
+              Home style
+            </p>
+            <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["12"] }}>
+              Choose how much info shows on your home screen.
+            </p>
+            <SegmentedControl
+              items={['Minimal', 'Dashboard'] as unknown as string[]}
+              selectedIndex={homeStyleState === 'minimal' ? 0 : 1}
+              onChange={(idx) => {
+                const next: HomeStyle = idx === 0 ? 'minimal' : 'dashboard'
+                setHomeStyleState(next)
+                setHomeStyle(next)
+              }}
+              aria-label="Home style"
+            />
+            {homeStyleState === 'minimal' && (
+              <p style={{ ...typography.caption, color: textColors.muted, marginTop: spacingScale["12"] }}>
+                Pinned cards are hidden in Minimal mode.
+              </p>
+            )}
+          </Card>
+          <PinManagement />
         </CollapsibleSection>
         </motion.div>
       )}

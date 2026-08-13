@@ -7,6 +7,10 @@ import { EmptyState } from "@/components/ui/EmptyState"
 import type { DetectedSubscription, SubscriptionAlert, ConfidenceBadge } from "@/lib/subscriptionDetector"
 import { emojiForCategory, getMonthlySubscriptionTotal, getStudentSavingsOpportunities, getSubscriptionAlerts, confidenceBadge } from "@/lib/subscriptionDetector"
 import { getTodayLocal } from "@/lib/dateUtils"
+import type { Transaction } from "@/types"
+import { detectPossiblyUnusedSubscriptions } from "@/lib/subscriptionUsageDetector"
+import type { CancelledSubscription } from "@/lib/subscriptionSavingsTracker"
+import { buildSavingsSummary, getSavingsCopy } from "@/lib/subscriptionSavingsTracker"
 import { TIP_EMOJI } from "@/lib/vocabulary"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
@@ -35,6 +39,22 @@ export interface SubscriptionAuditScreenProps {
    * shown for detections that aren't already confirmed.
    */
   onConfirm?: (subscription: DetectedSubscription) => void
+  /**
+   * All user transactions — used to cross-reference subscription categories
+   * with other spending and surface "possibly unused" insights. When omitted,
+   * the usage-based insights section is hidden.
+   */
+  transactions?: Transaction[]
+  /**
+   * List of cancelled subscriptions for savings tracking (task 354).
+   * When provided, the savings section is displayed.
+   */
+  cancelledSubscriptions?: CancelledSubscription[]
+  /**
+   * Callback when user marks a subscription as cancelled. Triggers savings
+   * tracking for that subscription.
+   */
+  onCancelSubscription?: (subscription: DetectedSubscription) => void
 }
 
 // ============================================================================
@@ -101,10 +121,21 @@ export function SubscriptionAuditScreen({
   onClose,
   onOpenCancelNegotiate,
   onConfirm,
+  transactions,
+  cancelledSubscriptions,
+  onCancelSubscription,
 }: SubscriptionAuditScreenProps) {
   const monthlyTotal = getMonthlySubscriptionTotal(subscriptions)
   const savingsOpportunities = getStudentSavingsOpportunities(subscriptions)
   const alerts = getSubscriptionAlerts(subscriptions, getTodayLocal())
+  const possiblyUnused = transactions
+    ? detectPossiblyUnusedSubscriptions(subscriptions, transactions)
+    : []
+
+  // ── Savings tracking (task 354) ─────────────────────────────────
+  const savingsSummary = cancelledSubscriptions && cancelledSubscriptions.length > 0
+    ? buildSavingsSummary(cancelledSubscriptions, monthlyTotal)
+    : null
 
   return (
     <div
@@ -169,6 +200,13 @@ export function SubscriptionAuditScreen({
         <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
           {subscriptions.length} subscription{subscriptions.length !== 1 ? "s" : ""} detected
         </p>
+        {/* ── Aggregate summary (task 354.2) ─────────────────────── */}
+        {savingsSummary && savingsSummary.totalSavedFromCancellations > 0 && (
+          <p style={{ fontSize: 13, color: "var(--sub)", marginTop: 12, lineHeight: 1.5 }}>
+            Total active: ${monthlyTotal.toFixed(2)}/mo · Saved from cancellations: ${savingsSummary.totalSavedFromCancellations.toFixed(0)} total.
+            {" "}That&apos;s money staying in your pocket 💚
+          </p>
+        )}
       </GlassCard>
 
       {/* ── Renewing soon / trial ending heads-up ──────────────────── */}
@@ -198,6 +236,56 @@ export function SubscriptionAuditScreen({
               ? "One of these offers a student rate — a quick switch could free up a little room."
               : `${savingsOpportunities.length} of these offer student rates — a few quick switches could free up some room.`}
           </p>
+        </GlassCard>
+      )}
+
+      {/* ── Possibly unused subscriptions ──────────────────────────── */}
+      {possiblyUnused.length > 0 && (
+        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeader }}>Possibly unused</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
+            {possiblyUnused.map((item) => (
+              <div
+                key={item.subscription.id}
+                style={{ display: "flex", gap: 10, alignItems: "flex-start" }}
+              >
+                <span style={{ fontSize: 18, lineHeight: 1.4, flexShrink: 0 }} aria-hidden="true">
+                  {emojiForCategory(item.subscription.category)}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", margin: 0 }}>
+                    {item.subscription.label}
+                    <span style={{ fontWeight: 400, color: "var(--sub)", marginLeft: 6, fontSize: 12 }}>
+                      ${item.subscription.amount.toFixed(2)}{frequencyLabel(item.subscription.frequency)}
+                    </span>
+                  </p>
+                  <p style={{ fontSize: 12.5, color: "var(--sub)", marginTop: 4, lineHeight: 1.5 }}>
+                    You haven&apos;t used anything in {item.categoryLabel} besides this subscription in 2 months — still worth it?
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── Savings from cancellations (task 354.1) ────────────────── */}
+      {savingsSummary && savingsSummary.items.length > 0 && (
+        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
+          <p style={{ ...sectionHeader }}>Savings from cancellations</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+            {savingsSummary.items.map((item) => (
+              <div
+                key={item.subscription.id}
+                style={{ display: "flex", gap: 10, alignItems: "flex-start" }}
+              >
+                <span style={{ fontSize: 16, lineHeight: 1.4 }} aria-hidden="true">💰</span>
+                <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>
+                  {getSavingsCopy(item)}
+                </p>
+              </div>
+            ))}
+          </div>
         </GlassCard>
       )}
 
@@ -320,9 +408,9 @@ export function SubscriptionAuditScreen({
                 </motion.button>
               </div>
 
-              {/* Action row: one-tap confirm (unconfirmed only) + cancel/negotiate */}
-              {(onOpenCancelNegotiate || (onConfirm && !sub.isConfirmed)) && (
-                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              {/* Action row: one-tap confirm (unconfirmed only) + cancel/negotiate + mark cancelled */}
+              {(onOpenCancelNegotiate || (onConfirm && !sub.isConfirmed) || onCancelSubscription) && (
+                <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                   {onConfirm && !sub.isConfirmed && (
                     <motion.button
                       onClick={() => onConfirm(sub)}
@@ -365,6 +453,28 @@ export function SubscriptionAuditScreen({
                       aria-label={`Get help cancelling or negotiating ${sub.label}`}
                     >
                       💬 Cancel or negotiate
+                    </motion.button>
+                  )}
+                  {onCancelSubscription && (
+                    <motion.button
+                      onClick={() => onCancelSubscription(sub)}
+                      whileTap={{ scale: 0.98 }}
+                      transition={springs.snappy}
+                      style={{
+                        flex: 1,
+                        padding: "10px 0",
+                        background: "rgba(248, 113, 113, 0.10)",
+                        border: "1px solid rgba(248, 113, 113, 0.25)",
+                        borderRadius: 10,
+                        color: "var(--sub)",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        fontFamily: FONT_FAMILY,
+                        cursor: "pointer",
+                      }}
+                      aria-label={`Mark ${sub.label} as cancelled`}
+                    >
+                      ✕ I cancelled this
                     </motion.button>
                   )}
                 </div>

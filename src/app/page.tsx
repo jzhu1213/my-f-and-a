@@ -25,6 +25,8 @@ import { readQuickCaptureIntent } from '@/lib/quickCapture'
 import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath, buildDemoOnlySteps } from '@/components/simplified/TutorialSteps'
 import type { PayCadence } from '@/lib/paySchedule'
 import { detectSubscriptions, toRecurringBillDraft } from '@/lib/subscriptionDetector'
+import { loadCancelledSubscriptions, trackCancelledSubscription } from '@/lib/subscriptionSavingsTracker'
+import type { CancelledSubscription } from '@/lib/subscriptionSavingsTracker'
 import { mapGoalToPriority } from '@/lib/goalMapping'
 import { getGoalDefaults } from '@/lib/goalDefaults'
 import { getCategorizationRules, saveCategorizationRule, updateCategorizationRule, deleteCategorizationRule } from '@/lib/categorizationRules'
@@ -169,6 +171,14 @@ const PrivacyDataScreen = dynamic(
   () => import('@/components/simplified/PrivacyDataScreen').then(m => ({ default: m.PrivacyDataScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
+const WishListScreen = dynamic(
+  () => import('@/components/simplified/WishListScreen').then(m => ({ default: m.WishListScreen })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
+const IncomeTrendsScreen = dynamic(
+  () => import('@/components/simplified/IncomeTrendsScreen').then(m => ({ default: m.IncomeTrendsScreen })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -182,6 +192,7 @@ import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, 
 import type { TransactionCategory, Transaction, OnboardingPath, UserGoal } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
 import { heroMeaningStatus } from '@/lib/dailyAllowanceUtils'
+import { computePeriodContext } from '@/lib/budgetPeriod'
 import type { Reimbursement } from '@/lib/reimbursements'
 import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { applyRoundUp, getRoundUpTargetGoal } from '@/lib/roundUpSavings'
@@ -358,6 +369,10 @@ export default function FolioApp() {
     totalSavingsBalance,
     loadError,
     incomeOverdue,
+    budgetPeriod,
+    setBudgetPeriod,
+    periodTransitionMessage,
+    dismissPeriodTransition,
   } = useHomeData(user?.id, user, recurringBills)
 
   // ── Custom Categories ──────────────────────────────────────────
@@ -397,6 +412,11 @@ export default function FolioApp() {
 
   // ── Feature Flags (improvement 4.6 — toggle advanced features) ──
   const { flags } = useFeatureFlags()
+
+  // ── Period Context (task 342.3) — compute current budget period context ──
+  const periodContext = useMemo(() => {
+    return computePeriodContext(budgetPeriod ?? null, new Date(), termSchedule)
+  }, [budgetPeriod, termSchedule])
 
   // ── Completed lesson IDs (task 151.1 — credit education path wiring) ──
   const completedLessonIds = useMemo(
@@ -493,6 +513,14 @@ export default function FolioApp() {
     [transactions, dismissedSubscriptions]
   )
 
+  // ── Cancelled Subscription Savings (task 354) ──────────────────
+  const [cancelledSubscriptions, setCancelledSubscriptions] = useState<CancelledSubscription[]>([])
+  useEffect(() => {
+    if (user?.id) {
+      setCancelledSubscriptions(loadCancelledSubscriptions(user.id))
+    }
+  }, [user?.id])
+
   // ── Monthly income (for goal deadline feasibility) ─────────────
   const monthlyIncome = useMemo(() => {
     const currentMonth = new Date().toISOString().slice(0, 7)
@@ -569,6 +597,20 @@ export default function FolioApp() {
     }
   }, [addBill, showToast])
 
+  // Mark a subscription as cancelled and start tracking savings (task 354).
+  const handleCancelSubscription = useCallback((sub: DetectedSubscription) => {
+    if (!user?.id) return
+    const updated = trackCancelledSubscription(user.id, {
+      id: sub.id,
+      label: sub.label,
+      monthlyAmount: sub.amount,
+      category: sub.category,
+    })
+    setCancelledSubscriptions(updated)
+    setDismissedSubscriptions(prev => new Set([...prev, sub.id]))
+    showToast(`${sub.label} marked as cancelled — we'll track your savings`, 'success')
+  }, [user?.id, showToast])
+
   // ── Onboarding Check ───────────────────────────────────────────
   // Task 66: Skip the onboarding gate — new users go straight to the Home Screen.
   // The tutorial remains accessible from settings but never blocks value.
@@ -638,11 +680,11 @@ export default function FolioApp() {
   // ── Budget limit carry-forward on mount ────────────────────────
   useEffect(() => {
     if (user?.id && !authLoading) {
-      carryForwardBudgetLimits(user.id).catch(err =>
+      carryForwardBudgetLimits(user.id, budgetPeriod, termSchedule).catch(err =>
         console.error('Error carrying forward budget limits:', err)
       )
     }
-  }, [user?.id, authLoading])
+  }, [user?.id, authLoading, budgetPeriod, termSchedule])
 
   // ── Onboarding Handlers ────────────────────────────────────────
   const handleTutorialComplete = async () => {
@@ -1843,6 +1885,8 @@ export default function FolioApp() {
           onOpenCancelNegotiate={(sub) => {
             overlay.openOverlay('cancelNegotiate', { target: sub })
           }}
+          cancelledSubscriptions={cancelledSubscriptions}
+          onCancelSubscription={handleCancelSubscription}
         />
       </div>
     )
@@ -2067,6 +2111,48 @@ export default function FolioApp() {
           onClose={() => overlay.closeOverlay()}
         />
       </div>
+    )
+  }
+
+  // ── Wish List (full-screen overlay, task 352.1) ────────────────
+  if (overlay.activeOverlay === 'wishList') {
+    return (
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'wish-list' ? 'tool-wish-list' : undefined}
+        aria-label="Wish List"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <WishListScreen
+            transactions={transactions}
+            budgets={budgets}
+            onBack={handleCloseDepthSurface}
+            onCelebration={setCelebrationEvent}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
+    )
+  }
+
+  // ── Income Trends (full-screen overlay, task 355) ──────────────
+  if (overlay.activeOverlay === 'incomeTrends') {
+    return (
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'income-trends' ? 'tool-income-trends' : undefined}
+        aria-label="Income Trends"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <IncomeTrendsScreen
+            transactions={transactions}
+            onBack={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
@@ -2327,6 +2413,9 @@ export default function FolioApp() {
                 ]}
                 onResumeSetupStep={handleResumeSetupStep}
                 incomeOverdue={incomeOverdue}
+                periodContext={periodContext}
+                periodTransitionMessage={periodTransitionMessage}
+                onDismissPeriodTransition={dismissPeriodTransition}
                 onHeroTapDetails={() => handleNavChange('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => overlay.openSheet('income')}
@@ -2341,6 +2430,7 @@ export default function FolioApp() {
                 detectedSubscriptions={detectedSubscriptions}
                 onOpenBudgetSettings={() => overlay.openOverlay('budgetSettings')}
                 onOpenSplitExpense={handleOpenSplitExpense}
+                onAddWish={() => { setOverlayOriginToolId('wish-list'); overlay.openOverlay('wishList') }}
                 outstandingSplits={outstandingSplits}
                 onOpenReimbursements={() => overlay.openOverlay('reimbursements')}
                 onSettleSplit={handleSettleSplit}
@@ -2389,6 +2479,8 @@ export default function FolioApp() {
                 onOpenTermReview={() => { setOverlayOriginToolId('term-review'); overlay.openOverlay('termReview') }}
                 onOpenPeerContext={() => { setOverlayOriginToolId('peer-context'); overlay.openOverlay('peerContext') }}
                 onOpenInviteRoommate={() => { setOverlayOriginToolId('invite-roommate'); overlay.openOverlay('inviteRoommate') }}
+                onOpenWishList={() => { setOverlayOriginToolId('wish-list'); overlay.openOverlay('wishList') }}
+                onOpenIncomeTrends={() => { setOverlayOriginToolId('income-trends'); overlay.openOverlay('incomeTrends') }}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}

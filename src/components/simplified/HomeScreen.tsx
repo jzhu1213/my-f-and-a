@@ -27,7 +27,7 @@ import { CELEBRATION_COPY, CELEBRATION_EMOJI } from "@/lib/vocabulary"
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { recordLastActive } from "@/lib/reminderPreferences"
-import { getInsightsEnabled, getSavingsRateBadgeEnabled } from "@/lib/uiPreferences"
+import { getInsightsEnabled, getSavingsRateBadgeEnabled, getHomeStyle } from "@/lib/uiPreferences"
 import { getPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
 import { SpendPaceIndicator } from "./SpendPaceIndicator"
 import { motion, AnimatePresence } from "framer-motion"
@@ -58,9 +58,16 @@ import { InlineTransactionEditor } from "./InlineTransactionEditor"
 import { PullToRefresh } from "./PullToRefresh"
 import { TimeHorizonPills } from "./TimeHorizonPills"
 import type { TimeHorizonStats } from "@/lib/timeHorizonStats"
+import type { PeriodContext } from "@/lib/budgetPeriod"
+import type { PeriodTransitionMessage } from "@/lib/periodTransition"
 import { AffordabilitySheet } from "./AffordabilitySheet"
 import { WelcomeBackBadge } from "./WelcomeBackBadge"
 import { SetupChecklistCard } from "./SetupChecklistCard"
+import { PeriodContextIndicator } from "./PeriodContextIndicator"
+import { PinnedHomeCards } from "./PinnedHomeCards"
+import type { PinnedCardType } from "@/lib/homeWidgets"
+import { getPinnedCards } from "@/lib/homeWidgets"
+import type { PinnedCard } from "@/lib/homeWidgets"
 import dynamic from "next/dynamic"
 
 // Code-split: celebration animations are heavy (canvas-confetti + framer-motion
@@ -267,6 +274,8 @@ export interface HomeScreenProps {
   onOpenBudgetSettings?: () => void
   /** Called when user taps the "Split" quick action (task 5.3 — one-tap split) */
   onOpenSplitExpense?: () => void
+  /** Called when user taps "+ Wish" quick-add (task 352.2 — wish list quick-add from home) */
+  onAddWish?: () => void
 
   // ── Lessons navigation (task 118.1) ────────────────────────────────────────
   /** Called when a contextual tip links to a lesson — navigates to the Learn overlay */
@@ -330,6 +339,16 @@ export interface HomeScreenProps {
   // ── Income overdue signal (task 336.2) ─────────────────────────────────────
   /** When set, projected income is overdue — drives the income shortfall tip. */
   incomeOverdue?: { expectedAmount: number; daysPastDue: number }
+
+  // ── Budget period context (task 342.3) ─────────────────────────────────────
+  /** Computed period context for the user's budget period preference */
+  periodContext?: PeriodContext | null
+
+  // ── Period transition message (task 343.1) ─────────────────────────────────
+  /** Warm welcome-back message shown on first open after a period resets */
+  periodTransitionMessage?: PeriodTransitionMessage | null
+  /** Dismiss the period transition message */
+  onDismissPeriodTransition?: () => void
 }
 
 // ============================================================================
@@ -381,6 +400,7 @@ export function HomeScreen({
   timeHorizonStats,
   onOpenBudgetSettings,
   onOpenSplitExpense,
+  onAddWish,
   onOpenLesson,
   outstandingSplits,
   onOpenReimbursements,
@@ -399,6 +419,9 @@ export function HomeScreen({
   skippedSetupSteps,
   onResumeSetupStep,
   incomeOverdue,
+  periodContext,
+  periodTransitionMessage,
+  onDismissPeriodTransition,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -477,6 +500,14 @@ export function HomeScreen({
   // ── Spending-pace indicator preference (task 250) ─────────────────────────
   // On by default (subtle, informative); dismissible via Settings → Hero & display.
   const [paceIndicatorEnabled] = useState(() => getPaceIndicatorEnabled())
+
+  // ── Pinned home cards (task 344) ──────────────────────────────────────────
+  // Empty by default — home screen stays minimal until user opts in.
+  const [pinnedCards] = useState<PinnedCard[]>(() => getPinnedCards())
+
+  // ── Home style preference (task 345.1) ────────────────────────────────────
+  // 'minimal' = today's layout (no pinned cards); 'dashboard' = show pinned cards.
+  const [homeStyle] = useState(() => getHomeStyle())
 
   // ── User goal (task 222.3) ─────────────────────────────────────────────────
   // Read the persisted goal so tip selection can boost relevant content.
@@ -936,6 +967,52 @@ export function HomeScreen({
             heroDisplay={heroDisplay}
           />
 
+          {/* ── Period context indicator (task 342.3) — subtle, below hero ── */}
+          {periodContext && !isLoading && (
+            <PeriodContextIndicator periodContext={periodContext} />
+          )}
+
+          {/* ── Period transition message (task 343.1) — warm welcome-back ── */}
+          <AnimatePresence>
+            {periodTransitionMessage && !isLoading && (
+              <motion.div
+                role="status"
+                aria-live="polite"
+                aria-label={periodTransitionMessage.text}
+                initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                transition={timings.normal}
+                onClick={onDismissPeriodTransition}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  marginTop: 10,
+                  padding: "8px 16px",
+                  background: "rgba(139, 92, 246, 0.08)",
+                  border: "1px solid rgba(139, 92, 246, 0.15)",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: 14 }}>✨</span>
+                <span
+                  style={{
+                    fontSize: 13,
+                    color: "var(--text)",
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: 500,
+                    opacity: 0.9,
+                  }}
+                >
+                  {periodTransitionMessage.text}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* ── Savings-rate badge (task 159.2) — opt-in, off by default ──
               A small, unobtrusive indicator of the monthly savings rate.
               Only rendered when enabled in Settings → Hero & display AND when
@@ -1125,6 +1202,16 @@ export function HomeScreen({
           )}
         </motion.section>
 
+        {/* ── 1.5. Pinned Home Cards (task 344) ───────────────────────── */}
+        {homeStyle === 'dashboard' && (
+          <PinnedHomeCards
+            pinnedCards={pinnedCards}
+            goals={goals}
+            transactions={transactions}
+            upcomingBills={upcomingBills}
+          />
+        )}
+
         {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}        <motion.section variants={homeSection} aria-label="Quick actions">
           <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
             {/* Primary: Log expense — larger pill with warm gradient */}
@@ -1215,6 +1302,26 @@ export function HomeScreen({
             >
               🤔 Can I afford this?
             </button>
+            {onAddWish && (
+              <button
+                type="button"
+                onClick={onAddWish}
+                aria-label="Add a wish list item"
+                style={{
+                  fontSize: 13,
+                  color: 'var(--sub)',
+                  background: fills[3],
+                  border: `1px solid ${fills[8]}`,
+                  borderRadius: borderRadius.full,
+                  padding: '6px 14px',
+                  cursor: 'pointer',
+                  fontFamily: FONT_FAMILY,
+                  fontWeight: 500,
+                }}
+              >
+                ⭐ + Wish
+              </button>
+            )}
           </div>
         </motion.section>
 
@@ -1384,8 +1491,10 @@ export function HomeScreen({
         )}
 
         {/* ── 2.8. Contextual Insight (opt-in, at most one) ─────── */}
+        {/* Tip deprioritization (task 345.1): suppress tips in dashboard mode
+            when pinned cards are present to avoid overcrowding. */}
         <AnimatePresence>
-          {insightsEnabled && activeTip && (
+          {insightsEnabled && activeTip && !(homeStyle === 'dashboard' && pinnedCards.length > 0) && (
             <ContextualTipCard
               tip={activeTip}
               onDismiss={handleDismissTip}

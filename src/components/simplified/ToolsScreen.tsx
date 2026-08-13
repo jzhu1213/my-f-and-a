@@ -59,6 +59,10 @@ export interface ToolsScreenProps {
   onOpenHouseholdPool?: () => void
   /** Open the warm invite-a-roommate flow (task 201.1) */
   onOpenInviteRoommate?: () => void
+  /** Open the wish list screen (task 352.1) */
+  onOpenWishList?: () => void
+  /** Open the income trends screen (task 355) */
+  onOpenIncomeTrends?: () => void
   onOpenPortfolioAllocation?: () => void
   onOpenInvestmentExplorer?: () => void
   onOpenYearInReview?: () => void
@@ -121,7 +125,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "planning",
     label: "Planning & Savings",
-    toolIds: ["sinking-funds", "savings-projections", "manage-savings", "portfolio-allocation", "investment-explorer", "cash-flow-forecast"],
+    toolIds: ["sinking-funds", "wish-list", "savings-projections", "manage-savings", "portfolio-allocation", "investment-explorer", "cash-flow-forecast"],
   },
   {
     id: "calculators",
@@ -131,7 +135,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "reviews",
     label: "Reviews",
-    toolIds: ["term-review", "year-in-review", "peer-context"],
+    toolIds: ["income-trends", "term-review", "year-in-review", "peer-context"],
   },
   {
     id: "learn",
@@ -160,6 +164,8 @@ export function ToolsScreen({
   onOpenCashFlowForecast,
   onOpenHouseholdPool,
   onOpenInviteRoommate,
+  onOpenWishList,
+  onOpenIncomeTrends,
   onOpenPortfolioAllocation,
   onOpenInvestmentExplorer,
   onOpenYearInReview,
@@ -226,6 +232,7 @@ export function ToolsScreen({
     { id: "household-pool", iconName: "tool:household-pool", title: "Shared Pools", description: "Split shared expenses with roommates.", onOpen: onOpenHouseholdPool },
     { id: "invite-roommate", iconName: "tool:invite-roommate", title: "Invite a Roommate", description: "Share a pool or goal with a roommate.", onOpen: onOpenInviteRoommate },
     { id: "savings-projections", iconName: "tool:savings-projections", title: "Savings Projections", description: "Project how your savings might grow.", onOpen: onOpenSavingsProjections },
+    { id: "wish-list", iconName: "tool:wish-list", title: "Wish List", description: "Track what you want and see when you can afford it.", onOpen: onOpenWishList },
     { id: "manage-savings", iconName: "tool:manage-savings", title: "Manage Savings", description: "Add, edit, or remove savings accounts.", onOpen: onOpenManageSavings },
     { id: "portfolio-allocation", iconName: "tool:portfolio-allocation", title: "Portfolio Allocation", description: "See savings broken down by account type.", onOpen: onOpenPortfolioAllocation },
     { id: "investment-explorer", iconName: "tool:investment-explorer", title: "What If I Invest?", description: "Model contributions and returns over time.", onOpen: onOpenInvestmentExplorer },
@@ -236,6 +243,7 @@ export function ToolsScreen({
     { id: "year-in-review", iconName: "tool:year-in-review", title: "Year in Review", description: "A once-a-year look back at your streaks and savings.", onOpen: onOpenYearInReview },
     { id: "peer-context", iconName: "tool:peer-context", title: "How You Compare", description: "Optional anonymized context against student ranges.", onOpen: onOpenPeerContext },
     { id: "learn", iconName: "tool:learn", title: "Learn", description: "Short lessons on budgeting, saving, and investing.", onOpen: onOpenLearn },
+    { id: "income-trends", iconName: "tool:income-trends", title: "Income Trends", description: "See how your earnings grow over time.", onOpen: onOpenIncomeTrends },
   ]
 
   const isToolVisible = (toolId: string): boolean => {

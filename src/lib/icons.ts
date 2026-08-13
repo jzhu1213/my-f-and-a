@@ -70,6 +70,7 @@ import {
   UsersRound,
   PiggyBank,
   Percent,
+  Star,
   // Breakdown
   CalendarDays,
   RefreshCcw,
@@ -164,6 +165,8 @@ export type IconName =
   | 'tool:year-in-review'
   | 'tool:peer-context'
   | 'tool:learn'
+  | 'tool:wish-list'
+  | 'tool:income-trends'
   // ── Tools screen stat cards ──────────────────────────────────────────────
   | 'stat:set-aside'
   | 'stat:savings-rate'
@@ -263,6 +266,8 @@ export const ICON_REGISTRY = {
   'tool:year-in-review': PartyPopper,
   'tool:peer-context': UsersRound,
   'tool:learn': BookOpen,
+  'tool:wish-list': Star,
+  'tool:income-trends': TrendingUp,
   // ── Tools screen stat cards ───────────────────────────────────────────────
   'stat:set-aside': PiggyBank,
   'stat:savings-rate': Percent,

@@ -3,6 +3,11 @@ import type { CelebrationEvent, CelebrationType, AnimationType } from '@/types/f
 import { getNoSpendStreak, isNoSpendWeekend } from '@/lib/noSpendChallenge'
 import { CELEBRATION_EMOJI, CELEBRATION_COPY } from '@/lib/vocabulary'
 import { formatDateLocal, subtractDaysLocal, getDaysInMonthLocal } from '@/lib/dateUtils'
+import { checkIncomeGrowthMilestone, checkIncomeRecordMonth } from '@/lib/incomeEncouragement'
+import { hasBeenTriggered, markTriggered } from '@/lib/celebrationDedup'
+
+// Re-export for consumers that previously imported from here
+export { hasBeenTriggered, markTriggered } from '@/lib/celebrationDedup'
 
 // ============================================================================
 // Celebration Engine (Requirements 6.1–6.6)
@@ -26,48 +31,6 @@ let sessionCelebrationFingerprint: string | null = null
 
 // NOTE: Removed UTC-based formatDate and subtractDays functions.
 // Now using local-time utilities from dateUtils.ts (Task 94.1).
-
-/**
- * Gets the set of previously triggered celebration IDs from localStorage.
- */
-function getTriggeredCelebrations(): Set<string> {
-  if (typeof window === 'undefined') return new Set()
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored) return new Set()
-    return new Set(JSON.parse(stored) as string[])
-  } catch {
-    return new Set()
-  }
-}
-
-/**
- * Persists the set of triggered celebration IDs to localStorage.
- */
-function saveTriggeredCelebrations(triggered: Set<string>): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...triggered]))
-  } catch {
-    // Silently fail if storage is unavailable
-  }
-}
-
-/**
- * Marks a celebration as triggered so it won't fire again for the same event.
- */
-function markTriggered(id: string): void {
-  const triggered = getTriggeredCelebrations()
-  triggered.add(id)
-  saveTriggeredCelebrations(triggered)
-}
-
-/**
- * Checks whether a celebration has already been triggered.
- */
-function hasBeenTriggered(id: string): boolean {
-  return getTriggeredCelebrations().has(id)
-}
 
 /**
  * Calculates the total daily budget from monthly budget limits (using local time).
@@ -861,6 +824,13 @@ export function checkAllCelebrations(
   const firstNoSpendWeek = checkFirstNoSpendWeek(transactions, now)
   if (firstNoSpendWeek) events.push(firstNoSpendWeek)
 
+  // ── Income encouragement (Phase 11 task 356.1) ─────────────────────────
+  const incomeGrowth = checkIncomeGrowthMilestone(transactions, now)
+  if (incomeGrowth) events.push(incomeGrowth)
+
+  const incomeRecord = checkIncomeRecordMonth(transactions, now)
+  if (incomeRecord) events.push(incomeRecord)
+
   return events
 }
 
@@ -927,4 +897,38 @@ function calculateStreak(
   now: Date
 ): number {
   return getUnderBudgetStreak(budgets, transactions, now)
+}
+
+// ============================================================================
+// Wish List Completion (Phase 11 task 352.3)
+// ============================================================================
+
+/**
+ * Creates a celebration event when a wish list item is marked complete.
+ *
+ * This is triggered imperatively (not as part of checkAllCelebrations) because
+ * wish completion is an explicit user action, not an automatic detection.
+ *
+ * @param wishItemId - Unique ID of the completed wish item
+ * @param wishItemName - Display name of the item (used in copy)
+ * @returns CelebrationEvent or null (if already triggered)
+ */
+export function createWishCompleteCelebration(
+  wishItemId: string,
+  wishItemName: string
+): CelebrationEvent | null {
+  const id = `wish_complete_${wishItemId}`
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'wish_complete',
+    `You did it!`,
+    `Enjoy your ${wishItemName}! 🎉`,
+    '🌟',
+    'confetti',
+    5000,
+    'cheerful'
+  )
 }

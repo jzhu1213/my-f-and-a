@@ -105,6 +105,9 @@ export const CELEBRATION_EMOJI = {
   first_month: '📅',
   first_goal_met: '🥳',
   first_no_spend_week: '🍃',
+  // Income encouragement (Phase 11 task 356)
+  income_growth: '💪',
+  income_record: '🎉',
 } as const
 
 // ============================================================================
@@ -251,6 +254,15 @@ export const CELEBRATION_COPY = {
   first_no_spend_week: {
     title: 'A full no-spend week',
     message: "Seven days in a row without spending — your first. That takes some serious intention.",
+  },
+  // ── Income encouragement (Phase 11 task 356) ─────────────────────────────
+  income_growth: {
+    title: 'Income on the rise!',
+    message: "You made more this month than last — nice hustle.",
+  },
+  income_record: {
+    title: 'New income record!',
+    message: "That's your highest-earning month yet. Way to go!",
   },
 } as const
 

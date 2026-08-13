@@ -26,6 +26,11 @@ import {
 } from "@/lib/smartNotifications"
 import type { SmartNotificationPreferences } from "@/lib/smartNotifications"
 import {
+  getPatternNudgePrefs,
+  setPatternNudgePrefs,
+} from "@/lib/patternNudges"
+import type { PatternNudgePreferences } from "@/lib/patternNudges"
+import {
   getNotificationPermissionStatus,
   requestNotificationPermission,
   scheduleLocalReminder,
@@ -59,6 +64,18 @@ const LEAD_DAY_OPTIONS: ChipOption<number>[] = [
   { key: "same", label: "Same day", value: 0 },
   { key: "1day", label: "1 day before", value: 1 },
   { key: "2days", label: "2 days before", value: 2 },
+]
+
+const DND_START_OPTIONS: ChipOption<number>[] = [
+  { key: "9pm", label: "9 PM", value: 21 },
+  { key: "10pm", label: "10 PM", value: 22 },
+  { key: "11pm", label: "11 PM", value: 23 },
+]
+
+const DND_END_OPTIONS: ChipOption<number>[] = [
+  { key: "7am", label: "7 AM", value: 7 },
+  { key: "8am", label: "8 AM", value: 8 },
+  { key: "9am", label: "9 AM", value: 9 },
 ]
 
 // ============================================================================
@@ -165,6 +182,7 @@ export function NotificationCenter() {
   // ── State ──────────────────────────────────────────────────────────────────
   const [reminderPrefs, setReminderPrefsState] = useState<ReminderPreferences>(getReminderPreferences)
   const [smartPrefs, setSmartPrefsState] = useState<SmartNotificationPreferences>(getSmartNotificationPrefs)
+  const [patternPrefs, setPatternPrefsState] = useState<PatternNudgePreferences>(getPatternNudgePrefs)
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionStatus>("default")
   const [customThreshold, setCustomThreshold] = useState<string>("")
   const [showCustomInput, setShowCustomInput] = useState(false)
@@ -275,6 +293,47 @@ export function NotificationCenter() {
     })
   }, [smartPrefs, updateSmartPrefs])
 
+  // Pattern nudge handlers (task 346.3)
+  const updatePatternPrefs = useCallback((updated: PatternNudgePreferences) => {
+    setPatternPrefsState(updated)
+    setPatternNudgePrefs(updated)
+  }, [])
+
+  const handleToggleSpendingReminders = useCallback(() => {
+    updatePatternPrefs({
+      ...patternPrefs,
+      spendingRemindersEnabled: !patternPrefs.spendingRemindersEnabled,
+    })
+  }, [patternPrefs, updatePatternPrefs])
+
+  const handleToggleBillAlerts = useCallback(() => {
+    updatePatternPrefs({
+      ...patternPrefs,
+      billAlertsEnabled: !patternPrefs.billAlertsEnabled,
+    })
+  }, [patternPrefs, updatePatternPrefs])
+
+  const handleToggleStreaks = useCallback(() => {
+    updatePatternPrefs({
+      ...patternPrefs,
+      streaksEnabled: !patternPrefs.streaksEnabled,
+    })
+  }, [patternPrefs, updatePatternPrefs])
+
+  const handleDndStartChange = useCallback(
+    (value: number) => {
+      updatePatternPrefs({ ...patternPrefs, dndStartHour: value })
+    },
+    [patternPrefs, updatePatternPrefs]
+  )
+
+  const handleDndEndChange = useCallback(
+    (value: number) => {
+      updatePatternPrefs({ ...patternPrefs, dndEndHour: value })
+    },
+    [patternPrefs, updatePatternPrefs]
+  )
+
   // Permission
   const handleRequestPermission = useCallback(async () => {
     const result = await requestNotificationPermission()
@@ -289,7 +348,10 @@ export function NotificationCenter() {
     smartPrefs.billDueEnabled ||
     smartPrefs.weeklyRecapEnabled ||
     smartPrefs.savingsContributionEnabled ||
-    smartPrefs.balanceUpdateEnabled
+    smartPrefs.balanceUpdateEnabled ||
+    patternPrefs.spendingRemindersEnabled ||
+    patternPrefs.billAlertsEnabled ||
+    patternPrefs.streaksEnabled
 
   const needsPermission = anyEnabled && permissionStatus === "default"
   const permissionDenied = anyEnabled && permissionStatus === "denied"
@@ -545,7 +607,149 @@ export function NotificationCenter() {
         }
       />
 
-      {/* ── 7. Social Activity ──────────────────────────────────────── */}
+      {/* ── 7. Pattern-Based Nudges (task 346.3) ──────────────────────── */}
+      <div
+        style={{
+          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+          marginTop: 16,
+          paddingTop: 16,
+          marginBottom: 12,
+        }}
+      >
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--sub)",
+            fontWeight: 500,
+            fontFamily: FONT_FAMILY,
+            marginBottom: 4,
+          }}
+        >
+          Smart pattern nudges
+        </p>
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--muted)",
+            lineHeight: 1.4,
+            marginBottom: 14,
+          }}
+        >
+          Context-aware nudges based on your spending patterns. Activates after 2+ weeks of history.
+        </p>
+
+        <NudgeToggle
+          label="Spending reminders"
+          description="Heads up when you're near a usual purchase time or on a high-spend day"
+          enabled={patternPrefs.spendingRemindersEnabled}
+          onToggle={handleToggleSpendingReminders}
+          ariaLabel={
+            patternPrefs.spendingRemindersEnabled
+              ? "Disable spending pattern reminders"
+              : "Enable spending pattern reminders"
+          }
+        />
+
+        <NudgeToggle
+          label="Bill coverage alerts"
+          description="Before a bill is due, lets you know if you're covered or if it's tight"
+          enabled={patternPrefs.billAlertsEnabled}
+          onToggle={handleToggleBillAlerts}
+          ariaLabel={
+            patternPrefs.billAlertsEnabled
+              ? "Disable bill coverage alerts"
+              : "Enable bill coverage alerts"
+          }
+        />
+
+        <NudgeToggle
+          label="Streaks & encouragement"
+          description="Celebrates when you've stayed under budget multiple days running"
+          enabled={patternPrefs.streaksEnabled}
+          onToggle={handleToggleStreaks}
+          ariaLabel={
+            patternPrefs.streaksEnabled
+              ? "Disable streak encouragement"
+              : "Enable streak encouragement"
+          }
+        />
+
+        {/* Do Not Disturb hours */}
+        {(patternPrefs.spendingRemindersEnabled || patternPrefs.billAlertsEnabled || patternPrefs.streaksEnabled) && (
+          <div style={{ marginTop: 12 }}>
+            <p
+              style={{
+                fontSize: 12,
+                color: "var(--muted)",
+                marginBottom: 8,
+                fontFamily: FONT_FAMILY,
+              }}
+            >
+              Do not disturb
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 120 }}>
+                <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>From</p>
+                <div style={segmentedControl}>
+                  {DND_START_OPTIONS.map((opt) => {
+                    const isActive = patternPrefs.dndStartHour === opt.value
+                    return (
+                      <motion.button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => handleDndStartChange(opt.value)}
+                        whileTap={{ scale: 0.97 }}
+                        transition={springs.snappy}
+                        style={{
+                          ...segmentedButtonBase,
+                          ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
+                          padding: "7px 4px",
+                          fontSize: 11,
+                          lineHeight: 1.3,
+                        }}
+                        aria-pressed={isActive}
+                        aria-label={`Set do not disturb start to ${opt.label}`}
+                      >
+                        {opt.label}
+                      </motion.button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 120 }}>
+                <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>Until</p>
+                <div style={segmentedControl}>
+                  {DND_END_OPTIONS.map((opt) => {
+                    const isActive = patternPrefs.dndEndHour === opt.value
+                    return (
+                      <motion.button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => handleDndEndChange(opt.value)}
+                        whileTap={{ scale: 0.97 }}
+                        transition={springs.snappy}
+                        style={{
+                          ...segmentedButtonBase,
+                          ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
+                          padding: "7px 4px",
+                          fontSize: 11,
+                          lineHeight: 1.3,
+                        }}
+                        aria-pressed={isActive}
+                        aria-label={`Set do not disturb end to ${opt.label}`}
+                      >
+                        {opt.label}
+                      </motion.button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 8. Social Activity ──────────────────────────────────────── */}
       <div
         style={{
           borderTop: "1px solid rgba(255, 255, 255, 0.06)",

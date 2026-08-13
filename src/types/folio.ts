@@ -232,6 +232,11 @@ export type CelebrationType =
   | 'first_month'
   | 'first_goal_met'
   | 'first_no_spend_week'
+  // Wish list (Phase 11 task 352.3)
+  | 'wish_complete'
+  // Income encouragement (Phase 11 task 356)
+  | 'income_growth'
+  | 'income_record'
 
 /**
  * Animation style for celebrations

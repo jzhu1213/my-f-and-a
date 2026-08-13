@@ -58,6 +58,8 @@ import { computeTimeHorizonStats } from '@/lib/timeHorizonStats'
 import type { TimeHorizonStats } from '@/lib/timeHorizonStats'
 import type { TermSchedule } from '@/lib/termSchedule'
 import { loadTermSchedule, saveTermSchedule } from '@/lib/termSchedule'
+import type { BudgetPeriodPreference } from '@/lib/budgetPeriod'
+import { loadBudgetPeriodPreference, saveBudgetPeriodPreference } from '@/lib/budgetPeriod'
 import type { SpendingMode } from '@/lib/spendingModes'
 import type { OverLimitResponse } from '@/lib/spendingModes'
 import { getOverLimitResponse, setOverLimitResponsePref } from '@/lib/spendingModes'
@@ -71,6 +73,8 @@ import { getIncomeProjection } from '@/lib/incomePatterns'
 import { isIncomeOverdue as isIncomeOverdueFn } from '@/lib/midMonthIncomeAdjust'
 import type { BudgetMode } from '@/lib/spendingModeConfig'
 import { getBudgetModes, getActiveBudgetMode, setActiveBudgetMode as setActiveBudgetModeStorage, saveBudgetMode as saveBudgetModeStorage, deleteBudgetMode as deleteBudgetModeStorage, applyBudgetModeOverrides, generateBudgetModeId } from '@/lib/spendingModeConfig'
+import { detectPeriodTransition, initializePeriodTracking } from '@/lib/periodTransition'
+import type { PeriodTransitionMessage } from '@/lib/periodTransition'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
 // Stored in localStorage as a fallback (no dedicated Supabase table yet).
@@ -312,6 +316,16 @@ export interface UseHomeDataReturn {
    */
   incomeOverdue?: { expectedAmount: number; daysPastDue: number }
   /**
+   * Period transition message — set on first open after a budget period resets.
+   * Shows a warm "New week — you start with $X today" welcome-back message.
+   * Null when no transition detected. Auto-dismissed after display. (Task 343.1)
+   */
+  periodTransitionMessage: PeriodTransitionMessage | null
+  /**
+   * Dismiss the period transition message (clears state so it doesn't re-render).
+   */
+  dismissPeriodTransition: () => void
+  /**
    * The user's spending mode preference.
    * Controls how budget signals are communicated — never blocks logging.
    * Defaults to `'guided'`.
@@ -550,6 +564,13 @@ export interface UseHomeDataReturn {
    * Pass `null` to clear the term schedule.
    */
   setTermSchedule: (schedule: TermSchedule | null) => void
+  /** The user's budget period preference, or null when monthly (default) */
+  budgetPeriod: BudgetPeriodPreference | null
+  /**
+   * Persist a new budget period preference and update state (Task 342.1).
+   * Pass `null` to reset to monthly.
+   */
+  setBudgetPeriod: (pref: BudgetPeriodPreference | null) => void
   /**
    * Add a new income stream (persisted to localStorage).
    */
@@ -621,6 +642,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   const [disbursements, setDisbursements] = useState<Disbursement[]>(() => loadDisbursements())
   const [spendDownPlans, setSpendDownPlans] = useState<SpendDownPlan[]>(() => loadSpendDownPlans())
   const [termSchedule, setTermScheduleState] = useState<TermSchedule | null>(() => loadTermSchedule())
+  const [budgetPeriod, setBudgetPeriodState] = useState<BudgetPeriodPreference | null>(() => loadBudgetPeriodPreference())
   const [incomeStreams, setIncomeStreams] = useState<IncomeStream[]>(() => loadIncomeStreams())
   // Budget mode state (Task 337)
   const [budgetModes, setBudgetModes] = useState<BudgetMode[]>(() => getBudgetModes())
@@ -1784,9 +1806,10 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       // engine when confidence is sufficient (>= 0.4) and no budget/streams are set
       incomeProjection && incomeProjection.confidence >= 0.4
         ? { amount: incomeProjection.projectedMonthlyIncome, confidence: incomeProjection.confidence }
-        : undefined
+        : undefined,
+      budgetPeriod  // Task 342.2: flexible budget periods
     )
-  }, [budgets, transactions, debts, sinkingFunds, recurringBills, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights, incomeStreams, incomeProjection, budgetModes, activeBudgetModeId])
+  }, [budgets, transactions, debts, sinkingFunds, recurringBills, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights, incomeStreams, incomeProjection, budgetModes, activeBudgetModeId, budgetPeriod])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
@@ -1804,6 +1827,51 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     if (!userId || isLoading || !allowance) return
     setHomeCache(userId, { allowance, transactions, budgets })
   }, [userId, allowance, transactions, budgets, isLoading])
+  
+  // ── Period Transition Detection (Task 343.1) ───────────────────
+  // Detect if a new budget period has started since the last app open.
+  // Shows a warm welcome-back message on first detection, auto-dismissed.
+  const [periodTransitionMessage, setPeriodTransitionMessage] = useState<PeriodTransitionMessage | null>(null)
+  const periodTransitionChecked = useRef(false)
+
+  useEffect(() => {
+    // Only check once per session, after allowance is available
+    if (periodTransitionChecked.current) return
+    if (!allowance || isLoading) return
+
+    periodTransitionChecked.current = true
+
+    const message = detectPeriodTransition(
+      budgetPeriod,
+      currentDay,
+      allowance.amount,
+      termSchedule
+    )
+
+    if (message) {
+      setPeriodTransitionMessage(message)
+      // Auto-dismiss after 8 seconds
+      const timer = setTimeout(() => setPeriodTransitionMessage(null), 8000)
+      return () => clearTimeout(timer)
+    }
+  }, [budgetPeriod, currentDay, allowance, termSchedule, isLoading])
+
+  // Initialize period tracking when preference changes (so future transitions are detected)
+  const budgetPeriodInitialized = useRef(false)
+  useEffect(() => {
+    // Skip the first render — let detectPeriodTransition handle the initial case.
+    // Only re-initialize when the user actively changes their budget period preference.
+    if (!budgetPeriodInitialized.current) {
+      budgetPeriodInitialized.current = true
+      return
+    }
+    initializePeriodTracking(budgetPeriod, currentDay, termSchedule)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [budgetPeriod])
+
+  const dismissPeriodTransition = useCallback(() => {
+    setPeriodTransitionMessage(null)
+  }, [])
   
   // ── Widget Sync Effect ─────────────────────────────────────────
   // Push updated allowance data to the service worker for the PWA widget.
@@ -1916,6 +1984,14 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   const setTermSchedule = useCallback((schedule: TermSchedule | null) => {
     setTermScheduleState(schedule)
     saveTermSchedule(schedule)
+  }, [])
+
+  /**
+   * Persist a new budget period preference and update state (Task 342.1).
+   */
+  const setBudgetPeriod = useCallback((pref: BudgetPeriodPreference | null) => {
+    setBudgetPeriodState(pref)
+    saveBudgetPeriodPreference(pref)
   }, [])
 
   /**
@@ -2153,6 +2229,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     setOverLimitResponse: setOverLimitResponseFn,
     termSchedule,
     setTermSchedule,
+    budgetPeriod,
+    setBudgetPeriod,
     activeSpendDown,
     spendDownPlans,
     addSpendDownPlan,
@@ -2170,5 +2248,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     deleteBudgetMode: deleteBudgetModeFn,
     // Income overdue signal (Task 336.2)
     incomeOverdue,
+    // Period transition message (Task 343.1)
+    periodTransitionMessage,
+    dismissPeriodTransition,
   }
 }
