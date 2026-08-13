@@ -96,6 +96,15 @@ interface ExpenseSheetProps {
    * Called when user taps "View settle-up" to navigate to the ReimbursementLedger (task 284.1).
    */
   onOpenSettleUp?: () => void
+  /**
+   * Active shared budgets the user is part of (task 360.2).
+   * When the selected category matches a shared budget, offer "Log to shared [name]".
+   */
+  sharedBudgets?: { id: string; name: string; category: string }[]
+  /**
+   * Called when user logs an expense to a shared budget (task 360.2).
+   */
+  onLogToSharedBudget?: (data: { budgetId: string; amount: number; note?: string; date?: string }) => void
 }
 
 // ── Date helper utilities (task 87.1) ────────────────────────────────────
@@ -181,6 +190,8 @@ export function ExpenseSheet({
   dailyAllowanceAmount,
   originFromFab = false,
   onOpenSettleUp,
+  sharedBudgets = [],
+  onLogToSharedBudget,
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
@@ -224,6 +235,9 @@ export function ExpenseSheet({
   const [merchantContextMsg, setMerchantContextMsg] = useState<string | null>(null)
   // Merchant average amount for suggestion chip (task 340.2)
   const [merchantAvg, setMerchantAvg] = useState<{ amount: number; label: string } | null>(null)
+
+  // ── Shared budget toggle state (task 360.2) ─────────────────────────────
+  const [logToSharedBudget, setLogToSharedBudget] = useState(false)
 
   // ── Date selection state (task 87.1) ────────────────────────────────────
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -275,6 +289,12 @@ export function ExpenseSheet({
     return getTopHabitChips(transactions ?? [], 3)
   }, [transactions])
 
+  // Matching shared budget for the current category (task 360.2)
+  const matchingSharedBudget = useMemo(() => {
+    if (!category || sharedBudgets.length === 0) return null
+    return sharedBudgets.find((b) => b.category.toLowerCase() === category.toLowerCase()) ?? null
+  }, [category, sharedBudgets])
+
   // Reset state when opening
   useEffect(() => {
     if (isOpen) {
@@ -325,6 +345,7 @@ export function ExpenseSheet({
       setSelectedSourceId(predictedSourceId ?? (fundingSources.length > 0 ? fundingSources[0].id : null))
       setShowSourcePicker(false)
       setTrackAsIOU(false)
+      setLogToSharedBudget(false)
       
       // NOTE: Do NOT auto-focus the amount input here. On iOS, focusing an input
       // triggers the virtual keyboard which resizes the viewport and pushes the
@@ -459,6 +480,18 @@ export function ExpenseSheet({
     const effectiveCategory: TransactionCategory = category ?? (spendingMode === 'tracker' ? 'other' : null!)
     if (!effectiveCategory) return
 
+    // ── Shared budget routing (task 360.2) ──────────────────────────
+    if (logToSharedBudget && matchingSharedBudget && onLogToSharedBudget) {
+      onLogToSharedBudget({
+        budgetId: matchingSharedBudget.id,
+        amount: parsed,
+        note: note.trim() || undefined,
+        date: selectedDate,
+      })
+      onClose()
+      return
+    }
+
     // Determine the user's share based on split mode
     let submittedAmount: number
     // Per-participant amounts for percent/shares modes
@@ -582,7 +615,7 @@ export function ExpenseSheet({
     }
 
     onClose()
-  }, [amount, category, spendingMode, note, tags, splitEnabled, splitCount, splitWith, splitFriends, splitMode, splitParticipants, percentInputs, shareInputs, customShareInput, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage])
+  }, [amount, category, spendingMode, note, tags, splitEnabled, splitCount, splitWith, splitFriends, splitMode, splitParticipants, percentInputs, shareInputs, customShareInput, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage, logToSharedBudget, matchingSharedBudget, onLogToSharedBudget])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -2888,6 +2921,51 @@ export function ExpenseSheet({
                           I owe this back
                         </span>
                       </div>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ── Shared Budget Toggle (task 360.2) ────────────────── */}
+              <AnimatePresence>
+                {matchingSharedBudget && (
+                  <motion.div
+                    key="shared-budget-toggle"
+                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                    transition={springs.snappy}
+                    style={{ overflow: 'hidden', marginBottom: 20 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogToSharedBudget((prev) => !prev)
+                        triggerHaptic('light')
+                      }}
+                      aria-pressed={logToSharedBudget}
+                      aria-label={`Log to shared budget "${matchingSharedBudget.name}"`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '12px 14px',
+                        background: logToSharedBudget
+                          ? colorRamp.accent[100]
+                          : 'transparent',
+                        border: logToSharedBudget
+                          ? `1px solid ${colorRamp.accent[300]}`
+                          : `1px solid ${fills[8]}`,
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }} aria-hidden="true">🤝</span>
+                      <span style={{ fontFamily: FONT_FAMILY, fontSize: pxToRem(14), color: logToSharedBudget ? colorRamp.accent[700] : 'var(--sub)', fontWeight: logToSharedBudget ? 600 : 400 }}>
+                        Log to shared "{matchingSharedBudget.name}"
+                      </span>
                     </button>
                   </motion.div>
                 )}

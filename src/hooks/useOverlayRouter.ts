@@ -35,6 +35,7 @@ export type OverlayId =
   | 'inviteRoommate'
   | 'wishList'
   | 'incomeTrends'
+  | 'sharedBudgets'
 
 // ── Sheet IDs (bottom sheets — can be open alongside main content) ───────────
 
@@ -82,6 +83,7 @@ export interface OverlayPayloads {
   inviteRoommate: undefined
   wishList: undefined
   incomeTrends: undefined
+  sharedBudgets: undefined
 }
 
 export interface SheetPayloads {

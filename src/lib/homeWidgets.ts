@@ -22,6 +22,7 @@ export type PinnedCardType =
   | 'income_tracker'
   | 'spend_pace'
   | 'upcoming_bill'
+  | 'shared_budget'
 
 /**
  * A single pinned card configuration.
@@ -70,6 +71,11 @@ export const CARD_META: Record<PinnedCardType, { label: string; emoji: string; d
     emoji: '🔔',
     description: 'Your next bill due date and amount',
   },
+  shared_budget: {
+    label: 'Shared Budget',
+    emoji: '🤝',
+    description: 'See remaining balance in your shared budget',
+  },
 }
 
 /** All available card types in display order. */
@@ -80,6 +86,7 @@ export const ALL_CARD_TYPES: PinnedCardType[] = [
   'income_tracker',
   'spend_pace',
   'upcoming_bill',
+  'shared_budget',
 ]
 
 // ---------------------------------------------------------------------------

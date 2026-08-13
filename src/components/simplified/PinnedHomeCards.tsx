@@ -43,6 +43,8 @@ export interface PinnedHomeCardsProps {
   monthlyIncomeExpected?: number
   /** Spend pace status */
   spendPaceStatus?: 'on_track' | 'ahead' | 'behind'
+  /** Shared budget summary for the pinnable card (task 360.3) */
+  sharedBudgetSummary?: { name: string; remaining: number; monthlyLimit: number }
   /** Navigate to a tool screen */
   onNavigate?: (cardType: PinnedCardType) => void
 }
@@ -235,6 +237,44 @@ function UpcomingBillCard({
   )
 }
 
+function SharedBudgetCard({
+  sharedBudgetSummary,
+  onTap,
+}: {
+  sharedBudgetSummary?: { name: string; remaining: number; monthlyLimit: number }
+  onTap?: () => void
+}) {
+  const name = sharedBudgetSummary?.name ?? 'Shared Budget'
+  const remaining = sharedBudgetSummary?.remaining ?? 0
+  const limit = sharedBudgetSummary?.monthlyLimit ?? 0
+  const pct = limit > 0 ? Math.min(100, Math.round(((limit - remaining) / limit) * 100)) : 0
+
+  return (
+    <CompactCardShell type="shared_budget" onTap={onTap}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+        <span style={{ fontSize: 14 }} aria-hidden="true">🤝</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={cardTitleStyle}>{name}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+            <div style={{ flex: 1, height: 3, borderRadius: 2, background: fills[8], overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${pct}%`,
+                  height: '100%',
+                  background: pct >= 80 ? 'var(--warning, #f59e0b)' : colorRamp.accent[500],
+                  borderRadius: 2,
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+            <span style={cardValueStyle}>${remaining.toFixed(0)} left</span>
+          </div>
+        </div>
+      </div>
+    </CompactCardShell>
+  )
+}
+
 // ============================================================================
 // Compact Card Shell
 // ============================================================================
@@ -325,6 +365,7 @@ export function PinnedHomeCards({
   monthlyIncomeReceived,
   monthlyIncomeExpected,
   spendPaceStatus,
+  sharedBudgetSummary,
   onNavigate,
 }: PinnedHomeCardsProps) {
   if (pinnedCards.length === 0) return null
@@ -388,6 +429,14 @@ export function PinnedHomeCards({
               <UpcomingBillCard
                 key={card.type}
                 upcomingBills={upcomingBills}
+                onTap={() => handleTap(card.type)}
+              />
+            )
+          case 'shared_budget':
+            return (
+              <SharedBudgetCard
+                key={card.type}
+                sharedBudgetSummary={sharedBudgetSummary}
                 onTap={() => handleTap(card.type)}
               />
             )

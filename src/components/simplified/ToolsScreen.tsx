@@ -28,6 +28,7 @@ import { safeAreaBottom } from "@/styles/layout"
 import { SourceBalancesView } from "./SourceBalancesView"
 import { ObligationsSummary } from "./ObligationsSummary"
 import { SharedActivityView } from "./SharedActivityView"
+import { InsightsFeed } from "./InsightsFeed"
 import { RoundUpSetting } from "./RoundUpSetting"
 import { AutoSaveSetting } from "./AutoSaveSetting"
 import { computeNetObligations } from "@/lib/obligationsUtils"
@@ -63,6 +64,8 @@ export interface ToolsScreenProps {
   onOpenWishList?: () => void
   /** Open the income trends screen (task 355) */
   onOpenIncomeTrends?: () => void
+  /** Open the shared budgets screen (task 360) */
+  onOpenSharedBudgets?: () => void
   onOpenPortfolioAllocation?: () => void
   onOpenInvestmentExplorer?: () => void
   onOpenYearInReview?: () => void
@@ -87,6 +90,8 @@ export interface ToolsScreenProps {
   budgets?: Budget[]
   /** Contribute to a goal (auto-sweep uses this) */
   contributeToGoal?: (goalId: string, amount: number) => Promise<unknown>
+  /** User's daily budget/allowance amount — for insights feed */
+  dailyBudget?: number
 }
 
 // ============================================================================
@@ -120,7 +125,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "obligations",
     label: "Obligations",
-    toolIds: ["debt", "recurring-bills", "reimbursements", "subscriptions", "cancel-negotiate", "household-pool", "invite-roommate"],
+    toolIds: ["debt", "recurring-bills", "reimbursements", "subscriptions", "cancel-negotiate", "household-pool", "invite-roommate", "shared-budgets"],
   },
   {
     id: "planning",
@@ -166,6 +171,7 @@ export function ToolsScreen({
   onOpenInviteRoommate,
   onOpenWishList,
   onOpenIncomeTrends,
+  onOpenSharedBudgets,
   onOpenPortfolioAllocation,
   onOpenInvestmentExplorer,
   onOpenYearInReview,
@@ -180,6 +186,7 @@ export function ToolsScreen({
   goals,
   budgets,
   contributeToGoal,
+  dailyBudget,
 }: ToolsScreenProps) {
   const { flags } = useFeatureFlags()
   const { listContainer, listItem, prefersReducedMotion } = useReducedMotion()
@@ -231,6 +238,7 @@ export function ToolsScreen({
     { id: "cancel-negotiate", iconName: "tool:cancel-negotiate", title: "Cancel or Negotiate", description: "Steps and scripts to lower a bill or cancel.", onOpen: onOpenCancelNegotiate },
     { id: "household-pool", iconName: "tool:household-pool", title: "Shared Pools", description: "Split shared expenses with roommates.", onOpen: onOpenHouseholdPool },
     { id: "invite-roommate", iconName: "tool:invite-roommate", title: "Invite a Roommate", description: "Share a pool or goal with a roommate.", onOpen: onOpenInviteRoommate },
+    { id: "shared-budgets", iconName: "tool:household-pool", title: "Shared Budgets", description: "Budget together with a friend.", onOpen: onOpenSharedBudgets },
     { id: "savings-projections", iconName: "tool:savings-projections", title: "Savings Projections", description: "Project how your savings might grow.", onOpen: onOpenSavingsProjections },
     { id: "wish-list", iconName: "tool:wish-list", title: "Wish List", description: "Track what you want and see when you can afford it.", onOpen: onOpenWishList },
     { id: "manage-savings", iconName: "tool:manage-savings", title: "Manage Savings", description: "Add, edit, or remove savings accounts.", onOpen: onOpenManageSavings },
@@ -343,6 +351,16 @@ export function ToolsScreen({
               {/* Shared Activity — calm list of recent social events (after Obligations) */}
               {section.id === "obligations" && (
                 <SharedActivityView />
+              )}
+
+              {/* Insights Feed — inline in Reviews section */}
+              {section.id === "reviews" && transactions && (dailyBudget ?? 0) > 0 && (
+                <div style={{ marginBottom: sectionTools.length > 0 ? spacingScale["12"] : 0 }}>
+                  <InsightsFeed
+                    transactions={transactions}
+                    dailyBudget={dailyBudget!}
+                  />
+                </div>
               )}
 
               {/* Tool entries — each as a ListRow (dense) */}

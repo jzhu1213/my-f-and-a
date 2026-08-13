@@ -179,6 +179,10 @@ const IncomeTrendsScreen = dynamic(
   () => import('@/components/simplified/IncomeTrendsScreen').then(m => ({ default: m.IncomeTrendsScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
+const SharedBudgetsScreen = dynamic(
+  () => import('@/components/simplified/SharedBudgetsScreen').then(m => ({ default: m.SharedBudgetsScreen })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -2156,6 +2160,23 @@ export default function FolioApp() {
     )
   }
 
+  // ── Shared Budgets (full-screen overlay, task 360) ─────────────
+  if (overlay.activeOverlay === 'sharedBudgets') {
+    return (
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'shared-budgets' ? 'tool-shared-budgets' : undefined}
+        aria-label="Shared Budgets"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <SharedBudgetsScreen onBack={handleCloseDepthSurface} />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
+    )
+  }
+
   // ── Category Hub (full-screen overlay, task 138.1) ─────────────
   if (overlay.activeOverlay === 'categoryHub') {
     return (
@@ -2481,6 +2502,7 @@ export default function FolioApp() {
                 onOpenInviteRoommate={() => { setOverlayOriginToolId('invite-roommate'); overlay.openOverlay('inviteRoommate') }}
                 onOpenWishList={() => { setOverlayOriginToolId('wish-list'); overlay.openOverlay('wishList') }}
                 onOpenIncomeTrends={() => { setOverlayOriginToolId('income-trends'); overlay.openOverlay('incomeTrends') }}
+                onOpenSharedBudgets={() => { setOverlayOriginToolId('shared-budgets'); overlay.openOverlay('sharedBudgets') }}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}
