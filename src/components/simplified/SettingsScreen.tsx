@@ -14,8 +14,9 @@
  * Requirements: 20.1, 20.2
  */
 
-import { useState, useMemo, useRef, useEffect } from "react"
-import { AnimatePresence } from "framer-motion"
+import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { SectionHeader, ListRow } from "@/components/ui"
 import { useTheme } from "@/contexts/ThemeContext"
 import type { Budget, Goal, TransactionCategory } from "@/types"
@@ -41,6 +42,8 @@ import { SettingsHomeExtrasScreen } from "./SettingsHomeExtrasScreen"
 import { SettingsLookFeelScreen } from "./SettingsLookFeelScreen"
 import { SettingsToolsFeaturesScreen } from "./SettingsToolsFeaturesScreen"
 import { SettingsNotificationsScreen } from "./SettingsNotificationsScreen"
+import { SettingsPrivacySecurityScreen } from "./SettingsPrivacySecurityScreen"
+import { SettingsDataExportScreen } from "./SettingsDataExportScreen"
 
 // ============================================================================
 // Types
@@ -101,13 +104,15 @@ export interface SettingsScreenProps {
   onGoalChange?: (goal: import('@/types').UserGoal) => void
   skippedSetupSteps?: string[]
   onResumeSetupStep?: (stepId: string) => void
+  /** Deep-link: auto-open a specific sub-screen on mount (384.3). */
+  initialSubScreen?: SettingsCategory | null
 }
 
 // ============================================================================
 // Navigation row definitions
 // ============================================================================
 
-type SettingsCategory =
+export type SettingsCategory =
   | 'profile'
   | 'spending-style'
   | 'budget-income'
@@ -130,15 +135,15 @@ interface NavRowDef {
 
 const NAV_ROWS: NavRowDef[] = [
   { id: 'profile', icon: '👤', label: 'Profile', keywords: ['account', 'handle', 'avatar', 'email', 'sign out'], group: 0 },
-  { id: 'spending-style', icon: '🎯', label: 'Spending style', keywords: ['mode', 'tracker', 'guided', 'structured', 'over-limit', 'focus', 'goal'], group: 1 },
-  { id: 'budget-income', icon: '💰', label: 'Budget & income', keywords: ['budget', 'limits', 'income', 'categories', 'term', 'smoothing'], group: 1 },
-  { id: 'hero-display', icon: '🔢', label: 'What the number shows', keywords: ['hero', 'big number', 'allowance', 'spent', 'balance', 'period'], group: 1 },
-  { id: 'home-screen', icon: '🏠', label: 'Home screen', keywords: ['extras', 'pace', 'savings', 'badge', 'cards', 'pin', 'style'], group: 2 },
-  { id: 'look-feel', icon: '🎨', label: 'Look & feel', keywords: ['theme', 'warm', 'dark', 'region', 'currency', 'appearance'], group: 2 },
+  { id: 'spending-style', icon: '🎯', label: 'Spending', keywords: ['mode', 'tracker', 'guided', 'structured', 'over-limit', 'focus', 'goal', 'style'], group: 1 },
+  { id: 'budget-income', icon: '💰', label: 'Budget', keywords: ['budget', 'limits', 'income', 'categories', 'term', 'smoothing'], group: 1 },
+  { id: 'hero-display', icon: '🔢', label: 'Hero number', keywords: ['hero', 'big number', 'allowance', 'spent', 'balance', 'period', 'display'], group: 1 },
+  { id: 'home-screen', icon: '🏠', label: 'Home', keywords: ['extras', 'pace', 'savings', 'badge', 'cards', 'pin', 'style', 'screen'], group: 2 },
+  { id: 'look-feel', icon: '🎨', label: 'Appearance', keywords: ['theme', 'warm', 'dark', 'region', 'currency', 'look', 'feel'], group: 2 },
   { id: 'notifications', icon: '🔔', label: 'Notifications', keywords: ['nudge', 'alert', 'buffer', 'balance', 'reminder'], group: 3 },
-  { id: 'tools-features', icon: '🧩', label: 'Tools & features', keywords: ['feature', 'visibility', 'toggle', 'categorization', 'rules'], group: 3 },
-  { id: 'privacy-security', icon: '🔒', label: 'Privacy & security', keywords: ['lock', 'pin', 'biometric', 'session', 'data', 'dashboard'], group: 4 },
-  { id: 'data-export', icon: '📤', label: 'Data & export', keywords: ['export', 'csv', 'pdf', 'sharing', 'reports'], group: 4 },
+  { id: 'tools-features', icon: '🧩', label: 'Features', keywords: ['feature', 'visibility', 'toggle', 'categorization', 'rules', 'tools'], group: 3 },
+  { id: 'privacy-security', icon: '🔒', label: 'Privacy', keywords: ['lock', 'pin', 'biometric', 'session', 'data', 'dashboard', 'security'], group: 4 },
+  { id: 'data-export', icon: '📤', label: 'Export', keywords: ['export', 'csv', 'pdf', 'sharing', 'reports', 'data'], group: 4 },
 ]
 
 // ============================================================================
@@ -146,10 +151,10 @@ const NAV_ROWS: NavRowDef[] = [
 // ============================================================================
 
 const HERO_MEANING_LABELS: Record<string, string> = {
-  allowance: 'Safe to spend',
+  allowance: "Today's budget",
   spent_today: 'Spent today',
-  spent_week: 'Spent this week',
-  balance: 'Money on hand',
+  spent_week: 'This week',
+  balance: 'Balance',
 }
 
 // ============================================================================
@@ -169,9 +174,39 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
   const { theme } = useTheme()
   const { flags } = useFeatureFlags()
+  const { prefersReducedMotion } = useReducedMotion()
 
   // ── Sub-screen navigation ────────────────────────────────────────────
   const [activeSubScreen, setActiveSubScreen] = useState<SettingsCategory | null>(null)
+
+  // ── Focus management (385.2) ─────────────────────────────────────────
+  // Track the row that was last activated so focus returns on back navigation.
+  const lastActivatedRowRef = useRef<SettingsCategory | null>(null)
+  const rowRefs = useRef<Map<SettingsCategory, HTMLDivElement | null>>(new Map())
+
+  // When a sub-screen closes, restore focus to the row that opened it.
+  const previousSubScreen = useRef<SettingsCategory | null>(null)
+  useEffect(() => {
+    if (previousSubScreen.current && !activeSubScreen) {
+      // Sub-screen just closed — restore focus to the originating row
+      const rowEl = rowRefs.current.get(previousSubScreen.current)
+      if (rowEl) {
+        // Small delay to allow animation to settle and element to be interactive
+        requestAnimationFrame(() => rowEl.focus())
+      }
+    }
+    previousSubScreen.current = activeSubScreen
+  }, [activeSubScreen])
+
+  // ── Deep-link support (384.3) ────────────────────────────────────────
+  // When initialSubScreen is provided, auto-open that sub-screen on mount.
+  const initialSubScreenHandled = useRef(false)
+  useEffect(() => {
+    if (props.initialSubScreen && !initialSubScreenHandled.current) {
+      initialSubScreenHandled.current = true
+      setActiveSubScreen(props.initialSubScreen)
+    }
+  }, [props.initialSubScreen])
 
   // ── Search state ─────────────────────────────────────────────────────
   const [searchText, setSearchText] = useState("")
@@ -230,6 +265,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
   // ── Row press handler ────────────────────────────────────────────────
   const handleRowPress = (id: SettingsCategory) => {
+    lastActivatedRowRef.current = id
     switch (id) {
       case 'profile':
         setActiveSubScreen('profile')
@@ -241,6 +277,11 @@ export function SettingsScreen(props: SettingsScreenProps) {
         setActiveSubScreen(id)
     }
   }
+
+  // ── Back handler with focus restore (385.2) ──────────────────────────
+  const handleBack = useCallback(() => {
+    setActiveSubScreen(null)
+  }, [])
 
   // ── Delete account state ─────────────────────────────────────────────
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -254,7 +295,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     if (activeSubScreen === 'profile') {
       return (
         <SettingsProfileScreen
-          onBack={() => setActiveSubScreen(null)}
+          onBack={handleBack}
           userEmail={props.userEmail}
           displayName={props.displayName}
           avatarUrl={props.avatarUrl}
@@ -272,7 +313,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     if (activeSubScreen === 'spending-style') {
       return (
         <SettingsSpendingStyleScreen
-          onBack={() => setActiveSubScreen(null)}
+          onBack={handleBack}
           spendingMode={spendingMode}
           onSetSpendingMode={props.onSetSpendingMode ?? (() => {})}
           overLimitResponse={props.overLimitResponse ?? 'gentle'}
@@ -287,7 +328,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     if (activeSubScreen === 'hero-display') {
       return (
         <SettingsHeroDisplayScreen
-          onBack={() => setActiveSubScreen(null)}
+          onBack={handleBack}
           heroMeaning={heroMeaning}
           onSetHeroMeaning={props.onSetHeroMeaning ?? (() => {})}
         />
@@ -298,7 +339,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     if (activeSubScreen === 'home-screen') {
       return (
         <SettingsHomeExtrasScreen
-          onBack={() => setActiveSubScreen(null)}
+          onBack={handleBack}
         />
       )
     }
@@ -307,7 +348,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     if (activeSubScreen === 'look-feel') {
       return (
         <SettingsLookFeelScreen
-          onBack={() => setActiveSubScreen(null)}
+          onBack={handleBack}
         />
       )
     }
@@ -316,7 +357,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     if (activeSubScreen === 'budget-income') {
       return (
         <SettingsBudgetIncomeScreen
-          onBack={() => setActiveSubScreen(null)}
+          onBack={handleBack}
           budgets={budgets}
           incomeSmoothing={props.incomeSmoothing}
           onSetIncomeSmoothing={props.onSetIncomeSmoothing}
@@ -338,7 +379,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     if (activeSubScreen === 'tools-features') {
       return (
         <SettingsToolsFeaturesScreen
-          onBack={() => setActiveSubScreen(null)}
+          onBack={handleBack}
           onOpenCategorizationRules={props.onOpenCategorizationRules}
         />
       )
@@ -348,7 +389,31 @@ export function SettingsScreen(props: SettingsScreenProps) {
     if (activeSubScreen === 'notifications') {
       return (
         <SettingsNotificationsScreen
-          onBack={() => setActiveSubScreen(null)}
+          onBack={handleBack}
+        />
+      )
+    }
+
+    // Privacy & security sub-screen — dedicated component
+    if (activeSubScreen === 'privacy-security') {
+      return (
+        <SettingsPrivacySecurityScreen
+          onBack={handleBack}
+          onOpenPrivacyDashboard={props.onOpenPrivacyDashboard}
+        />
+      )
+    }
+
+    // Data & export sub-screen — dedicated component
+    if (activeSubScreen === 'data-export') {
+      return (
+        <SettingsDataExportScreen
+          onBack={handleBack}
+          onExportData={props.onExportData}
+          onExportCSV={props.onExportCSV}
+          onOpenReports={props.onOpenReports}
+          onOpenSharing={props.onOpenSharing}
+          activeShareCount={props.activeShareCount}
         />
       )
     }
@@ -357,7 +422,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     const title = row?.label ?? 'Settings'
 
     return (
-      <SettingsSubScreen title={title} onBack={() => setActiveSubScreen(null)}>
+      <SettingsSubScreen title={title} onBack={handleBack}>
         <p style={{ ...typography['body-sm'], color: textColors.sub, textAlign: 'center', paddingTop: spacingScale['40'] }}>
           This screen is coming soon.
         </p>
@@ -371,10 +436,10 @@ export function SettingsScreen(props: SettingsScreenProps) {
     let lastGroup: number | null = null
 
     visibleRows.forEach((row) => {
-      // Insert spacing gap between groups
+      // Insert spacing gap between groups (385.1: reduced from 16 to 12 for viewport fit)
       if (lastGroup !== null && row.group !== lastGroup) {
         elements.push(
-          <div key={`gap-${row.id}`} style={{ height: spacingScale["16"] }} />
+          <div key={`gap-${row.id}`} style={{ height: spacingScale["12"] }} aria-hidden="true" />
         )
       }
       lastGroup = row.group
@@ -382,58 +447,70 @@ export function SettingsScreen(props: SettingsScreenProps) {
       const badge = getBadge(row.id)
 
       elements.push(
-        <ListRow
-          key={row.id}
-          variant="dense"
-          onPress={() => handleRowPress(row.id)}
-          aria-label={`Open ${row.label} settings`}
-          style={{
-            minHeight: '58px',
-            paddingLeft: spacingScale["20"],
-            paddingRight: spacingScale["16"],
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 0,
-          }}
-        >
-          {/* Icon */}
-          <span
-            aria-hidden="true"
+        <div key={row.id} role="listitem">
+          <ListRow
+            ref={(el: HTMLDivElement | null) => { rowRefs.current.set(row.id, el) }}
+            variant="dense"
+            onPress={() => handleRowPress(row.id)}
+            aria-label={`Open ${row.label} settings`}
             style={{
-              fontSize: '20px',
-              lineHeight: 1,
-              width: '28px',
-              textAlign: 'center',
-              flexShrink: 0,
+              minHeight: '52px',
+              paddingLeft: spacingScale["20"],
+              paddingRight: spacingScale["16"],
+              background: 'transparent',
+              border: 'none',
+              borderRadius: 0,
             }}
           >
-            {row.icon}
-          </span>
-
-          {/* Label + badge */}
-          <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: spacingScale["8"] }}>
-            <span style={{ ...typography.body, color: textColors.text }}>
-              {row.label}
+            {/* Icon */}
+            <span
+              aria-hidden="true"
+              style={{
+                fontSize: '20px',
+                lineHeight: 1,
+                width: '28px',
+                textAlign: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {row.icon}
             </span>
+
+            {/* Label */}
+            <span style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+              <span style={{ ...typography.body, color: textColors.text }}>
+                {row.label}
+              </span>
+            </span>
+
+            {/* Badge chip (384.2) */}
             {badge && (
-              <span style={{ ...typography.caption, color: textColors.muted }}>
+              <span style={{
+                ...typography.caption,
+                color: textColors.muted,
+                background: elevations.sunken.fill,
+                borderRadius: '10px',
+                padding: `2px ${spacingScale["8"]}`,
+                flexShrink: 0,
+                lineHeight: 1.4,
+              }}>
                 {badge}
               </span>
             )}
-          </span>
 
-          {/* Chevron */}
-          <span
-            aria-hidden="true"
-            style={{
-              ...typography.body,
-              color: textColors.muted,
-              flexShrink: 0,
-            }}
-          >
-            ›
-          </span>
-        </ListRow>
+            {/* Chevron */}
+            <span
+              aria-hidden="true"
+              style={{
+                ...typography.body,
+                color: textColors.muted,
+                flexShrink: 0,
+              }}
+            >
+              ›
+            </span>
+          </ListRow>
+        </div>
       )
     })
 
@@ -448,10 +525,26 @@ export function SettingsScreen(props: SettingsScreenProps) {
         paddingTop: spacingScale["24"],
         paddingBottom: safeAreaBottom(100),
         position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      {/* Screen title */}
-      <SectionHeader>Settings</SectionHeader>
+      {/* Main list content — shifts/fades when sub-screen opens (384.1) */}
+      <motion.div
+        animate={activeSubScreen ? 'hidden' : 'visible'}
+        variants={prefersReducedMotion ? {
+          visible: { opacity: 1 },
+          hidden: { opacity: 0 },
+        } : {
+          visible: { opacity: 1, x: 0 },
+          hidden: { opacity: 0, x: -20 },
+        }}
+        transition={prefersReducedMotion ? timings.fast : springs.gentle}
+        style={{
+          pointerEvents: activeSubScreen ? 'none' : 'auto',
+        }}
+      >
+        {/* Screen title */}
+        <SectionHeader>Settings</SectionHeader>
 
       {/* Search (370.2) */}
       <div style={{ marginTop: spacingScale["16"], marginBottom: spacingScale["20"] }}>
@@ -481,16 +574,22 @@ export function SettingsScreen(props: SettingsScreenProps) {
         </p>
       )}
 
-      {/* Navigation list (370.1, 370.3) */}
+      {/* Navigation list (370.1, 370.3, 385.2) */}
       {visibleRows.length > 0 && (
-        <div style={{ marginTop: spacingScale["8"] }}>
-          {renderNavList()}
-        </div>
+        <nav aria-label="Settings categories">
+          <div role="list" style={{ marginTop: spacingScale["8"] }}>
+            {renderNavList()}
+          </div>
+        </nav>
       )}
 
       {/* Danger zone — always visible at the bottom */}
       {onDeleteAccount && (
-        <div style={{ marginTop: spacingScale["32"] }}>
+        <div style={{
+          marginTop: spacingScale["32"],
+          paddingTop: spacingScale["20"],
+          borderTop: `1px solid ${elevations.resting.border}`,
+        }}>
           <div
             style={{
               paddingLeft: spacingScale["20"],
@@ -587,11 +686,34 @@ export function SettingsScreen(props: SettingsScreenProps) {
           </div>
         </div>
       )}
+      </motion.div>
 
-      {/* Sub-screen overlay */}
-      <AnimatePresence>
+      {/* Sub-screen overlay (384.1 — AnimatePresence mode="wait" for proper exit) */}
+      <AnimatePresence mode="wait">
         {activeSubScreen && renderSubScreen()}
       </AnimatePresence>
+
+      {/* Screen reader announcement for sub-screen navigation (385.2) */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          borderWidth: 0,
+        }}
+      >
+        {activeSubScreen
+          ? `${NAV_ROWS.find(r => r.id === activeSubScreen)?.label ?? 'Settings'} settings opened`
+          : ''
+        }
+      </div>
     </div>
   )
 }

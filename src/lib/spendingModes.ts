@@ -33,16 +33,16 @@ export const SPENDING_MODE_LABELS: Record<
   { label: string; description: string }
 > = {
   tracker: {
-    label: 'Just tracking',
-    description: "Records what you spend — no limits, no nudges, just a clear picture.",
+    label: 'Tracking',
+    description: "No limits, just awareness.",
   },
   guided: {
     label: 'Guided',
-    description: "Gentle nudges when you're spending more than usual. Relaxed and flexible.",
+    description: "Gentle nudges when spending picks up.",
   },
   structured: {
     label: 'Structured',
-    description: "Firm per-area caps with clear signals when you're close to or over the limit.",
+    description: "Firm caps with clear signals.",
   },
 }
 
@@ -55,16 +55,16 @@ export const OVER_LIMIT_RESPONSE_LABELS: Record<
   { label: string; description: string }
 > = {
   quiet: {
-    label: 'Just show the color',
-    description: "Only the ring and amount change color — no extra text.",
+    label: 'Quiet',
+    description: "No alert, just a color change.",
   },
   gentle: {
-    label: 'A calm one-liner',
-    description: "One brief, encouraging line below the hero. Nothing alarming.",
+    label: 'Gentle',
+    description: "One calm line below the number.",
   },
   headsup: {
-    label: 'A clear nudge with a suggestion',
-    description: "A short line plus a quick-action chip so you can do something about it.",
+    label: 'Heads-up',
+    description: "A nudge plus a quick action.",
   },
 }
 
@@ -88,7 +88,7 @@ export function limitVisibilityNote(mode: SpendingMode, hasSavedLimits: boolean)
   }
   // guided / structured — limits are in view
   return hasSavedLimits
-    ? 'Your limits are in view here. Switching to Just tracking tucks them away without deleting anything.'
+    ? 'Your limits are in view here. Switching to Tracking tucks them away without deleting anything.'
     : 'Add limits below whenever you like. Switching modes never loses your setup.'
 }
 

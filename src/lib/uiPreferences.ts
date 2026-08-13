@@ -115,6 +115,40 @@ export function setPeerContextEnabled(enabled: boolean): void {
 }
 
 // ---------------------------------------------------------------------------
+// Credit Score Check-in Preferences — opt-in control for credit score tracking
+// ---------------------------------------------------------------------------
+
+/** localStorage key for the credit score check-in toggle. */
+const CREDIT_SCORE_CHECKIN_KEY = 'folio-credit-score-checkin-enabled'
+
+/**
+ * Returns whether the user has opted in to tracking their credit score over
+ * time. Defaults to `true` — this feature is on by default.
+ */
+export function getCreditScoreCheckinEnabled(): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    const stored = localStorage.getItem(CREDIT_SCORE_CHECKIN_KEY)
+    if (stored === null) return true
+    return stored === 'true'
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Persists the user's preference for tracking credit score over time.
+ */
+export function setCreditScoreCheckinEnabled(enabled: boolean): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(CREDIT_SCORE_CHECKIN_KEY, String(enabled))
+  } catch {
+    // localStorage unavailable — fail silently
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Home Style Preferences — compact (minimal) vs. comfortable (dashboard)
 // ---------------------------------------------------------------------------
 //

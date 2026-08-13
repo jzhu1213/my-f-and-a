@@ -29,7 +29,7 @@ export interface SettingsNotificationsScreenProps {
 
 export function SettingsNotificationsScreen({ onBack }: SettingsNotificationsScreenProps) {
   return (
-    <SettingsSubScreen title="Notifications" onBack={onBack}>
+    <SettingsSubScreen title="Notifications" description="Control when Folio nudges you." onBack={onBack}>
       <NotificationCenter />
 
       <div style={{ marginTop: spacingScale['32'] }}>

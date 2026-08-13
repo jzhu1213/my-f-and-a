@@ -13,6 +13,7 @@ import type { AppNavKey } from '@/components/ui/AppShell'
 import { HomeScreen } from '@/components/simplified/HomeScreen'
 import { HistoryScreen } from '@/components/simplified/HistoryScreen'
 import { SettingsScreen } from '@/components/simplified/SettingsScreen'
+import type { SettingsCategory } from '@/components/simplified/SettingsScreen'
 import { ToolsScreen } from '@/components/simplified/ToolsScreen'
 import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
 import { IncomeSheet } from '@/components/simplified/IncomeSheet'
@@ -244,6 +245,23 @@ export default function FolioApp() {
     prevNavRef.current = next
     setActiveNav(next)
   }, [])
+
+  // ── Settings deep-link state (384.3) ───────────────────────────
+  // When navigating to settings from another screen, optionally auto-open a sub-screen.
+  const [settingsInitialSubScreen, setSettingsInitialSubScreen] = useState<SettingsCategory | null>(null)
+
+  // Deep-link: navigate to settings and auto-open a specific sub-screen (384.3)
+  const handleOpenSettingsSubScreen = useCallback((subScreen: SettingsCategory) => {
+    setSettingsInitialSubScreen(subScreen)
+    handleNavChange('settings')
+  }, [handleNavChange])
+
+  // Clear settings deep-link when navigating away from settings tab
+  useEffect(() => {
+    if (activeNav !== 'settings' && settingsInitialSubScreen) {
+      setSettingsInitialSubScreen(null)
+    }
+  }, [activeNav, settingsInitialSubScreen])
 
   const { prefersReducedMotion } = useReducedMotion()
 
@@ -2610,6 +2628,7 @@ export default function FolioApp() {
                 onGoalChange={handleGoalChange}
                 skippedSetupSteps={getOnboardingProgress().skippedSteps}
                 onResumeSetupStep={handleResumeSetupStep}
+                initialSubScreen={settingsInitialSubScreen}
               />
             )}
           </motion.div>
