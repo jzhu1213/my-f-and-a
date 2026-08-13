@@ -36,6 +36,8 @@ export type OverlayId =
   | 'wishList'
   | 'incomeTrends'
   | 'sharedBudgets'
+  | 'statementImport'
+  | 'confidence'
 
 // ── Sheet IDs (bottom sheets — can be open alongside main content) ───────────
 
@@ -84,6 +86,8 @@ export interface OverlayPayloads {
   wishList: undefined
   incomeTrends: undefined
   sharedBudgets: undefined
+  statementImport: undefined
+  confidence: undefined
 }
 
 export interface SheetPayloads {

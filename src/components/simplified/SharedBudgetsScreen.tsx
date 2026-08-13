@@ -89,11 +89,11 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
     const limit = parseFloat(formLimit)
     const contribution = parseFloat(formContribution)
     if (!formName.trim() || !formCategory.trim() || isNaN(limit) || limit <= 0) {
-      showToast("Fill in all fields to create a shared budget.")
+      showToast("Just need a name, category, and limit to get started.")
       return
     }
     if (isNaN(contribution) || contribution <= 0) {
-      showToast("Enter your monthly contribution amount.")
+      showToast("Pop in your monthly contribution amount and you're good to go.")
       return
     }
 
@@ -160,12 +160,12 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
   // ── Invite member handler ──────────────────────────────────────
   const handleInvite = async (budget: SharedBudget) => {
     if (!selectedFriendId) {
-      showToast("Pick a friend to invite.")
+      showToast("Pick a friend to share this with.")
       return
     }
     const contribution = parseFloat(inviteContribution)
     if (isNaN(contribution) || contribution <= 0) {
-      showToast("Enter their monthly contribution amount.")
+      showToast("Add how much they'll chip in each month.")
       return
     }
 
@@ -260,7 +260,7 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
               </p>
             </Card>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }} role="list" aria-label="Shared budgets">
               {budgets.map((b) => {
                 const remaining = Math.max(0, b.monthlyLimit - b.currentSpent)
                 const pct = b.monthlyLimit > 0 ? Math.round((b.currentSpent / b.monthlyLimit) * 100) : 0
@@ -535,18 +535,22 @@ function FormField({
   placeholder?: string
   type?: string
 }) {
+  const id = `shared-budget-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
   return (
     <div>
       <label
+        htmlFor={id}
         style={{ ...typography.caption, color: textColors.muted, display: "block", marginBottom: spacingScale["4"] }}
       >
         {label}
       </label>
       <input
+        id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={label}
         style={{
           width: "100%",
           padding: "12px 14px",

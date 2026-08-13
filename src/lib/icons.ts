@@ -167,6 +167,7 @@ export type IconName =
   | 'tool:learn'
   | 'tool:wish-list'
   | 'tool:income-trends'
+  | 'tool:confidence'
   // ── Tools screen stat cards ──────────────────────────────────────────────
   | 'stat:set-aside'
   | 'stat:savings-rate'
@@ -268,6 +269,7 @@ export const ICON_REGISTRY = {
   'tool:learn': BookOpen,
   'tool:wish-list': Star,
   'tool:income-trends': TrendingUp,
+  'tool:confidence': Sparkles,
   // ── Tools screen stat cards ───────────────────────────────────────────────
   'stat:set-aside': PiggyBank,
   'stat:savings-rate': Percent,

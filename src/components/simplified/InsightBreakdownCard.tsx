@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { timings } from "@/lib/animations"
+import { timings, useReducedMotion } from "@/lib/animations"
 import type { Transaction } from "@/types"
 import { toMonthString } from "@/lib/budgetUtils"
 import {
@@ -34,6 +34,7 @@ export interface InsightBreakdownCardProps {
  */
 export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps) {
   const [dismissed, setDismissed] = useState(false)
+  const { prefersReducedMotion } = useReducedMotion()
 
   const currentMonth = useMemo(() => toMonthString(new Date()), [])
 
@@ -61,10 +62,10 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
       {!dismissed && (
         <motion.section
           aria-label="Spending breakdown insight"
-          initial={{ opacity: 0, y: 8 }}
+          initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, height: 0, marginTop: 0 }}
-          transition={timings.normal}
+          exit={prefersReducedMotion ? undefined : { opacity: 0, height: 0, marginTop: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : timings.normal}
         >
           <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>

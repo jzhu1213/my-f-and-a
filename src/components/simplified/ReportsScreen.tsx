@@ -27,7 +27,7 @@ import {
   borderRadius,
 } from "@/styles/shared"
 import { TRANSACTION_CATEGORIES } from "@/types"
-import type { Transaction, TransactionCategory } from "@/types"
+import type { Transaction, TransactionCategory, Goal, Budget } from "@/types"
 import { getRecentTags } from "@/lib/tagUtils"
 import {
   buildReportSummary,
@@ -35,6 +35,7 @@ import {
   type ReportFilters,
 } from "@/lib/reportUtils"
 import { exportTransactionsCSV } from "@/lib/accountUtils"
+import { exportPeriodSummaryPDF } from "@/lib/exportSummaryPDF"
 
 // ============================================================================
 // Types
@@ -45,6 +46,10 @@ export interface ReportsScreenProps {
   onBack: () => void
   /** Optional toast surface for success/error feedback. */
   onNotify?: (message: string, kind?: "success" | "error") => void
+  /** User goals — used for period summary PDF. */
+  goals?: Goal[]
+  /** User budgets — used for period summary PDF. */
+  budgets?: Budget[]
 }
 
 // Expense categories offered as filter chips (dedup'd, expense only).
@@ -64,22 +69,40 @@ function money(amount: number): string {
 // Component
 // ============================================================================
 
-export function ReportsScreen({ transactions, onBack, onNotify }: ReportsScreenProps) {
+export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budgets = [] }: ReportsScreenProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
   const [category, setCategory] = useState<TransactionCategory | null>(null)
   const [tag, setTag] = useState<string | null>(null)
   const [merchant, setMerchant] = useState("")
   const [isExporting, setIsExporting] = useState(false)
+  const [isSummaryExporting, setIsSummaryExporting] = useState(false)
+
+  // Date range state — defaults to current month
+  const today = new Date()
+  const defaultStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
+  const defaultEnd = today.toISOString().split('T')[0]
+  const [dateStart, setDateStart] = useState(defaultStart)
+  const [dateEnd, setDateEnd] = useState(defaultEnd)
 
   const filters: ReportFilters = useMemo(
     () => ({ category, tag, merchant: merchant.trim() || null }),
     [category, tag, merchant]
   )
 
+  // Filter transactions by date range first, then apply category/tag/merchant filters
+  const dateFilteredTransactions = useMemo(() => {
+    if (!dateStart && !dateEnd) return transactions
+    return transactions.filter(t => {
+      if (dateStart && t.date < dateStart) return false
+      if (dateEnd && t.date > dateEnd) return false
+      return true
+    })
+  }, [transactions, dateStart, dateEnd])
+
   const summary = useMemo(
-    () => buildReportSummary(transactions, filters),
-    [transactions, filters]
+    () => buildReportSummary(dateFilteredTransactions, filters),
+    [dateFilteredTransactions, filters]
   )
 
   const recentTags = useMemo(() => getRecentTags(transactions, 10), [transactions])
@@ -90,7 +113,7 @@ export function ReportsScreen({ transactions, onBack, onNotify }: ReportsScreenP
     if (!hasResults || isExporting) return
     setIsExporting(true)
     try {
-      const count = await exportReportPDF(transactions, filters)
+      const count = await exportReportPDF(dateFilteredTransactions, filters)
       onNotify?.(
         `Report ready — ${count} ${count === 1 ? "transaction" : "transactions"} 📄`,
         "success"
@@ -100,17 +123,39 @@ export function ReportsScreen({ transactions, onBack, onNotify }: ReportsScreenP
     } finally {
       setIsExporting(false)
     }
-  }, [hasResults, isExporting, transactions, filters, onNotify])
+  }, [hasResults, isExporting, dateFilteredTransactions, filters, onNotify])
 
   const handleExportCSV = useCallback(() => {
     if (!hasResults) return
     try {
-      exportTransactionsCSV(summary.transactions)
+      const dateRange = dateStart && dateEnd ? { start: dateStart, end: dateEnd } : undefined
+      exportTransactionsCSV(summary.transactions, { dateRange })
       onNotify?.("Filtered transactions exported (CSV)", "success")
     } catch {
       onNotify?.("Couldn't export the CSV just now. Try again in a moment.", "error")
     }
-  }, [hasResults, summary.transactions, onNotify])
+  }, [hasResults, summary.transactions, dateStart, dateEnd, onNotify])
+
+  const handleExportSummaryPDF = useCallback(async () => {
+    if (isSummaryExporting) return
+    setIsSummaryExporting(true)
+    try {
+      const count = await exportPeriodSummaryPDF(transactions, {
+        start: dateStart,
+        end: dateEnd,
+        goals,
+        budgets,
+      })
+      onNotify?.(
+        `Period summary ready — ${count} ${count === 1 ? "transaction" : "transactions"} 📄`,
+        "success"
+      )
+    } catch {
+      onNotify?.("Couldn't build the summary just now. Try again in a moment.", "error")
+    } finally {
+      setIsSummaryExporting(false)
+    }
+  }, [isSummaryExporting, transactions, dateStart, dateEnd, goals, budgets, onNotify])
 
   const containerStyle = {
     maxWidth: CONTENT_MAX_WIDTH,
@@ -159,6 +204,54 @@ export function ReportsScreen({ transactions, onBack, onNotify }: ReportsScreenP
       <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>
         Filter your history, then save a tidy PDF or spreadsheet — just for you.
       </p>
+
+      {/* ── Date range ─────────────────────────────────────────────────── */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
+        <label
+          style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.02em" }}
+        >
+          Date range
+        </label>
+        <div
+          style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "center" }}
+        >
+          <input
+            type="date"
+            aria-label="Start date"
+            value={dateStart}
+            onChange={(e) => setDateStart(e.target.value)}
+            style={{
+              flex: 1,
+              padding: "10px 12px",
+              borderRadius: borderRadius.sm,
+              border: "1px solid var(--border)",
+              background: "rgba(255,255,255,0.03)",
+              color: "var(--text)",
+              fontSize: 13,
+              fontFamily: FONT_FAMILY,
+              outline: "none",
+            }}
+          />
+          <span style={{ fontSize: 13, color: "var(--sub)" }}>to</span>
+          <input
+            type="date"
+            aria-label="End date"
+            value={dateEnd}
+            onChange={(e) => setDateEnd(e.target.value)}
+            style={{
+              flex: 1,
+              padding: "10px 12px",
+              borderRadius: borderRadius.sm,
+              border: "1px solid var(--border)",
+              background: "rgba(255,255,255,0.03)",
+              color: "var(--text)",
+              fontSize: 13,
+              fontFamily: FONT_FAMILY,
+              outline: "none",
+            }}
+          />
+        </div>
+      </GlassCard>
 
       {/* ── Category filter ──────────────────────────────────────────────── */}
       <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
@@ -349,6 +442,30 @@ export function ReportsScreen({ transactions, onBack, onNotify }: ReportsScreenP
         aria-label="Export the filtered transactions as a CSV spreadsheet"
       >
         ⬇ Export filtered CSV
+      </motion.button>
+
+      <motion.button
+        onClick={handleExportSummaryPDF}
+        disabled={isSummaryExporting}
+        whileTap={prefersReducedMotion || isSummaryExporting ? undefined : { scale: 0.97 }}
+        transition={springs.snappy}
+        style={{
+          width: "100%",
+          padding: "14px 20px",
+          borderRadius: borderRadius.full,
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid var(--border)",
+          color: "var(--text)",
+          fontSize: 14,
+          fontFamily: FONT_FAMILY,
+          fontWeight: 600,
+          cursor: isSummaryExporting ? "wait" : "pointer",
+          opacity: isSummaryExporting ? 0.7 : 1,
+          marginTop: 12,
+        }}
+        aria-label="Download a branded period summary PDF with income, spending breakdown, allowance trend, and goal progress"
+      >
+        {isSummaryExporting ? "Building summary…" : "📊 Download period summary PDF"}
       </motion.button>
 
       {!hasResults && (

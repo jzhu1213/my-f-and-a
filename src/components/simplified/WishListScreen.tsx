@@ -80,7 +80,7 @@ function ProgressRing({ progress, size = 28 }: { progress: number; size?: number
   const offset = circumference * (1 - Math.min(1, Math.max(0, progress)))
 
   return (
-    <svg width={size} height={size} style={{ flexShrink: 0 }}>
+    <svg width={size} height={size} style={{ flexShrink: 0 }} role="img" aria-label={`${Math.round(progress * 100)}% saved`}>
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -294,6 +294,7 @@ export function WishListScreen({
               value={formData.name}
               onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
               maxLength={60}
+              aria-label="Wish item name"
               style={{
                 ...typography.body,
                 background: surfaceColors.canvas,
@@ -313,6 +314,7 @@ export function WishListScreen({
               onChange={(e) => setFormData((f) => ({ ...f, amount: e.target.value }))}
               min={0}
               step={0.01}
+              aria-label="Wish item amount in dollars"
               style={{
                 ...typography.body,
                 background: surfaceColors.canvas,
@@ -325,12 +327,13 @@ export function WishListScreen({
               }}
             />
             {/* Priority selector */}
-            <div style={{ display: "flex", gap: spacingScale["8"] }}>
+            <div style={{ display: "flex", gap: spacingScale["8"] }} role="group" aria-label="Priority level">
               {(["need", "want", "dream"] as WishPriority[]).map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setFormData((f) => ({ ...f, priority: p }))}
+                  aria-pressed={formData.priority === p}
                   style={{
                     ...typography.caption,
                     flex: 1,

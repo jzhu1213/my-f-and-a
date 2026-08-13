@@ -81,6 +81,16 @@ const CelebrationOverlay = dynamic(
   { ssr: false },
 )
 
+// Code-split: milestone share sheet (Task 363.2) — only loaded when a
+// shareable milestone is hit (goal_complete, streak_30_days, wish_complete).
+const ShareMilestoneSheet = dynamic(
+  () =>
+    import("./ShareMilestoneSheet").then((mod) => ({
+      default: mod.ShareMilestoneSheet,
+    })),
+  { ssr: false },
+)
+
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -429,6 +439,13 @@ export function HomeScreen({
   const [celebrationQueue, setCelebrationQueue] = useState<CelebrationEvent[]>([])
   const [showAffordabilitySheet, setShowAffordabilitySheet] = useState(false)
   const [inlineEditId, setInlineEditId] = useState<string | null>(null)
+
+  // ── Milestone share sheet state (Task 363.2) ──────────────────────────────
+  const [milestoneShareData, setMilestoneShareData] = useState<{
+    type: 'goal_complete' | 'streak_30_days' | 'wish_complete'
+    title: string
+    subtitle?: string
+  } | null>(null)
   const prevTxCountRef = useRef<number>(transactions.length)
   const prevGoalsRef = useRef<string>("")
 
@@ -720,6 +737,23 @@ export function HomeScreen({
   const effectiveCelebration = externalCelebration ?? localCelebration
 
   const handleCelebrationDismiss = useCallback(() => {
+    // Check if the dismissed celebration is a shareable milestone (Task 363.2)
+    const shareableTypes = ['goal_complete', 'streak_30_days', 'wish_complete'] as const
+    const dismissed = externalCelebration ?? localCelebration
+    if (dismissed && (shareableTypes as readonly string[]).includes(dismissed.type)) {
+      const milestoneType = dismissed.type as 'goal_complete' | 'streak_30_days' | 'wish_complete'
+      const subtitleMap: Record<string, string> = {
+        goal_complete: 'Another goal crossed off the list',
+        streak_30_days: '30 days of staying on track',
+        wish_complete: 'Patience paid off',
+      }
+      setMilestoneShareData({
+        type: milestoneType,
+        title: dismissed.message || dismissed.title,
+        subtitle: subtitleMap[milestoneType],
+      })
+    }
+
     if (externalCelebration) {
       onCelebrationDismiss?.()
     } else {
@@ -731,7 +765,7 @@ export function HomeScreen({
         setLocalCelebration(null)
       }
     }
-  }, [externalCelebration, onCelebrationDismiss, celebrationQueue])
+  }, [externalCelebration, onCelebrationDismiss, celebrationQueue, localCelebration])
 
   // ── Loading state: skeleton ↔ content crossfade via AnimatePresence ────────
   // AnimatePresence mode="wait" ensures the skeleton is fully unmounted before
@@ -1968,6 +2002,16 @@ export function HomeScreen({
         <CelebrationOverlay
           event={effectiveCelebration ?? null}
           onDismiss={handleCelebrationDismiss}
+        />
+      </Suspense>
+
+      {/* ── Milestone Share Sheet (Task 363.2) ────────── */}
+      {/* Offered after a shareable milestone celebration is dismissed. */}
+      <Suspense fallback={null}>
+        <ShareMilestoneSheet
+          open={milestoneShareData !== null}
+          milestone={milestoneShareData ?? { type: 'goal_complete', title: '' }}
+          onDismiss={() => setMilestoneShareData(null)}
         />
       </Suspense>
     </div>

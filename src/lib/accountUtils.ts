@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import type { Transaction, Budget, Goal } from '@/types'
+import { getTagsForTransaction } from './tagUtils'
 
 /**
  * Escape a value for safe inclusion in a CSV cell.
@@ -12,24 +13,44 @@ function escapeCSV(value: string): string {
   return value
 }
 
+/** Options for CSV export — optional date range filter. */
+export interface CSVExportOptions {
+  /** When provided, only transactions within this date range are exported. */
+  dateRange?: { start: string; end: string }
+}
+
 /**
  * Export transactions as a CSV file for easy spreadsheet import.
+ * Columns: Date, Amount, Category, Note, Type, Tags.
+ * Optionally filters to a date range.
  * Free — no paywall required.
  *
- * Validates: Requirements 12.5
+ * Validates: Requirements 12.5, 19.6
  */
-export function exportTransactionsCSV(transactions: Transaction[]): void {
-  const headers = ['Date', 'Type', 'Amount', 'Category', 'Note', 'Account Type', 'Created At']
+export function exportTransactionsCSV(
+  transactions: Transaction[],
+  options?: CSVExportOptions
+): void {
+  let filtered = transactions
 
-  const rows = transactions.map(t => [
-    escapeCSV(t.date),
-    escapeCSV(t.type),
-    String(t.amount),
-    escapeCSV(t.category),
-    escapeCSV(t.note ?? ''),
-    escapeCSV(t.accountType),
-    escapeCSV(t.createdAt),
-  ].join(','))
+  if (options?.dateRange) {
+    const { start, end } = options.dateRange
+    filtered = transactions.filter(t => t.date >= start && t.date <= end)
+  }
+
+  const headers = ['Date', 'Amount', 'Category', 'Note', 'Type', 'Tags']
+
+  const rows = filtered.map(t => {
+    const tags = t.tags ?? getTagsForTransaction(t.id) ?? []
+    return [
+      escapeCSV(t.date),
+      String(t.amount),
+      escapeCSV(t.category),
+      escapeCSV(t.note ?? ''),
+      escapeCSV(t.type),
+      escapeCSV(tags.join('; ')),
+    ].join(',')
+  })
 
   const csvContent = [headers.join(','), ...rows].join('\n')
 

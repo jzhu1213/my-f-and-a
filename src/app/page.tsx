@@ -183,6 +183,14 @@ const SharedBudgetsScreen = dynamic(
   () => import('@/components/simplified/SharedBudgetsScreen').then(m => ({ default: m.SharedBudgetsScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
+const StatementImportSheet = dynamic(
+  () => import('@/components/simplified/StatementImportSheet').then(m => ({ default: m.StatementImportSheet })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
+const ConfidenceScreen = dynamic(
+  () => import('@/components/simplified/ConfidenceScreen').then(m => ({ default: m.ConfidenceScreen })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -2015,6 +2023,8 @@ export default function FolioApp() {
           transactions={transactions}
           onBack={() => overlay.closeOverlay()}
           onNotify={showToast}
+          goals={goals}
+          budgets={budgets}
         />
       </div>
     )
@@ -2171,6 +2181,45 @@ export default function FolioApp() {
         <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
         <div className="min-h-screen" style={{ paddingTop: 60 }}>
           <SharedBudgetsScreen onBack={handleCloseDepthSurface} />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
+    )
+  }
+
+  // ── Statement Import (full-screen overlay, task 362) ───────────
+  if (overlay.activeOverlay === 'statementImport') {
+    return (
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'statement-import' ? 'tool-statement-import' : undefined}
+        aria-label="Import Statement"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <StatementImportSheet
+            userId={user?.id ?? ''}
+            transactions={transactions}
+            onBack={handleCloseDepthSurface}
+            onImportComplete={() => refresh()}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
+    )
+  }
+
+  // ── Confidence Score (full-screen overlay, task 365) ────────────
+  if (overlay.activeOverlay === 'confidence') {
+    return (
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'confidence' ? 'tool-confidence' : undefined}
+        aria-label="Money Confidence"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <ConfidenceScreen onBack={handleCloseDepthSurface} />
         </div>
         </DepthSurfaceLoadGuard>
       </DepthSurfaceTransition>
@@ -2503,6 +2552,8 @@ export default function FolioApp() {
                 onOpenWishList={() => { setOverlayOriginToolId('wish-list'); overlay.openOverlay('wishList') }}
                 onOpenIncomeTrends={() => { setOverlayOriginToolId('income-trends'); overlay.openOverlay('incomeTrends') }}
                 onOpenSharedBudgets={() => { setOverlayOriginToolId('shared-budgets'); overlay.openOverlay('sharedBudgets') }}
+                onOpenStatementImport={() => { setOverlayOriginToolId('statement-import'); overlay.openOverlay('statementImport') }}
+                onOpenConfidence={() => { setOverlayOriginToolId('confidence'); overlay.openOverlay('confidence') }}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}

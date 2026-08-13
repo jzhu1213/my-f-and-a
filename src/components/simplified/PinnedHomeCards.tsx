@@ -21,6 +21,7 @@ import {
 import type { PinnedCard, PinnedCardType } from "@/lib/homeWidgets"
 import { CARD_META } from "@/lib/homeWidgets"
 import type { Goal, Transaction } from "@/types"
+import type { ConfidenceTier } from "@/lib/confidenceScore"
 
 // ============================================================================
 // Props
@@ -45,6 +46,9 @@ export interface PinnedHomeCardsProps {
   spendPaceStatus?: 'on_track' | 'ahead' | 'behind'
   /** Shared budget summary for the pinnable card (task 360.3) */
   sharedBudgetSummary?: { name: string; remaining: number; monthlyLimit: number }
+  /** Confidence tier and trend for the pinnable card (task 365.2) */
+  confidenceTier?: ConfidenceTier | null
+  confidenceTrend?: "up" | "stable" | "down"
   /** Navigate to a tool screen */
   onNavigate?: (cardType: PinnedCardType) => void
 }
@@ -275,6 +279,33 @@ function SharedBudgetCard({
   )
 }
 
+function ConfidenceCard({
+  tier,
+  trend,
+  onTap,
+}: {
+  tier?: ConfidenceTier | null
+  trend?: "up" | "stable" | "down"
+  onTap?: () => void
+}) {
+  const trendArrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'
+  const trendColor = trend === 'up' ? 'var(--success, #34d399)' : trend === 'down' ? 'var(--warning, #f59e0b)' : 'var(--sub)'
+
+  return (
+    <CompactCardShell type="confidence" onTap={onTap}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+        <span style={{ fontSize: 14 }} aria-hidden="true">✨</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={cardTitleStyle}>{tier ?? 'Confidence'}</p>
+          <p style={{ ...cardSubStyle, color: trendColor }}>
+            {trendArrow} {trend === 'up' ? 'Trending up' : trend === 'down' ? 'Trending down' : 'Stable'}
+          </p>
+        </div>
+      </div>
+    </CompactCardShell>
+  )
+}
+
 // ============================================================================
 // Compact Card Shell
 // ============================================================================
@@ -366,6 +397,8 @@ export function PinnedHomeCards({
   monthlyIncomeExpected,
   spendPaceStatus,
   sharedBudgetSummary,
+  confidenceTier,
+  confidenceTrend,
   onNavigate,
 }: PinnedHomeCardsProps) {
   if (pinnedCards.length === 0) return null
@@ -437,6 +470,15 @@ export function PinnedHomeCards({
               <SharedBudgetCard
                 key={card.type}
                 sharedBudgetSummary={sharedBudgetSummary}
+                onTap={() => handleTap(card.type)}
+              />
+            )
+          case 'confidence':
+            return (
+              <ConfidenceCard
+                key={card.type}
+                tier={confidenceTier}
+                trend={confidenceTrend}
                 onTap={() => handleTap(card.type)}
               />
             )

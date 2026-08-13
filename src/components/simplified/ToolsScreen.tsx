@@ -66,6 +66,10 @@ export interface ToolsScreenProps {
   onOpenIncomeTrends?: () => void
   /** Open the shared budgets screen (task 360) */
   onOpenSharedBudgets?: () => void
+  /** Open the bank statement import screen (task 362) */
+  onOpenStatementImport?: () => void
+  /** Open the confidence score screen (task 365) */
+  onOpenConfidence?: () => void
   onOpenPortfolioAllocation?: () => void
   onOpenInvestmentExplorer?: () => void
   onOpenYearInReview?: () => void
@@ -140,7 +144,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "reviews",
     label: "Reviews",
-    toolIds: ["income-trends", "term-review", "year-in-review", "peer-context"],
+    toolIds: ["income-trends", "term-review", "year-in-review", "peer-context", "confidence", "statement-import"],
   },
   {
     id: "learn",
@@ -172,6 +176,8 @@ export function ToolsScreen({
   onOpenWishList,
   onOpenIncomeTrends,
   onOpenSharedBudgets,
+  onOpenStatementImport,
+  onOpenConfidence,
   onOpenPortfolioAllocation,
   onOpenInvestmentExplorer,
   onOpenYearInReview,
@@ -252,6 +258,8 @@ export function ToolsScreen({
     { id: "peer-context", iconName: "tool:peer-context", title: "How You Compare", description: "Optional anonymized context against student ranges.", onOpen: onOpenPeerContext },
     { id: "learn", iconName: "tool:learn", title: "Learn", description: "Short lessons on budgeting, saving, and investing.", onOpen: onOpenLearn },
     { id: "income-trends", iconName: "tool:income-trends", title: "Income Trends", description: "See how your earnings grow over time.", onOpen: onOpenIncomeTrends },
+    { id: "statement-import", iconName: "tool:income-trends", title: "Import Statement", description: "Import transactions from a bank CSV.", onOpen: onOpenStatementImport },
+    { id: "confidence", iconName: "tool:confidence", title: "Money Confidence", description: "A gentle journal of your financial habits.", onOpen: onOpenConfidence },
   ]
 
   const isToolVisible = (toolId: string): boolean => {

@@ -23,6 +23,7 @@ export type PinnedCardType =
   | 'spend_pace'
   | 'upcoming_bill'
   | 'shared_budget'
+  | 'confidence'
 
 /**
  * A single pinned card configuration.
@@ -76,6 +77,11 @@ export const CARD_META: Record<PinnedCardType, { label: string; emoji: string; d
     emoji: '🤝',
     description: 'See remaining balance in your shared budget',
   },
+  confidence: {
+    label: 'Confidence',
+    emoji: '✨',
+    description: 'Your money confidence tier and trend',
+  },
 }
 
 /** All available card types in display order. */
@@ -87,6 +93,7 @@ export const ALL_CARD_TYPES: PinnedCardType[] = [
   'spend_pace',
   'upcoming_bill',
   'shared_budget',
+  'confidence',
 ]
 
 // ---------------------------------------------------------------------------

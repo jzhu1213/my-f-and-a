@@ -114,14 +114,14 @@ function persistLocalWishItems(items: WishItem[]): void {
 }
 
 /** Add a wish item to localStorage */
-function addLocalWishItem(item: WishItem): void {
+export function addLocalWishItem(item: WishItem): void {
   const items = getAllLocalWishItems()
   items.push(item)
   persistLocalWishItems(items)
 }
 
 /** Update a wish item in localStorage */
-function updateLocalWishItem(id: string, updates: Partial<WishItem>): void {
+export function updateLocalWishItem(id: string, updates: Partial<WishItem>): void {
   const items = getAllLocalWishItems()
   const idx = items.findIndex((i) => i.id === id)
   if (idx >= 0) {
