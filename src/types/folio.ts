@@ -237,6 +237,11 @@ export type CelebrationType =
   // Income encouragement (Phase 11 task 356)
   | 'income_growth'
   | 'income_record'
+  // New user first-week milestones (Phase 13 task 393.1)
+  | 'new_user_first_expense'
+  | 'new_user_first_day'
+  | 'new_user_3_day_streak'
+  | 'new_user_first_week'
 
 /**
  * Animation style for celebrations

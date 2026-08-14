@@ -243,6 +243,8 @@ export interface UserContext {
   incomeOverdue?: { expectedAmount: number; daysPastDue: number }
   /** Seasonal mode suggestion — detected spending pattern shift (Task 338.1) */
   seasonalModeSuggestion?: { modeId: string; modeName: string; reason: string }
+  /** Account age in days — drives new-user tip pool (Phase 13 task 393.2) */
+  accountAgeDays?: number
 }
 
 /** Inputs required to derive a {@link UserContext} for tip selection. */
@@ -284,6 +286,8 @@ export interface BuildUserContextParams {
   incomeOverdue?: { expectedAmount: number; daysPastDue: number }
   /** Seasonal mode suggestion from seasonal intelligence detection (Task 338.1) */
   seasonalModeSuggestion?: { modeId: string; modeName: string; reason: string }
+  /** Account age in days (from UserProfile.createdAt or first transaction date) — Phase 13 task 393.2 */
+  accountAgeDays?: number
 }
 
 /**
@@ -299,7 +303,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds, lastLoggedTransaction, userGoal, incomeOverdue, seasonalModeSuggestion } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds, lastLoggedTransaction, userGoal, incomeOverdue, seasonalModeSuggestion, accountAgeDays } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -413,6 +417,7 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     userGoal,
     incomeOverdue,
     seasonalModeSuggestion,
+    accountAgeDays,
   }
 }
 
@@ -1055,6 +1060,31 @@ export function selectContextualTip(
         suggestedMode: modeId,
         reason,
       },
+    })
+  }
+
+  // Step 2n-new: New user tips — rich first-week educational tips (Phase 13 task 393.2).
+  // Surfaces one rotating tip per session during the first 7 days. After day 7,
+  // accountAgeDays > 7 so these stop qualifying and normal rotation takes over.
+  if (context.accountAgeDays != null && context.accountAgeDays <= 7) {
+    const newUserTips: Array<{ id: string; message: string }> = [
+      { id: 'new-user-tip-quick-log', message: 'Tap any category chip to log in one tap. The most common amounts appear automatically — it takes about 2 seconds.' },
+      { id: 'new-user-tip-ring', message: "The ring on the home screen shows today's spending at a glance. Green means you're on track, yellow is getting close." },
+      { id: 'new-user-tip-budgets', message: "Your budgets live in Settings → Budgets. They set your daily allowance — the less you budget for fixed costs, the more flexible spending you get." },
+      { id: 'new-user-tip-skip', message: "Missed a day? No worries. Folio rolls leftover budget forward, so one skip won't throw anything off." },
+      { id: 'new-user-tip-rollover', message: "Underspend today and the extra rolls into tomorrow. Overspend and tomorrow adjusts down a little. It balances out over time." },
+    ]
+
+    // Pick one deterministically based on account age (rotates daily)
+    const pick = newUserTips[context.accountAgeDays % newUserTips.length]
+    candidates.push({
+      id: pick.id,
+      type: 'did_you_know',
+      title: TIP_TITLES.did_you_know,
+      message: pick.message,
+      emoji: TIP_EMOJI.did_you_know,
+      priority: 'low',
+      triggerCondition: { type: 'first_goal_progress' },
     })
   }
 

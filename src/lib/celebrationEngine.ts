@@ -831,6 +831,19 @@ export function checkAllCelebrations(
   const incomeRecord = checkIncomeRecordMonth(transactions, now)
   if (incomeRecord) events.push(incomeRecord)
 
+  // ── New user first-week milestones (Phase 13 task 393.1) ───────────────
+  const newUserFirstExpense = checkNewUserFirstExpense(transactions, now)
+  if (newUserFirstExpense) events.push(newUserFirstExpense)
+
+  const newUserFirstDay = checkNewUserFirstDay(budgets, transactions, now)
+  if (newUserFirstDay) events.push(newUserFirstDay)
+
+  const newUser3DayStreak = checkNewUser3DayStreak(transactions, now)
+  if (newUser3DayStreak) events.push(newUser3DayStreak)
+
+  const newUserFirstWeek = checkNewUserFirstWeek(transactions, now)
+  if (newUserFirstWeek) events.push(newUserFirstWeek)
+
   return events
 }
 
@@ -897,6 +910,185 @@ function calculateStreak(
   now: Date
 ): number {
   return getUnderBudgetStreak(budgets, transactions, now)
+}
+
+// ============================================================================
+// New User First-Week Milestones (Phase 13 task 393.1)
+// ----------------------------------------------------------------------------
+// Supplemental celebrations gated to users within their first 7 days. These
+// fire *in addition to* the existing celebrations (never replace them). A user
+// is considered "new" if their first transaction date is <= 7 days ago.
+// ============================================================================
+
+/**
+ * Returns true if the user is within their first 7 days (based on their
+ * earliest transaction date). Returns false if there are no transactions.
+ */
+function isNewUser(transactions: Transaction[], now: Date): boolean {
+  const firstDate = getFirstTransactionDate(transactions)
+  if (firstDate === null) return false
+  return daysSinceLocal(firstDate, now) <= 7
+}
+
+/**
+ * Checks if the "first expense logged" new-user milestone should trigger.
+ *
+ * Fires once for new users (first 7 days) when they log their very first
+ * expense transaction. Distinct from the generic `first_transaction` celebration.
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date/time (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkNewUserFirstExpense(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  if (!isNewUser(transactions, now)) return null
+
+  // Must have at least one expense transaction
+  const hasExpense = transactions.some(t => t.type === 'expense')
+  if (!hasExpense) return null
+
+  const id = 'new_user_first_expense'
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'new_user_first_expense',
+    CELEBRATION_COPY.new_user_first_expense.title,
+    CELEBRATION_COPY.new_user_first_expense.message,
+    CELEBRATION_EMOJI.new_user_first_expense,
+    'sparkle',
+    3000,
+    'subtle'
+  )
+}
+
+/**
+ * Checks if the "first full day tracked" new-user milestone should trigger.
+ *
+ * Fires once for new users when they have at least 1 expense logged AND stayed
+ * under their daily budget on their first complete day (the day of their first
+ * transaction, checked the following day).
+ *
+ * @param budgets - User's budget limits
+ * @param transactions - All user transactions
+ * @param now - Current date/time (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkNewUserFirstDay(
+  budgets: Budget[],
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  if (!isNewUser(transactions, now)) return null
+
+  const firstDate = getFirstTransactionDate(transactions)
+  if (firstDate === null) return null
+
+  // Only fire the day *after* the first day (so the first day is complete)
+  if (daysSinceLocal(firstDate, now) < 1) return null
+
+  const dailyBudget = getDailyBudget(budgets, now)
+  if (dailyBudget <= 0) return null
+
+  // Check spending on the first day
+  const firstDaySpending = getSpendingForDay(transactions, firstDate)
+  if (firstDaySpending >= dailyBudget) return null
+
+  // Must have logged at least one expense on the first day
+  const hasExpenseOnFirstDay = transactions.some(
+    t => t.date === firstDate && t.type === 'expense'
+  )
+  if (!hasExpenseOnFirstDay) return null
+
+  const id = 'new_user_first_day'
+  if (hasBeenTriggered(id)) return null
+
+  const spentStr = `$${Math.round(firstDaySpending)}`
+  markTriggered(id)
+  return createEvent(
+    id,
+    'new_user_first_day',
+    CELEBRATION_COPY.new_user_first_day.title,
+    `Day 1 complete — you stayed at ${spentStr}.`,
+    CELEBRATION_EMOJI.new_user_first_day,
+    'sparkle',
+    3500,
+    'subtle'
+  )
+}
+
+/**
+ * Checks if the "3 days in a row" new-user milestone should trigger.
+ *
+ * Fires once for new users when they have a 3+ day logging streak (at least
+ * one transaction logged on each of 3 consecutive days ending yesterday).
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date/time (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkNewUser3DayStreak(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  if (!isNewUser(transactions, now)) return null
+
+  const loggingStreak = getLoggingStreak(transactions, now)
+  if (loggingStreak < 3) return null
+
+  const id = 'new_user_3_day_streak'
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'new_user_3_day_streak',
+    CELEBRATION_COPY.new_user_3_day_streak.title,
+    "3 days running — you're building a habit.",
+    CELEBRATION_EMOJI.new_user_3_day_streak,
+    'sparkle',
+    3500,
+    'subtle'
+  )
+}
+
+/**
+ * Checks if the "first week" new-user milestone should trigger.
+ *
+ * Fires once when exactly 7 days have passed since the user's first transaction.
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date/time (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkNewUserFirstWeek(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  const firstDate = getFirstTransactionDate(transactions)
+  if (firstDate === null) return null
+
+  // Fire when exactly 7 days have passed (the boundary of "first week")
+  if (daysSinceLocal(firstDate, now) < 7) return null
+
+  const id = 'new_user_first_week'
+  if (hasBeenTriggered(id)) return null
+
+  markTriggered(id)
+  return createEvent(
+    id,
+    'new_user_first_week',
+    CELEBRATION_COPY.new_user_first_week.title,
+    "One week down. You know more about your money than most.",
+    CELEBRATION_EMOJI.new_user_first_week,
+    'confetti',
+    4000,
+    'cheerful'
+  )
 }
 
 // ============================================================================

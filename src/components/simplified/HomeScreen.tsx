@@ -62,7 +62,9 @@ import type { PeriodContext } from "@/lib/budgetPeriod"
 import type { PeriodTransitionMessage } from "@/lib/periodTransition"
 import { AffordabilitySheet } from "./AffordabilitySheet"
 import { WelcomeBackBadge } from "./WelcomeBackBadge"
-import { SetupChecklistCard } from "./SetupChecklistCard"
+import { WhatsNewCard } from "./WhatsNewCard"
+import { SetupChecklistCard, ProgressiveChecklistCard } from "./SetupChecklistCard"
+import type { ChecklistStep } from '@/lib/setupChecklist'
 import { PeriodContextIndicator } from "./PeriodContextIndicator"
 import { PinnedHomeCards } from "./PinnedHomeCards"
 import type { PinnedCardType } from "@/lib/homeWidgets"
@@ -346,6 +348,20 @@ export interface HomeScreenProps {
   /** Called when the user taps a specific step to deep-link resume (task 223.3) */
   onResumeSetupStep?: (stepId: string) => void
 
+  // ── Progressive Setup Checklist (task 392) ─────────────────────────────────
+  /** All checklist steps with completion status (new progressive system) */
+  checklistSteps?: (ChecklistStep & { completed: boolean })[]
+  /** Number of completed checklist steps */
+  checklistCompletedCount?: number
+  /** Total number of checklist steps */
+  checklistTotalCount?: number
+  /** Whether the new progressive checklist should be shown */
+  showProgressiveChecklist?: boolean
+  /** Called when the user taps a checklist step action */
+  onChecklistStepAction?: (stepId: string, action: string) => void
+  /** Called when the user dismisses the progressive checklist */
+  onDismissChecklist?: () => void
+
   // ── Income overdue signal (task 336.2) ─────────────────────────────────────
   /** When set, projected income is overdue — drives the income shortfall tip. */
   incomeOverdue?: { expectedAmount: number; daysPastDue: number }
@@ -359,6 +375,14 @@ export interface HomeScreenProps {
   periodTransitionMessage?: PeriodTransitionMessage | null
   /** Dismiss the period transition message */
   onDismissPeriodTransition?: () => void
+
+  // ── First-run state (task 391.2) ───────────────────────────────────────────
+  /** True when the user just completed onboarding this session — shows first-run home layout */
+  isFirstRun?: boolean
+
+  // ── Welcome-back backfill (task 395.1) ─────────────────────────────────────
+  /** Opens BackfillSheet so the user can catch up on missed days */
+  onOpenBackfill?: () => void
 }
 
 // ============================================================================
@@ -428,10 +452,18 @@ export function HomeScreen({
   hasSkippedSetupSteps,
   skippedSetupSteps,
   onResumeSetupStep,
+  checklistSteps,
+  checklistCompletedCount,
+  checklistTotalCount,
+  showProgressiveChecklist,
+  onChecklistStepAction,
+  onDismissChecklist,
   incomeOverdue,
   periodContext,
   periodTransitionMessage,
   onDismissPeriodTransition,
+  isFirstRun,
+  onOpenBackfill,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -1247,6 +1279,33 @@ export function HomeScreen({
         )}
 
         {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}        <motion.section variants={homeSection} aria-label="Quick actions">
+          {isFirstRun ? (
+            /* First-run: single prominent CTA (task 391.2) */
+            <motion.button
+              type="button"
+              onClick={() => onLogExpense()}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
+              transition={springs.bouncy}
+              style={{
+                width: "100%",
+                background: "var(--gradient-action)",
+                border: "none",
+                borderRadius: borderRadius.full,
+                padding: "20px 28px",
+                color: "var(--text)",
+                fontSize: 17,
+                fontWeight: 600,
+                fontFamily: FONT_FAMILY,
+                cursor: "pointer",
+                textAlign: "center",
+                boxShadow: "0 6px 24px rgba(124, 58, 237, 0.35)",
+              }}
+              aria-label="Log your first expense"
+            >
+              Log your first expense
+            </motion.button>
+          ) : (
+          <>
           <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
             {/* Primary: Log expense — larger pill with warm gradient */}
             <motion.button
@@ -1357,6 +1416,8 @@ export function HomeScreen({
               </button>
             )}
           </div>
+          </>
+          )}
         </motion.section>
 
         {/* ── Outstanding Splits Summary (task 5.3 + 123.1 — one-tap settle) ── */}
@@ -1512,10 +1573,27 @@ export function HomeScreen({
         )}
 
         {/* ── 2.6. Welcome-back badge (task 77) — below fold ───── */}
-        <WelcomeBackBadge />
+        <WelcomeBackBadge
+          allowanceAmount={allowance?.amount}
+          onCatchMeUp={onOpenBackfill}
+        />
 
-        {/* ── 2.7. Setup Checklist (task 223 — lives in tip slot) ──── */}
-        {skippedSetupSteps && skippedSetupSteps.length > 0 && !estimateNudgeDismissed && onResumeSetupStep && (
+        {/* ── 2.6b. What's new card (task 395.2) — once per version ───── */}
+        <WhatsNewCard />
+
+        {/* ── 2.7. Setup Checklist (task 392 — progressive checklist) ──── */}
+        {showProgressiveChecklist && checklistSteps && onChecklistStepAction && onDismissChecklist && (
+          <ProgressiveChecklistCard
+            steps={checklistSteps}
+            completedCount={checklistCompletedCount ?? 0}
+            totalCount={checklistTotalCount ?? 0}
+            onStepAction={onChecklistStepAction}
+            onDismiss={onDismissChecklist}
+          />
+        )}
+
+        {/* ── 2.7b. Legacy Setup Checklist (task 223 — fallback) ──── */}
+        {!showProgressiveChecklist && skippedSetupSteps && skippedSetupSteps.length > 0 && !estimateNudgeDismissed && onResumeSetupStep && (
           <SetupChecklistCard
             skippedSteps={skippedSetupSteps}
             onResumeStep={onResumeSetupStep}
@@ -1754,17 +1832,49 @@ export function HomeScreen({
               animate={{ opacity: 1, y: 0 }}
               transition={timings.slow}
             >
-              <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: borderRadius.lg }}>
-                <EmptyState
-                  illustration="transactions"
-                  title="Ready when you are"
-                  subtitle="Log your first expense and Folio starts learning your habits"
-                  actionLabel="Log expense →"
-                  onAction={() => onLogExpense()}
-                  actionAriaLabel="Log your first expense"
-                  actionColor="success"
-                />
-              </GlassCard>
+              {isFirstRun ? (
+                /* First-run warm message (task 391.2): no empty list, just encouragement */
+                <GlassCard elevation="low" style={{ padding: "20px 16px", borderRadius: borderRadius.lg }}>
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <span style={{ fontSize: 28 }} aria-hidden="true">✨</span>
+                    <p
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: 'var(--text)',
+                        fontFamily: FONT_FAMILY,
+                        margin: 0,
+                      }}
+                    >
+                      Your spending will show up here.
+                    </p>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--sub)',
+                        fontFamily: FONT_FAMILY,
+                        margin: 0,
+                        maxWidth: 240,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Log your first expense and watch your day take shape.
+                    </p>
+                  </div>
+                </GlassCard>
+              ) : (
+                <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: borderRadius.lg }}>
+                  <EmptyState
+                    illustration="transactions"
+                    title="Ready when you are"
+                    subtitle="Log your first expense and Folio starts learning your habits"
+                    actionLabel="Log expense →"
+                    onAction={() => onLogExpense()}
+                    actionAriaLabel="Log your first expense"
+                    actionColor="success"
+                  />
+                </GlassCard>
+              )}
             </motion.div>
           ) : (
             <GlassCard elevation="low" style={{ padding: "12px 0", borderRadius: borderRadius.lg }}>

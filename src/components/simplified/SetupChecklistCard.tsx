@@ -4,13 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { timings, layoutTransition, useReducedMotion } from '@/lib/animations'
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius } from '@/styles/shared'
+import type { ChecklistStep } from '@/lib/setupChecklist'
 
 // ============================================================================
-// Setup Checklist Card (Task 223)
+// Setup Checklist Card (Task 392 — redesigned progressive checklist)
 // ============================================================================
 
-/** Maps internal step IDs to user-friendly labels and emoji */
-const STEP_META: Record<string, { label: string; emoji: string }> = {
+/** Legacy step metadata (backward compat for old skippedSteps system) */
+const LEGACY_STEP_META: Record<string, { label: string; emoji: string }> = {
   'setup-income': { label: 'Add your income', emoji: '💰' },
   'express-income': { label: 'Add your income', emoji: '💰' },
   'optional-recent-income': { label: 'Add your income', emoji: '💰' },
@@ -25,18 +26,15 @@ const STEP_META: Record<string, { label: string; emoji: string }> = {
 }
 
 /**
- * Normalizes step IDs to deduplicated, user-facing categories.
- * Multiple internal step IDs can map to the same user-visible item
- * (e.g., paycheck-mode, paycheck-schedule → "Set up paycheck").
+ * Normalizes legacy step IDs to deduplicated, user-facing categories.
  */
 function dedupeSteps(skippedSteps: string[]): { id: string; label: string; emoji: string }[] {
   const seen = new Set<string>()
   const result: { id: string; label: string; emoji: string }[] = []
 
   for (const stepId of skippedSteps) {
-    const meta = STEP_META[stepId]
+    const meta = LEGACY_STEP_META[stepId]
     if (!meta) continue
-    // Use the label as dedup key (multiple IDs → same user-facing item)
     if (seen.has(meta.label)) continue
     seen.add(meta.label)
     result.push({ id: stepId, label: meta.label, emoji: meta.emoji })
@@ -45,8 +43,12 @@ function dedupeSteps(skippedSteps: string[]): { id: string; label: string; emoji
   return result
 }
 
+// ============================================================================
+// Legacy Props (backward compatibility)
+// ============================================================================
+
 export interface SetupChecklistCardProps {
-  /** Step IDs the user skipped during onboarding */
+  /** Step IDs the user skipped during onboarding (legacy system) */
   skippedSteps: string[]
   /** Called when the user taps a specific step to resume it */
   onResumeStep: (stepId: string) => void
@@ -56,11 +58,293 @@ export interface SetupChecklistCardProps {
   variant?: 'home' | 'settings'
 }
 
+// ============================================================================
+// New Progressive Checklist Props (Task 392)
+// ============================================================================
+
+export interface ProgressiveChecklistCardProps {
+  /** All steps with their completion status */
+  steps: (ChecklistStep & { completed: boolean })[]
+  /** Number of completed steps */
+  completedCount: number
+  /** Total number of steps */
+  totalCount: number
+  /** Called when the user taps a step to perform it */
+  onStepAction: (stepId: string, action: string) => void
+  /** Called when the user dismisses the checklist */
+  onDismiss: () => void
+  /** Called when a step is completed (for celebration triggers) */
+  onStepComplete?: (stepId: string) => void
+}
+
+// ============================================================================
+// Progress Ring (compact circular indicator)
+// ============================================================================
+
+function ProgressRing({ completed, total, size = 32 }: { completed: number; total: number; size?: number }) {
+  const strokeWidth = 3
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = total > 0 ? completed / total : 0
+  const offset = circumference * (1 - progress)
+
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      {/* Background track */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(167, 139, 250, 0.15)"
+        strokeWidth={strokeWidth}
+      />
+      {/* Progress arc */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(167, 139, 250, 0.8)"
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 0.4s ease' }}
+      />
+    </svg>
+  )
+}
+
+// ============================================================================
+// Progressive Checklist Card (Task 392.3 — redesigned)
+// ============================================================================
+
 /**
- * A warm, compact checklist card showing skipped setup steps.
- * Lives in the home-screen tip slot (dismissible) and settings (persistent).
- *
- * Never shaming — encourages the user to finish at their own pace.
+ * A compact, warm checklist card showing progressive setup steps.
+ * Shows at most 2 next steps with a "see all" expansion. Uses a progress ring
+ * to indicate overall completion. Dismissible with a gentle message.
+ */
+export function ProgressiveChecklistCard({
+  steps,
+  completedCount,
+  totalCount,
+  onStepAction,
+  onDismiss,
+}: ProgressiveChecklistCardProps) {
+  const [expanded, setExpanded] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+  const { prefersReducedMotion } = useReducedMotion()
+
+  const handleDismiss = useCallback(() => {
+    setDismissed(true)
+    onDismiss()
+  }, [onDismiss])
+
+  if (dismissed) return null
+
+  const incompleteSteps = steps.filter(s => !s.completed)
+  const completedSteps = steps.filter(s => s.completed)
+  const visibleSteps = expanded ? incompleteSteps : incompleteSteps.slice(0, 2)
+  const hasMore = incompleteSteps.length > 2
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -4 }}
+        transition={timings.normal}
+        role="region"
+        aria-label="Setup checklist — finish setting up at your own pace"
+        style={{
+          position: 'relative',
+          padding: '14px 16px',
+          background: 'rgba(167, 139, 250, 0.06)',
+          border: '1px solid rgba(167, 139, 250, 0.12)',
+          borderRadius: borderRadius.lg,
+        }}
+      >
+        {/* Header with progress ring */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <ProgressRing completed={completedCount} total={totalCount} size={30} />
+          <div style={{ flex: 1 }}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--text)',
+                fontFamily: FONT_FAMILY,
+              }}
+            >
+              {completedCount}/{totalCount} done
+            </span>
+            <p
+              style={{
+                fontSize: 11,
+                color: 'var(--sub)',
+                fontFamily: FONT_FAMILY,
+                margin: '2px 0 0 0',
+                lineHeight: 1.3,
+              }}
+            >
+              No rush — explore at your own pace
+            </p>
+          </div>
+        </div>
+
+        {/* Incomplete steps */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <AnimatePresence initial={false}>
+            {visibleSteps.map((step) => (
+              <motion.div
+                key={step.id}
+                layout={!prefersReducedMotion ? "position" : false}
+                initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { opacity: timings.fast, height: timings.normal } }}
+                transition={layoutTransition}
+              >
+                <button
+                  type="button"
+                  onClick={() => onStepAction(step.id, step.action)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 10px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: borderRadius.md,
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
+                  aria-label={`${step.label}: ${step.description}`}
+                >
+                  <span style={{ fontSize: 14 }} aria-hidden="true">{step.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: 'var(--text)',
+                        fontFamily: FONT_FAMILY,
+                        fontWeight: 500,
+                        display: 'block',
+                      }}
+                    >
+                      {step.label}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--sub)',
+                        fontFamily: FONT_FAMILY,
+                        display: 'block',
+                        marginTop: 1,
+                      }}
+                    >
+                      {step.description}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--accent)',
+                      fontFamily: FONT_FAMILY,
+                      opacity: 0.9,
+                      flexShrink: 0,
+                    }}
+                  >
+                    →
+                  </span>
+                </button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {/* Completed steps (only in expanded view) */}
+          {expanded && completedSteps.length > 0 && (
+            <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {completedSteps.map((step) => (
+                <div
+                  key={step.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '6px 10px',
+                    opacity: 0.6,
+                  }}
+                >
+                  <span style={{ fontSize: 12 }} aria-hidden="true">✓</span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--sub)',
+                      fontFamily: FONT_FAMILY,
+                      textDecoration: 'line-through',
+                    }}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* See all / collapse toggle */}
+        {hasMore && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              marginTop: 8,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 12,
+              color: 'var(--accent)',
+              fontFamily: FONT_FAMILY,
+              fontWeight: 500,
+              padding: '4px 0',
+            }}
+          >
+            {expanded ? 'Show less' : `See all (${incompleteSteps.length} remaining)`}
+          </button>
+        )}
+
+        {/* Gentle dismiss */}
+        <button
+          type="button"
+          onClick={handleDismiss}
+          style={{
+            marginTop: 10,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 11,
+            color: 'var(--muted)',
+            fontFamily: FONT_FAMILY,
+            padding: '4px 0',
+            display: 'block',
+          }}
+        >
+          Got it, I&apos;ll explore on my own
+        </button>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
+// ============================================================================
+// Legacy SetupChecklistCard (backward compatibility)
+// ============================================================================
+
+/**
+ * Legacy checklist card for the old skippedSteps system.
+ * Kept as a fallback — new users go through ProgressiveChecklistCard.
  */
 export function SetupChecklistCard({
   skippedSteps,
@@ -131,7 +415,7 @@ export function SetupChecklistCard({
           )}
         </div>
 
-        {/* Subtitle — warm and encouraging */}
+        {/* Subtitle */}
         <p
           style={{
             fontSize: 12,

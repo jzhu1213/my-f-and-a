@@ -24,6 +24,9 @@ import { QuickLogConfirmSheet } from '@/components/simplified/QuickLogConfirmShe
 import { AppLockScreen } from '@/components/simplified/AppLockScreen'
 import { readQuickCaptureIntent } from '@/lib/quickCapture'
 import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath, buildDemoOnlySteps } from '@/components/simplified/TutorialSteps'
+import { ConversationalOnboarding } from '@/components/simplified/ConversationalOnboarding'
+import type { ConversationalOnboardingResult } from '@/components/simplified/ConversationalOnboarding'
+import { OnboardingTransition } from '@/components/simplified/OnboardingTransition'
 import type { PayCadence } from '@/lib/paySchedule'
 import { detectSubscriptions, toRecurringBillDraft } from '@/lib/subscriptionDetector'
 import { loadCancelledSubscriptions, trackCancelledSubscription } from '@/lib/subscriptionSavingsTracker'
@@ -202,6 +205,7 @@ import { createSplit, type CreateSplitInput } from '@/lib/social/splits'
 import type { StoredDataCategory } from '@/components/simplified/PrivacyDataScreen'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
 import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, setOnboardingPath, markOnboardingStepCompleted } from '@/lib/storage'
+import { getChecklistState, activateChecklist, markChecklistStepComplete, dismissChecklist, resumeChecklist, shouldShowChecklist, getAllStepsWithStatus, getChecklistProgress, isChecklistDismissed, isChecklistComplete } from '@/lib/setupChecklist'
 import type { TransactionCategory, Transaction, OnboardingPath, UserGoal } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
 import { heroMeaningStatus } from '@/lib/dailyAllowanceUtils'
@@ -224,7 +228,7 @@ import { useLocalToCloudMigration } from '@/hooks/useLocalToCloudMigration'
 import { SyncIndicator } from '@/components/simplified/SyncIndicator'
 import { OfflineBanner } from '@/components/ui/OfflineBanner'
 
-type OnboardingStep = 'loading' | 'tutorial' | 'demo_replay' | 'done'
+type OnboardingStep = 'loading' | 'tutorial' | 'conversational' | 'transitioning' | 'demo_replay' | 'done'
 
 export default function FolioApp() {
   const { user, loading: authLoading, refreshUser } = useAuth()
@@ -642,18 +646,20 @@ export default function FolioApp() {
   }, [user?.id, showToast])
 
   // ── Onboarding Check ───────────────────────────────────────────
-  // Task 66: Skip the onboarding gate — new users go straight to the Home Screen.
-  // The tutorial remains accessible from settings but never blocks value.
+  // Phase 13: New users see the conversational intro (3-step flow) instead of
+  // going straight to the home screen. Existing/returning users (isComplete) skip.
+  // The old multi-path tutorial remains accessible from settings for power users.
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Read structured progress (handles one-way migration from legacy flag)
       const progress = getOnboardingProgress()
-      // Always resolve to 'done' so new users land on the Home Screen immediately.
-      if (!progress.isComplete) {
-        // Mark as onboarded so subsequent loads skip any legacy gate check.
-        setOnboardingProgress({ ...progress, isComplete: true })
+      if (progress.isComplete) {
+        // Returning user — skip onboarding entirely
+        setOnboardingStep('done')
+      } else {
+        // New user — show the conversational intro
+        setOnboardingStep('conversational')
       }
-      setOnboardingStep('done')
     }
   }, [])
 
@@ -982,6 +988,122 @@ export default function FolioApp() {
     }
   }
 
+  // ── Conversational Onboarding Handlers (Phase 13, task 390) ─────
+  // Store the transition allowance value so the handoff animation can display it
+  const [transitionAllowance, setTransitionAllowance] = useState<number>(0)
+
+  const handleConversationalComplete = useCallback(async (result: ConversationalOnboardingResult) => {
+    // Compute the daily allowance from the onboarding inputs for the transition animation
+    const discretionary = Math.max(0, result.monthlyIncome - result.biggestBill)
+    const computedDaily = Math.round(discretionary / 30)
+    setTransitionAllowance(computedDaily)
+
+    // Trigger the transitioning animation state
+    setOnboardingStep('transitioning')
+
+    // Mark that this is a first-run session (for first-run home state)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('folio-just-onboarded', 'true')
+    }
+
+    // Apply the spending mode preference
+    setSpendingMode(result.spendingMode)
+
+    // Map conversational result into the tutorial setup state format and run
+    // the same completion pipeline as the existing multi-path tutorial.
+    const updatedSetupState: TutorialSetupState = {
+      ...tutorialSetupState,
+      monthlyIncome: result.monthlyIncome,
+      budgetPreset: 'custom' as BudgetPreset,
+      fixedExpenses: result.biggestBill > 0
+        ? [{ id: 'onboarding-bill', label: 'Biggest bill', amount: result.biggestBill, category: 'housing' as TransactionCategory, dueDay: 1 }]
+        : [],
+    }
+    setTutorialSetupState(updatedSetupState)
+
+    // Seed income transaction for immediate daily allowance calculation
+    if (result.monthlyIncome > 0) {
+      const currentMonthPrefix = new Date().toISOString().slice(0, 7)
+      const hasIncomeThisMonth = transactions.some(
+        t => t.type === 'income' && t.date.startsWith(currentMonthPrefix)
+      )
+      if (!hasIncomeThisMonth) {
+        // For the conversational flow, seed the full amount minus the biggest bill
+        // as the discretionary income so daily allowance is immediately correct.
+        await addTransaction({
+          amount: discretionary,
+          category: 'other',
+          type: 'income',
+          date: new Date().toISOString().slice(0, 10),
+          note: 'Monthly spending budget (from setup)',
+        })
+      }
+    }
+
+    // Persist biggest bill as a recurring bill
+    if (result.biggestBill > 0) {
+      await addBill({
+        category: 'housing' as TransactionCategory,
+        label: 'Biggest bill',
+        amount: result.biggestBill,
+        dueDay: 1,
+        recurringId: '',
+        isActive: true,
+      })
+    }
+
+    // Persist goal defaults
+    if (typeof window !== 'undefined') {
+      const goalDefaults = getGoalDefaults('track_spending')
+      localStorage.setItem('folio-tip-tone', goalDefaults.tipTone)
+      localStorage.setItem('folio-user-goal', 'track_spending')
+    }
+
+    // Mark onboarding complete
+    const progress = getOnboardingProgress()
+    progress.isComplete = true
+    progress.path = null
+    progress.completedSteps.push('conversational-intro')
+    setOnboardingProgress(progress)
+
+    // Activate the progressive setup checklist (task 392)
+    activateChecklist()
+
+    // Persist to Supabase profile
+    if (user) {
+      await updateProfilePreferences(user.id, {
+        setupDate: new Date().toISOString().slice(0, 10),
+        hasCompletedOnboarding: true,
+        onboardingPath: null,
+        onboardingCompletedSteps: progress.completedSteps,
+        onboardingSkippedSteps: progress.skippedSteps,
+      })
+    }
+
+    showToast("You\u2019re all set \u2014 here\u2019s your daily number \u2728")
+
+    // After the transition animation completes (700ms), move to the done state
+    setTimeout(() => {
+      setOnboardingStep('done')
+    }, 700)
+  }, [tutorialSetupState, transactions, addTransaction, addBill, setSpendingMode, user, showToast])
+
+  const handleConversationalSkip = useCallback(() => {
+    // Use persona defaults ($50/day fallback) and mark as complete
+    const progress = getOnboardingProgress()
+    progress.isComplete = true
+    progress.skippedSteps.push('conversational-intro')
+    setOnboardingProgress(progress)
+    setOnboardingStep('done')
+
+    // Set default goal
+    if (typeof window !== 'undefined') {
+      const goalDefaults = getGoalDefaults('track_spending')
+      localStorage.setItem('folio-tip-tone', goalDefaults.tipTone)
+      localStorage.setItem('folio-user-goal', 'track_spending')
+    }
+  }, [])
+
   // ── Categorization Rules Handlers (task 113.3, 187.1) ───────────
   const handleAddCategorizationRule = useCallback(
     (keyword: string, category: TransactionCategory, fundingSourceId?: string | null) => {
@@ -1061,6 +1183,27 @@ export default function FolioApp() {
 
     if (result) {
       setLastLoggedId(result.id)
+
+      // Clear first-run flag once the user logs their first expense (task 391.2)
+      if (typeof window !== 'undefined' && localStorage.getItem('folio-just-onboarded') === 'true') {
+        localStorage.removeItem('folio-just-onboarded')
+      }
+
+      // Mark "first expense" checklist step complete (task 392.1)
+      if (getChecklistState().activated && !getChecklistState().completedSteps.includes('first-expense')) {
+        markChecklistStepComplete('first-expense')
+        setChecklistVersion(v => v + 1)
+        setCelebrationEvent({
+          id: `checklist-first-expense-${Date.now()}`,
+          type: 'first_transaction',
+          title: 'First one logged!',
+          message: 'You\'re tracking — that\'s the hardest part',
+          emoji: '🎉',
+          animation: 'sparkle',
+          duration: 2800,
+          sound: 'subtle',
+        })
+      }
 
       // Persist tags to localStorage (task 113.2)
       if (data.tags && data.tags.length > 0) {
@@ -1201,6 +1344,12 @@ export default function FolioApp() {
       // The daily budget recalculates automatically (transactions dependency),
       // and this toast confirms the positive outcome to the user.
       showToast("Got it — your daily budget just went up.", 'success')
+
+      // Mark "add income" checklist step complete (task 392.1)
+      if (getChecklistState().activated && !getChecklistState().completedSteps.includes('add-income')) {
+        markChecklistStepComplete('add-income')
+        setChecklistVersion(v => v + 1)
+      }
     } else {
       // Income is not replayed by the offline queue, so don't claim it was saved.
       showToast("Couldn't save income — check your connection and try again", 'error')
@@ -1491,7 +1640,14 @@ export default function FolioApp() {
   // ── Goal Handlers (delegated to useHomeData) ───────────────────
   const handleCreateGoal = async (data: { name: string; targetAmount: number; emoji: string; targetDate?: string; linkedAccountId?: string }) => {
     const result = await createGoal(data)
-    if (result) showToast('Goal created')
+    if (result) {
+      showToast('Goal created')
+      // Mark "create goal" checklist step complete (task 392.1)
+      if (getChecklistState().activated && !getChecklistState().completedSteps.includes('create-goal')) {
+        markChecklistStepComplete('create-goal')
+        setChecklistVersion(v => v + 1)
+      }
+    }
     else showToast('Failed to create goal', 'error')
     return result
   }
@@ -1520,7 +1676,14 @@ export default function FolioApp() {
   // ── Budget Handlers (delegated to useHomeData) ─────────────────
   const handleUpdateBudget = async (category: TransactionCategory, limit: number) => {
     const result = await updateBudget(category, limit)
-    if (result) showToast('Budget updated')
+    if (result) {
+      showToast('Budget updated')
+      // Mark "set budget" checklist step complete (task 392.1)
+      if (getChecklistState().activated && !getChecklistState().completedSteps.includes('set-budget')) {
+        markChecklistStepComplete('set-budget')
+        setChecklistVersion(v => v + 1)
+      }
+    }
     else showToast('Failed to update budget', 'error')
   }
 
@@ -1610,6 +1773,87 @@ export default function FolioApp() {
     // Return to home after opening the relevant step
     handleNavChange('home')
   }, [overlay, user?.id, setCelebrationEvent, handleNavChange])
+
+  // ── Progressive Checklist handlers (task 392) ──────────────────
+  const [checklistVersion, setChecklistVersion] = useState(0)
+
+  const progressiveChecklistVisible = useMemo(() => {
+    // Force re-evaluation when checklistVersion changes
+    void checklistVersion
+    return shouldShowChecklist()
+  }, [checklistVersion])
+
+  const checklistStepsWithStatus = useMemo(() => {
+    void checklistVersion
+    return getAllStepsWithStatus()
+  }, [checklistVersion])
+
+  const checklistProgress = useMemo(() => {
+    void checklistVersion
+    return getChecklistProgress()
+  }, [checklistVersion])
+
+  const handleChecklistStepAction = useCallback((stepId: string, action: string) => {
+    switch (action) {
+      case 'log-expense':
+        overlay.openSheet('expense', {})
+        break
+      case 'add-income':
+        overlay.openSheet('income')
+        break
+      case 'set-budget':
+        overlay.openOverlay('budgetSettings')
+        break
+      case 'create-goal':
+        overlay.openOverlay('goals')
+        break
+      case 'enable-notifications':
+        // Navigate to notifications settings
+        handleNavChange('settings')
+        break
+      case 'invite-friend':
+        // Sharing action — open native share if available
+        if (typeof navigator !== 'undefined' && navigator.share) {
+          navigator.share({
+            title: 'Folio',
+            text: 'Check out Folio — a simple daily budget app',
+            url: window.location.origin,
+          }).catch(() => {})
+        }
+        break
+      default:
+        break
+    }
+
+    // Mark step as complete (for steps that complete on action, not on result)
+    // Note: first-expense, add-income, set-budget, create-goal complete on actual data change
+    // enable-notifications and invite-friend complete on tap (best-effort)
+    if (action === 'enable-notifications' || action === 'invite-friend') {
+      markChecklistStepComplete(stepId)
+      setChecklistVersion(v => v + 1)
+      // Small celebration
+      setCelebrationEvent({
+        id: `checklist-${stepId}-${Date.now()}`,
+        type: 'first_transaction',
+        title: 'Nice!',
+        message: 'One more thing checked off ✓',
+        emoji: '✨',
+        animation: 'sparkle',
+        duration: 2500,
+        sound: 'subtle',
+      })
+    }
+  }, [overlay, handleNavChange, setCelebrationEvent])
+
+  const handleDismissChecklist = useCallback(() => {
+    dismissChecklist()
+    setChecklistVersion(v => v + 1)
+  }, [])
+
+  const handleResumeChecklist = useCallback(() => {
+    resumeChecklist()
+    setChecklistVersion(v => v + 1)
+  }, [])
 
   // ── Update Count Credit Immediately ────────────────────────────
   const handleUpdateCountCreditImmediately = async (value: boolean) => {
@@ -1735,6 +1979,23 @@ export default function FolioApp() {
           <p className="label">folio</p>
         </div>
       </div>
+    )
+  }
+
+  if (onboardingStep === 'conversational') {
+    return (
+      <ConversationalOnboarding
+        onComplete={handleConversationalComplete}
+        onSkip={handleConversationalSkip}
+      />
+    )
+  }
+
+  if (onboardingStep === 'transitioning') {
+    return (
+      <OnboardingTransition
+        dailyAllowance={transitionAllowance}
+      />
     )
   }
 
@@ -2500,10 +2761,17 @@ export default function FolioApp() {
                   ...(typeof window !== 'undefined' && localStorage.getItem('folio-income-anchor-offered') !== 'true' ? ['income-anchor'] : []),
                 ]}
                 onResumeSetupStep={handleResumeSetupStep}
+                checklistSteps={checklistStepsWithStatus}
+                checklistCompletedCount={checklistProgress.completed}
+                checklistTotalCount={checklistProgress.total}
+                showProgressiveChecklist={progressiveChecklistVisible}
+                onChecklistStepAction={handleChecklistStepAction}
+                onDismissChecklist={handleDismissChecklist}
                 incomeOverdue={incomeOverdue}
                 periodContext={periodContext}
                 periodTransitionMessage={periodTransitionMessage}
                 onDismissPeriodTransition={dismissPeriodTransition}
+                isFirstRun={typeof window !== 'undefined' && localStorage.getItem('folio-just-onboarded') === 'true' && transactions.filter(t => t.type === 'expense').length === 0}
                 onHeroTapDetails={() => handleNavChange('history')}
                 onLogExpense={handleOpenExpenseSheet}
                 onLogIncome={() => overlay.openSheet('income')}
@@ -2526,6 +2794,7 @@ export default function FolioApp() {
                 onOpenLesson={(lessonId) => {
                   overlay.openOverlay('learn', { initialLessonId: lessonId })
                 }}
+                onOpenBackfill={() => overlay.openSheet('backfill')}
               />
             )}
             {activeNav === 'history' && (
@@ -2628,6 +2897,8 @@ export default function FolioApp() {
                 onGoalChange={handleGoalChange}
                 skippedSetupSteps={getOnboardingProgress().skippedSteps}
                 onResumeSetupStep={handleResumeSetupStep}
+                onResumeChecklist={handleResumeChecklist}
+                showResumeChecklist={isChecklistDismissed() && !isChecklistComplete()}
                 initialSubScreen={settingsInitialSubScreen}
               />
             )}

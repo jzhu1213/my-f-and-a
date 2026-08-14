@@ -6,14 +6,123 @@ import type { Transaction, TransactionCategory } from '@/types'
 import type { FundingSource } from '@/lib/fundingSources'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { springs, timings } from '@/lib/animations'
 import { computeDailyTotal } from '@/lib/transactionUtils'
 import { getTagsForTransaction, getRecentTags, parseTagInput } from '@/lib/tagUtils'
+import { lookupMerchant } from '@/lib/merchantMemory'
+import { saveHistoryScrollPosition } from '@/lib/useScrollVirtualization'
 import { borderRadius, shadows } from '@/styles/shared'
 import { FONT_FAMILY } from '@/styles/typography'
 
 // ── Session storage key ──────────────────────────────────────────
 const SESSION_FILTERS_KEY = 'folio-history-filters'
+const COLLAPSE_SUMMARIES_KEY = 'folio-collapse-summaries'
+const SHOW_CATEGORY_BARS_KEY = 'folio-show-category-bars'
+
+// ── Category colors for spending bar ─────────────────────────────
+const CATEGORY_COLORS: Record<string, string> = {
+  food: '#f97316',
+  drinks: '#a78bfa',
+  rent: '#60a5fa',
+  transport: '#34d399',
+  school: '#fbbf24',
+  fun: '#f472b6',
+  health: '#22d3ee',
+  subscriptions: '#c084fc',
+  gig: '#4ade80',
+  income: '#4ade80',
+  other: '#94a3b8',
+}
+
+// ── Inline Category Spending Bar ─────────────────────────────────
+function CategorySpendingBar({
+  transactions,
+  onCategoryTap,
+}: {
+  transactions: Transaction[]
+  onCategoryTap: (category: TransactionCategory) => void
+}) {
+  const expenses = transactions.filter(t => t.type === 'expense')
+  if (expenses.length === 0) return null
+
+  const total = expenses.reduce((s, t) => s + t.amount, 0)
+  if (total === 0) return null
+
+  // Group by category
+  const byCategory: Record<string, number> = {}
+  expenses.forEach(t => {
+    byCategory[t.category] = (byCategory[t.category] || 0) + t.amount
+  })
+
+  // Sort segments by amount descending
+  const segments = Object.entries(byCategory)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, amount]) => ({
+      category: cat as TransactionCategory,
+      amount,
+      pct: (amount / total) * 100,
+      color: CATEGORY_COLORS[cat] || '#94a3b8',
+    }))
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div
+        style={{
+          display: 'flex',
+          height: 6,
+          borderRadius: 3,
+          overflow: 'hidden',
+          background: 'rgba(255, 255, 255, 0.04)',
+        }}
+      >
+        {segments.map(seg => (
+          <div
+            key={seg.category}
+            role="button"
+            tabIndex={0}
+            aria-label={`${TRANSACTION_CATEGORIES.find(c => c.category === seg.category)?.label || seg.category}: $${seg.amount.toFixed(0)} (${seg.pct.toFixed(0)}%)`}
+            onClick={(e) => { e.stopPropagation(); onCategoryTap(seg.category) }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCategoryTap(seg.category) } }}
+            style={{
+              width: `${seg.pct}%`,
+              minWidth: seg.pct > 2 ? 4 : 2,
+              background: seg.color,
+              opacity: 0.75,
+              cursor: 'pointer',
+              transition: 'opacity 0.15s',
+            }}
+            title={`${TRANSACTION_CATEGORIES.find(c => c.category === seg.category)?.label || seg.category}: $${seg.amount.toFixed(2)}`}
+          />
+        ))}
+      </div>
+      {/* Tiny legend */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+        {segments.slice(0, 4).map(seg => (
+          <span
+            key={seg.category}
+            style={{
+              fontSize: '10px',
+              fontFamily: FONT_FAMILY,
+              color: 'var(--muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+            }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: 2, background: seg.color, opacity: 0.75, flexShrink: 0 }} />
+            {TRANSACTION_CATEGORIES.find(c => c.category === seg.category)?.label || seg.category}
+          </span>
+        ))}
+        {segments.length > 4 && (
+          <span style={{ fontSize: '10px', fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>
+            +{segments.length - 4} more
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ── Date range presets ───────────────────────────────────────────
 type DateRangePreset = 'this_week' | 'last_7' | 'last_30' | null
@@ -213,9 +322,17 @@ interface TransactionListProps {
   onBulkRecategorize?: (ids: string[], category: TransactionCategory) => void
   /** Bulk tag multiple transactions (Task 131) */
   onBulkTag?: (ids: string[], tags: string[]) => void
+  /** Callback when a tag chip is tapped — filters history to that tag (Task 401.2) */
+  onTagFilter?: (tag: string) => void
+  /** Map of transactionId → split info for showing split indicators (Task 401.3) */
+  splitMap?: Map<string, { splitId: string; participantCount: number }>
+  /** Callback when split indicator is tapped (Task 401.3) */
+  onViewSplit?: (splitId: string) => void
+  /** Whether the user is scrolling fast — shows skeleton placeholders (Task 404.3) */
+  isScrollingFast?: boolean
 }
 
-export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fundingSources = [], onBulkDelete, onBulkRecategorize, onBulkTag }: TransactionListProps) {
+export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fundingSources = [], onBulkDelete, onBulkRecategorize, onBulkTag, onTagFilter, splitMap, onViewSplit, isScrollingFast = false }: TransactionListProps) {
   // ── State ────────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -228,6 +345,22 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
   const [showTagInput, setShowTagInput] = useState(false)
   const [tagInputValue, setTagInputValue] = useState('')
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Inline spending context state (Task 400) ────────────────────
+  const [collapseSummaries, setCollapseSummaries] = useState(() => {
+    try { return localStorage.getItem(COLLAPSE_SUMMARIES_KEY) === 'true' } catch { return false }
+  })
+  const [showCategoryBars, setShowCategoryBars] = useState(() => {
+    try { return localStorage.getItem(SHOW_CATEGORY_BARS_KEY) === 'true' } catch { return false }
+  })
+
+  // Persist preferences
+  useEffect(() => {
+    try { localStorage.setItem(COLLAPSE_SUMMARIES_KEY, String(collapseSummaries)) } catch {}
+  }, [collapseSummaries])
+  useEffect(() => {
+    try { localStorage.setItem(SHOW_CATEGORY_BARS_KEY, String(showCategoryBars)) } catch {}
+  }, [showCategoryBars])
 
   const hasBulkActions = !!(onBulkDelete || onBulkRecategorize || onBulkTag)
 
@@ -286,6 +419,34 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     exitMultiSelect()
   }, [selectedIds, onBulkTag, tagInputValue, exitMultiSelect])
 
+  // Export selected transactions as CSV (Task 403)
+  const handleExportSelected = useCallback(() => {
+    if (selectedIds.size === 0) return
+    const selected = transactions.filter(t => selectedIds.has(t.id))
+    const headers = ['Date', 'Amount', 'Type', 'Category', 'Note', 'Tags']
+    const rows = selected.map(t => [
+      t.date,
+      t.amount.toFixed(2),
+      t.type,
+      t.category,
+      (t.note ?? '').replace(/"/g, '""'),
+      (t.tags ?? []).join('; '),
+    ])
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => r.map(cell => `"${cell}"`).join(',')),
+    ].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `folio-transactions-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }, [selectedIds, transactions])
+
   // Long-press handler for entering multi-select
   const handleRowPointerDown = useCallback((id: string) => {
     if (isMultiSelectMode || !hasBulkActions) return
@@ -343,6 +504,21 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     fundingSources.forEach(s => map.set(s.id, s))
     return map
   }, [fundingSources])
+
+  // ── Merchant visit count lookup (Task 401.1) ────────────────────────
+  const merchantCountMap = useMemo(() => {
+    const map = new Map<string, number>()
+    transactions.forEach(tx => {
+      if (!tx.note) return
+      const key = tx.note
+      if (map.has(key)) return // Already looked up for this note
+      const entry = lookupMerchant(tx.note)
+      if (entry && entry.count >= 2) {
+        map.set(key, entry.count)
+      }
+    })
+    return map
+  }, [transactions])
 
   // ── Present funding sources (those used in transactions) ──────────
   const presentSources = useMemo(() => {
@@ -436,6 +612,40 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     acc[wk] = (acc[wk] || 0) + tx.amount
     return acc
   }, {} as Record<string, number>)
+
+  // Weekly transaction counts (Task 400.2)
+  const weeklyTxCounts = filtered.reduce((acc, tx) => {
+    const wk = getWeekKey(tx.date)
+    acc[wk] = (acc[wk] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  // Weekly transactions grouped for category bars (Task 400.3)
+  const weeklyTransactions = useMemo(() => {
+    return filtered.reduce((acc, tx) => {
+      const wk = getWeekKey(tx.date)
+      if (!acc[wk]) acc[wk] = []
+      acc[wk].push(tx)
+      return acc
+    }, {} as Record<string, Transaction[]>)
+  }, [filtered])
+
+  // Monthly totals and counts (Task 400.2)
+  const monthlyData = useMemo(() => {
+    const data: Record<string, { spent: number; count: number; transactions: Transaction[] }> = {}
+    filtered.forEach(tx => {
+      const monthKey = tx.date.slice(0, 7) // "YYYY-MM"
+      if (!data[monthKey]) data[monthKey] = { spent: 0, count: 0, transactions: [] }
+      if (tx.type === 'expense') data[monthKey].spent += tx.amount
+      data[monthKey].count += 1
+      data[monthKey].transactions.push(tx)
+    })
+    return data
+  }, [filtered])
+
+  // Helper: compute daily income total (Task 400.1)
+  const computeDailyIncome = (txs: Transaction[]): number =>
+    txs.reduce((sum, tx) => sum + (tx.type === 'income' ? tx.amount : 0), 0)
 
   const getLabel = (cat: Transaction['category']) =>
     TRANSACTION_CATEGORIES.find(c => c.category === cat)?.label ?? cat
@@ -531,7 +741,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             onClick={() => enterMultiSelect()}
             whileTap={{ scale: 0.96 }}
             transition={springs.snappy}
-            aria-label="Enter multi-select mode"
+            aria-label="Select multiple transactions"
             style={{
               padding: '6px 14px',
               fontFamily: FONT_FAMILY,
@@ -557,12 +767,17 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
           padding: '8px 0',
           marginBottom: 8,
         }}>
-          <span style={{
-            fontFamily: FONT_FAMILY,
-            fontSize: '13px',
-            fontWeight: 500,
-            color: 'var(--text)',
-          }}>
+          <span
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            style={{
+              fontFamily: FONT_FAMILY,
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--text)',
+            }}
+          >
             {selectedIds.size} selected
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -571,6 +786,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               onClick={selectAll}
               whileTap={{ scale: 0.96 }}
               transition={springs.snappy}
+              aria-label={`Select all ${transactions.length} transactions`}
               style={{
                 padding: '6px 12px',
                 fontFamily: FONT_FAMILY,
@@ -590,6 +806,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               onClick={exitMultiSelect}
               whileTap={{ scale: 0.96 }}
               transition={springs.snappy}
+              aria-label="Exit multi-select mode"
               style={{
                 padding: '6px 12px',
                 fontFamily: FONT_FAMILY,
@@ -598,6 +815,26 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                 color: 'var(--sub)',
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 99,
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </motion.button>
+            <motion.button
+              type="button"
+              onClick={() => setIsMultiSelectMode(false)}
+              whileTap={{ scale: 0.96 }}
+              transition={springs.snappy}
+              aria-label="Finish selecting"
+              style={{
+                padding: '6px 12px',
+                fontFamily: FONT_FAMILY,
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--accent)',
+                background: 'rgba(129, 140, 248, 0.08)',
+                border: '1px solid rgba(129, 140, 248, 0.2)',
                 borderRadius: 99,
                 cursor: 'pointer',
               }}
@@ -734,52 +971,159 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         >
           Last 30 days
         </motion.button>
+
+        {/* Category bars toggle (Task 400.3) */}
+        <motion.button
+          type="button"
+          onClick={() => setShowCategoryBars(prev => !prev)}
+          whileTap={{ scale: 0.96 }}
+          transition={springs.snappy}
+          aria-label={showCategoryBars ? 'Hide category bars' : 'Show category bars'}
+          style={pillStyle(showCategoryBars)}
+        >
+          📊 Bars
+        </motion.button>
       </div>
 
       {/* ── Rows ────────────────────────────────────────────────── */}
       {sortedDates.length > 0 ? (() => {
         let lastWeekKey = ''
-        return sortedDates.map(date => {
+        let lastMonthKey = ''
+        return sortedDates.map((date, dateIdx) => {
           const weekKey = getWeekKey(date)
+          const monthKey = date.slice(0, 7) // "YYYY-MM"
           const showWeekHeader = weekKey !== lastWeekKey
+          const showMonthHeader = monthKey !== lastMonthKey && dateIdx > 0 // Don't show for first group
           lastWeekKey = weekKey
 
+          // Detect month boundary: insert monthly summary for the PREVIOUS month
+          const prevMonthKey = lastMonthKey
+          lastMonthKey = monthKey
+
           const dailyTotal = computeDailyTotal(grouped[date])
+          const dailyIncome = computeDailyIncome(grouped[date])
+          // Estimate intrinsic height: header ~40px + rows ~56px each
+          const estimatedHeight = 40 + grouped[date].length * 56
           return (
-          <div key={date} style={{ marginBottom: 24 }}>
-            {/* Weekly total separator */}
+          <div
+            key={date}
+            style={{
+              marginBottom: 24,
+              // CSS-based virtualization (Task 404.1): skip layout/paint for
+              // off-screen date groups. The browser auto-manages rendering.
+              contentVisibility: 'auto',
+              containIntrinsicSize: `auto ${estimatedHeight}px`,
+            } as React.CSSProperties}
+          >
+            {/* Monthly total separator (Task 400.2) — shown at month boundary */}
+            {showMonthHeader && prevMonthKey && monthlyData[prevMonthKey] && !collapseSummaries && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '12px 0',
+                  marginBottom: 16,
+                  borderBottom: '1px solid rgba(129, 140, 248, 0.1)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <p style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'var(--accent)',
+                    fontFamily: FONT_FAMILY,
+                    opacity: 0.85,
+                  }}>
+                    {new Date(prevMonthKey + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long' })} total
+                  </p>
+                  <p style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    fontFamily: FONT_FAMILY,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    ${monthlyData[prevMonthKey].spent >= 1000
+                      ? monthlyData[prevMonthKey].spent.toLocaleString('en-US', { maximumFractionDigits: 0 })
+                      : monthlyData[prevMonthKey].spent.toFixed(2)}
+                  </p>
+                </div>
+                {showCategoryBars && (
+                  <CategorySpendingBar
+                    transactions={monthlyData[prevMonthKey].transactions}
+                    onCategoryTap={setActiveFilter}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Weekly total separator (Task 400.2 — enhanced) */}
             {showWeekHeader && weeklyTotals[weekKey] != null && (
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
+                  flexDirection: 'column',
                   padding: '10px 0',
                   marginBottom: 16,
                   borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
                 }}
               >
-                <p style={{
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  color: 'var(--sub)',
-                  fontFamily: FONT_FAMILY,
-                }}>
-                  Week of {new Date(weekKey + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </p>
-                <p style={{
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: 'var(--text)',
-                  fontFamily: FONT_FAMILY,
-                  fontVariantNumeric: 'tabular-nums',
-                }}>
-                  ${weeklyTotals[weekKey].toFixed(2)} spent
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {/* Collapse/expand toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setCollapseSummaries(prev => !prev)}
+                      aria-label={collapseSummaries ? 'Expand summaries' : 'Collapse summaries'}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 2,
+                        cursor: 'pointer',
+                        color: 'var(--muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        transition: 'transform 0.15s',
+                        transform: collapseSummaries ? 'rotate(-90deg)' : 'rotate(0deg)',
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </button>
+                    <p style={{
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      color: 'var(--sub)',
+                      fontFamily: FONT_FAMILY,
+                    }}>
+                      Week of {new Date(weekKey + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  <p style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    fontFamily: FONT_FAMILY,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    ${weeklyTotals[weekKey].toFixed(2)} spent
+                    <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: '11px', marginLeft: 4 }}>
+                      across {weeklyTxCounts[weekKey] || 0} txns
+                    </span>
+                  </p>
+                </div>
+                {/* Category spending bars for the week (Task 400.3) */}
+                {!collapseSummaries && showCategoryBars && weeklyTransactions[weekKey] && (
+                  <CategorySpendingBar
+                    transactions={weeklyTransactions[weekKey]}
+                    onCategoryTap={setActiveFilter}
+                  />
+                )}
               </div>
             )}
 
-          {/* Day header */}
+          {/* Day header (Task 400.1 — enhanced with income) */}
           <div className="flex items-center justify-between mb-3">
             <p style={{
               fontSize: '13px',
@@ -789,17 +1133,31 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             }}>
               {formatDate(date)}
             </p>
-            {dailyTotal > 0 && (
-              <p style={{
-                fontSize: '12px',
-                fontWeight: 500,
-                color: 'var(--muted)',
-                fontFamily: FONT_FAMILY,
-                fontVariantNumeric: 'tabular-nums',
-              }}>
-                ${dailyTotal.toFixed(2)} spent
-              </p>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {dailyTotal > 0 && (
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--muted)',
+                  fontFamily: FONT_FAMILY,
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  ${dailyTotal.toFixed(2)} spent
+                </span>
+              )}
+              {dailyIncome > 0 && (
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--success)',
+                  fontFamily: FONT_FAMILY,
+                  fontVariantNumeric: 'tabular-nums',
+                  opacity: 0.85,
+                }}>
+                  +${dailyIncome.toFixed(2)} income
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Transactions in glass card with timeline (255.1) */}
@@ -818,7 +1176,15 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                 pointerEvents: 'none',
               }}
             />
-            {grouped[date].map((tx, idx) => {
+            {/* Skeleton loading for fast scroll (Task 404.3) */}
+            {isScrollingFast && dateIdx > 2 ? (
+              <div aria-label="Loading transactions" role="status">
+                {grouped[date].slice(0, Math.min(grouped[date].length, 3)).map((_, skIdx) => (
+                  <SkeletonRow key={skIdx} />
+                ))}
+              </div>
+            ) : (
+            <>{grouped[date].map((tx, idx) => {
               const isIncome = tx.type === 'income'
               const expanded = !isMultiSelectMode && expandedId === tx.id
               const isLast = idx === grouped[date].length - 1
@@ -938,10 +1304,66 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                             Logged late
                           </span>
                         )}
-                        {/* Tag pills */}
+                        {/* Merchant frequency badge (Task 401.1) */}
+                        {tx.note && merchantCountMap.has(tx.note) && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontFamily: FONT_FAMILY,
+                              fontWeight: 500,
+                              color: 'var(--muted)',
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                            }}
+                            aria-label={`Visited ${merchantCountMap.get(tx.note)} times`}
+                          >
+                            {merchantCountMap.get(tx.note)}× here
+                          </span>
+                        )}
+                        {/* Split indicator (Task 401.3) */}
+                        {splitMap?.has(tx.id) && (
+                          <span
+                            role={onViewSplit ? 'button' : undefined}
+                            tabIndex={onViewSplit ? 0 : undefined}
+                            onClick={onViewSplit ? (e) => { e.stopPropagation(); onViewSplit(splitMap.get(tx.id)!.splitId) } : undefined}
+                            onKeyDown={onViewSplit ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onViewSplit(splitMap.get(tx.id)!.splitId) } } : undefined}
+                            style={{
+                              fontSize: '10px',
+                              fontFamily: FONT_FAMILY,
+                              fontWeight: 500,
+                              color: 'rgba(74, 222, 128, 0.85)',
+                              background: 'rgba(74, 222, 128, 0.08)',
+                              border: '1px solid rgba(74, 222, 128, 0.2)',
+                              padding: '1px 6px',
+                              borderRadius: 99,
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              cursor: onViewSplit ? 'pointer' : 'default',
+                            }}
+                            aria-label={`Split with ${splitMap.get(tx.id)!.participantCount} people`}
+                          >
+                            {/* Split fork icon */}
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M6 3v12"/>
+                              <path d="M18 3v6"/>
+                              <path d="M18 9a3 3 0 0 1-3 3H9"/>
+                              <circle cx="6" cy="18" r="2"/>
+                              <circle cx="18" cy="6" r="2" fill="none"/>
+                            </svg>
+                            {splitMap.get(tx.id)!.participantCount}
+                          </span>
+                        )}
+                        {/* Tag pills (Task 401.2 — with filter onClick) */}
                         {(tx.tags ?? getTagsForTransaction(tx.id))?.map((tag) => (
                           <span
                             key={tag}
+                            role={onTagFilter ? 'button' : undefined}
+                            tabIndex={onTagFilter ? 0 : undefined}
+                            onClick={onTagFilter ? (e) => { e.stopPropagation(); onTagFilter(tag) } : undefined}
+                            onKeyDown={onTagFilter ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onTagFilter(tag) } } : undefined}
                             style={{
                               fontSize: '10px',
                               fontFamily: FONT_FAMILY,
@@ -952,7 +1374,9 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                               padding: '1px 6px',
                               borderRadius: 99,
                               whiteSpace: 'nowrap',
+                              cursor: onTagFilter ? 'pointer' : 'default',
                             }}
+                            aria-label={onTagFilter ? `Filter by tag ${tag}` : undefined}
                           >
                             #{tag}
                           </span>
@@ -996,7 +1420,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                       {onEdit && (
                         <motion.button
                           type="button"
-                          onClick={e => { e.stopPropagation(); onEdit(tx); setExpandedId(null) }}
+                          onClick={e => { e.stopPropagation(); saveHistoryScrollPosition(); onEdit(tx); setExpandedId(null) }}
                           whileTap={{ scale: 0.96 }}
                           transition={springs.snappy}
                           style={{
@@ -1064,7 +1488,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                 )
               }
               return <div key={tx.id}>{row}</div>
-            })}
+            })}</>
+            )}
           </GlassCard>
         </div>
         )
@@ -1074,8 +1499,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
           {hasActiveFilters ? (
             <EmptyState
               illustration="filter"
-              title="No results found"
-              subtitle="Try adjusting your filters to see more"
+              title="Nothing matches those filters"
+              subtitle="Try loosening things up or clearing a filter to see more"
               actionLabel="Clear filters"
               onAction={clearAllFilters}
             />
@@ -1194,6 +1619,33 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                 Tag
               </motion.button>
             )}
+
+            <motion.button
+              type="button"
+              onClick={handleExportSelected}
+              whileTap={{ scale: 0.92 }}
+              transition={springs.snappy}
+              aria-label={`Export ${selectedIds.size} transactions as CSV`}
+              style={{
+                padding: '8px 12px',
+                fontSize: 12,
+                fontWeight: 500,
+                fontFamily: FONT_FAMILY,
+                color: 'var(--text)',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export
+            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>

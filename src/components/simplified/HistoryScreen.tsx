@@ -1,15 +1,51 @@
 "use client"
 
+import { useState, useMemo, useCallback, useEffect, useRef } from "react"
 import type { Transaction, TransactionCategory } from "@/types"
 import type { DailyAllowance } from "@/types/folio"
 import type { FundingSource } from "@/lib/fundingSources"
-import { motion } from "framer-motion"
-import { useReducedMotion } from "@/lib/animations"
+import { motion, AnimatePresence } from "framer-motion"
+import { useReducedMotion, timings } from "@/lib/animations"
 import { FONT_FAMILY, spacing } from "@/styles/typography"
 import { spacingScale } from "@/styles/layout"
 import { HistoryView } from "@/components/accounting/HistoryView"
 import { InsightTrendCard } from "./InsightTrendCard"
 import { InsightBreakdownCard } from "./InsightBreakdownCard"
+import { HistorySearchBar } from "./HistorySearchBar"
+import { HistoryFilterChips, EMPTY_FILTERS } from "./HistoryFilterChips"
+import type { HistoryFilters } from "./HistoryFilterChips"
+import { searchTransactions } from "@/lib/transactionSearch"
+import { useFilteredTransactions } from "@/lib/useFilteredTransactions"
+import type { QuickFilter } from "@/lib/transactionSearch"
+import { HistoryViewToggle } from "./HistoryViewToggle"
+import type { HistoryGroupingView } from "./HistoryViewToggle"
+import { HistoryByCategoryView } from "./HistoryByCategoryView"
+import { HistoryByMerchantView } from "./HistoryByMerchantView"
+import { clearHistoryScrollPosition } from "@/lib/useScrollVirtualization"
+import { ExportSummarySheet } from "./ExportSummarySheet"
+import { buildExportSummary, exportTransactionsCsv } from "@/lib/csvExport"
+import type { ExportSummary } from "@/lib/csvExport"
+
+// ── Session storage key for filter persistence ───────────────────
+const SESSION_HISTORY_FILTERS_KEY = "folio-history-screen-filters"
+
+function loadHistoryFilters(): HistoryFilters | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_HISTORY_FILTERS_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as HistoryFilters
+  } catch {
+    return null
+  }
+}
+
+function saveHistoryFilters(filters: HistoryFilters): void {
+  try {
+    sessionStorage.setItem(SESSION_HISTORY_FILTERS_KEY, JSON.stringify(filters))
+  } catch {
+    // Silently fail if sessionStorage is unavailable
+  }
+}
 
 // ============================================================================
 // HistoryScreen Props
@@ -38,6 +74,10 @@ export interface HistoryScreenProps {
   onBulkRecategorize?: (ids: string[], category: TransactionCategory) => void
   /** Bulk tag multiple transactions (Task 131) */
   onBulkTag?: (ids: string[], tags: string[]) => void
+  /** Map of transactionId → split info for split indicators (Task 401.3) */
+  splitMap?: Map<string, { splitId: string; participantCount: number }>
+  /** Callback when split indicator is tapped (Task 401.3) */
+  onViewSplit?: (splitId: string) => void
 }
 
 // ============================================================================
@@ -64,8 +104,110 @@ export function HistoryScreen({
   onBulkDelete,
   onBulkRecategorize,
   onBulkTag,
+  splitMap,
+  onViewSplit,
 }: HistoryScreenProps) {
   const { prefersReducedMotion, listContainer, listItem } = useReducedMotion()
+
+  // ── Search state ──────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // ── Grouping view state (Task 402) ────────────────────────────────
+  const [groupingView, setGroupingView] = useState<HistoryGroupingView>("timeline")
+
+  // Scroll to top on view mode switch (Task 404.2)
+  const handleViewChange = useCallback((view: HistoryGroupingView) => {
+    setGroupingView(view)
+    clearHistoryScrollPosition()
+    // Smooth scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
+  // ── Filter chip state (persisted in session storage) ──────────────
+  const [historyFilters, setHistoryFilters] = useState<HistoryFilters>(() => {
+    return loadHistoryFilters() ?? EMPTY_FILTERS
+  })
+
+  // Persist filter changes to sessionStorage
+  useEffect(() => {
+    saveHistoryFilters(historyFilters)
+  }, [historyFilters])
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return null
+    return searchTransactions(transactions, searchQuery)
+  }, [transactions, searchQuery])
+
+  // Memoized, optimized filter computation (Task 405.1)
+  const filteredTransactions = useFilteredTransactions(
+    transactions,
+    searchResults,
+    historyFilters
+  )
+
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query)
+  }, [])
+
+  const handleQuickFilter = useCallback((filter: QuickFilter) => {
+    // For quick filters, just set the query text — the search index handles
+    // natural language dates, category names, amounts, and types.
+    setSearchQuery(filter.query)
+  }, [])
+
+  const handleFiltersChange = useCallback((newFilters: HistoryFilters) => {
+    setHistoryFilters(newFilters)
+  }, [])
+
+  // Tag filter callback: when a tag chip is tapped in a transaction row,
+  // set the search query to the tag name so history filters to that tag (Task 401.2)
+  const handleTagFilter = useCallback((tag: string) => {
+    setSearchQuery(tag)
+  }, [])
+
+  // ── Export state (Task 406) ────────────────────────────────────────
+  const [exportSheetOpen, setExportSheetOpen] = useState(false)
+  const [exportSummary, setExportSummary] = useState<ExportSummary | null>(null)
+
+  const handleExportClick = useCallback(() => {
+    const summary = buildExportSummary(filteredTransactions, historyFilters, searchQuery)
+    setExportSummary(summary)
+    setExportSheetOpen(true)
+  }, [filteredTransactions, historyFilters, searchQuery])
+
+  const handleExportConfirm = useCallback(() => {
+    exportTransactionsCsv(filteredTransactions)
+    setExportSheetOpen(false)
+  }, [filteredTransactions])
+
+  const handleExportClose = useCallback(() => {
+    setExportSheetOpen(false)
+  }, [])
+
+  // ── Live region announcement for filter/search state changes ─────
+  const [filterAnnouncement, setFilterAnnouncement] = useState("")
+  const prevFilteredCountRef = useRef(filteredTransactions.length)
+
+  useEffect(() => {
+    // Only announce if count actually changed (avoid initial render)
+    if (prevFilteredCountRef.current !== filteredTransactions.length) {
+      const hasFilters = searchQuery.trim() || historyFilters.categories.length > 0 ||
+        historyFilters.dateRange !== null || historyFilters.amountRange !== null ||
+        historyFilters.type !== "all"
+
+      if (hasFilters) {
+        setFilterAnnouncement(
+          `Showing ${filteredTransactions.length} ${filteredTransactions.length === 1 ? "transaction" : "transactions"} of ${transactions.length} total`
+        )
+      } else {
+        setFilterAnnouncement(
+          `Showing all ${filteredTransactions.length} transactions`
+        )
+      }
+    }
+    prevFilteredCountRef.current = filteredTransactions.length
+  }, [filteredTransactions.length, transactions.length, searchQuery, historyFilters])
+
   return (
     <motion.div
       className="history-screen"
@@ -73,6 +215,78 @@ export function HistoryScreen({
       initial="hidden"
       animate="visible"
     >
+      {/* Visually-hidden live region for screen readers: announces filter/result changes */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          borderWidth: 0,
+        }}
+      >
+        {filterAnnouncement}
+      </div>
+      {/* Prominent search bar at the top of History (Task 398.2, 398.3) */}
+      <motion.div variants={listItem} style={{ padding: `${spacing.md}px 16px 0` }}>
+        <HistorySearchBar
+          value={searchQuery}
+          onChange={handleSearchChange}
+          resultCount={searchResults?.length}
+          totalCount={transactions.length}
+          onQuickFilter={handleQuickFilter}
+        />
+      </motion.div>
+
+      {/* Filter chips below search (Task 399) */}
+      <motion.div variants={listItem} style={{ padding: `${spacing.sm}px 16px 0` }}>
+        <HistoryFilterChips
+          filters={historyFilters}
+          onFiltersChange={handleFiltersChange}
+          resultCount={filteredTransactions.length}
+          totalCount={transactions.length}
+        />
+      </motion.div>
+
+      {/* View toggle: Timeline / By Category / By Merchant (Task 402.3) */}
+      <motion.div variants={listItem} style={{ padding: `${spacing.sm}px 16px 0`, display: "flex", alignItems: "center", gap: spacing.sm }}>
+        <div style={{ flex: 1 }}>
+          <HistoryViewToggle value={groupingView} onChange={handleViewChange} />
+        </div>
+        {/* Export button (Task 406) — only shows when there are transactions */}
+        {filteredTransactions.length > 0 && (
+          <button
+            onClick={handleExportClick}
+            aria-label="Export transactions as CSV"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              cursor: "pointer",
+              color: "var(--sub)",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+        )}
+      </motion.div>
       {/* Compact daily allowance reinforcement — keeps the core identity visible (Task 117.1) */}
       {allowance && (
         <motion.div variants={listItem}>
@@ -122,18 +336,72 @@ export function HistoryScreen({
       </motion.div>
 
       <motion.div variants={listItem} style={{ marginTop: spacingScale["32"] }}>
-      <HistoryView
-        transactions={transactions}
-        isLoading={isLoading}
-        onEditTransaction={onEditTransaction}
-        onDeleteTransaction={onDeleteTransaction}
-        onRepeatTransaction={onRepeatTransaction}
-        fundingSources={fundingSources}
-        onBulkDelete={onBulkDelete}
-        onBulkRecategorize={onBulkRecategorize}
-        onBulkTag={onBulkTag}
-      />
+      {/* Conditional view rendering based on grouping mode (Task 402) */}
+      <AnimatePresence mode="wait">
+        {groupingView === "timeline" && (
+          <motion.div
+            key="timeline"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={timings.fast}
+          >
+            <HistoryView
+              transactions={filteredTransactions}
+              isLoading={isLoading}
+              onEditTransaction={onEditTransaction}
+              onDeleteTransaction={onDeleteTransaction}
+              onRepeatTransaction={onRepeatTransaction}
+              fundingSources={fundingSources}
+              onBulkDelete={onBulkDelete}
+              onBulkRecategorize={onBulkRecategorize}
+              onBulkTag={onBulkTag}
+              onTagFilter={handleTagFilter}
+              splitMap={splitMap}
+              onViewSplit={onViewSplit}
+            />
+          </motion.div>
+        )}
+        {groupingView === "category" && (
+          <motion.div
+            key="category"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={timings.fast}
+            style={{ padding: "0 16px", paddingBottom: 120 }}
+          >
+            <HistoryByCategoryView
+              transactions={filteredTransactions}
+              onEditTransaction={onEditTransaction}
+            />
+          </motion.div>
+        )}
+        {groupingView === "merchant" && (
+          <motion.div
+            key="merchant"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={timings.fast}
+            style={{ padding: "0 16px", paddingBottom: 120 }}
+          >
+            <HistoryByMerchantView
+              transactions={filteredTransactions}
+              onEditTransaction={onEditTransaction}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
       </motion.div>
+
+      {/* Export summary confirmation sheet (Task 406.2) */}
+      <ExportSummarySheet
+        open={exportSheetOpen}
+        summary={exportSummary}
+        onConfirm={handleExportConfirm}
+        onClose={handleExportClose}
+      />
     </motion.div>
   )
 }

@@ -108,6 +108,11 @@ export const CELEBRATION_EMOJI = {
   // Income encouragement (Phase 11 task 356)
   income_growth: '💪',
   income_record: '🎉',
+  // New user first-week milestones (Phase 13 task 393.1)
+  new_user_first_expense: '✨',
+  new_user_first_day: '🌟',
+  new_user_3_day_streak: '🔥',
+  new_user_first_week: '🏆',
 } as const
 
 // ============================================================================
@@ -263,6 +268,23 @@ export const CELEBRATION_COPY = {
   income_record: {
     title: 'New income record!',
     message: "That's your highest-earning month yet. Way to go!",
+  },
+  // ── New user first-week milestones (Phase 13 task 393.1) ─────────────────
+  new_user_first_expense: {
+    title: "You're tracking!",
+    message: "That's the hardest part.",
+  },
+  new_user_first_day: {
+    title: 'Day 1 complete',
+    message: "You stayed on track — nice start.",
+  },
+  new_user_3_day_streak: {
+    title: '3 days running',
+    message: "You're building a habit.",
+  },
+  new_user_first_week: {
+    title: 'One week down',
+    message: "You know more about your money than most.",
   },
 } as const
 

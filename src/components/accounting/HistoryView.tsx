@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { TransactionList } from './TransactionList'
 import type { Transaction, TransactionCategory } from '@/types'
@@ -9,6 +9,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { springs } from '@/lib/animations'
 import { borderRadius } from '@/styles/shared'
 import { FONT_FAMILY } from '@/styles/typography'
+import { useWindowScrollTracking, restoreHistoryScrollPosition } from '@/lib/useScrollVirtualization'
 
 interface HistoryViewProps {
   transactions: Transaction[]
@@ -25,18 +26,33 @@ interface HistoryViewProps {
   onBulkRecategorize?: (ids: string[], category: TransactionCategory) => void
   /** Bulk tag multiple transactions (Task 131) */
   onBulkTag?: (ids: string[], tags: string[]) => void
+  /** Callback when a tag chip is tapped — filters history to that tag (Task 401.2) */
+  onTagFilter?: (tag: string) => void
+  /** Map of transactionId → split info for split indicators (Task 401.3) */
+  splitMap?: Map<string, { splitId: string; participantCount: number }>
+  /** Callback when split indicator is tapped (Task 401.3) */
+  onViewSplit?: (splitId: string) => void
 }
 
 export function HistoryView({
   transactions, isLoading = false,
   onEditTransaction, onDeleteTransaction, onRepeatTransaction,
   fundingSources, onBulkDelete, onBulkRecategorize, onBulkTag,
+  onTagFilter, splitMap, onViewSplit,
 }: HistoryViewProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => toMonthString(new Date()))
   const currentMonth   = toMonthString(new Date())
   const isCurrentMonth = selectedMonth === currentMonth
   const monthLabel     = new Date(selectedMonth + '-15').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   const monthTxs       = transactions.filter(t => t.date.startsWith(selectedMonth))
+
+  // Fast scroll detection for skeleton loading (Task 404.3)
+  const { isScrollingFast } = useWindowScrollTracking()
+
+  // Restore scroll position when returning from transaction detail (Task 404.2)
+  useEffect(() => {
+    restoreHistoryScrollPosition()
+  }, [])
 
   return (
     <div className="pb-24" style={{ width: "100%", display: "flex", justifyContent: "center" }}>
@@ -160,6 +176,10 @@ export function HistoryView({
             onBulkDelete={isCurrentMonth ? onBulkDelete : undefined}
             onBulkRecategorize={isCurrentMonth ? onBulkRecategorize : undefined}
             onBulkTag={isCurrentMonth ? onBulkTag : undefined}
+            onTagFilter={onTagFilter}
+            splitMap={splitMap}
+            onViewSplit={onViewSplit}
+            isScrollingFast={isScrollingFast}
           />
         )}
       </div>

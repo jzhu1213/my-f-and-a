@@ -103,6 +103,10 @@ export interface SettingsScreenProps {
   onGoalChange?: (goal: import('@/types').UserGoal) => void
   skippedSetupSteps?: string[]
   onResumeSetupStep?: (stepId: string) => void
+  /** Called when user taps "Resume setup" to reactivate a dismissed checklist (task 392.2) */
+  onResumeChecklist?: () => void
+  /** Whether the resume setup option should be visible (dismissed but not complete) */
+  showResumeChecklist?: boolean
   /** Deep-link: auto-open a specific sub-screen on mount (384.3). */
   initialSubScreen?: SettingsCategory | null
 }
@@ -416,6 +420,33 @@ export function SettingsScreen(props: SettingsScreenProps) {
               />
             </div>
           </nav>
+        )}
+
+        {/* Resume setup (task 392.2) — shown when checklist is dismissed but not complete */}
+        {props.showResumeChecklist && props.onResumeChecklist && (
+          <button
+            type="button"
+            onClick={props.onResumeChecklist}
+            style={{
+              marginTop: spacingScale["16"],
+              width: "100%",
+              padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+              background: elevations.sunken.fill,
+              border: `1px solid ${elevations.resting.border}`,
+              borderRadius: radius.control,
+              display: "flex",
+              alignItems: "center",
+              gap: spacingScale["8"],
+              cursor: "pointer",
+              ...typography["body-sm"],
+              color: textColors.text,
+              fontWeight: 500,
+            }}
+            aria-label="Resume setup checklist"
+          >
+            <span aria-hidden="true">🔄</span>
+            <span>Resume setup</span>
+          </button>
         )}
 
         {/* Danger zone */}
