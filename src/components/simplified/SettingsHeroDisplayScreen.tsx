@@ -60,9 +60,10 @@ const HERO_OPTIONS: { value: HeroMeaning; label: string; description: string }[]
 // Section heading
 // ============================================================================
 
-function SectionHeading({ children }: { children: string }) {
+function SectionHeading({ children, id }: { children: string; id?: string }) {
   return (
     <h2
+      id={id}
       style={{
         ...typography["body-sm"],
         color: textColors.muted,
@@ -150,7 +151,7 @@ export function SettingsHeroDisplayScreen({
   return (
     <SettingsSubScreen title="Hero number" description="Choose what the big number on your home screen means." onBack={onBack}>
       <section aria-labelledby="hero-meaning-heading">
-        <SectionHeading>Hero display</SectionHeading>
+        <SectionHeading id="hero-meaning-heading">Hero display</SectionHeading>
         <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
           {HERO_OPTIONS.map((option) => (
             <OptionCard

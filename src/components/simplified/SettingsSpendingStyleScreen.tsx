@@ -71,9 +71,10 @@ const GOAL_LABELS: Record<UserGoal, { label: string; description: string }> = {
 // Section heading
 // ============================================================================
 
-function SectionHeading({ children }: { children: string }) {
+function SectionHeading({ children, id }: { children: string; id?: string }) {
   return (
     <h2
+      id={id}
       style={{
         ...typography["body-sm"],
         color: textColors.muted,
@@ -177,7 +178,7 @@ export function SettingsSpendingStyleScreen({
     <SettingsSubScreen title="Spending" description="Pick how Folio tracks your spending." onBack={onBack}>
       {/* Spending mode section */}
       <section aria-labelledby="spending-mode-heading">
-        <SectionHeading>Spending mode</SectionHeading>
+        <SectionHeading id="spending-mode-heading">Spending mode</SectionHeading>
         <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
           {spendingModes.map((mode) => (
             <OptionCard
@@ -196,7 +197,7 @@ export function SettingsSpendingStyleScreen({
         aria-labelledby="over-limit-heading"
         style={{ marginTop: spacingScale["32"] }}
       >
-        <SectionHeading>When I go over</SectionHeading>
+        <SectionHeading id="over-limit-heading">When I go over</SectionHeading>
         <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
           {overLimitOptions.map((option) => (
             <OptionCard
@@ -216,7 +217,7 @@ export function SettingsSpendingStyleScreen({
           aria-labelledby="focus-heading"
           style={{ marginTop: spacingScale["32"] }}
         >
-          <SectionHeading>My focus</SectionHeading>
+          <SectionHeading id="focus-heading">My focus</SectionHeading>
           <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
             {goalOptions.map((goal) => (
               <OptionCard

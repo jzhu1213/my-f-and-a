@@ -41,9 +41,10 @@ const EMOJI_OPTIONS = ['💰', '🎓', '📚', '🏠', '🍕', '🚗', '💼', '
 // Section heading
 // ============================================================================
 
-function SectionHeading({ children }: { children: string }) {
+function SectionHeading({ children, id }: { children: string; id?: string }) {
   return (
     <h2
+      id={id}
       style={{
         ...typography["body-sm"],
         color: textColors.muted,
@@ -120,7 +121,7 @@ export function SettingsSpendDownPlansScreen({
       {/* Existing plans list */}
       {spendDownPlans.length > 0 && (
         <section aria-labelledby="existing-plans-heading" style={{ marginBottom: spacingScale["32"] }}>
-          <SectionHeading>Active plans</SectionHeading>
+          <SectionHeading id="existing-plans-heading">Active plans</SectionHeading>
           <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
             {spendDownPlans.map((plan) => (
               <div

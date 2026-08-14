@@ -131,7 +131,7 @@ export function SettingsLookFeelScreen({ onBack }: SettingsLookFeelScreenProps) 
 
       {/* Region / currency section */}
       <section
-        aria-labelledby="region-heading"
+        aria-label="Region and currency"
         style={{ marginTop: spacingScale['32'] }}
       >
         <RegionSettings />

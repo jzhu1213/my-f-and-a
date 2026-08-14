@@ -32,7 +32,7 @@ export interface SettingsPrivacySecurityScreenProps {
 
 export function SettingsPrivacySecurityScreen({ onBack, onOpenPrivacyDashboard }: SettingsPrivacySecurityScreenProps) {
   return (
-    <SettingsSubScreen title="Privacy" description="Lock, sessions, and your data controls." onBack={onBack}>
+    <SettingsSubScreen title="Privacy" description="Keep your data safe and control who sees what." onBack={onBack}>
       <AppLockSetting />
 
       <div style={{ marginTop: spacingScale['32'] }}>

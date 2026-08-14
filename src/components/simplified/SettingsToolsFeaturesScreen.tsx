@@ -65,9 +65,10 @@ const FEATURE_FLAG_DEFS: FeatureFlagDef[] = [
 // Section heading
 // ============================================================================
 
-function SectionHeading({ children }: { children: string }) {
+function SectionHeading({ children, id }: { children: string; id?: string }) {
   return (
     <h2
+      id={id}
       style={{
         ...typography["body-sm"],
         color: textColors.muted,
@@ -147,7 +148,7 @@ export function SettingsToolsFeaturesScreen({
     <SettingsSubScreen title="Features" description="Turn tools on or off to keep things simple." onBack={onBack}>
       {/* Feature visibility toggles */}
       <section aria-labelledby="feature-toggles-heading" style={{ marginBottom: spacingScale["32"] }}>
-        <SectionHeading>Feature visibility</SectionHeading>
+        <SectionHeading id="feature-toggles-heading">Feature visibility</SectionHeading>
         {FEATURE_FLAG_DEFS.map((def) => (
           <ToggleRow
             key={def.key}
@@ -162,7 +163,7 @@ export function SettingsToolsFeaturesScreen({
 
       {/* Preferences section */}
       <section aria-labelledby="preferences-heading" style={{ marginBottom: spacingScale["32"] }}>
-        <SectionHeading>Preferences</SectionHeading>
+        <SectionHeading id="preferences-heading">Preferences</SectionHeading>
         <ToggleRow
           label="Credit score"
           description="Track your credit score over time"

@@ -45,9 +45,10 @@ export interface SettingsHomeExtrasScreenProps {
 // Section heading
 // ============================================================================
 
-function SectionHeading({ children }: { children: string }) {
+function SectionHeading({ children, id }: { children: string; id?: string }) {
   return (
     <h2
+      id={id}
       style={{
         ...typography["body-sm"],
         color: textColors.muted,
@@ -204,7 +205,7 @@ export function SettingsHomeExtrasScreen({ onBack }: SettingsHomeExtrasScreenPro
     <SettingsSubScreen title="Home" description="Customize what shows up on your home screen." onBack={onBack}>
       {/* Toggles section */}
       <section aria-labelledby="home-toggles-heading" style={{ marginBottom: spacingScale["32"] }}>
-        <SectionHeading>Extras</SectionHeading>
+        <SectionHeading id="home-toggles-heading">Extras</SectionHeading>
         <ToggleRow
           label="Savings badge"
           description="Monthly savings rate below the hero"
@@ -230,7 +231,7 @@ export function SettingsHomeExtrasScreen({ onBack }: SettingsHomeExtrasScreenPro
 
       {/* Home style section */}
       <section aria-labelledby="home-style-heading" style={{ marginBottom: spacingScale["32"] }}>
-        <SectionHeading>Home style</SectionHeading>
+        <SectionHeading id="home-style-heading">Home style</SectionHeading>
         <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
           {HOME_STYLE_OPTIONS.map((option) => (
             <OptionCard
@@ -247,7 +248,7 @@ export function SettingsHomeExtrasScreen({ onBack }: SettingsHomeExtrasScreenPro
       {/* Pinned cards summary (dashboard mode only) */}
       {homeStyle === "dashboard" && pinnedCards.length > 0 && (
         <section aria-labelledby="pinned-cards-heading">
-          <SectionHeading>Pinned cards</SectionHeading>
+          <SectionHeading id="pinned-cards-heading">Pinned cards</SectionHeading>
           <div
             style={{
               background: elevations.resting.fill,

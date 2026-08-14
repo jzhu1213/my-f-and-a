@@ -57,9 +57,10 @@ type SubFlow = 'term-schedule' | 'spend-down-plans' | null
 // Section heading
 // ============================================================================
 
-function SectionHeading({ children }: { children: string }) {
+function SectionHeading({ children, id }: { children: string; id?: string }) {
   return (
     <h2
+      id={id}
       style={{
         ...typography["body-sm"],
         color: textColors.muted,
@@ -181,7 +182,7 @@ export function SettingsBudgetIncomeScreen({
     <SettingsSubScreen title="Budget" description="Your monthly budget and how income flows in." onBack={onBack}>
       {/* Budget summary card */}
       <section aria-labelledby="budget-summary-heading">
-        <SectionHeading>Budget summary</SectionHeading>
+        <SectionHeading id="budget-summary-heading">Budget summary</SectionHeading>
         <div
           style={{
             padding: spacingScale["16"],
@@ -228,7 +229,7 @@ export function SettingsBudgetIncomeScreen({
           aria-labelledby="income-method-heading"
           style={{ marginTop: spacingScale["32"] }}
         >
-          <SectionHeading>Income method</SectionHeading>
+          <SectionHeading id="income-method-heading">Income method</SectionHeading>
           <div
             role="group"
             aria-label="Income smoothing strategy"

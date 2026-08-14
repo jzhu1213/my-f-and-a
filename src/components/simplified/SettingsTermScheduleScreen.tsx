@@ -34,9 +34,10 @@ export interface SettingsTermScheduleScreenProps {
 // Section heading
 // ============================================================================
 
-function SectionHeading({ children }: { children: string }) {
+function SectionHeading({ children, id }: { children: string; id?: string }) {
   return (
     <h2
+      id={id}
       style={{
         ...typography["body-sm"],
         color: textColors.muted,
@@ -100,7 +101,7 @@ export function SettingsTermScheduleScreen({
       {/* Current term display */}
       {termSchedule && (
         <section aria-labelledby="current-term-heading" style={{ marginBottom: spacingScale["32"] }}>
-          <SectionHeading>Current term</SectionHeading>
+          <SectionHeading id="current-term-heading">Current term</SectionHeading>
           <div
             style={{
               padding: spacingScale["16"],
@@ -171,7 +172,7 @@ export function SettingsTermScheduleScreen({
 
       {/* Preset buttons */}
       <section aria-labelledby="presets-heading">
-        <SectionHeading>Quick setup</SectionHeading>
+        <SectionHeading id="presets-heading">Quick setup</SectionHeading>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacingScale["8"] }}>
           {TERM_PRESETS.map((preset, index) => {
             const isSelected = selectedPresetIndex === index
