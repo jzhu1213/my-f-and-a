@@ -5,6 +5,7 @@ import { ChartFrame } from '@/components/ui/primitives/ChartFrame'
 import { FONT_FAMILY } from '@/styles/typography'
 import { progressBar, chartLabel, chartValueLabel, chartMotion } from '@/styles/chartTokens'
 import { computeCombinedSavingsInputs } from '@/lib/savingsAccountUtils'
+import { isLearningEnabled } from '@/lib/educationPreferences'
 import type { CompoundGrowthResult } from '@/types'
 import type { SavingsAccount } from '@/types/folio'
 
@@ -275,6 +276,29 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
               <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>from growth</p>
             </GlassCard>
           </div>
+
+          {/* What this means for you — personalized insight panel */}
+          {isLearningEnabled() && (
+          <GlassCard elevation="low" style={{ padding: 16, marginBottom: 24, borderLeft: '2px solid var(--success)' }}>
+            <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+              💡 What this means for you
+            </p>
+            <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--sub)', lineHeight: 1.5 }}>
+              {(() => {
+                const principal = parseFloat(initialAmount) || 0
+                const monthly = parseFloat(monthlyContribution) || 0
+                const yrs = parseInt(years) || 0
+                if (principal > 0 && monthly > 0) {
+                  return `At this rate, your $${principal.toLocaleString()} investment plus $${monthly.toLocaleString()}/mo will grow to $${result.finalAmount.toLocaleString()} in ${yrs} year${yrs !== 1 ? 's' : ''} — that\u2019s $${result.totalInterest.toLocaleString()} of free money from compound growth.`
+                }
+                if (principal > 0) {
+                  return `Your $${principal.toLocaleString()} grows to $${result.finalAmount.toLocaleString()} in ${yrs} year${yrs !== 1 ? 's' : ''} — $${result.totalInterest.toLocaleString()} earned without lifting a finger.`
+                }
+                return `Contributing $${monthly.toLocaleString()}/mo turns into $${result.finalAmount.toLocaleString()} over ${yrs} year${yrs !== 1 ? 's' : ''}. That\u2019s $${result.totalInterest.toLocaleString()} your money earned for you.`
+              })()}
+            </p>
+          </GlassCard>
+          )}
 
           {/* Growth chart */}
           <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>Year by Year</p>

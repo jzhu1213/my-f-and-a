@@ -20,7 +20,9 @@ import {
   getTotalDebtBalance,
   getTotalMinimumPayments,
   getPayoffMonths,
+  getTotalInterestPaid,
 } from "@/lib/debtUtils"
+import { isLearningEnabled } from "@/lib/educationPreferences"
 import { MultiDebtPayoffCard } from "./MultiDebtPayoffCard"
 
 // ============================================================================
@@ -116,6 +118,7 @@ export function DebtScreen({
   const [showAddForm, setShowAddForm] = useState(false)
   const [form, setForm] = useState<DebtFormData>(DEFAULT_FORM)
   const [saving, setSaving] = useState(false)
+  const [activeWhatIf, setActiveWhatIf] = useState<string | null>(null)
 
   // ── Computed ───────────────────────────────────────────────────────────────
   const totalBalance = getTotalDebtBalance(debts)
@@ -241,6 +244,133 @@ export function DebtScreen({
           <span style={{ marginLeft: 3 }}>/mo minimum</span>
         </p>
       </Card>
+
+      {/* ── What If Scenarios ──────────────────────────────────────────────── */}
+      {debts.length > 0 && totalBalance > 0 && totalMinimum > 0 && (
+        <Card style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={sectionHeader}>What If…</p>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+            Tap a scenario to see the difference
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: activeWhatIf ? 12 : 0 }}>
+            <motion.button
+              onClick={() => setActiveWhatIf(activeWhatIf === "extra50" ? null : "extra50")}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
+              transition={springs.snappy}
+              style={{
+                padding: "8px 14px",
+                borderRadius: borderRadius.full,
+                border: activeWhatIf === "extra50" ? "1.5px solid var(--success)" : "1px solid var(--border)",
+                background: activeWhatIf === "extra50" ? "rgba(6, 214, 160, 0.1)" : "var(--fill-04)",
+                color: activeWhatIf === "extra50" ? "var(--success)" : "var(--sub)",
+                fontSize: 13,
+                fontWeight: 500,
+                fontFamily: FONT_FAMILY,
+                cursor: "pointer",
+              }}
+            >
+              +$50/mo
+            </motion.button>
+            <motion.button
+              onClick={() => setActiveWhatIf(activeWhatIf === "double" ? null : "double")}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
+              transition={springs.snappy}
+              style={{
+                padding: "8px 14px",
+                borderRadius: borderRadius.full,
+                border: activeWhatIf === "double" ? "1.5px solid var(--success)" : "1px solid var(--border)",
+                background: activeWhatIf === "double" ? "rgba(6, 214, 160, 0.1)" : "var(--fill-04)",
+                color: activeWhatIf === "double" ? "var(--success)" : "var(--sub)",
+                fontSize: 13,
+                fontWeight: 500,
+                fontFamily: FONT_FAMILY,
+                cursor: "pointer",
+              }}
+            >
+              Double payments
+            </motion.button>
+          </div>
+
+          <AnimatePresence>
+            {activeWhatIf && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={springs.gentle}
+                style={{ overflow: "hidden" }}
+              >
+                {(() => {
+                  // Calculate current scenario
+                  const currentMonths = debts.reduce((max, d) => {
+                    const m = getPayoffMonths(d.balance, d.apr, d.minimumPayment)
+                    return m > max ? m : max
+                  }, 0)
+                  const currentInterest = debts.reduce((sum, d) => {
+                    const interest = getTotalInterestPaid(d.balance, d.apr, d.minimumPayment)
+                    return interest === Infinity ? sum : sum + interest
+                  }, 0)
+
+                  // Calculate "what if" scenario
+                  const extraPerDebt = activeWhatIf === "extra50" ? 50 / debts.length : 0
+                  const multiplier = activeWhatIf === "double" ? 2 : 1
+
+                  const whatIfMonths = debts.reduce((max, d) => {
+                    const payment = d.minimumPayment * multiplier + extraPerDebt
+                    const m = getPayoffMonths(d.balance, d.apr, payment)
+                    return m > max ? m : max
+                  }, 0)
+                  const whatIfInterest = debts.reduce((sum, d) => {
+                    const payment = d.minimumPayment * multiplier + extraPerDebt
+                    const interest = getTotalInterestPaid(d.balance, d.apr, payment)
+                    return interest === Infinity ? sum : sum + interest
+                  }, 0)
+
+                  const monthsSaved = currentMonths === Infinity ? null : currentMonths - whatIfMonths
+                  const interestSaved = currentInterest - whatIfInterest
+
+                  return (
+                    <div
+                      style={{
+                        padding: 14,
+                        borderRadius: borderRadius.md,
+                        background: "rgba(6, 214, 160, 0.04)",
+                        border: "1px solid rgba(6, 214, 160, 0.12)",
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+                        {monthsSaved !== null && monthsSaved > 0 && (
+                          <div>
+                            <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                              {monthsSaved < 12 ? `${monthsSaved}mo` : `${Math.floor(monthsSaved / 12)}y ${monthsSaved % 12}mo`}
+                            </p>
+                            <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>sooner</p>
+                          </div>
+                        )}
+                        {interestSaved > 0 && (
+                          <div>
+                            <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                              ${Math.round(interestSaved).toLocaleString()}
+                            </p>
+                            <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>less interest</p>
+                          </div>
+                        )}
+                      </div>
+                      {isLearningEnabled() && (
+                      <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>
+                        {activeWhatIf === "extra50"
+                          ? "Even $50 more per month adds up fast. The extra goes straight to principal, shrinking the balance that accrues interest."
+                          : "Doubling payments dramatically cuts your timeline. Each extra dollar fights interest instead of feeding it."}
+                      </p>
+                      )}
+                    </div>
+                  )
+                })()}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+      )}
 
       {/* ── Debts List ─────────────────────────────────────────────────────── */}
       <Card style={{ padding: "18px 20px", marginBottom: 20 }}>

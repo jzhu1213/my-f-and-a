@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { FONT_FAMILY } from '@/styles/typography'
 import { getPayoffMonths, getTotalInterestPaid } from '@/lib/debtUtils'
+import { isLearningEnabled } from '@/lib/educationPreferences'
 import type { CreditPayoffResult } from '@/types'
 import type { Debt } from '@/types/folio'
 
@@ -184,11 +185,35 @@ export function CreditPayoffCalculator({ onBack, debts }: CreditPayoffCalculator
             ))}
           </div>
 
+          {isLearningEnabled() && (
           <GlassCard elevation="low" style={{ padding: 16, borderLeft: '2px solid var(--muted)' }}>
             <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--sub)' }}>
               Paying ${Math.round(result.monthlyPayment * 1.5)}/mo instead saves ~${Math.round(result.totalInterest * 0.4)} in interest.
             </p>
           </GlassCard>
+          )}
+
+          {/* What this means for you — personalized insight panel */}
+          {isLearningEnabled() && (
+          <GlassCard elevation="low" style={{ padding: 16, marginTop: 12, borderLeft: '2px solid var(--success)' }}>
+            <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+              📚 What this means for you
+            </p>
+            <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--sub)', lineHeight: 1.5 }}>
+              {(() => {
+                const b = parseFloat(balance)
+                const interestRatio = result.totalInterest / b
+                if (interestRatio >= 0.8) {
+                  return `You\u2019d pay $${result.totalInterest.toLocaleString()} in interest alone — almost as much as what you owe. Paying even a little more each month can save hundreds.`
+                }
+                if (interestRatio >= 0.4) {
+                  return `On top of your $${b.toLocaleString()} balance, you\u2019ll pay $${result.totalInterest.toLocaleString()} in interest over ${result.monthsToPayoff} months. That\u2019s real money that could go toward your goals instead.`
+                }
+                return `You\u2019ll be debt-free in ${result.monthsToPayoff} months with $${result.totalInterest.toLocaleString()} in interest. Not bad — staying consistent is what makes the difference.`
+              })()}
+            </p>
+          </GlassCard>
+          )}
         </div>
       )}
 

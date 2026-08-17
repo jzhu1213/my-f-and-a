@@ -216,4 +216,126 @@ A bond flips the roles: you lend money to a government or company, and they pay 
     actionLink: '/accounting?tab=budgets',
     order: 11,
   },
+
+  // ── Phase 18: Key Educational Content (Task 442) ────────────────────────
+
+  // 442.1 — Budgeting Fundamentals
+  {
+    id: 'zero-based-budgeting',
+    title: 'Zero-Based Budgeting',
+    description: 'Give every dollar a job before the month starts',
+    topic: 'budgeting',
+    content: `Zero-based budgeting means assigning every dollar of income a purpose — spending, saving, or debt — until your plan hits zero. It's not about having zero money; it's about having zero unplanned money.
+
+The idea is simple: income minus all planned expenses and savings equals zero. Every dollar knows where it's going before it arrives. This doesn't mean you can't be flexible — it means you're intentional about where flexibility lives.
+
+Start by listing your income, then your must-pays (rent, bills), then your goals (savings, debt), and finally your flexible spending. If the total doesn't zero out, adjust until it does. You're the boss of the plan.`,
+    example: 'Kayla earns $2,400/month. She assigns $900 to rent, $400 to bills, $200 to savings, $200 to debt, and $700 to flexible spending. Total: $2,400. Zero left unplanned, but plenty left to enjoy.',
+    quizQuestions: [
+      { id: 'zero-based-q1', question: 'What does "zero" mean in zero-based budgeting?', options: ['You have no money left', 'Every dollar is assigned a purpose', 'You spend nothing', 'Your savings are zero'], correctIndex: 1 },
+      { id: 'zero-based-q2', question: 'What is the first step in zero-based budgeting?', options: ['Cut all fun spending', 'List your total income', 'Open a new bank account', 'Cancel subscriptions'], correctIndex: 1 },
+      { id: 'zero-based-q3', question: 'Can you adjust a zero-based budget mid-month?', options: ['Never — it\'s set in stone', 'Yes — life happens and plans flex', 'Only if you overspend', 'Only with permission'], correctIndex: 1 },
+    ],
+    actionLink: '/accounting?tab=budgets',
+    order: 12,
+  },
+  {
+    id: 'envelope-method',
+    title: 'The Envelope Method',
+    description: 'Category budgets that keep spending visible',
+    topic: 'budgeting',
+    content: `The envelope method splits your spending money into categories — like putting cash in labeled envelopes. When a category runs out, you pause spending there until next month. Digital category budgets work the same way.
+
+The power is visibility: you always know exactly how much is left for food, fun, or transport. No mental math, no guessing. When your "dining out" budget shows $30 remaining, you make different choices than when it's an invisible number.
+
+You don't need physical envelopes — your category budgets here serve the same purpose. The key is checking in regularly so you're making informed choices rather than discovering overages after the fact.`,
+    example: 'Ravi set a $300 food budget and $100 entertainment budget. Halfway through the month he checked in and saw $180 left for food but only $20 for entertainment. He shifted plans from a concert to a free campus event — no sacrifice, just awareness.',
+    quizQuestions: [
+      { id: 'envelope-q1', question: 'What is the core idea of the envelope method?', options: ['Save everything', 'Split spending into visible category limits', 'Never spend on wants', 'Only use cash'], correctIndex: 1 },
+      { id: 'envelope-q2', question: 'What happens when a category "envelope" runs out?', options: ['You borrow from savings', 'You pause that category or reallocate', 'You go into debt', 'The month is ruined'], correctIndex: 1 },
+      { id: 'envelope-q3', question: 'Do you need physical cash envelopes?', options: ['Yes, always', 'No — digital category budgets work the same way', 'Only for food', 'Only for entertainment'], correctIndex: 1 },
+    ],
+    actionLink: '/accounting?tab=budgets',
+    order: 13,
+  },
+
+  // 442.2 — Saving and Compound Growth
+  {
+    id: 'compound-growth',
+    title: 'Compound Growth',
+    description: 'How your money earns money on its own',
+    topic: 'saving',
+    content: `Compound growth means your earnings start earning too. If you save $100 and earn 5% interest, next year you earn interest on $105 — not just the original $100. Over time, this snowball effect gets surprisingly powerful.
+
+The key ingredient is time. Starting with even a small amount in your 20s gives compound growth decades to work. Someone who saves $50/month starting at 20 often ends up with more than someone who saves $150/month starting at 30 — just because of the head start.
+
+You don't need to be an investor to benefit. A high-yield savings account gives you compound growth on autopilot. The important thing is starting now, even tiny, and letting time do the heavy lifting.`,
+    example: 'Zara put $1,000 in a savings account earning 5% at age 20. Without adding another cent, it grows to about $3,400 by age 45 — purely from compounding. With monthly contributions, the growth is even more dramatic.',
+    quizQuestions: [
+      { id: 'compound-q1', question: 'What makes compound growth powerful?', options: ['You earn interest on your interest', 'Banks give extra bonuses', 'Stocks never lose value', 'It requires large sums'], correctIndex: 0 },
+      { id: 'compound-q2', question: 'What is the most important ingredient for compound growth?', options: ['A large starting amount', 'Time', 'A finance degree', 'Daily trading'], correctIndex: 1 },
+      { id: 'compound-q3', question: 'Can compound growth work in a regular savings account?', options: ['No — only stocks compound', 'Yes — any interest-bearing account compounds', 'Only with $10,000+', 'Only in retirement accounts'], correctIndex: 1 },
+    ],
+    actionLink: '/accounting?tab=goals',
+    order: 14,
+  },
+
+  // 442.3 — Debt Awareness
+  {
+    id: 'credit-card-interest',
+    title: 'How Credit Card Interest Works',
+    description: 'Understanding what carrying a balance really costs',
+    topic: 'credit',
+    content: `When you carry a balance on a credit card, you're charged interest on that balance — often 15–25% per year. That's not a one-time fee; it compounds monthly. A $1,000 balance at 22% generates about $18 in interest every single month, even if you're not spending more.
+
+The minimum payment trap is real: paying only the minimum mostly covers interest, barely touching your actual balance. A $3,000 balance with minimum payments can take 10+ years to pay off and cost thousands extra in interest.
+
+The good news? Even small extra payments make a huge difference. Paying just $25 above the minimum can cut your payoff time in half. Every extra dollar goes directly toward your balance, saving you future interest.`,
+    example: 'Malik had $2,500 on a card at 21% APR. Minimum payments of $50/month meant he\'d pay for 9 years and spend $2,800 in interest alone. By paying $100/month instead, he\'d be done in 2.5 years and pay only $600 in interest.',
+    quizQuestions: [
+      { id: 'cc-interest-q1', question: 'How often does credit card interest compound?', options: ['Yearly', 'Monthly', 'Only when you miss a payment', 'Never if you have autopay'], correctIndex: 1 },
+      { id: 'cc-interest-q2', question: 'What happens when you pay only the minimum?', options: ['Your balance drops quickly', 'Most of your payment goes to interest, not your balance', 'Interest stops', 'You earn rewards faster'], correctIndex: 1 },
+      { id: 'cc-interest-q3', question: 'What is the most effective way to reduce interest costs?', options: ['Close the card', 'Pay more than the minimum each month', 'Only use the card on weekends', 'Ignore the balance'], correctIndex: 1 },
+    ],
+    order: 15,
+  },
+  {
+    id: 'debt-payoff-strategies',
+    title: 'Snowball vs Avalanche',
+    description: 'Two proven paths out of debt',
+    topic: 'loans',
+    content: `When you have multiple debts, two strategies dominate: snowball and avalanche. Both work — the best one is whichever keeps you motivated.
+
+Snowball: pay minimums on everything, then throw extra money at your smallest balance. When it's gone, roll that payment into the next smallest. The wins come fast and feel amazing, which keeps you going.
+
+Avalanche: pay minimums on everything, then throw extra money at your highest-interest debt. Mathematically saves the most money over time, though the first win takes longer. If you're motivated by efficiency, this is your path.`,
+    example: 'Taylor had 3 debts: $400 store card (15%), $2,000 student loan (6%), and $3,500 credit card (22%). Snowball would target the $400 first for a quick win. Avalanche would target the $3,500 card first to stop the 22% interest from growing.',
+    quizQuestions: [
+      { id: 'debt-strategy-q1', question: 'What does the snowball method prioritize?', options: ['Highest interest rate', 'Smallest balance first', 'Newest debt', 'Oldest debt'], correctIndex: 1 },
+      { id: 'debt-strategy-q2', question: 'What does the avalanche method prioritize?', options: ['Smallest balance', 'Highest interest rate first', 'Equal payments on all debts', 'The debt you like least'], correctIndex: 1 },
+      { id: 'debt-strategy-q3', question: 'Which strategy is "better"?', options: ['Snowball always', 'Avalanche always', 'Whichever keeps you motivated', 'Neither — just pay minimums'], correctIndex: 2 },
+    ],
+    order: 16,
+  },
+
+  // 442.4 — Spending Psychology
+  {
+    id: 'spending-psychology',
+    title: 'Spending Psychology',
+    description: 'How your brain tricks you into spending more',
+    topic: 'budgeting',
+    content: `Your brain is wired with shortcuts that marketers exploit daily. Anchoring makes a $50 shirt feel cheap after you see a $200 one. Lifestyle inflation makes you spend more as you earn more, keeping your savings flat. Impulse buys bypass your rational brain entirely.
+
+The good news: awareness is most of the fix. Once you notice these patterns, they lose their power. The 24-hour rule for non-essentials, checking your daily allowance before purchases, and asking "would I buy this if it weren't on sale?" are all simple pattern-breakers.
+
+Small daily choices compound like interest — in both directions. Spending $3 less per day frees up $90/month. That's not deprivation; it's redirecting money from autopilot purchases toward things you actually care about.`,
+    example: 'Nadia realized she spent $8/day on impulse buys (snacks, extra coffee, random Amazon adds). She didn\'t cut them all — just became intentional about half. That $4/day savings became $120/month toward her travel goal.',
+    quizQuestions: [
+      { id: 'psych-q1', question: 'What is the "anchoring effect" in spending?', options: ['A ship reference', 'A high price makes a lower one feel like a deal', 'Spending only at anchor stores', 'Saving money in a safe'], correctIndex: 1 },
+      { id: 'psych-q2', question: 'What is lifestyle inflation?', options: ['Prices going up everywhere', 'Spending more as you earn more, keeping savings flat', 'Inflating your budget on purpose', 'A type of debt'], correctIndex: 1 },
+      { id: 'psych-q3', question: 'What is the simplest way to combat impulse buying?', options: ['Never shop again', 'Wait 24 hours before non-essential purchases', 'Only buy expensive things', 'Close all credit cards'], correctIndex: 1 },
+    ],
+    actionLink: '/accounting?tab=budgets',
+    order: 17,
+  },
 ]

@@ -19,6 +19,7 @@ import { detectSpendingPaceAlert, detectYesterdaySurplus, markSurplusNudgeShown 
 import type { SpendingPaceAlert, YesterdaySurplus } from '@/lib/spendVelocity'
 import { getAutomationPreferences } from '@/lib/automationPreferences'
 import { shouldSuppressTip } from '@/lib/engagementTracker'
+import { isLearningEnabled } from '@/lib/educationPreferences'
 
 // ============================================================================
 // Tip Cooldown & Throttle (Task 75)
@@ -467,6 +468,7 @@ export function selectContextualTip(
 ): ContextualTip | null {
   const candidates: ContextualTip[] = []
   const isTrackerMode = context.spendingMode === 'tracker'
+  const learningEnabled = isLearningEnabled()
 
   // Step 1: Celebration trigger — streak at milestone days under budget (high priority).
   // Only fires at meaningful milestones (3, 7, 14, 30) — not every day after day 3.
@@ -767,7 +769,7 @@ export function selectContextualTip(
   // Step 2h-credit: First credit spend — contextual credit education trigger.
   // Fires once ever when user makes their first transaction on a credit source.
   // Links to the first lesson in the credit education path.
-  if (context.hasCreditTransactions && !hasSeenFirstCreditSpend()) {
+  if (learningEnabled && context.hasCreditTransactions && !hasSeenFirstCreditSpend()) {
     markFirstCreditSpendSeen()
     candidates.push({
       id: 'first-credit-spend',
@@ -787,7 +789,7 @@ export function selectContextualTip(
   // Step 2h-credit-path: Credit education path progression — suggests the next
   // credit lesson after the user completes one. Low priority, fires at most
   // once per completed lesson via dismissed-tips.
-  if (context.hasCreditTransactions && context.completedLessonIds && hasSeenFirstCreditSpend()) {
+  if (learningEnabled && context.hasCreditTransactions && context.completedLessonIds && hasSeenFirstCreditSpend()) {
     const nextCredit = getNextCreditLesson(context.completedLessonIds)
     if (nextCredit) {
       candidates.push({
@@ -809,7 +811,7 @@ export function selectContextualTip(
   // Step 2h-credit-score: Monthly credit score check-in reminder.
   // Fires when it's been 30+ days since the user last logged a score
   // and the reminder hasn't been shown this month.
-  if (shouldRemindCreditScoreCheckin() && canShowCreditScoreReminder()) {
+  if (learningEnabled && shouldRemindCreditScoreCheckin() && canShowCreditScoreReminder()) {
     markCreditScoreReminderShown()
     candidates.push({
       id: 'credit-score-checkin-reminder',
@@ -829,7 +831,7 @@ export function selectContextualTip(
   // Step 2j: First goal micro-lesson — fires once after the user creates
   // their first savings goal. Links to the "pay yourself first" micro-lesson.
   // Medium priority, never nags (localStorage guard + dismissed-tips).
-  if (context.hasGoals && !hasSeenFirstGoalLesson()) {
+  if (learningEnabled && context.hasGoals && !hasSeenFirstGoalLesson()) {
     markFirstGoalLessonSeen()
     candidates.push({
       id: 'first-goal-lesson',
@@ -851,6 +853,7 @@ export function selectContextualTip(
   // IRA matters in your 20s" micro-lesson so the encouragement lands right when
   // they've taken the first step. Medium priority, guarded so it never nags.
   if (
+    learningEnabled &&
     context.savingsAccounts &&
     context.savingsAccounts.length > 0 &&
     !hasSeenFirstSavingsAccountLesson()
@@ -878,6 +881,7 @@ export function selectContextualTip(
   // Surfaces "The power of starting early" (compound growth) to reinforce the
   // habit. Medium priority, guarded so it fires at most once.
   if (
+    learningEnabled &&
     context.savingsAccounts &&
     context.savingsAccounts.length > 0 &&
     !hasSeenFirstContributionLesson() &&
@@ -905,6 +909,7 @@ export function selectContextualTip(
   // has 5+ over-budget days in the last 7. Warm and encouraging, never shaming.
   // Links to the budgeting-101 lesson for deeper learning.
   if (
+    learningEnabled &&
     !isTrackerMode &&
     context.overBudgetDaysLast7 != null &&
     context.overBudgetDaysLast7 >= 5 &&
@@ -957,7 +962,7 @@ export function selectContextualTip(
   // offers exactly ONE warm next step. Low priority so it never displaces an
   // urgent nudge or a fresh celebration. The cycle token in the id means a
   // dismissal only hides the current window, never the feature forever.
-  if (shouldShowMoneyConfidenceCheckin(context.totalTransactions)) {
+  if (learningEnabled && shouldShowMoneyConfidenceCheckin(context.totalTransactions)) {
     markMoneyConfidenceCheckinShown()
     const content = buildMoneyConfidenceCheckin({
       underBudgetStreak: context.underBudgetStreak,
@@ -1162,7 +1167,7 @@ export function selectContextualTip(
 
   // Step 3: Educational trigger — fewer than 10 total transactions (low priority)
   // Only shows on the first few app opens to avoid nagging new users.
-  if (context.totalTransactions < 10 && getAppOpenCount() <= EDUCATIONAL_TIP_MAX_OPENS) {
+  if (learningEnabled && context.totalTransactions < 10 && getAppOpenCount() <= EDUCATIONAL_TIP_MAX_OPENS) {
     candidates.push({
       id: 'getting-started-tip',
       type: 'did_you_know',
@@ -1179,7 +1184,7 @@ export function selectContextualTip(
   // when the user has enough transaction history (≥10) but no higher-priority tip fires.
   // Picks a random unread micro-lesson to keep it fresh. Low priority ensures it
   // never competes with celebrations, nudges, or bills-due reminders.
-  if (context.totalTransactions >= 10) {
+  if (learningEnabled && context.totalTransactions >= 10) {
     const unreadMicro = getUnreadMicroLessons()
     if (unreadMicro.length > 0) {
       // Deterministic pick based on day-of-year to avoid flicker across re-renders

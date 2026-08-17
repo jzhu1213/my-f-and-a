@@ -2648,6 +2648,11 @@ export default function FolioApp() {
           onCompleteLesson={completeLesson}
           initialLessonId={learnPayload?.initialLessonId ?? undefined}
           savingsAccounts={savingsAccounts}
+          transactions={transactions}
+          budgets={budgets}
+          goals={goals}
+          debts={debts}
+          dailyBudget={allowance?.amount ?? 0}
         />
       </div>
     )

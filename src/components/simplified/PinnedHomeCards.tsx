@@ -23,6 +23,7 @@ import { CARD_META } from "@/lib/homeWidgets"
 import type { Goal, Transaction } from "@/types"
 import type { ConfidenceTier } from "@/lib/confidenceScore"
 import type { GardenMetrics } from "@/lib/gardenProgress"
+import { isLearningEnabled } from "@/lib/educationPreferences"
 
 // ============================================================================
 // Props
@@ -52,6 +53,8 @@ export interface PinnedHomeCardsProps {
   confidenceTrend?: "up" | "stable" | "down"
   /** Garden metrics for the progress garden card (task 435) */
   gardenMetrics?: GardenMetrics
+  /** Learning progress data for the learning_progress card (task 445.3) */
+  learningProgress?: { topicLabel: string; unlocked: number; total: number; recentLessonTitle?: string }
   /** Navigate to a tool screen */
   onNavigate?: (cardType: PinnedCardType) => void
 }
@@ -348,6 +351,48 @@ function ProgressGardenCard({
   )
 }
 
+function LearningProgressCard({
+  learningProgress,
+  onTap,
+}: {
+  learningProgress?: { topicLabel: string; unlocked: number; total: number; recentLessonTitle?: string }
+  onTap?: () => void
+}) {
+  const progress = learningProgress
+  const unlocked = progress?.unlocked ?? 0
+  const total = progress?.total ?? 0
+  const pct = total > 0 ? Math.min(100, Math.round((unlocked / total) * 100)) : 0
+
+  return (
+    <CompactCardShell type="learning_progress" onTap={onTap}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+        <span style={{ fontSize: 14 }} aria-hidden="true">📚</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={cardTitleStyle}>
+            {progress?.recentLessonTitle
+              ? progress.recentLessonTitle
+              : 'Learning Journey'}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+            <div style={{ flex: 1, height: 3, borderRadius: 2, background: fills[8], overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${pct}%`,
+                  height: '100%',
+                  background: colorRamp.accent[500],
+                  borderRadius: 2,
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+            <span style={cardValueStyle}>{unlocked}/{total}</span>
+          </div>
+        </div>
+      </div>
+    </CompactCardShell>
+  )
+}
+
 // ============================================================================
 // Compact Card Shell
 // ============================================================================
@@ -442,6 +487,7 @@ export function PinnedHomeCards({
   confidenceTier,
   confidenceTrend,
   gardenMetrics,
+  learningProgress,
   onNavigate,
 }: PinnedHomeCardsProps) {
   if (pinnedCards.length === 0) return null
@@ -530,6 +576,15 @@ export function PinnedHomeCards({
               <ProgressGardenCard
                 key={card.type}
                 gardenMetrics={gardenMetrics}
+                onTap={() => handleTap(card.type)}
+              />
+            )
+          case 'learning_progress':
+            if (!isLearningEnabled()) return null
+            return (
+              <LearningProgressCard
+                key={card.type}
+                learningProgress={learningProgress}
                 onTap={() => handleTap(card.type)}
               />
             )

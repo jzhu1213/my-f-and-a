@@ -5,7 +5,48 @@
  * and provides localStorage guards so each trigger fires at most once.
  *
  * These are pure utility functions — the actual tip selection lives in tipUtils.ts.
+ *
+ * NOTE: This file preserves backward-compatible exports used by tipUtils.ts.
+ * The robust trigger engine lives in lessonTriggerEngine.ts with content in
+ * contextualLessonContent.ts (Phase 18, task 440).
  */
+
+// Re-export the new trigger engine for consumers who want the full system.
+export {
+  getNextLesson,
+  evaluateTriggers,
+  selectBestTrigger,
+  canShowLesson,
+  recordTriggerShown,
+  hasTriggerFiredForContext,
+  getTriggerHistory,
+  markSessionLessonShown as markSessionEducationShown,
+  hasSessionLessonBeenShown as hasSessionEducationBeenShown,
+  recordToolAccess,
+  isFirstToolAccess,
+  getToolsEverAccessed,
+  resetSessionState,
+  getWeeklyLessonCount,
+} from '@/lib/lessonTriggerEngine'
+
+export type {
+  TriggerDefinition,
+  TriggerType,
+  TriggerPriority,
+  FiredTrigger,
+  TriggerHistoryEntry,
+  TriggerEvaluationContext,
+} from '@/lib/lessonTriggerEngine'
+
+export {
+  TRIGGER_DEFINITIONS,
+  CONTEXTUAL_LESSONS,
+  getLessonForTrigger,
+  getLessonsByTopic,
+  getTriggerDefinition,
+} from '@/lib/contextualLessonContent'
+
+export type { ContextualLesson } from '@/lib/contextualLessonContent'
 
 // ============================================================================
 // localStorage Keys

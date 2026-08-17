@@ -18,6 +18,7 @@ import {
   computeMonthlyContributions,
   getAccountTypeMetadata,
 } from "@/lib/savingsAccountUtils"
+import { isLearningEnabled } from "@/lib/educationPreferences"
 import { SAVINGS_ACCOUNT_TYPES } from "@/types/folio"
 import type { SavingsAccount, SavingsAccountType } from "@/types/folio"
 
@@ -70,6 +71,7 @@ export function SavingsProjectionsScreen({
 }: SavingsProjectionsScreenProps) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [activeWhatIf, setActiveWhatIf] = useState<string | null>(null)
 
   // Compute month-over-month change indicator (monthly contributions as proxy)
   const monthlyChange = useMemo(
@@ -193,6 +195,135 @@ export function SavingsProjectionsScreen({
           transition={springs.gentle}
         >
           <CombinedGrowthOutlook accounts={savingsAccounts} />
+        </motion.div>
+      )}
+
+      {/* ── What If Scenarios ──────────────────────────────────────── */}
+      {savingsAccounts.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springs.gentle, delay: 0.05 }}
+          style={{ marginBottom: 16, marginTop: 16 }}
+        >
+          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
+            <p
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--sub)",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                marginBottom: 4,
+              }}
+            >
+              What If…
+            </p>
+            <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+              Tap a scenario to see the difference
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: activeWhatIf ? 12 : 0 }}>
+              <button
+                onClick={() => setActiveWhatIf(activeWhatIf === "extra50" ? null : "extra50")}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 99,
+                  border: activeWhatIf === "extra50" ? "1.5px solid var(--success)" : "1px solid rgba(255,255,255,0.08)",
+                  background: activeWhatIf === "extra50" ? "rgba(6, 214, 160, 0.1)" : "rgba(255,255,255,0.04)",
+                  color: activeWhatIf === "extra50" ? "var(--success)" : "var(--sub)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontFamily: FONT_FAMILY,
+                  cursor: "pointer",
+                }}
+              >
+                +$50/mo more
+              </button>
+              <button
+                onClick={() => setActiveWhatIf(activeWhatIf === "extra1000" ? null : "extra1000")}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 99,
+                  border: activeWhatIf === "extra1000" ? "1.5px solid var(--success)" : "1px solid rgba(255,255,255,0.08)",
+                  background: activeWhatIf === "extra1000" ? "rgba(6, 214, 160, 0.1)" : "rgba(255,255,255,0.04)",
+                  color: activeWhatIf === "extra1000" ? "var(--success)" : "var(--sub)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontFamily: FONT_FAMILY,
+                  cursor: "pointer",
+                }}
+              >
+                +$1,000 start
+              </button>
+            </div>
+
+            {activeWhatIf && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={springs.gentle}
+              >
+                {(() => {
+                  // Compute 10-year projection for current vs what-if
+                  const projectionYears = 10
+                  const months = projectionYears * 12
+
+                  // Current scenario
+                  const currentTotal = savingsAccounts.reduce((sum, acct) => {
+                    const monthlyRate = (acct.expectedAnnualReturn || 0) / 100 / 12
+                    let bal = acct.balance
+                    for (let m = 0; m < months; m++) {
+                      bal = bal * (1 + monthlyRate) + acct.monthlyContribution
+                    }
+                    return sum + bal
+                  }, 0)
+
+                  // What-if scenario
+                  const extraMonthly = activeWhatIf === "extra50" ? 50 : 0
+                  const extraInitial = activeWhatIf === "extra1000" ? 1000 : 0
+
+                  const whatIfTotal = savingsAccounts.reduce((sum, acct) => {
+                    const monthlyRate = (acct.expectedAnnualReturn || 0) / 100 / 12
+                    let bal = acct.balance + (extraInitial / savingsAccounts.length)
+                    const contribution = acct.monthlyContribution + (extraMonthly / savingsAccounts.length)
+                    for (let m = 0; m < months; m++) {
+                      bal = bal * (1 + monthlyRate) + contribution
+                    }
+                    return sum + bal
+                  }, 0)
+
+                  const difference = Math.round(whatIfTotal - currentTotal)
+
+                  return (
+                    <div
+                      style={{
+                        padding: 14,
+                        borderRadius: 12,
+                        background: "rgba(6, 214, 160, 0.04)",
+                        border: "1px solid rgba(6, 214, 160, 0.12)",
+                      }}
+                    >
+                      <div style={{ marginBottom: 10 }}>
+                        <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                          +{formatDollars(difference)}
+                        </p>
+                        <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>
+                          more in {projectionYears} years
+                        </p>
+                      </div>
+                      {isLearningEnabled() && (
+                      <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>
+                        {activeWhatIf === "extra50"
+                          ? "An extra $50/mo seems small, but compound growth turns it into real wealth over time. Your future self will thank you."
+                          : "Starting with $1,000 more gives compound growth a bigger base to work from \u2014 it snowballs from there."}
+                      </p>
+                      )}
+                    </div>
+                  )
+                })()}
+              </motion.div>
+            )}
+          </GlassCard>
         </motion.div>
       )}
 

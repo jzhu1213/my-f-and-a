@@ -43,6 +43,8 @@ import { SettingsPrivacySecurityScreen } from "./SettingsPrivacySecurityScreen"
 import { SettingsDataExportScreen } from "./SettingsDataExportScreen"
 import { SettingsAutomationScreen } from "./SettingsAutomationScreen"
 import { SettingsMotivationScreen } from "./SettingsMotivationScreen"
+import { SettingsEducationScreen } from "./SettingsEducationScreen"
+import { getEducationPreferences } from "@/lib/educationPreferences"
 import { SettingsNavList } from "./SettingsNavList"
 import { SettingsDangerZone } from "./SettingsDangerZone"
 
@@ -127,6 +129,7 @@ export type SettingsCategory =
   | 'notifications'
   | 'tools-features'
   | 'motivation'
+  | 'education'
   | 'automation'
   | 'privacy-security'
   | 'data-export'
@@ -148,6 +151,7 @@ const NAV_ROWS: NavRowDef[] = [
   { id: 'home-screen', icon: '🏠', label: 'Home', keywords: ['extras', 'pace', 'savings', 'badge', 'cards', 'pin', 'style', 'screen'], group: 2 },
   { id: 'look-feel', icon: '🎨', label: 'Appearance', keywords: ['theme', 'warm', 'dark', 'region', 'currency', 'look', 'feel'], group: 2 },
   { id: 'motivation', icon: '🏆', label: 'Motivation', keywords: ['gamification', 'streak', 'challenge', 'milestone', 'garden', 'celebration', 'habit', 'progress', 'motivation'], group: 2 },
+  { id: 'education', icon: '📚', label: 'Learning', keywords: ['education', 'tips', 'lessons', 'financial', 'learning', 'teach', 'topics'], group: 2 },
   { id: 'notifications', icon: '🔔', label: 'Notifications', keywords: ['nudge', 'alert', 'buffer', 'balance', 'reminder'], group: 3 },
   { id: 'tools-features', icon: '🧩', label: 'Features', keywords: ['feature', 'visibility', 'toggle', 'categorization', 'rules', 'tools'], group: 3 },
   { id: 'automation', icon: '🤖', label: 'Automation', keywords: ['automation', 'predictions', 'recurring', 'suggest', 'pace', 'bills'], group: 3 },
@@ -250,6 +254,11 @@ export function SettingsScreen(props: SettingsScreenProps) {
         return 'On'
       case 'tools-features':
         return `${enabledFeatureCount} active`
+      case 'education': {
+        const eduPrefs = getEducationPreferences()
+        const modeLabel = eduPrefs.learningMode === 'on' ? 'On' : eduPrefs.learningMode === 'subtle' ? 'Subtle' : 'Off'
+        return modeLabel
+      }
       case 'data-export':
         return activeShareCount > 0 ? `${activeShareCount} shared` : undefined
       default:
@@ -344,6 +353,9 @@ export function SettingsScreen(props: SettingsScreenProps) {
     ),
     motivation: (
       <SettingsMotivationScreen onBack={handleBack} />
+    ),
+    education: (
+      <SettingsEducationScreen onBack={handleBack} />
     ),
     automation: (
       <SettingsAutomationScreen onBack={handleBack} />

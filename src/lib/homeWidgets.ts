@@ -25,6 +25,7 @@ export type PinnedCardType =
   | 'shared_budget'
   | 'confidence'
   | 'progress_garden'
+  | 'learning_progress'
 
 /**
  * A single pinned card configuration.
@@ -88,6 +89,11 @@ export const CARD_META: Record<PinnedCardType, { label: string; emoji: string; d
     emoji: '🌱',
     description: 'A living garden that grows with your engagement',
   },
+  learning_progress: {
+    label: 'Learning Progress',
+    emoji: '📚',
+    description: 'Your learning journey — topics explored and recent lessons',
+  },
 }
 
 /** All available card types in display order. */
@@ -101,6 +107,7 @@ export const ALL_CARD_TYPES: PinnedCardType[] = [
   'shared_budget',
   'confidence',
   'progress_garden',
+  'learning_progress',
 ]
 
 // ---------------------------------------------------------------------------

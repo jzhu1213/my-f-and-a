@@ -144,6 +144,144 @@ export const MICRO_LESSONS: MicroLesson[] = [
     topic: 'saving',
     relatedLessonId: 'savings-accounts',
   },
+
+  // ── Phase 18 Task 442: Key Educational Content Micro-Lessons ──────────
+
+  // 442.1 — Budgeting Fundamentals
+  {
+    id: 'micro-50-30-20',
+    title: 'The 50/30/20 Starting Point',
+    content: '50% needs, 30% wants, 20% savings — not a strict rule, just a compass. Find the ratio that fits your life and adjust from there.',
+    emoji: '📐',
+    topic: 'budgeting',
+    relatedLessonId: 'budgeting-101',
+  },
+  {
+    id: 'micro-zero-based',
+    title: 'Zero-Based Budgeting',
+    content: 'Give every dollar a job before it arrives. Income minus planned spending minus savings equals zero — not zero money, zero unplanned money.',
+    emoji: '🎯',
+    topic: 'budgeting',
+    relatedLessonId: 'zero-based-budgeting',
+  },
+  {
+    id: 'micro-envelope-method',
+    title: 'The Envelope Method',
+    content: 'Split spending into category limits. When food shows $30 left, you make different choices than when it\'s an invisible number. Visibility is power.',
+    emoji: '✉️',
+    topic: 'budgeting',
+    relatedLessonId: 'envelope-method',
+  },
+  {
+    id: 'micro-tracking-awareness',
+    title: 'Tracking Changes Behavior',
+    content: 'Research shows just tracking spending — no rules, no restrictions — reduces overspending by 10-15%. Awareness alone is a superpower.',
+    emoji: '🔮',
+    topic: 'budgeting',
+    relatedLessonId: 'budgeting-101',
+  },
+
+  // 442.2 — Saving and Compound Growth
+  {
+    id: 'micro-compound-growth',
+    title: 'Compound Growth in Action',
+    content: 'Your savings earn interest, and then that interest earns interest too. Start small, start now — time does the heavy lifting.',
+    emoji: '📈',
+    topic: 'saving',
+    relatedLessonId: 'compound-growth',
+  },
+  {
+    id: 'micro-opportunity-cost',
+    title: 'Every Dollar Has Options',
+    content: 'Every purchase means not doing something else with that money. Neither choice is wrong — just worth a quick "what else could this do for me?" check.',
+    emoji: '⚖️',
+    topic: 'saving',
+    relatedLessonId: 'compound-growth',
+  },
+  {
+    id: 'micro-emergency-sizing',
+    title: 'Emergency Fund Size',
+    content: 'Aim for 1-3 months of expenses as a first target. Even one month of buffer turns emergencies into inconveniences instead of crises.',
+    emoji: '🛡️',
+    topic: 'saving',
+    relatedLessonId: 'emergency-fund',
+  },
+  {
+    id: 'micro-automate-savings',
+    title: 'Set It and Forget It',
+    content: 'Automatic transfers on payday have the highest savings success rate. You can\'t miss money you never see in your spending account.',
+    emoji: '🤖',
+    topic: 'saving',
+    relatedLessonId: 'emergency-fund',
+  },
+
+  // 442.3 — Debt Awareness
+  {
+    id: 'micro-interest-compounds-against',
+    title: 'Interest Works Against You',
+    content: 'With debt, compound interest works in reverse — your balance generates interest, and that interest generates more interest. Even small extra payments fight back hard.',
+    emoji: '⚡',
+    topic: 'credit',
+    relatedLessonId: 'credit-card-interest',
+  },
+  {
+    id: 'micro-minimum-payment-trap',
+    title: 'The Minimum Payment Trap',
+    content: 'Paying only minimums means most of your money goes to interest, barely touching the balance. $25 extra per month can cut payoff time in half.',
+    emoji: '🪤',
+    topic: 'credit',
+    relatedLessonId: 'credit-card-interest',
+  },
+  {
+    id: 'micro-good-vs-bad-debt',
+    title: 'Good Debt vs Bad Debt',
+    content: 'Debt that builds your future (education, home) is different from debt that buys fleeting things. The interest rate and what it builds tell the story.',
+    emoji: '🔀',
+    topic: 'loans',
+    relatedLessonId: 'debt-payoff-strategies',
+  },
+  {
+    id: 'micro-debt-or-save',
+    title: 'Debt vs Savings Priority',
+    content: 'Keep a small emergency buffer ($500-1K), then throw extra at high-interest debt. Once that\'s gone, shift aggressively to savings. Balance beats extremes.',
+    emoji: '⚖️',
+    topic: 'credit',
+    relatedLessonId: 'credit-card-interest',
+  },
+
+  // 442.4 — Spending Psychology
+  {
+    id: 'micro-anchoring',
+    title: 'The Anchoring Trap',
+    content: 'A "sale" price feels great because you saw the higher price first. Ask: would you buy this at this price if there were no comparison?',
+    emoji: '⚓',
+    topic: 'budgeting',
+    relatedLessonId: 'spending-psychology',
+  },
+  {
+    id: 'micro-lifestyle-inflation',
+    title: 'Lifestyle Inflation',
+    content: 'When your income rises, spending often rises to match — keeping savings flat. Noticing the creep is the first step to redirecting some of the growth.',
+    emoji: '🎈',
+    topic: 'budgeting',
+    relatedLessonId: 'spending-psychology',
+  },
+  {
+    id: 'micro-impulse-check',
+    title: 'The 10-Second Pause',
+    content: 'Before a non-essential buy: "Do I want this thing, or do I want what this money could become?" Both answers are totally valid.',
+    emoji: '⏸️',
+    topic: 'budgeting',
+    relatedLessonId: 'spending-psychology',
+  },
+  {
+    id: 'micro-small-choices-compound',
+    title: 'Small Choices Compound',
+    content: 'Spending $3 less per day frees up $90/month — not through deprivation, but by catching autopilot purchases and keeping the ones that bring real joy.',
+    emoji: '🌊',
+    topic: 'budgeting',
+    relatedLessonId: 'spending-psychology',
+  },
 ]
 
 /**
