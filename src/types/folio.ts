@@ -192,6 +192,8 @@ export type TipTrigger =
   | { type: 'spend_anomaly'; category: TransactionCategory; amount: number; typicalAmount: number }
   | { type: 'income_shortfall'; expectedAmount: number; daysPastDue: number }
   | { type: 'seasonal_mode_suggestion'; suggestedMode: string; reason: string }
+  | { type: 'spending_pace_alert'; paceMultiplier: number; remainingBudget: number }
+  | { type: 'yesterday_surplus'; amountSaved: number; yesterdayDate: string }
 
 // ============================================================================
 // Celebration Types (Requirements 6.1-6.7)

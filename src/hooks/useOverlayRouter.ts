@@ -38,6 +38,7 @@ export type OverlayId =
   | 'sharedBudgets'
   | 'statementImport'
   | 'confidence'
+  | 'recurrenceManagement'
 
 // ── Sheet IDs (bottom sheets — can be open alongside main content) ───────────
 
@@ -88,6 +89,7 @@ export interface OverlayPayloads {
   sharedBudgets: undefined
   statementImport: undefined
   confidence: undefined
+  recurrenceManagement: undefined
 }
 
 export interface SheetPayloads {

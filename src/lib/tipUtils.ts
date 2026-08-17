@@ -15,6 +15,9 @@ import type { SavingsAccount } from '@/types/folio'
 import { findLargestContributionGap, isNearEndOfMonth } from '@/lib/savingsAccountUtils'
 import { computeMonthToDateContributed, hasAnyRecordedContribution } from '@/lib/savingsContributionHistory'
 import { detectSpendAnomaly } from '@/lib/anomalyDetection'
+import { detectSpendingPaceAlert, detectYesterdaySurplus, markSurplusNudgeShown } from '@/lib/spendVelocity'
+import type { SpendingPaceAlert, YesterdaySurplus } from '@/lib/spendVelocity'
+import { getAutomationPreferences } from '@/lib/automationPreferences'
 import { shouldSuppressTip } from '@/lib/engagementTracker'
 
 // ============================================================================
@@ -245,6 +248,10 @@ export interface UserContext {
   seasonalModeSuggestion?: { modeId: string; modeName: string; reason: string }
   /** Account age in days — drives new-user tip pool (Phase 13 task 393.2) */
   accountAgeDays?: number
+  /** Proactive pace alert — today's spending is significantly above typical (Task 414.1) */
+  spendingPaceAlert?: SpendingPaceAlert
+  /** Yesterday's surplus — user saved >50% of daily budget (Task 414.2) */
+  yesterdaySurplus?: YesterdaySurplus
 }
 
 /** Inputs required to derive a {@link UserContext} for tip selection. */
@@ -288,6 +295,8 @@ export interface BuildUserContextParams {
   seasonalModeSuggestion?: { modeId: string; modeName: string; reason: string }
   /** Account age in days (from UserProfile.createdAt or first transaction date) — Phase 13 task 393.2 */
   accountAgeDays?: number
+  /** Current hour of day (0–23) — used for pace alert detection (Task 414.1) */
+  currentHour?: number
 }
 
 /**
@@ -303,7 +312,7 @@ export interface BuildUserContextParams {
  * only re-runs when its memo dependencies actually change.
  */
 export function buildUserContext(params: BuildUserContextParams): UserContext {
-  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds, lastLoggedTransaction, userGoal, incomeOverdue, seasonalModeSuggestion, accountAgeDays } = params
+  const { transactions, allowance, underBudgetStreak, upcomingBills, today, fundingSources, spendingMode, detectedSubscriptions, goals, savingsAccounts, completedLessonIds, lastLoggedTransaction, userGoal, incomeOverdue, seasonalModeSuggestion, accountAgeDays, currentHour } = params
 
   // Single pass: accumulate today's expense spend per category.
   const categorySpend: Partial<Record<TransactionCategory, number>> = {}
@@ -395,6 +404,20 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     }
   }
 
+  // Detect proactive spending pace alert (Task 414.1)
+  // Only compute when the spendingPaceAlerts automation toggle is ON (Task 418.2)
+  const hour = currentHour ?? new Date().getHours()
+  const automationPrefs = getAutomationPreferences()
+  const spendingPaceAlert = automationPrefs.spendingPaceAlerts
+    ? (detectSpendingPaceAlert(transactions, today, hour, dailyBudget) ?? undefined)
+    : undefined
+
+  // Detect yesterday's surplus for morning nudge (Task 414.2)
+  // Only compute when the spendingPaceAlerts automation toggle is ON (Task 418.2)
+  const yesterdaySurplus = automationPrefs.spendingPaceAlerts
+    ? (detectYesterdaySurplus(transactions, today, dailyBudget) ?? undefined)
+    : undefined
+
   return {
     underBudgetStreak,
     todaySpentPercent,
@@ -418,6 +441,8 @@ export function buildUserContext(params: BuildUserContextParams): UserContext {
     incomeOverdue,
     seasonalModeSuggestion,
     accountAgeDays,
+    spendingPaceAlert,
+    yesterdaySurplus,
   }
 }
 
@@ -1015,6 +1040,53 @@ export function selectContextualTip(
     })
   }
 
+  // Step 2-pace: Proactive spending pace alert (Task 414.1)
+  // Surfaces when today's spending pace is 50%+ above the daily norm AND it's
+  // before midday. Replaces the normal tip for this session — high-medium
+  // priority. Warm, informational: "You're spending faster than usual today."
+  // Suppressed in tracker mode (no budget framing).
+  if (!isTrackerMode && context.spendingPaceAlert) {
+    const remaining = Math.round(context.spendingPaceAlert.remainingBudget)
+    candidates.push({
+      id: 'spending-pace-alert',
+      type: 'gentle_nudge',
+      title: 'Pacing check',
+      message: `You're spending faster than usual today — $${remaining} left.`,
+      emoji: '⚡',
+      iconName: 'tip:pacing',
+      priority: 'medium',
+      actionLabel: 'See breakdown',
+      actionType: 'view_insight',
+      triggerCondition: {
+        type: 'spending_pace_alert',
+        paceMultiplier: context.spendingPaceAlert.paceMultiplier,
+        remainingBudget: context.spendingPaceAlert.remainingBudget,
+      },
+    })
+  }
+
+  // Step 2-surplus: Yesterday's surplus morning nudge (Task 414.2)
+  // Positive reinforcement when the user ended the day with >50% of daily budget
+  // unspent. Surfaces the next morning. Never shaming — only celebrates savings.
+  // Low priority so it doesn't displace urgent nudges or fresh celebrations.
+  if (context.yesterdaySurplus) {
+    const saved = Math.round(context.yesterdaySurplus.amountSaved)
+    candidates.push({
+      id: `yesterday-surplus-${context.yesterdaySurplus.yesterdayDate}`,
+      type: 'celebration',
+      title: 'Nice save!',
+      message: `You saved $${saved} yesterday — that rolls forward.`,
+      emoji: '🌟',
+      iconName: 'tip:savings',
+      priority: 'low',
+      triggerCondition: {
+        type: 'yesterday_surplus',
+        amountSaved: context.yesterdaySurplus.amountSaved,
+        yesterdayDate: context.yesterdaySurplus.yesterdayDate,
+      },
+    })
+  }
+
   // Step 2m: Income shortfall tip — projected income is overdue (Task 336.2).
   // Gently surfaces when income usually arrives by now but hasn't this cycle.
   // Warm, non-judgmental, with a one-tap action to re-project from actuals.
@@ -1175,6 +1247,11 @@ export function selectContextualTip(
   // Side-effect: mark spending-high as shown today so it doesn't nag on re-opens.
   if (winner?.id === 'spending-high-today') {
     markSpendingHighShownToday()
+  }
+
+  // Side-effect: mark surplus nudge as shown so it doesn't re-fire next session (Task 414.2).
+  if (winner?.id.startsWith('yesterday-surplus-') && winner.triggerCondition && 'yesterdayDate' in winner.triggerCondition) {
+    markSurplusNudgeShown((winner.triggerCondition as { yesterdayDate: string }).yesterdayDate)
   }
 
   return winner

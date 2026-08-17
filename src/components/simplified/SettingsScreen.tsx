@@ -41,6 +41,7 @@ import { SettingsToolsFeaturesScreen } from "./SettingsToolsFeaturesScreen"
 import { SettingsNotificationsScreen } from "./SettingsNotificationsScreen"
 import { SettingsPrivacySecurityScreen } from "./SettingsPrivacySecurityScreen"
 import { SettingsDataExportScreen } from "./SettingsDataExportScreen"
+import { SettingsAutomationScreen } from "./SettingsAutomationScreen"
 import { SettingsNavList } from "./SettingsNavList"
 import { SettingsDangerZone } from "./SettingsDangerZone"
 
@@ -124,6 +125,7 @@ export type SettingsCategory =
   | 'look-feel'
   | 'notifications'
   | 'tools-features'
+  | 'automation'
   | 'privacy-security'
   | 'data-export'
 
@@ -145,6 +147,7 @@ const NAV_ROWS: NavRowDef[] = [
   { id: 'look-feel', icon: '🎨', label: 'Appearance', keywords: ['theme', 'warm', 'dark', 'region', 'currency', 'look', 'feel'], group: 2 },
   { id: 'notifications', icon: '🔔', label: 'Notifications', keywords: ['nudge', 'alert', 'buffer', 'balance', 'reminder'], group: 3 },
   { id: 'tools-features', icon: '🧩', label: 'Features', keywords: ['feature', 'visibility', 'toggle', 'categorization', 'rules', 'tools'], group: 3 },
+  { id: 'automation', icon: '🤖', label: 'Automation', keywords: ['automation', 'predictions', 'recurring', 'suggest', 'pace', 'bills'], group: 3 },
   { id: 'privacy-security', icon: '🔒', label: 'Privacy', keywords: ['lock', 'pin', 'biometric', 'session', 'data', 'dashboard', 'security'], group: 4 },
   { id: 'data-export', icon: '📤', label: 'Export', keywords: ['export', 'csv', 'pdf', 'sharing', 'reports', 'data'], group: 4 },
 ]
@@ -335,6 +338,9 @@ export function SettingsScreen(props: SettingsScreenProps) {
         onBack={handleBack}
         onOpenCategorizationRules={props.onOpenCategorizationRules}
       />
+    ),
+    automation: (
+      <SettingsAutomationScreen onBack={handleBack} />
     ),
     'privacy-security': (
       <SettingsPrivacySecurityScreen

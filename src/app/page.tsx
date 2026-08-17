@@ -71,6 +71,10 @@ const RecurringBillsScreen = dynamic(
   () => import('@/components/simplified/RecurringBillsScreen').then(m => ({ default: m.RecurringBillsScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
+const RecurrenceManagementScreen = dynamic(
+  () => import('@/components/simplified/RecurrenceManagementScreen').then(m => ({ default: m.RecurrenceManagementScreen })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
 const CancelNegotiateHelper = dynamic(
   () => import('@/components/simplified/CancelNegotiateHelper').then(m => ({ default: m.CancelNegotiateHelper })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
@@ -217,6 +221,9 @@ import { createRefundTransaction } from '@/lib/refundUtils'
 import { saveTagsForTransaction } from '@/lib/tagUtils'
 import { useUndo } from '@/hooks/useUndo'
 import { useRecurringBills } from '@/hooks/useRecurringBills'
+import { useSuggestedEntries } from '@/hooks/useSuggestedEntries'
+import { useComingUpItems } from '@/hooks/useComingUpItems'
+import { getAutomationPreferences } from '@/lib/automationPreferences'
 import { useSmartNotifications } from '@/hooks/useSmartNotifications'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
 import { useAppLock } from '@/hooks/useAppLock'
@@ -408,6 +415,26 @@ export default function FolioApp() {
     periodTransitionMessage,
     dismissPeriodTransition,
   } = useHomeData(user?.id, user, recurringBills)
+
+  // ── Suggested Entries (task 411 — auto-suggested transactions) ──
+  const {
+    pendingSuggestions,
+    pendingTotal: suggestedEntriesTotal,
+    includeSuggestionsInAllowance,
+    confirmEntry: confirmSuggestedEntry,
+    dismissEntry: dismissSuggestedEntry,
+  } = useSuggestedEntries(transactions, recurringBills)
+
+  // ── Coming Up Items (task 413 — upcoming predicted expenses) ──
+  const comingUpItems = useComingUpItems(transactions, recurringBills)
+
+  // ── Automation Preferences Gating (task 418.2 — no-automation regression) ──
+  // When automation toggles are OFF, suppress the corresponding features so the
+  // app behaves identically to pre-Phase-15.
+  const automationPrefs = useMemo(() => getAutomationPreferences(), [])
+  const gatedSuggestions = automationPrefs.autoSuggestRecurring ? pendingSuggestions : []
+  const gatedSuggestionsTotal = automationPrefs.autoSuggestRecurring ? suggestedEntriesTotal : 0
+  const gatedComingUpItems = automationPrefs.showComingUp ? comingUpItems : []
 
   // ── Custom Categories ──────────────────────────────────────────
   const { customCategories, addCustomCategory, removeCustomCategory, renameCustomCategory } = useCustomCategories(user?.id)
@@ -1433,6 +1460,34 @@ export default function FolioApp() {
     )
   }, [transactions, deleteTransaction, addTransaction, performWithUndo])
 
+  // ── Suggested Entry Actions (task 411) ─────────────────────────
+  const handleConfirmSuggestion = useCallback(async (entry: import('@/lib/suggestedEntries').SuggestedEntry) => {
+    const confirmed = confirmSuggestedEntry(entry.id)
+    if (!confirmed) return
+    // Create a real transaction from the suggestion
+    const result = await addTransaction({
+      amount: confirmed.amount,
+      category: confirmed.category,
+      type: 'expense' as const,
+      date: confirmed.date,
+      note: confirmed.label,
+    })
+    if (result) {
+      showToast('Transaction confirmed')
+    }
+  }, [confirmSuggestedEntry, addTransaction, showToast])
+
+  const handleDismissSuggestion = useCallback((entryId: string) => {
+    dismissSuggestedEntry(entryId)
+  }, [dismissSuggestedEntry])
+
+  const handleEditSuggestion = useCallback((entry: import('@/lib/suggestedEntries').SuggestedEntry) => {
+    // Open expense sheet pre-filled with suggestion data
+    // We dismiss the suggestion and open the expense sheet with pre-filled data
+    dismissSuggestedEntry(entry.id)
+    handleOpenExpenseSheet(entry.category)
+  }, [dismissSuggestedEntry, handleOpenExpenseSheet])
+
   // ── Bulk Delete (Task 131) ─────────────────────────────────────
   const handleBulkDelete = useCallback(async (ids: string[]) => {
     const snapshot = transactions.filter(t => ids.includes(t.id))
@@ -2211,6 +2266,19 @@ export default function FolioApp() {
     )
   }
 
+  // ── Recurrence Management (full-screen overlay, task 410) ─────────────
+  if (overlay.activeOverlay === 'recurrenceManagement') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+        <RecurrenceManagementScreen
+          transactions={transactions}
+          bills={recurringBills}
+          onClose={() => overlay.closeOverlay()}
+        />
+      </div>
+    )
+  }
+
   // ── Categorization & Routing Rules (full-screen overlay, task 187.1) ──
   if (overlay.activeOverlay === 'categorizationRules') {
     return (
@@ -2795,6 +2863,13 @@ export default function FolioApp() {
                   overlay.openOverlay('learn', { initialLessonId: lessonId })
                 }}
                 onOpenBackfill={() => overlay.openSheet('backfill')}
+                suggestedEntries={gatedSuggestions}
+                suggestedEntriesTotal={gatedSuggestionsTotal}
+                suggestionsIncludedInAllowance={includeSuggestionsInAllowance}
+                onConfirmSuggestion={handleConfirmSuggestion}
+                onDismissSuggestion={handleDismissSuggestion}
+                onEditSuggestion={handleEditSuggestion}
+                comingUpItems={gatedComingUpItems}
               />
             )}
             {activeNav === 'history' && (
@@ -2827,6 +2902,7 @@ export default function FolioApp() {
                 onOpenManageSavings={() => { setOverlayOriginToolId('manage-savings'); overlay.openOverlay('manageSavings') }}
                 onOpenDebt={handleOpenDebt}
                 onOpenRecurringBills={() => { setOverlayOriginToolId('recurring-bills'); overlay.openOverlay('recurringBills') }}
+                onOpenRecurrenceManagement={() => { setOverlayOriginToolId('recurrence-management'); overlay.openOverlay('recurrenceManagement') }}
                 onOpenReimbursements={() => { setOverlayOriginToolId('reimbursements'); overlay.openOverlay('reimbursements') }}
                 onOpenTrajectory={() => { setOverlayOriginToolId('trajectory'); overlay.openOverlay('trajectory') }}
                 onOpenCashFlowForecast={() => { setOverlayOriginToolId('cash-flow-forecast'); overlay.openOverlay('cashFlowForecast') }}

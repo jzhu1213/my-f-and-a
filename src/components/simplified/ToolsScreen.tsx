@@ -70,6 +70,8 @@ export interface ToolsScreenProps {
   onOpenStatementImport?: () => void
   /** Open the confidence score screen (task 365) */
   onOpenConfidence?: () => void
+  /** Open the recurrence management screen (task 410) */
+  onOpenRecurrenceManagement?: () => void
   onOpenPortfolioAllocation?: () => void
   onOpenInvestmentExplorer?: () => void
   onOpenYearInReview?: () => void
@@ -129,7 +131,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "obligations",
     label: "Obligations",
-    toolIds: ["debt", "recurring-bills", "reimbursements", "subscriptions", "cancel-negotiate", "household-pool", "invite-roommate", "shared-budgets"],
+    toolIds: ["debt", "recurring-bills", "recurrence-management", "reimbursements", "subscriptions", "cancel-negotiate", "household-pool", "invite-roommate", "shared-budgets"],
   },
   {
     id: "planning",
@@ -178,6 +180,7 @@ export function ToolsScreen({
   onOpenSharedBudgets,
   onOpenStatementImport,
   onOpenConfidence,
+  onOpenRecurrenceManagement,
   onOpenPortfolioAllocation,
   onOpenInvestmentExplorer,
   onOpenYearInReview,
@@ -238,6 +241,7 @@ export function ToolsScreen({
     { id: "trajectory", iconName: "tool:trajectory", title: "Financial Trajectory", description: "See how your money habits are trending.", onOpen: onOpenTrajectory },
     { id: "debt", iconName: "tool:debt", title: "Debt Tracking", description: "Track balances, APRs, and payoff timelines.", onOpen: onOpenDebt },
     { id: "recurring-bills", iconName: "tool:recurring-bills", title: "Recurring Bills", description: "Track your monthly fixed costs.", onOpen: onOpenRecurringBills },
+    { id: "recurrence-management", iconName: "tool:recurring-bills", title: "Recurring Patterns", description: "Auto-detected spending patterns you repeat.", onOpen: onOpenRecurrenceManagement },
     { id: "reimbursements", iconName: "tool:reimbursements", title: "IOUs & Reimbursements", description: "Track money friends owe you — or that you owe them.", onOpen: onOpenReimbursements },
     { id: "sinking-funds", iconName: "tool:sinking-funds", title: "Sinking Funds", description: "Save gradually for predictable large expenses.", onOpen: onOpenSinkingFunds },
     { id: "subscriptions", iconName: "tool:subscriptions", title: "Subscription Audit", description: "Review detected recurring charges.", onOpen: onOpenSubscriptions },

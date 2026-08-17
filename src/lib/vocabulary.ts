@@ -195,6 +195,39 @@ export function getStatusMessage(
 }
 
 // ============================================================================
+// Microcopy: Coming-Up Awareness Message (Task 413.2)
+// ============================================================================
+
+/**
+ * Generates an awareness message when a significant upcoming predicted expense
+ * is detected. "Significant" means the predicted amount is greater than 30% of
+ * the user's current daily allowance.
+ *
+ * @returns A message string or null if no awareness should be shown.
+ *
+ * Validates: Requirements 23.4
+ */
+export function getComingUpAwarenessMessage(
+  allowanceAmount: number,
+  upcomingItem: { label: string; predictedAmount: number; daysUntil: number } | null
+): string | null {
+  if (!upcomingItem) return null
+  if (allowanceAmount <= 0) return null
+
+  // Only show when the item is significant relative to daily allowance
+  if (upcomingItem.predictedAmount <= allowanceAmount * 0.3) return null
+
+  const amountStr = `$${Math.round(upcomingItem.predictedAmount)}`
+  const daysStr = upcomingItem.daysUntil === 0
+    ? 'today'
+    : upcomingItem.daysUntil === 1
+    ? 'tomorrow'
+    : `in ${upcomingItem.daysUntil} days`
+
+  return `${upcomingItem.label} (~${amountStr}) due ${daysStr}`
+}
+
+// ============================================================================
 // Microcopy: Celebration Messages
 // ============================================================================
 

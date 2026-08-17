@@ -31,6 +31,10 @@ import {
   getPaceIndicatorEnabled,
   setPaceIndicatorEnabled,
 } from "@/lib/paceIndicatorPreferences"
+import {
+  getComingUpEnabled,
+  setComingUpEnabled,
+} from "@/lib/comingUpPreferences"
 import { getPinnedCards, CARD_META, type PinnedCard } from "@/lib/homeWidgets"
 
 // ============================================================================
@@ -165,6 +169,7 @@ const HOME_STYLE_OPTIONS: { value: HomeStyle; label: string; description: string
 export function SettingsHomeExtrasScreen({ onBack }: SettingsHomeExtrasScreenProps) {
   const [savingsBadge, setSavingsBadge] = useState(false)
   const [paceIndicator, setPaceIndicator] = useState(true)
+  const [comingUpEnabled, setComingUpEnabledLocal] = useState(true)
   const [insightsEnabled, setInsightsEnabledLocal] = useState(false)
   const [homeStyle, setHomeStyleLocal] = useState<HomeStyle>("minimal")
   const [pinnedCards, setPinnedCards] = useState<PinnedCard[]>([])
@@ -172,6 +177,7 @@ export function SettingsHomeExtrasScreen({ onBack }: SettingsHomeExtrasScreenPro
   useEffect(() => {
     setSavingsBadge(getSavingsRateBadgeEnabled())
     setPaceIndicator(getPaceIndicatorEnabled())
+    setComingUpEnabledLocal(getComingUpEnabled())
     setInsightsEnabledLocal(getInsightsEnabled())
     setHomeStyleLocal(getHomeStyle())
     setPinnedCards(getPinnedCards())
@@ -185,6 +191,11 @@ export function SettingsHomeExtrasScreen({ onBack }: SettingsHomeExtrasScreenPro
   const handlePaceIndicator = (next: boolean) => {
     setPaceIndicator(next)
     setPaceIndicatorEnabled(next)
+  }
+
+  const handleComingUp = (next: boolean) => {
+    setComingUpEnabledLocal(next)
+    setComingUpEnabled(next)
   }
 
   const handleInsights = (next: boolean) => {
@@ -219,6 +230,13 @@ export function SettingsHomeExtrasScreen({ onBack }: SettingsHomeExtrasScreenPro
           checked={paceIndicator}
           onChange={handlePaceIndicator}
           ariaLabel="Toggle spending pace"
+        />
+        <ToggleRow
+          label="Show upcoming expenses"
+          description="Surface predicted expenses in the next 7 days on your home screen"
+          checked={comingUpEnabled}
+          onChange={handleComingUp}
+          ariaLabel="Toggle upcoming expenses"
         />
         <ToggleRow
           label="Daily tip"

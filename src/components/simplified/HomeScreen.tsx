@@ -61,6 +61,12 @@ import type { TimeHorizonStats } from "@/lib/timeHorizonStats"
 import type { PeriodContext } from "@/lib/budgetPeriod"
 import type { PeriodTransitionMessage } from "@/lib/periodTransition"
 import { AffordabilitySheet } from "./AffordabilitySheet"
+import { SuggestedEntriesSection } from "./SuggestedEntriesSection"
+import type { SuggestedEntry } from "@/lib/suggestedEntries"
+import { ComingUpSection } from "./ComingUpSection"
+import type { ComingUpItem } from "./ComingUpSection"
+import { getComingUpEnabled } from "@/lib/comingUpPreferences"
+import { getComingUpAwarenessMessage } from "@/lib/vocabulary"
 import { WelcomeBackBadge } from "./WelcomeBackBadge"
 import { WhatsNewCard } from "./WhatsNewCard"
 import { SetupChecklistCard, ProgressiveChecklistCard } from "./SetupChecklistCard"
@@ -383,6 +389,24 @@ export interface HomeScreenProps {
   // ── Welcome-back backfill (task 395.1) ─────────────────────────────────────
   /** Opens BackfillSheet so the user can catch up on missed days */
   onOpenBackfill?: () => void
+
+  // ── Suggested entries (task 411) ───────────────────────────────────────────
+  /** Pending auto-suggested transaction entries from recurrence predictions */
+  suggestedEntries?: SuggestedEntry[]
+  /** Total amount of pending suggestions */
+  suggestedEntriesTotal?: number
+  /** Whether suggestions are factored into the allowance */
+  suggestionsIncludedInAllowance?: boolean
+  /** Called when user confirms a suggested entry */
+  onConfirmSuggestion?: (entry: SuggestedEntry) => void
+  /** Called when user dismisses a suggested entry */
+  onDismissSuggestion?: (entryId: string) => void
+  /** Called when user wants to edit a suggested entry */
+  onEditSuggestion?: (entry: SuggestedEntry) => void
+
+  // ── Coming up items (task 413) ─────────────────────────────────────────────
+  /** Upcoming predicted expenses for the "Coming up" section (max 3, next 7 days) */
+  comingUpItems?: ComingUpItem[]
 }
 
 // ============================================================================
@@ -464,6 +488,13 @@ export function HomeScreen({
   onDismissPeriodTransition,
   isFirstRun,
   onOpenBackfill,
+  suggestedEntries,
+  suggestedEntriesTotal,
+  suggestionsIncludedInAllowance,
+  onConfirmSuggestion,
+  onDismissSuggestion,
+  onEditSuggestion,
+  comingUpItems,
 }: HomeScreenProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -549,6 +580,10 @@ export function HomeScreen({
   // ── Spending-pace indicator preference (task 250) ─────────────────────────
   // On by default (subtle, informative); dismissible via Settings → Hero & display.
   const [paceIndicatorEnabled] = useState(() => getPaceIndicatorEnabled())
+
+  // ── Coming up preference (task 413.3) ─────────────────────────────────────
+  // On by default; controlled via Settings → Home screen.
+  const [comingUpEnabled] = useState(() => getComingUpEnabled())
 
   // ── Pinned home cards (task 344) ──────────────────────────────────────────
   // Empty by default — home screen stays minimal until user opts in.
@@ -1079,6 +1114,83 @@ export function HomeScreen({
             )}
           </AnimatePresence>
 
+          {/* ── Suggestion allowance impact (task 411.3) ── */}
+          {suggestedEntries && suggestedEntries.length > 0 && suggestionsIncludedInAllowance && !isLoading && (
+            <motion.div
+              role="status"
+              aria-label={`Approximately $${Math.round((allowance?.amount ?? 0) - (suggestedEntriesTotal ?? 0))} per day after expected bills`}
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={timings.normal}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                marginTop: 8,
+                padding: "6px 14px",
+                background: "rgba(167, 139, 250, 0.06)",
+                border: "1px solid rgba(167, 139, 250, 0.12)",
+                borderRadius: 8,
+              }}
+            >
+              <span style={{ fontSize: 12 }} aria-hidden>📋</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "var(--sub)",
+                  fontFamily: FONT_FAMILY,
+                  fontWeight: 400,
+                }}
+              >
+                ~${Math.max(0, Math.round((allowance?.amount ?? 0) - (suggestedEntriesTotal ?? 0)))}/day after expected bills
+              </span>
+            </motion.div>
+          )}
+
+          {/* ── Coming-up awareness message (task 413.2) — secondary line ── */}
+          {comingUpEnabled && !isLoading && comingUpItems && comingUpItems.length > 0 && (() => {
+            // Pick the most significant upcoming item (highest predictedAmount)
+            const sorted = [...comingUpItems].sort((a, b) => b.predictedAmount - a.predictedAmount)
+            const msg = getComingUpAwarenessMessage(
+              allowance?.amount ?? 0,
+              sorted[0] ?? null
+            )
+            if (!msg) return null
+            return (
+              <motion.div
+                role="status"
+                aria-label={msg}
+                initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={timings.normal}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  marginTop: 8,
+                  padding: "6px 14px",
+                  background: "rgba(251, 191, 36, 0.06)",
+                  border: "1px solid rgba(251, 191, 36, 0.12)",
+                  borderRadius: 8,
+                }}
+              >
+                <span style={{ fontSize: 12 }} aria-hidden>📅</span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--sub)",
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: 400,
+                  }}
+                >
+                  {msg}
+                </span>
+              </motion.div>
+            )
+          })()}
+
           {/* ── Savings-rate badge (task 159.2) — opt-in, off by default ──
               A small, unobtrusive indicator of the monthly savings rate.
               Only rendered when enabled in Settings → Hero & display AND when
@@ -1572,6 +1684,14 @@ export function HomeScreen({
           </motion.section>
         )}
 
+        {/* ── 2.5b. Coming Up section (task 413.1) — upcoming predicted expenses ── */}
+        {comingUpEnabled && comingUpItems && comingUpItems.length > 0 && (
+          <ComingUpSection
+            items={comingUpItems}
+            onPreLog={(item) => onLogExpense(item.category)}
+          />
+        )}
+
         {/* ── 2.6. Welcome-back badge (task 77) — below fold ───── */}
         <WelcomeBackBadge
           allowanceAmount={allowance?.amount}
@@ -1799,6 +1919,19 @@ export function HomeScreen({
 
         {/* ── 4. Recent Transactions ──────────────────────────────── */}
         <motion.section variants={homeSection} aria-label="Recent transactions">
+
+          {/* Suggested entries above recent transactions (task 411) */}
+          {suggestedEntries && suggestedEntries.length > 0 && onConfirmSuggestion && onDismissSuggestion && onEditSuggestion && (
+            <SuggestedEntriesSection
+              entries={suggestedEntries}
+              onConfirm={onConfirmSuggestion}
+              onDismiss={onDismissSuggestion}
+              onEdit={onEditSuggestion}
+              pendingTotal={suggestedEntriesTotal ?? 0}
+              includedInAllowance={suggestionsIncludedInAllowance ?? true}
+            />
+          )}
+
           <div
             style={{
               display: "flex",

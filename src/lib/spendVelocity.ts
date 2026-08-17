@@ -134,6 +134,187 @@ function simpleHourHash(id: string, amount: number): number {
   return Math.min(bucket, 23)
 }
 
+// ============================================================================
+// Proactive Pace Alert (Task 414.1)
+// ============================================================================
+
+/**
+ * Result of pace alert detection. Non-null only when confidence is high:
+ * today's spending rate is 50%+ above the typical daily rate AND it's before midday.
+ */
+export interface SpendingPaceAlert {
+  /** Dollar amount remaining in today's daily budget. */
+  remainingBudget: number
+  /** How far ahead today's pace is relative to the norm (e.g., 1.7 = 70% above). */
+  paceMultiplier: number
+}
+
+/**
+ * Detects whether the user is spending at a pace significantly above their
+ * historical norm — fires ONLY when confidence is high:
+ *   - It's before midday (currentHour < 12)
+ *   - Today's cumulative spend at this hour is ≥ 1.5× the typical day's cumulative
+ *     spend at the same hour (over the last 30 days)
+ *   - There's enough history (at least 7 distinct days)
+ *
+ * Returns the alert payload if triggered, or null if conditions aren't met.
+ *
+ * @param transactions - Full transaction history
+ * @param todayStr - Today's date as YYYY-MM-DD
+ * @param currentHour - Current hour (0–23)
+ * @param dailyBudget - The user's computed daily budget (dollars)
+ */
+export function detectSpendingPaceAlert(
+  transactions: Transaction[],
+  todayStr: string,
+  currentHour: number,
+  dailyBudget: number
+): SpendingPaceAlert | null {
+  // Only fire before midday
+  if (currentHour >= 12) return null
+  if (dailyBudget <= 0) return null
+
+  const expenses = transactions.filter((t) => t.type === 'expense')
+
+  // Historical window: last 30 days excluding today
+  const today = new Date(todayStr + 'T00:00:00')
+  const thirtyDaysAgo = new Date(today)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().slice(0, 10)
+
+  const historicalDates = new Set<string>()
+  const historicalHourlyTotals = new Array(24).fill(0)
+
+  for (const tx of expenses) {
+    if (tx.date >= thirtyDaysAgoStr && tx.date < todayStr) {
+      historicalDates.add(tx.date)
+      const hourBucket = simpleHourHash(tx.id, tx.amount)
+      historicalHourlyTotals[hourBucket] += tx.amount
+    }
+  }
+
+  const numDays = historicalDates.size
+  if (numDays < 7) return null
+
+  // Average cumulative spend through the current hour
+  const avgHourly = historicalHourlyTotals.map((total) => total / numDays)
+  let typicalCumulativeAtHour = 0
+  for (let h = 0; h <= currentHour; h++) {
+    typicalCumulativeAtHour += avgHourly[h]
+  }
+
+  // If typical spend by this hour is negligible, don't alert
+  if (typicalCumulativeAtHour <= 0) return null
+
+  // Today's cumulative spend through the current hour
+  const todayExpenses = expenses.filter((t) => t.date === todayStr)
+  const todayHourly = new Array(24).fill(0)
+  for (const tx of todayExpenses) {
+    const hourBucket = simpleHourHash(tx.id, tx.amount)
+    todayHourly[hourBucket] += tx.amount
+  }
+  let todayCumulativeAtHour = 0
+  for (let h = 0; h <= currentHour; h++) {
+    todayCumulativeAtHour += todayHourly[h]
+  }
+
+  // Check 50%+ above daily norm
+  const paceMultiplier = todayCumulativeAtHour / typicalCumulativeAtHour
+  if (paceMultiplier < 1.5) return null
+
+  const remainingBudget = Math.max(0, dailyBudget - todayCumulativeAtHour)
+
+  return { remainingBudget, paceMultiplier }
+}
+
+// ============================================================================
+// End-of-Day Surplus Detection (Task 414.2)
+// ============================================================================
+
+/** localStorage key for the last date we showed the surplus nudge. */
+const SURPLUS_NUDGE_SHOWN_KEY = 'folio-surplus-nudge-last-shown'
+
+/**
+ * Result of yesterday's surplus detection.
+ */
+export interface YesterdaySurplus {
+  /** Dollar amount the user saved (unspent from yesterday's budget). */
+  amountSaved: number
+  /** Yesterday's date string (YYYY-MM-DD). */
+  yesterdayDate: string
+}
+
+/**
+ * Detects whether the user ended yesterday with a significant surplus
+ * (>50% of daily budget unspent). Returns the surplus info for a positive
+ * morning nudge, or null if conditions aren't met.
+ *
+ * Guards against re-showing via localStorage date stamp — only fires once
+ * per surplus day (typically the next morning).
+ *
+ * @param transactions - Full transaction history
+ * @param todayStr - Today's date as YYYY-MM-DD
+ * @param dailyBudget - The user's computed daily budget (dollars)
+ */
+export function detectYesterdaySurplus(
+  transactions: Transaction[],
+  todayStr: string,
+  dailyBudget: number
+): YesterdaySurplus | null {
+  if (dailyBudget <= 0) return null
+
+  // Compute yesterday's date
+  const today = new Date(todayStr + 'T00:00:00')
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr = yesterday.toISOString().slice(0, 10)
+
+  // Check if we already showed this nudge for yesterday
+  if (wasSurplusNudgeShownFor(yesterdayStr)) return null
+
+  // Sum yesterday's expenses
+  let yesterdaySpend = 0
+  for (const tx of transactions) {
+    if (tx.date === yesterdayStr && tx.type === 'expense') {
+      yesterdaySpend += tx.amount
+    }
+  }
+
+  // Check >50% surplus
+  const amountSaved = dailyBudget - yesterdaySpend
+  if (amountSaved <= dailyBudget * 0.5) return null
+
+  return { amountSaved: Math.round(amountSaved * 100) / 100, yesterdayDate: yesterdayStr }
+}
+
+/**
+ * Marks the surplus nudge as shown for a given date.
+ */
+export function markSurplusNudgeShown(dateStr: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(SURPLUS_NUDGE_SHOWN_KEY, dateStr)
+  } catch {
+    // localStorage unavailable — fail silently
+  }
+}
+
+/**
+ * Returns whether the surplus nudge has already been shown for the given date.
+ */
+function wasSurplusNudgeShownFor(dateStr: string): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return localStorage.getItem(SURPLUS_NUDGE_SHOWN_KEY) === dateStr
+  } catch {
+    return false
+  }
+}
+
+// ============================================================================
+// SVG Path Rendering
+// ============================================================================
+
 /**
  * Convert velocity points to an SVG path `d` attribute string.
  * Uses smooth cubic bezier curves for a gentle, organic look.

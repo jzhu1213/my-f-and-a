@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
@@ -14,7 +14,18 @@ import {
   sectionHeader,
   listRow,
   borderRadius,
+  fills,
+  segmentedControl,
+  segmentedButtonBase,
+  segmentedButtonActive,
+  segmentedButtonInactive,
+  colorRamp,
 } from "@/styles/shared"
+import {
+  buildMonthCalendar,
+  getWeeklyBillSummaries,
+  detectBillHeavyWeek,
+} from "@/lib/billWeeklyOutlook"
 
 // ============================================================================
 // Types
@@ -31,6 +42,10 @@ export interface RecurringBillsScreenProps {
 // ============================================================================
 // Constants
 // ============================================================================
+
+type ViewMode = "list" | "calendar"
+
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 /** Bill-relevant categories with emoji lookup */
 const BILL_CATEGORIES = BUDGET_CATEGORIES.filter(c =>
@@ -100,25 +115,96 @@ export function RecurringBillsScreen({
   onDeleteBill,
   onClose,
 }: RecurringBillsScreenProps) {
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [viewMode, setViewMode] = useState<ViewMode>("list")
+
   // ── Computed ───────────────────────────────────────────────────────────────
   const totalMonthly = getTotalFixedMonthly(bills)
+  const today = useMemo(() => new Date(), [])
+  const year = today.getFullYear()
+  const month = today.getMonth()
+
+  const calendarDays = useMemo(
+    () => buildMonthCalendar(bills, year, month, today),
+    [bills, year, month, today]
+  )
+
+  const weeklySummaries = useMemo(
+    () => getWeeklyBillSummaries(bills, year, month, today),
+    [bills, year, month, today]
+  )
+
+  const billHeavyWarning = useMemo(
+    () => detectBillHeavyWeek(bills, today),
+    [bills, today]
+  )
 
   // ── Render Callbacks ───────────────────────────────────────────────────────
   function renderSummary() {
     return (
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
-        <p style={sectionHeader}>Monthly Fixed Costs</p>
-        <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
-          ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-          <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
-            /mo
-          </span>
-        </p>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
-          {bills.filter(b => b.isActive).length} active bill
-          {bills.filter(b => b.isActive).length !== 1 ? "s" : ""}
-        </p>
-      </GlassCard>
+      <>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+          <p style={sectionHeader}>Monthly Fixed Costs</p>
+          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+            ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
+              /mo
+            </span>
+          </p>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+            {bills.filter(b => b.isActive).length} active bill
+            {bills.filter(b => b.isActive).length !== 1 ? "s" : ""}
+          </p>
+        </GlassCard>
+
+        {/* Bill-heavy week warning */}
+        {billHeavyWarning && (
+          <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: 16, border: `1px solid ${colorRamp.warning[300]}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 16 }}>📅</span>
+              <p style={{ fontSize: 13, color: "var(--text)", margin: 0, fontFamily: FONT_FAMILY, lineHeight: 1.4 }}>
+                {billHeavyWarning.message}
+              </p>
+            </div>
+          </GlassCard>
+        )}
+
+        {/* View mode segmented control */}
+        <div style={{ ...segmentedControl, marginBottom: 16 }}>
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            style={{
+              ...segmentedButtonBase,
+              ...(viewMode === "list" ? segmentedButtonActive : segmentedButtonInactive),
+            }}
+            aria-pressed={viewMode === "list"}
+          >
+            List
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("calendar")}
+            style={{
+              ...segmentedButtonBase,
+              ...(viewMode === "calendar" ? segmentedButtonActive : segmentedButtonInactive),
+            }}
+            aria-pressed={viewMode === "calendar"}
+          >
+            Calendar
+          </button>
+        </div>
+
+        {/* Calendar view */}
+        {viewMode === "calendar" && (
+          <BillCalendarView
+            calendarDays={calendarDays}
+            weeklySummaries={weeklySummaries}
+            year={year}
+            month={month}
+          />
+        )}
+      </>
     )
   }
 
@@ -258,6 +344,156 @@ export function RecurringBillsScreen({
       renderSummary={renderSummary}
       listLayout="single-card"
     />
+  )
+}
+
+// ============================================================================
+// BillCalendarView — monthly grid + weekly breakdown
+// ============================================================================
+
+interface BillCalendarViewProps {
+  calendarDays: ReturnType<typeof buildMonthCalendar>
+  weeklySummaries: ReturnType<typeof getWeeklyBillSummaries>
+  year: number
+  month: number
+}
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+]
+
+function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCalendarViewProps) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      {/* Month label */}
+      <p style={{ ...sectionHeader, marginBottom: 10 }}>
+        {MONTH_NAMES[month]} {year}
+      </p>
+
+      {/* Weekday headers */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
+        {WEEKDAY_LABELS.map(day => (
+          <div
+            key={day}
+            style={{
+              textAlign: "center",
+              fontSize: 10,
+              fontWeight: 500,
+              color: "var(--muted)",
+              fontFamily: FONT_FAMILY,
+              padding: "4px 0",
+            }}
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <GlassCard elevation="low" style={{ padding: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+          {calendarDays.map((day, i) => (
+            <div
+              key={i}
+              style={{
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "6px 2px",
+                borderRadius: 6,
+                minHeight: 36,
+                background: day.isToday ? colorRamp.accent[200] : "transparent",
+              }}
+            >
+              {day.isCurrentMonth && (
+                <>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: day.isToday ? 600 : 400,
+                      color: day.isToday ? "var(--text)" : day.bills.length > 0 ? "var(--text)" : "var(--muted)",
+                      fontFamily: FONT_FAMILY,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {day.day}
+                  </span>
+                  {day.bills.length > 0 && (
+                    <div style={{ display: "flex", gap: 2, marginTop: 2 }}>
+                      {day.bills.slice(0, 3).map((_, j) => (
+                        <span
+                          key={j}
+                          style={{
+                            width: 4,
+                            height: 4,
+                            borderRadius: "50%",
+                            background: "var(--accent, #a78bfa)",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* Weekly breakdown */}
+      <div style={{ marginTop: 14 }}>
+        <p style={{ ...sectionHeader, marginBottom: 8 }}>Weekly Breakdown</p>
+        {weeklySummaries.map((week, i) => {
+          const startLabel = `${week.startDate.getMonth() + 1}/${week.startDate.getDate()}`
+          const endLabel = `${week.endDate.getMonth() + 1}/${week.endDate.getDate()}`
+          return (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "8px 12px",
+                borderRadius: 8,
+                marginBottom: 4,
+                background: week.isCurrent ? colorRamp.accent[100] : fills[3],
+                border: week.isCurrent ? `1px solid ${colorRamp.accent[300]}` : `1px solid ${fills[6]}`,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  color: week.isCurrent ? "var(--text)" : "var(--sub)",
+                  fontFamily: FONT_FAMILY,
+                  fontWeight: week.isCurrent ? 500 : 400,
+                }}
+              >
+                {startLabel} – {endLabel}
+                {week.isCurrent && (
+                  <span style={{ fontSize: 11, color: "var(--accent, #a78bfa)", marginLeft: 6 }}>
+                    this week
+                  </span>
+                )}
+              </span>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: week.totalAmount > 0 ? "var(--text)" : "var(--muted)",
+                  fontFamily: FONT_FAMILY,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                ${week.totalAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
