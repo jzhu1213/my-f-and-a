@@ -67,6 +67,9 @@ import { ComingUpSection } from "./ComingUpSection"
 import type { ComingUpItem } from "./ComingUpSection"
 import { getComingUpEnabled } from "@/lib/comingUpPreferences"
 import { getComingUpAwarenessMessage } from "@/lib/vocabulary"
+import { computeStreakData, markZeroSpendDay, getStreakData, saveStreakData, getGraceDayMessage } from "@/lib/streaks"
+import { isStreakCounterActive, isProgressGardenActive } from "@/lib/gamificationPreferences"
+import { StreakDetailView } from "./StreakDetailView"
 import { WelcomeBackBadge } from "./WelcomeBackBadge"
 import { WhatsNewCard } from "./WhatsNewCard"
 import { SetupChecklistCard, ProgressiveChecklistCard } from "./SetupChecklistCard"
@@ -503,6 +506,13 @@ export function HomeScreen({
   const [showAffordabilitySheet, setShowAffordabilitySheet] = useState(false)
   const [inlineEditId, setInlineEditId] = useState<string | null>(null)
 
+  // ── Streak: "$0 day" marker state (task 429.2) ────────────────────────────
+  const [zeroSpendMarked, setZeroSpendMarked] = useState(false)
+  const [graceDayMessage, setGraceDayMessage] = useState<string | null>(null)
+  // ── Streak detail view (task 430.1/430.2) ─────────────────────────────────
+  const [showStreakDetail, setShowStreakDetail] = useState(false)
+  const [streaksEnabled] = useState(() => isStreakCounterActive())
+
   // ── Milestone share sheet state (Task 363.2) ──────────────────────────────
   const [milestoneShareData, setMilestoneShareData] = useState<{
     type: 'goal_complete' | 'streak_30_days' | 'wish_complete'
@@ -647,6 +657,37 @@ export function HomeScreen({
     () => getUnderBudgetStreak(budgets, transactions),
     [budgets, transactions]
   )
+
+  // ── Logging streak (task 429) — computed from transactions + $0 days ──────
+  const streakData = useMemo(() => {
+    const stored = getStreakData()
+    const zeroSpendDays = stored?.zeroSpendDays ?? []
+    return computeStreakData(transactions, zeroSpendDays)
+  }, [transactions])
+
+  // Check if today has any transactions (for "$0 day" marker visibility)
+  const hasTodayTransactions = useMemo(
+    () => transactions.some(t => t.date === todayStr),
+    [transactions, todayStr]
+  )
+
+  // Check if today is already marked as a $0 day
+  const isTodayZeroSpend = useMemo(
+    () => streakData.zeroSpendDays.includes(todayStr) || zeroSpendMarked,
+    [streakData.zeroSpendDays, todayStr, zeroSpendMarked]
+  )
+
+  // Compute grace day message on mount
+  useEffect(() => {
+    const msg = getGraceDayMessage(streakData)
+    setGraceDayMessage(msg)
+  }, [streakData])
+
+  // Handler for marking today as $0 day
+  const handleMarkZeroSpendDay = useCallback(() => {
+    markZeroSpendDay(todayStr)
+    setZeroSpendMarked(true)
+  }, [todayStr])
 
   // ── Anomaly detection: track last-logged expense (Task 165.1) ─────────────
   // When the transactions array grows with a new expense, capture it for
@@ -1068,6 +1109,47 @@ export function HomeScreen({
             heroDisplay={heroDisplay}
           />
 
+          {/* ── Streak counter badge (task 430.1) — opt-in, tappable ── */}
+          {streaksEnabled && !isLoading && streakData.currentStreak > 0 && (
+            <motion.button
+              type="button"
+              onClick={() => setShowStreakDetail(true)}
+              aria-label={`${streakData.currentStreak}-day streak. Tap for details.`}
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={timings.normal}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+                marginTop: 8,
+                padding: "5px 12px",
+                background: "rgba(251, 191, 36, 0.08)",
+                border: "1px solid rgba(251, 191, 36, 0.15)",
+                borderRadius: borderRadius.full,
+                width: "fit-content",
+                marginLeft: "auto",
+                marginRight: "auto",
+                cursor: "pointer",
+                fontFamily: FONT_FAMILY,
+              }}
+            >
+              <span style={{ fontSize: 13 }} aria-hidden>🔥</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--sub)",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {streakData.currentStreak} {streakData.currentStreak === 1 ? "day" : "days"}
+              </span>
+            </motion.button>
+          )}
+
           {/* ── Period context indicator (task 342.3) — subtle, below hero ── */}
           {periodContext && !isLoading && (
             <PeriodContextIndicator periodContext={periodContext} />
@@ -1383,7 +1465,7 @@ export function HomeScreen({
         {/* ── 1.5. Pinned Home Cards (task 344) ───────────────────────── */}
         {homeStyle === 'dashboard' && (
           <PinnedHomeCards
-            pinnedCards={pinnedCards}
+            pinnedCards={pinnedCards.filter(c => c.type !== 'progress_garden' || isProgressGardenActive())}
             goals={goals}
             transactions={transactions}
             upcomingBills={upcomingBills}
@@ -1531,6 +1613,102 @@ export function HomeScreen({
           </>
           )}
         </motion.section>
+
+        {/* ── 2.1. "$0 Day" Marker (task 429.2) — subtle, only when no transactions today ── */}
+        {streaksEnabled && !isLoading && !hasTodayTransactions && !isTodayZeroSpend && !isFirstRun && (
+          <motion.div
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={timings.normal}
+            style={{ display: 'flex', justifyContent: 'center', marginTop: -8 }}
+          >
+            <button
+              type="button"
+              onClick={handleMarkZeroSpendDay}
+              aria-label="Mark today as a zero-spend day to keep your streak"
+              style={{
+                fontSize: 12,
+                color: 'var(--sub)',
+                background: 'rgba(139, 92, 246, 0.06)',
+                border: '1px solid rgba(139, 92, 246, 0.12)',
+                borderRadius: borderRadius.full,
+                padding: '6px 14px',
+                cursor: 'pointer',
+                fontFamily: FONT_FAMILY,
+                fontWeight: 400,
+                opacity: 0.85,
+              }}
+            >
+              🎯 Nothing spent? Mark as $0 day
+            </button>
+          </motion.div>
+        )}
+        {/* ── "$0 Day" confirmation feedback ── */}
+        <AnimatePresence>
+          {streaksEnabled && !isLoading && isTodayZeroSpend && !hasTodayTransactions && !isFirstRun && (
+            <motion.div
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={timings.normal}
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginTop: -8,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  color: 'var(--success)',
+                  fontFamily: FONT_FAMILY,
+                  opacity: 0.85,
+                }}
+                role="status"
+                aria-live="polite"
+              >
+                ✓ Day logged — streak continues
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── 2.1b. Grace day notification (task 429.3) ── */}
+        <AnimatePresence>
+          {graceDayMessage && !isLoading && !isFirstRun && (
+            <motion.div
+              role="status"
+              aria-live="polite"
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={timings.normal}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '8px 16px',
+                background: 'rgba(251, 191, 36, 0.06)',
+                border: '1px solid rgba(251, 191, 36, 0.12)',
+                borderRadius: borderRadius.md,
+              }}
+            >
+              <span style={{ fontSize: 13 }} aria-hidden>🔥</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: 'var(--sub)',
+                  fontFamily: FONT_FAMILY,
+                  fontWeight: 400,
+                  lineHeight: 1.5,
+                }}
+              >
+                {graceDayMessage}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Outstanding Splits Summary (task 5.3 + 123.1 — one-tap settle) ── */}
         {outstandingSplits && outstandingSplits.length > 0 && (
@@ -2257,6 +2435,16 @@ export function HomeScreen({
           onDismiss={() => setMilestoneShareData(null)}
         />
       </Suspense>
+
+      {/* ── Streak Detail View (Task 430.2) ────────── */}
+      {streaksEnabled && (
+        <StreakDetailView
+          streakData={streakData}
+          transactions={transactions}
+          isOpen={showStreakDetail}
+          onClose={() => setShowStreakDetail(false)}
+        />
+      )}
     </div>
     </PullToRefresh>
     </FadeInContent>

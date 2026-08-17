@@ -39,6 +39,12 @@ import type { Transaction, Goal, Budget } from "@/types"
 import type { Debt } from "@/types/folio"
 import type { Reimbursement } from "@/lib/reimbursements"
 import { TravelModeSheet } from "./TravelModeSheet"
+import { ActiveChallenges } from "./ActiveChallenges"
+import {
+  isChallengesActive,
+  isMilestoneCelebrationsActive,
+  isProgressGardenActive,
+} from "@/lib/gamificationPreferences"
 
 // ============================================================================
 // Types
@@ -73,6 +79,14 @@ export interface ToolsScreenProps {
   onOpenConfidence?: () => void
   /** Open the recurrence management screen (task 410) */
   onOpenRecurrenceManagement?: () => void
+  /** Open the milestone gallery (task 433) */
+  onOpenMilestones?: () => void
+  /** Open the activity heatmap (task 434) */
+  onOpenActivityHeatmap?: () => void
+  /** Open the progress garden (task 435) */
+  onOpenProgressGarden?: () => void
+  /** Trigger a celebration event (task 432.2) */
+  onCelebrate?: (event: import('@/types/folio').CelebrationEvent) => void
   onOpenPortfolioAllocation?: () => void
   onOpenInvestmentExplorer?: () => void
   onOpenYearInReview?: () => void
@@ -154,6 +168,11 @@ const SECTIONS: ToolSection[] = [
     label: "Learn",
     toolIds: ["learn"],
   },
+  {
+    id: "milestones",
+    label: "Milestones",
+    toolIds: ["milestones", "activity-heatmap", "progress-garden"],
+  },
 ]
 
 // ============================================================================
@@ -182,6 +201,10 @@ export function ToolsScreen({
   onOpenStatementImport,
   onOpenConfidence,
   onOpenRecurrenceManagement,
+  onOpenMilestones,
+  onOpenActivityHeatmap,
+  onOpenProgressGarden,
+  onCelebrate,
   onOpenPortfolioAllocation,
   onOpenInvestmentExplorer,
   onOpenYearInReview,
@@ -268,10 +291,17 @@ export function ToolsScreen({
     { id: "income-trends", iconName: "tool:income-trends", title: "Income Trends", description: "See how your earnings grow over time.", onOpen: onOpenIncomeTrends },
     { id: "statement-import", iconName: "tool:income-trends", title: "Import Statement", description: "Import transactions from a bank CSV.", onOpen: onOpenStatementImport },
     { id: "confidence", iconName: "tool:confidence", title: "Money Confidence", description: "A gentle journal of your financial habits.", onOpen: onOpenConfidence },
+    { id: "milestones", iconName: "tip:goal", title: "Milestone Gallery", description: "Your personal achievements — collected over time.", onOpen: onOpenMilestones },
+    { id: "activity-heatmap", iconName: "tool:trajectory", title: "Activity Heatmap", description: "A visual map of your logging consistency.", onOpen: onOpenActivityHeatmap },
+    { id: "progress-garden", iconName: "tip:goal", title: "Progress Garden", description: "A living garden that grows with your engagement.", onOpen: onOpenProgressGarden },
   ]
 
   const isToolVisible = (toolId: string): boolean => {
     if (toolId === "peer-context") return peerContextEnabled
+    // Gamification tools respect per-feature toggles (Req 25.5)
+    if (toolId === "milestones") return isMilestoneCelebrationsActive()
+    if (toolId === "activity-heatmap") return isMilestoneCelebrationsActive()
+    if (toolId === "progress-garden") return isProgressGardenActive()
     const flagKey = toolFlagMap[toolId]
     if (!flagKey) return true
     return flags[flagKey]
@@ -330,6 +360,13 @@ export function ToolsScreen({
               </p>
             </Card>
           )}
+        </div>
+      )}
+
+      {/* ── Active Challenges (Task 432) ──────────────────────────── */}
+      {isChallengesActive() && (
+        <div style={{ marginBottom: spacingScale["32"] }}>
+          <ActiveChallenges onCelebrate={onCelebrate} />
         </div>
       )}
 

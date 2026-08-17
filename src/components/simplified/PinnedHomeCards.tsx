@@ -22,6 +22,7 @@ import type { PinnedCard, PinnedCardType } from "@/lib/homeWidgets"
 import { CARD_META } from "@/lib/homeWidgets"
 import type { Goal, Transaction } from "@/types"
 import type { ConfidenceTier } from "@/lib/confidenceScore"
+import type { GardenMetrics } from "@/lib/gardenProgress"
 
 // ============================================================================
 // Props
@@ -49,6 +50,8 @@ export interface PinnedHomeCardsProps {
   /** Confidence tier and trend for the pinnable card (task 365.2) */
   confidenceTier?: ConfidenceTier | null
   confidenceTrend?: "up" | "stable" | "down"
+  /** Garden metrics for the progress garden card (task 435) */
+  gardenMetrics?: GardenMetrics
   /** Navigate to a tool screen */
   onNavigate?: (cardType: PinnedCardType) => void
 }
@@ -306,6 +309,45 @@ function ConfidenceCard({
   )
 }
 
+function ProgressGardenCard({
+  gardenMetrics,
+  onTap,
+}: {
+  gardenMetrics?: GardenMetrics
+  onTap?: () => void
+}) {
+  const metrics = gardenMetrics ?? {
+    completedGoals: 0,
+    currentStreak: 0,
+    totalActiveDays: 0,
+    completedChallenges: 0,
+    totalSpendingTracked: 0,
+  }
+  const activeCount = [
+    metrics.completedGoals > 0,
+    metrics.currentStreak >= 7,
+    metrics.totalActiveDays >= 10,
+    metrics.completedChallenges >= 5,
+    metrics.totalSpendingTracked >= 1000,
+  ].filter(Boolean).length
+
+  return (
+    <CompactCardShell type="progress_garden" onTap={onTap}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+        <span style={{ fontSize: 14 }} aria-hidden="true">🌱</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={cardTitleStyle}>Progress Garden</p>
+          <p style={cardSubStyle}>
+            {activeCount === 0
+              ? 'Start tracking to grow your garden'
+              : `${activeCount} of 5 elements growing`}
+          </p>
+        </div>
+      </div>
+    </CompactCardShell>
+  )
+}
+
 // ============================================================================
 // Compact Card Shell
 // ============================================================================
@@ -399,6 +441,7 @@ export function PinnedHomeCards({
   sharedBudgetSummary,
   confidenceTier,
   confidenceTrend,
+  gardenMetrics,
   onNavigate,
 }: PinnedHomeCardsProps) {
   if (pinnedCards.length === 0) return null
@@ -479,6 +522,14 @@ export function PinnedHomeCards({
                 key={card.type}
                 tier={confidenceTier}
                 trend={confidenceTrend}
+                onTap={() => handleTap(card.type)}
+              />
+            )
+          case 'progress_garden':
+            return (
+              <ProgressGardenCard
+                key={card.type}
+                gardenMetrics={gardenMetrics}
                 onTap={() => handleTap(card.type)}
               />
             )

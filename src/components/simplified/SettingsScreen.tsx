@@ -42,6 +42,7 @@ import { SettingsNotificationsScreen } from "./SettingsNotificationsScreen"
 import { SettingsPrivacySecurityScreen } from "./SettingsPrivacySecurityScreen"
 import { SettingsDataExportScreen } from "./SettingsDataExportScreen"
 import { SettingsAutomationScreen } from "./SettingsAutomationScreen"
+import { SettingsMotivationScreen } from "./SettingsMotivationScreen"
 import { SettingsNavList } from "./SettingsNavList"
 import { SettingsDangerZone } from "./SettingsDangerZone"
 
@@ -125,6 +126,7 @@ export type SettingsCategory =
   | 'look-feel'
   | 'notifications'
   | 'tools-features'
+  | 'motivation'
   | 'automation'
   | 'privacy-security'
   | 'data-export'
@@ -145,6 +147,7 @@ const NAV_ROWS: NavRowDef[] = [
   { id: 'hero-display', icon: '🔢', label: 'Hero number', keywords: ['hero', 'big number', 'allowance', 'spent', 'balance', 'period', 'display'], group: 1 },
   { id: 'home-screen', icon: '🏠', label: 'Home', keywords: ['extras', 'pace', 'savings', 'badge', 'cards', 'pin', 'style', 'screen'], group: 2 },
   { id: 'look-feel', icon: '🎨', label: 'Appearance', keywords: ['theme', 'warm', 'dark', 'region', 'currency', 'look', 'feel'], group: 2 },
+  { id: 'motivation', icon: '🏆', label: 'Motivation', keywords: ['gamification', 'streak', 'challenge', 'milestone', 'garden', 'celebration', 'habit', 'progress', 'motivation'], group: 2 },
   { id: 'notifications', icon: '🔔', label: 'Notifications', keywords: ['nudge', 'alert', 'buffer', 'balance', 'reminder'], group: 3 },
   { id: 'tools-features', icon: '🧩', label: 'Features', keywords: ['feature', 'visibility', 'toggle', 'categorization', 'rules', 'tools'], group: 3 },
   { id: 'automation', icon: '🤖', label: 'Automation', keywords: ['automation', 'predictions', 'recurring', 'suggest', 'pace', 'bills'], group: 3 },
@@ -338,6 +341,9 @@ export function SettingsScreen(props: SettingsScreenProps) {
         onBack={handleBack}
         onOpenCategorizationRules={props.onOpenCategorizationRules}
       />
+    ),
+    motivation: (
+      <SettingsMotivationScreen onBack={handleBack} />
     ),
     automation: (
       <SettingsAutomationScreen onBack={handleBack} />

@@ -244,6 +244,12 @@ export type CelebrationType =
   | 'new_user_first_day'
   | 'new_user_3_day_streak'
   | 'new_user_first_week'
+  // Streak milestones (Phase 17 task 430.3)
+  | 'streak_milestone'
+  // Challenge completion (Phase 17 task 432.2)
+  | 'challenge_complete'
+  // Cumulative milestones (Phase 17 task 433)
+  | 'milestone_earned'
 
 /**
  * Animation style for celebrations

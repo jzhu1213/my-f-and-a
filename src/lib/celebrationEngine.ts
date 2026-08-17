@@ -5,6 +5,8 @@ import { CELEBRATION_EMOJI, CELEBRATION_COPY } from '@/lib/vocabulary'
 import { formatDateLocal, subtractDaysLocal, getDaysInMonthLocal } from '@/lib/dateUtils'
 import { checkIncomeGrowthMilestone, checkIncomeRecordMonth } from '@/lib/incomeEncouragement'
 import { hasBeenTriggered, markTriggered } from '@/lib/celebrationDedup'
+import { computeStreakData, getStreakData } from '@/lib/streaks'
+import { isStreakCounterActive, isMilestoneCelebrationsActive } from '@/lib/gamificationPreferences'
 
 // Re-export for consumers that previously imported from here
 export { hasBeenTriggered, markTriggered } from '@/lib/celebrationDedup'
@@ -844,6 +846,10 @@ export function checkAllCelebrations(
   const newUserFirstWeek = checkNewUserFirstWeek(transactions, now)
   if (newUserFirstWeek) events.push(newUserFirstWeek)
 
+  // ── Streak milestones (Phase 17 task 430.3) ────────────────────────────
+  const streakMilestone = checkStreakMilestone(transactions, now)
+  if (streakMilestone) events.push(streakMilestone)
+
   return events
 }
 
@@ -858,6 +864,117 @@ export function clearTriggeredCelebrations(): void {
   } catch {
     // Silently fail
   }
+}
+
+// ============================================================================
+// Streak Milestones (Phase 17 task 430.3)
+// ============================================================================
+
+/**
+ * Streak milestone thresholds and their celebration copy.
+ * Uses the grace-day-aware streak from src/lib/streaks.ts (not the simpler
+ * logging streak) for a fair, forgiving measure.
+ *
+ * Requirements: 25.1, 25.4
+ */
+const STREAK_MILESTONES: {
+  days: number
+  title: string
+  message: string
+  animation: AnimationType
+  duration: number
+  sound: 'subtle' | 'cheerful'
+}[] = [
+  {
+    days: 7,
+    title: 'One week!',
+    message: "7 days of tracking — the start of something great.",
+    animation: 'sparkle',
+    duration: 3000,
+    sound: 'subtle',
+  },
+  {
+    days: 14,
+    title: 'Two weeks strong!',
+    message: "14 days — this is becoming part of your routine.",
+    animation: 'confetti',
+    duration: 3500,
+    sound: 'cheerful',
+  },
+  {
+    days: 30,
+    title: '30 days!',
+    message: "30 days — you've built a real habit.",
+    animation: 'confetti',
+    duration: 4000,
+    sound: 'cheerful',
+  },
+  {
+    days: 60,
+    title: '60 days!',
+    message: "Two months of consistent tracking. Genuinely impressive.",
+    animation: 'confetti',
+    duration: 4500,
+    sound: 'cheerful',
+  },
+  {
+    days: 100,
+    title: '100 days!',
+    message: "Triple digits. You've made mindful spending a lifestyle.",
+    animation: 'confetti',
+    duration: 5000,
+    sound: 'cheerful',
+  },
+]
+
+/**
+ * Checks if a streak milestone celebration should fire based on the grace-day
+ * aware streak from `src/lib/streaks.ts`.
+ *
+ * Fires at 7, 14, 30, 60, and 100-day thresholds. Each fires only once per
+ * streak instance (dedup key includes the threshold).
+ *
+ * @param transactions - All user transactions
+ * @param now - Current date (for testability)
+ * @returns CelebrationEvent or null
+ */
+export function checkStreakMilestone(
+  transactions: Transaction[],
+  now: Date = new Date()
+): CelebrationEvent | null {
+  // Respect gamification toggle — streak milestones are gamification (Req 25.5)
+  if (!isStreakCounterActive()) return null
+
+  // Get the grace-day-aware streak data
+  const stored = getStreakData()
+  const zeroSpendDays = stored?.zeroSpendDays ?? []
+  const streakData = computeStreakData(transactions, zeroSpendDays, now)
+
+  const currentStreak = streakData.currentStreak
+  if (currentStreak < 7) return null
+
+  // Check milestones from highest to lowest — fire the highest one not yet triggered
+  for (let i = STREAK_MILESTONES.length - 1; i >= 0; i--) {
+    const milestone = STREAK_MILESTONES[i]
+    if (currentStreak < milestone.days) continue
+
+    const id = `streak_milestone_${milestone.days}`
+    if (hasBeenTriggered(id)) continue
+
+    markTriggered(id)
+    return createEvent(
+      id,
+      'streak_milestone',
+      milestone.title,
+      milestone.message,
+      '🔥',
+      milestone.animation,
+      milestone.duration,
+      milestone.sound
+    )
+  }
+
+  return null
 }
 
 // ============================================================================
