@@ -33,6 +33,10 @@ export interface DbSplit {
   note: string
   settled: boolean
   created_at: string
+  /** ISO 4217 code of the original expense currency (task 426.1) */
+  currency?: string | null
+  /** Exchange rate at split creation time: home-currency per 1 unit of currency (task 426.1) */
+  exchange_rate?: number | null
 }
 
 /** Raw row shape from the `split_participants` table */
@@ -71,6 +75,10 @@ export interface AppSplit {
   settled: boolean
   /** ISO timestamp of creation */
   createdAt: string
+  /** ISO 4217 code of the original expense currency (task 426.1) */
+  currency?: string
+  /** Exchange rate at split creation time: home-currency per 1 unit of currency (task 426.1) */
+  exchangeRate?: number
 }
 
 /** App-level representation of a split participant */
@@ -114,6 +122,8 @@ export function mapSplitFromDb(row: DbSplit): AppSplit {
     note: row.note ?? '',
     settled: row.settled,
     createdAt: row.created_at,
+    ...(row.currency ? { currency: row.currency } : {}),
+    ...(row.exchange_rate != null ? { exchangeRate: Number(row.exchange_rate) } : {}),
   }
 }
 

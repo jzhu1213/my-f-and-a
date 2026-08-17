@@ -21,6 +21,8 @@ import { TRANSACTION_CATEGORIES } from "@/types"
 import type { TransactionCategory, Transaction } from "@/types"
 import { FONT_FAMILY } from "@/styles/typography"
 import { springs } from "@/lib/animations"
+import { getHomeCurrency } from "@/lib/currencyPreferences"
+import { getCurrencySymbol, normalizeCode } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -49,6 +51,8 @@ export interface HistoryFilters {
   amountRange: AmountRangePreset
   customAmountRange: CustomAmountRange | null
   type: TypeFilter
+  /** Filter to a specific currency code, or null for no filter (show all) */
+  currency: string | null
 }
 
 export const EMPTY_FILTERS: HistoryFilters = {
@@ -58,6 +62,7 @@ export const EMPTY_FILTERS: HistoryFilters = {
   amountRange: null,
   customAmountRange: null,
   type: "all",
+  currency: null,
 }
 
 export interface HistoryFilterChipsProps {
@@ -67,6 +72,8 @@ export interface HistoryFilterChipsProps {
   resultCount: number
   /** Total transaction count (unfiltered) */
   totalCount: number
+  /** All transactions — used to detect which currencies appear in data */
+  transactions?: Transaction[]
 }
 
 // ============================================================================
@@ -110,6 +117,13 @@ export function applyHistoryFilters(transactions: Transaction[], filters: Histor
         if (bounds.min !== null && tx.amount < bounds.min) return false
         if (bounds.max !== null && tx.amount > bounds.max) return false
       }
+    }
+
+    // Currency filter (Task 423.2)
+    if (filters.currency !== null) {
+      const homeCurrency = getHomeCurrency()
+      const txCurrency = normalizeCode(tx.currency) || normalizeCode(homeCurrency)
+      if (txCurrency !== normalizeCode(filters.currency)) return false
     }
 
     return true
@@ -261,6 +275,7 @@ export function HistoryFilterChips({
   onFiltersChange,
   resultCount,
   totalCount,
+  transactions = [],
 }: HistoryFilterChipsProps) {
   const [showCustomDate, setShowCustomDate] = useState(false)
   const [showCustomAmount, setShowCustomAmount] = useState(false)
@@ -287,10 +302,30 @@ export function HistoryFilterChips({
   const amountNav = useToolbarKeyNav(5) // 5 amount presets
   const typeNav = useToolbarKeyNav(4) // 4 type options
 
+  // Detect currencies present in transaction data (Task 423.2)
+  const availableCurrencies = useMemo(() => {
+    const homeCurrency = getHomeCurrency()
+    const codes = new Set<string>()
+    for (const tx of transactions) {
+      const code = normalizeCode(tx.currency) || normalizeCode(homeCurrency)
+      codes.add(code)
+    }
+    // Sort: home currency first, then alphabetical
+    const sorted = Array.from(codes).sort((a, b) => {
+      if (a === normalizeCode(homeCurrency)) return -1
+      if (b === normalizeCode(homeCurrency)) return 1
+      return a.localeCompare(b)
+    })
+    return sorted
+  }, [transactions])
+
+  const currencyNav = useToolbarKeyNav(availableCurrencies.length + 1) // +1 for "All"
+
   const hasActiveFilters = filters.categories.length > 0 ||
     filters.dateRange !== null ||
     filters.amountRange !== null ||
-    filters.type !== "all"
+    filters.type !== "all" ||
+    filters.currency !== null
 
   // ── Handlers ──────────────────────────────────────────────────────
 
@@ -357,6 +392,10 @@ export function HistoryFilterChips({
     onFiltersChange({ ...filters, type })
   }, [filters, onFiltersChange])
 
+  const setCurrencyFilter = useCallback((code: string | null) => {
+    onFiltersChange({ ...filters, currency: code === filters.currency ? null : code })
+  }, [filters, onFiltersChange])
+
   const clearAll = useCallback(() => {
     onFiltersChange(EMPTY_FILTERS)
     setShowCustomDate(false)
@@ -404,6 +443,10 @@ export function HistoryFilterChips({
         refunds: "Refunds",
       }
       parts.push(typeLabels[filters.type] ?? filters.type)
+    }
+
+    if (filters.currency) {
+      parts.push(`${getCurrencySymbol(filters.currency)} ${filters.currency}`)
     }
 
     return parts
@@ -653,6 +696,46 @@ export function HistoryFilterChips({
           ))}
         </div>
       </div>
+
+      {/* Currency filter chips (Task 423.2) — only shown when multiple currencies exist */}
+      {availableCurrencies.length > 1 && (
+        <div style={sectionStyle}>
+          <span style={labelStyle} id="filter-currency-label">Currency</span>
+          <div style={scrollRowStyle} role="toolbar" aria-labelledby="filter-currency-label">
+            <motion.button
+              type="button"
+              ref={(el: HTMLButtonElement | null) => { currencyNav.itemsRef.current[0] = el }}
+              whileTap={{ scale: 0.96 }}
+              transition={springs.snappy}
+              onClick={() => setCurrencyFilter(null)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => currencyNav.handleKeyDown(e, 0)}
+              tabIndex={filters.currency === null ? 0 : -1}
+              style={chipStyle(filters.currency === null)}
+              aria-pressed={filters.currency === null}
+              aria-label="All currencies"
+            >
+              All
+            </motion.button>
+            {availableCurrencies.map((code, i) => (
+              <motion.button
+                key={code}
+                type="button"
+                ref={(el: HTMLButtonElement | null) => { currencyNav.itemsRef.current[i + 1] = el }}
+                whileTap={{ scale: 0.96 }}
+                transition={springs.snappy}
+                onClick={() => setCurrencyFilter(code)}
+                onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => currencyNav.handleKeyDown(e, i + 1)}
+                tabIndex={filters.currency === code ? 0 : -1}
+                style={chipStyle(filters.currency === code)}
+                aria-pressed={filters.currency === code}
+                aria-label={`Filter by ${code}`}
+              >
+                {getCurrencySymbol(code)} {code}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Active filter summary bar */}
       <AnimatePresence>

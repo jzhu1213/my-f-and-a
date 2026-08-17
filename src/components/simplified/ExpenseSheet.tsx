@@ -33,6 +33,11 @@ import { getRecentTags } from '@/lib/tagUtils'
 import type { FundingSource } from '@/lib/fundingSources'
 import { predictFundingSource } from '@/lib/fundingSources'
 import type { SpendingMode } from '@/lib/spendingModes'
+import { getHomeCurrency } from '@/lib/currencyPreferences'
+import { normalizeCode, convertToHome } from '@/lib/currencyUtils'
+import { getRate } from '@/lib/exchangeRates'
+import { getTravelCurrency, isTravelModeActive } from '@/lib/travelMode'
+import { CurrencySelector } from './CurrencySelector'
 
 /** A split participant — either a linked friend (with userId) or a name-only entry */
 interface SplitParticipant {
@@ -45,7 +50,7 @@ interface SplitParticipant {
 interface ExpenseSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string; date?: string; fundingSourceId?: string; trackAsIOU?: boolean; splitWith?: string; splitOwedAmount?: number; tags?: string[]; splitData?: { totalAmount: number; splitMethod: SplitMethod; participants: { name: string; userId: string | null; shareAmount: number; isPayer: boolean }[] } }) => void
+  onSubmit: (data: { amount: number; category: TransactionCategory; note?: string; date?: string; fundingSourceId?: string; trackAsIOU?: boolean; splitWith?: string; splitOwedAmount?: number; tags?: string[]; splitData?: { totalAmount: number; splitMethod: SplitMethod; participants: { name: string; userId: string | null; shareAmount: number; isPayer: boolean }[] }; currency?: string; exchangeRate?: number }) => void
   onUndo?: () => void
   defaultCategory?: TransactionCategory
   transactions?: Transaction[]
@@ -239,6 +244,10 @@ export function ExpenseSheet({
   // ── Shared budget toggle state (task 360.2) ─────────────────────────────
   const [logToSharedBudget, setLogToSharedBudget] = useState(false)
 
+  // ── Currency selection state (task 422.1) ──────────────────────────────
+  const [selectedCurrency, setSelectedCurrency] = useState(() => getTravelCurrency() || getHomeCurrency())
+  const [currencyRate, setCurrencyRate] = useState<number | null>(null)
+
   // ── Date selection state (task 87.1) ────────────────────────────────────
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -346,12 +355,28 @@ export function ExpenseSheet({
       setShowSourcePicker(false)
       setTrackAsIOU(false)
       setLogToSharedBudget(false)
+      setSelectedCurrency(getTravelCurrency() || getHomeCurrency())
       
       // NOTE: Do NOT auto-focus the amount input here. On iOS, focusing an input
       // triggers the virtual keyboard which resizes the viewport and pushes the
       // fixed-position sheet up awkwardly. The user can tap the input when ready.
     }
   }, [isOpen, effectiveDefault, defaultCategory, habitPrediction, splitPreEnabled, fundingSources, transactions])
+
+  // ── Fetch exchange rate when selected currency changes (task 422.1) ────
+  useEffect(() => {
+    const home = normalizeCode(getHomeCurrency())
+    const selected = normalizeCode(selectedCurrency)
+    if (!selected || selected === home) {
+      setCurrencyRate(null)
+      return
+    }
+    let cancelled = false
+    getRate(selected, home).then((rate) => {
+      if (!cancelled) setCurrencyRate(rate)
+    })
+    return () => { cancelled = true }
+  }, [selectedCurrency])
 
   // Auto-focus friend name input when split is pre-enabled and amount is filled (task 5.3 polish)
   // This fires when the user enters an amount (or taps a habit chip) in split-pre-enabled mode,
@@ -576,6 +601,11 @@ export function ExpenseSheet({
       splitOwedAmount: splitEnabled && allFriends && totalOwed > 0 ? totalOwed : undefined,
       tags: tags.length > 0 ? tags : undefined,
       splitData,
+      // Task 422.2: pass currency and rate when logging in a foreign currency.
+      // The parent converts submittedAmount to home currency using the rate.
+      ...(currencyRate !== null && normalizeCode(selectedCurrency) !== normalizeCode(getHomeCurrency())
+        ? { currency: normalizeCode(selectedCurrency), exchangeRate: currencyRate }
+        : {}),
     })
     // Show success toast with split-aware copy (task 123.1 — Splitwise-level ease)
     const categoryLabel = displayCategories.find(c => c.categoryValue === effectiveCategory)?.label ?? effectiveCategory
@@ -615,7 +645,7 @@ export function ExpenseSheet({
     }
 
     onClose()
-  }, [amount, category, spendingMode, note, tags, splitEnabled, splitCount, splitWith, splitFriends, splitMode, splitParticipants, percentInputs, shareInputs, customShareInput, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage, logToSharedBudget, matchingSharedBudget, onLogToSharedBudget])
+  }, [amount, category, spendingMode, note, tags, splitEnabled, splitCount, splitWith, splitFriends, splitMode, splitParticipants, percentInputs, shareInputs, customShareInput, selectedSourceId, selectedSourceIsBorrowed, trackAsIOU, selectedDate, displayCategories, onSubmit, onClose, onUndo, showToast, budgets, onAlertMessage, logToSharedBudget, matchingSharedBudget, onLogToSharedBudget, selectedCurrency, currencyRate])
 
   const canSubmit = (() => {
     const parsed = parseFloat(amount)
@@ -979,6 +1009,18 @@ export function ExpenseSheet({
                 >
                   How much did you spend?
                 </p>
+
+                {/* ── Currency Selector (task 422.1) — only shown when travel mode is active ── */}
+                {isTravelModeActive() && (
+                  <div style={{ marginTop: 8 }}>
+                    <CurrencySelector
+                      selectedCurrency={selectedCurrency}
+                      onCurrencyChange={setSelectedCurrency}
+                      amount={parseFloat(amount) || 0}
+                      showPreview={true}
+                    />
+                  </div>
+                )}
 
                 {/* ── "Remaining after this" indicator (Task 117.1) ── */}
                 {dailyAllowanceAmount != null && dailyAllowanceAmount > 0 && parseFloat(amount) > 0 && (

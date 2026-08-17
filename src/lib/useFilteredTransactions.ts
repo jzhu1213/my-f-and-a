@@ -15,6 +15,8 @@ import { useMemo } from "react"
 import type { Transaction, TransactionCategory } from "@/types"
 import type { HistoryFilters, DateRangePreset, CustomDateRange, AmountRangePreset, CustomAmountRange } from "@/components/simplified/HistoryFilterChips"
 import type { SearchResult } from "@/lib/transactionSearch"
+import { normalizeCode } from "@/lib/currencyUtils"
+import { getHomeCurrency } from "@/lib/currencyPreferences"
 
 // ============================================================================
 // Precomputation helpers (exported for testing)
@@ -86,6 +88,10 @@ export interface PrecomputedFilterParams {
   typeFilter: HistoryFilters["type"]
   dateBounds: { start: string | null; end: string | null } | null
   amountBounds: { min: number | null; max: number | null } | null
+  /** Currency code to filter by, or null for all currencies (Task 423.2) */
+  currencyFilter: string | null
+  /** The user's home currency code for resolving missing tx.currency */
+  homeCurrency: string
 }
 
 /**
@@ -96,10 +102,10 @@ export function applyOptimizedFilters(
   transactions: Transaction[],
   params: PrecomputedFilterParams
 ): Transaction[] {
-  const { categorySet, typeFilter, dateBounds, amountBounds } = params
+  const { categorySet, typeFilter, dateBounds, amountBounds, currencyFilter, homeCurrency } = params
 
   // Fast path: no filters active
-  if (!categorySet && typeFilter === "all" && !dateBounds && !amountBounds) {
+  if (!categorySet && typeFilter === "all" && !dateBounds && !amountBounds && !currencyFilter) {
     return transactions
   }
 
@@ -131,6 +137,12 @@ export function applyOptimizedFilters(
       if (amountBounds.max !== null && tx.amount > amountBounds.max) return false
     }
 
+    // Currency filter (Task 423.2)
+    if (currencyFilter) {
+      const txCurrency = normalizeCode(tx.currency) || normalizeCode(homeCurrency)
+      if (txCurrency !== normalizeCode(currencyFilter)) return false
+    }
+
     return true
   })
 }
@@ -152,7 +164,7 @@ export function useFilteredTransactions(
   filters: HistoryFilters
 ): Transaction[] {
   // Destructure for granular dependency tracking
-  const { categories, dateRange, customDateRange, amountRange, customAmountRange, type } = filters
+  const { categories, dateRange, customDateRange, amountRange, customAmountRange, type, currency } = filters
 
   // Precompute category Set — only when categories array changes
   const categorySet = useMemo<Set<TransactionCategory> | null>(() => {
@@ -170,6 +182,9 @@ export function useFilteredTransactions(
     return computeAmountBounds(amountRange, customAmountRange)
   }, [amountRange, customAmountRange])
 
+  // Resolve home currency once per render (Task 423.2)
+  const homeCurrency = useMemo(() => getHomeCurrency(), [])
+
   // Main filtered result — recomputes only when actual inputs change
   const filteredTransactions = useMemo(() => {
     const baseList = searchResults
@@ -181,6 +196,8 @@ export function useFilteredTransactions(
       typeFilter: type,
       dateBounds,
       amountBounds,
+      currencyFilter: currency ?? null,
+      homeCurrency,
     }
 
     // Performance measurement in development
@@ -197,7 +214,7 @@ export function useFilteredTransactions(
     }
 
     return applyOptimizedFilters(baseList, params)
-  }, [transactions, searchResults, categorySet, type, dateBounds, amountBounds])
+  }, [transactions, searchResults, categorySet, type, dateBounds, amountBounds, currency, homeCurrency])
 
   return filteredTransactions
 }

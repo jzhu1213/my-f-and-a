@@ -75,6 +75,7 @@ import type { BudgetMode } from '@/lib/spendingModeConfig'
 import { getBudgetModes, getActiveBudgetMode, setActiveBudgetMode as setActiveBudgetModeStorage, saveBudgetMode as saveBudgetModeStorage, deleteBudgetMode as deleteBudgetModeStorage, applyBudgetModeOverrides, generateBudgetModeId } from '@/lib/spendingModeConfig'
 import { detectPeriodTransition, initializePeriodTracking } from '@/lib/periodTransition'
 import type { PeriodTransitionMessage } from '@/lib/periodTransition'
+import { isTravelModeActive, getTravelModeConfig } from '@/lib/travelMode'
 
 // ── Income Smoothing Preference Persistence ────────────────────────────────
 // Stored in localStorage as a fallback (no dedicated Supabase table yet).
@@ -1810,6 +1811,41 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       budgetPeriod  // Task 342.2: flexible budget periods
     )
   }, [budgets, transactions, debts, sinkingFunds, recurringBills, disbursements, incomeSmoothing, isLoading, currentDay, userProfile?.countCreditImmediately, userProfile?.setupDate, fundingSources, paySchedule, termSchedule, rhythmWeights, incomeStreams, incomeProjection, budgetModes, activeBudgetModeId, budgetPeriod])
+
+  // ── Travel Budget Override (Task 425.1) ────────────────────────
+  // When travel mode is active with a dailyBudgetOverride, replace the computed
+  // daily budget with the travel override. Rollover still works (recalculated
+  // relative to the override budget). This is a post-hoc override so we don't
+  // need to modify the complex computeDailyAllowance signature.
+  const travelAdjustedAllowance = useMemo<DailyAllowance | null>(() => {
+    if (!allowance) return null
+    if (!isTravelModeActive()) return allowance
+    const config = getTravelModeConfig()
+    if (!config?.dailyBudgetOverride || config.dailyBudgetOverride <= 0) return allowance
+
+    const override = config.dailyBudgetOverride
+    // Recalculate rollover relative to the override budget instead of the normal budget.
+    // The ratio of rollover is preserved: if original rollover was for underspending
+    // relative to the normal budget, the absolute delta stays the same.
+    // Simple formula: rollover stays as-is (it's already the difference between
+    // expected and actual past spending), but we recompute the final amount using
+    // the override daily budget.
+    const adjustedAmount = Math.max(0, override + allowance.rollover - allowance.spentToday)
+
+    return {
+      ...allowance,
+      dailyBudget: override,
+      amount: adjustedAmount,
+      // Re-derive status based on the override budget
+      status: adjustedAmount <= 0
+        ? 'over' as const
+        : adjustedAmount < override * 0.25
+          ? 'warning' as const
+          : adjustedAmount < override * 0.5
+            ? 'caution' as const
+            : 'healthy' as const,
+    }
+  }, [allowance])
   
   // ── Cache Write Effect ─────────────────────────────────────────
   // Update localStorage cache whenever allowance/transactions/budgets change
@@ -1824,9 +1860,9 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   // data produces the same allowance, no re-render occurs — the hero stays stable
   // with no jarring jumps.
   useEffect(() => {
-    if (!userId || isLoading || !allowance) return
-    setHomeCache(userId, { allowance, transactions, budgets })
-  }, [userId, allowance, transactions, budgets, isLoading])
+    if (!userId || isLoading || !travelAdjustedAllowance) return
+    setHomeCache(userId, { allowance: travelAdjustedAllowance, transactions, budgets })
+  }, [userId, travelAdjustedAllowance, transactions, budgets, isLoading])
   
   // ── Period Transition Detection (Task 343.1) ───────────────────
   // Detect if a new budget period has started since the last app open.
@@ -1837,14 +1873,14 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   useEffect(() => {
     // Only check once per session, after allowance is available
     if (periodTransitionChecked.current) return
-    if (!allowance || isLoading) return
+    if (!travelAdjustedAllowance || isLoading) return
 
     periodTransitionChecked.current = true
 
     const message = detectPeriodTransition(
       budgetPeriod,
       currentDay,
-      allowance.amount,
+      travelAdjustedAllowance.amount,
       termSchedule
     )
 
@@ -1854,7 +1890,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       const timer = setTimeout(() => setPeriodTransitionMessage(null), 8000)
       return () => clearTimeout(timer)
     }
-  }, [budgetPeriod, currentDay, allowance, termSchedule, isLoading])
+  }, [budgetPeriod, currentDay, travelAdjustedAllowance, termSchedule, isLoading])
 
   // Initialize period tracking when preference changes (so future transitions are detected)
   const budgetPeriodInitialized = useRef(false)
@@ -1878,9 +1914,9 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   // Mirrors the cache write — fires whenever allowance recalculates.
   // Task 114.1: Glanceable widgets and notifications
   useEffect(() => {
-    if (!allowance || isLoading) return
-    syncWidgetData(allowance)
-  }, [allowance, isLoading])
+    if (!travelAdjustedAllowance || isLoading) return
+    syncWidgetData(travelAdjustedAllowance)
+  }, [travelAdjustedAllowance, isLoading])
   
   /**
    * Category budget rows (memoized)
@@ -2159,7 +2195,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     fundingSources,
     
     // Computed values (memoized)
-    allowance,
+    allowance: travelAdjustedAllowance,
     weekendAllowance,
     termAllowance,
     timeHorizonStats,

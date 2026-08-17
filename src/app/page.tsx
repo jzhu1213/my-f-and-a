@@ -1195,6 +1195,10 @@ export default function FolioApp() {
     splitOwedAmount?: number
     tags?: string[]
     splitData?: { totalAmount: number; splitMethod: string; participants: { name: string; userId: string | null; shareAmount: number; isPayer: boolean }[] }
+    /** ISO 4217 code when expense is in a foreign currency (task 426.1) */
+    currency?: string
+    /** Exchange rate: home-currency per 1 unit of currency (task 426.1) */
+    exchangeRate?: number
   }) => {
     if (!user?.id) return
 
@@ -1270,6 +1274,8 @@ export default function FolioApp() {
             shareAmount: p.shareAmount,
             isPayer: p.isPayer,
           })),
+          // Task 426.1: pass currency info for multi-currency splits
+          ...(data.currency && data.exchangeRate ? { currency: data.currency, exchangeRate: data.exchangeRate } : {}),
         }
         await createSplit(splitInput)
       } else if (data.splitWith && data.splitOwedAmount && data.splitOwedAmount > 0) {

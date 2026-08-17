@@ -20,6 +20,11 @@ import type { SavingsAccount } from '@/types/folio'
 import { getAccountTypeMetadata } from '@/lib/savingsAccountUtils'
 import { TagInput } from './TagInput'
 import { getRecentTags } from '@/lib/tagUtils'
+import { getHomeCurrency } from '@/lib/currencyPreferences'
+import { normalizeCode } from '@/lib/currencyUtils'
+import { getRate } from '@/lib/exchangeRates'
+import { getTravelCurrency, isTravelModeActive } from '@/lib/travelMode'
+import { CurrencySelector } from './CurrencySelector'
 
 // ── Quick-contribute dedupe (task 157.2) ─────────────────────────────────────
 // Persist which paychecks have already shown the savings-contribute chip so the
@@ -91,7 +96,7 @@ function getDateLabel(dateStr: string): string {
 interface IncomeSheetProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { amount: number; note?: string; fundingSourceId?: string; date?: string; tags?: string[]; isGigIncome?: boolean }) => void
+  onSubmit: (data: { amount: number; note?: string; fundingSourceId?: string; date?: string; tags?: string[]; isGigIncome?: boolean; currency?: string; exchangeRate?: number }) => void
   /** Called after successful submit to show PaycheckSheet. Receives the logged amount and gig flag. */
   onShowPaycheck?: (amount: number, isGigIncome?: boolean) => void
   /** Called when user taps Undo on the success toast */
@@ -158,6 +163,10 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
   // after income is logged, before finally closing. null = form phase.
   const [contributePrompt, setContributePrompt] = useState<{ amount: number; isGigIncome: boolean } | null>(null)
 
+  // ── Currency selection state (task 422.1) ──────────────────────────────
+  const [selectedCurrency, setSelectedCurrency] = useState(() => getTravelCurrency() || getHomeCurrency())
+  const [currencyRate, setCurrencyRate] = useState<number | null>(null)
+
   // Reset state when opening
   useEffect(() => {
     if (isOpen) {
@@ -184,6 +193,8 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       setShowDatePicker(false)
       setShowCustomDateInput(false)
       setContributePrompt(null)
+      setSelectedCurrency(getTravelCurrency() || getHomeCurrency())
+      setCurrencyRate(null)
       
       // Smart source prediction for income (task 81.2)
       // Use 'income' category for prediction
@@ -197,6 +208,21 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       // fixed-position sheet up awkwardly. The user can tap the input when ready.
     }
   }, [isOpen, fundingSources, transactions])
+
+  // ── Fetch exchange rate when selected currency changes (task 422.1) ────
+  useEffect(() => {
+    const home = normalizeCode(getHomeCurrency())
+    const selected = normalizeCode(selectedCurrency)
+    if (!selected || selected === home) {
+      setCurrencyRate(null)
+      return
+    }
+    let cancelled = false
+    getRate(selected, home).then((rate) => {
+      if (!cancelled) setCurrencyRate(rate)
+    })
+    return () => { cancelled = true }
+  }, [selectedCurrency])
 
   // Load friends list when split is enabled (task 284.1)
   useEffect(() => {
@@ -285,6 +311,10 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
       date: selectedDate,
       tags: tags.length > 0 ? tags : undefined,
       isGigIncome: isGigIncome || undefined,
+      // Task 422.2: pass currency and rate when logging in a foreign currency
+      ...(currencyRate !== null && normalizeCode(selectedCurrency) !== normalizeCode(getHomeCurrency())
+        ? { currency: normalizeCode(selectedCurrency), exchangeRate: currencyRate }
+        : {}),
     }
     onSubmit(data)
 
@@ -327,7 +357,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
     }
 
     onClose()
-  }, [amount, note, isGigIncome, isFinancialAid, spreadMonths, selectedSourceId, selectedDate, tags, onSubmit, onClose, onUndo, showToast, onShowPaycheck, onCreateDisbursement, savingsAccounts, onContributeToSavings])
+  }, [amount, note, isGigIncome, isFinancialAid, spreadMonths, selectedSourceId, selectedDate, tags, onSubmit, onClose, onUndo, showToast, onShowPaycheck, onCreateDisbursement, savingsAccounts, onContributeToSavings, selectedCurrency, currencyRate])
 
   /** Finish the flow after the contribute phase: open PaycheckSheet then close. */
   const finalizeSubmit = useCallback((parsed: number, gig: boolean) => {
@@ -547,6 +577,18 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                 >
                   How much did you earn?
                 </p>
+
+                {/* ── Currency Selector (task 422.1) — only shown when travel mode is active ── */}
+                {isTravelModeActive() && (
+                  <div style={{ marginTop: 8 }}>
+                    <CurrencySelector
+                      selectedCurrency={selectedCurrency}
+                      onCurrencyChange={setSelectedCurrency}
+                      amount={parseFloat(amount) || 0}
+                      showPreview={true}
+                    />
+                  </div>
+                )}
 
                 {/* ── Source Chip (optional, task 81.1) ────────────────── */}
                 {fundingSources.length > 0 && (

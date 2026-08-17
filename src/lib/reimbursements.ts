@@ -29,6 +29,12 @@ export interface Reimbursement {
   linkedTransactionId?: string
   /** Optional funding source used when settling this IOU */
   settledViaSourceId?: string
+  /** ISO 4217 code the IOU is denominated in (task 426.1) */
+  currency?: string
+  /** Exchange rate at IOU creation time: home-currency per 1 unit of currency (task 426.1) */
+  exchangeRate?: number
+  /** Amount in the original foreign currency when different from home (task 426.1) */
+  originalAmount?: number
 }
 
 // ============================================================================

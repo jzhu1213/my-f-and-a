@@ -25,6 +25,8 @@ import { clearHistoryScrollPosition } from "@/lib/useScrollVirtualization"
 import { ExportSummarySheet } from "./ExportSummarySheet"
 import { buildExportSummary, exportTransactionsCsv } from "@/lib/csvExport"
 import type { ExportSummary } from "@/lib/csvExport"
+import { getTravelCurrency, isTravelModeActive } from "@/lib/travelMode"
+import { TripSpendingSummary } from "./TripSpendingSummary"
 
 // ── Session storage key for filter persistence ───────────────────
 const SESSION_HISTORY_FILTERS_KEY = "folio-history-screen-filters"
@@ -193,7 +195,7 @@ export function HistoryScreen({
     if (prevFilteredCountRef.current !== filteredTransactions.length) {
       const hasFilters = searchQuery.trim() || historyFilters.categories.length > 0 ||
         historyFilters.dateRange !== null || historyFilters.amountRange !== null ||
-        historyFilters.type !== "all"
+        historyFilters.type !== "all" || historyFilters.currency !== null
 
       if (hasFilters) {
         setFilterAnnouncement(
@@ -252,6 +254,7 @@ export function HistoryScreen({
           onFiltersChange={handleFiltersChange}
           resultCount={filteredTransactions.length}
           totalCount={transactions.length}
+          transactions={transactions}
         />
       </motion.div>
 
@@ -334,6 +337,16 @@ export function HistoryScreen({
       <motion.div variants={listItem} style={{ padding: `${spacing.sm}px 16px 0` }}>
         <InsightBreakdownCard transactions={transactions} />
       </motion.div>
+
+      {/* Trip spending summary — shown when travel mode is active (Task 423.3) */}
+      {isTravelModeActive() && getTravelCurrency() && (
+        <motion.div variants={listItem} style={{ padding: `${spacing.sm}px 16px 0` }}>
+          <TripSpendingSummary
+            transactions={transactions}
+            tripCurrency={getTravelCurrency()!}
+          />
+        </motion.div>
+      )}
 
       <motion.div variants={listItem} style={{ marginTop: spacingScale["32"] }}>
       {/* Conditional view rendering based on grouping mode (Task 402) */}

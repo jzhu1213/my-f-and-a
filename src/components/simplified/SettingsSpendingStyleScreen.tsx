@@ -21,6 +21,9 @@ import { SettingsSubScreen } from "./SettingsSubScreen"
 import type { SpendingMode, OverLimitResponse } from "@/lib/spendingModes"
 import { SPENDING_MODE_LABELS, OVER_LIMIT_RESPONSE_LABELS } from "@/lib/spendingModes"
 import type { UserGoal } from "@/types"
+import { isTravelModeActive, getTravelModeConfig, clearTravelMode } from "@/lib/travelMode"
+import type { TravelModeConfig } from "@/lib/travelMode"
+import { useState, useEffect } from "react"
 
 // ============================================================================
 // Types
@@ -34,6 +37,8 @@ export interface SettingsSpendingStyleScreenProps {
   onSetOverLimitResponse: (response: OverLimitResponse) => void
   userGoal?: UserGoal
   onGoalChange?: (goal: UserGoal) => void
+  /** Open the travel mode activation sheet (task 424.2) */
+  onOpenTravelMode?: () => void
 }
 
 // ============================================================================
@@ -162,6 +167,7 @@ export function SettingsSpendingStyleScreen({
   onSetOverLimitResponse,
   userGoal,
   onGoalChange,
+  onOpenTravelMode,
 }: SettingsSpendingStyleScreenProps) {
   const spendingModes: SpendingMode[] = ["tracker", "guided", "structured"]
   const overLimitOptions: OverLimitResponse[] = ["quiet", "gentle", "headsup"]
@@ -173,6 +179,14 @@ export function SettingsSpendingStyleScreen({
     "pay_debt",
     "learn_investing",
   ]
+
+  // Travel mode state (task 424.2)
+  const [travelActive, setTravelActive] = useState(false)
+  const [travelConfig, setTravelConfig] = useState<TravelModeConfig | null>(null)
+  useEffect(() => {
+    setTravelActive(isTravelModeActive())
+    setTravelConfig(getTravelModeConfig())
+  }, [])
 
   return (
     <SettingsSubScreen title="Spending" description="Pick how Folio tracks your spending." onBack={onBack}>
@@ -231,6 +245,76 @@ export function SettingsSpendingStyleScreen({
           </div>
         </section>
       )}
+
+      {/* Travel mode section (Task 424.2) */}
+      <section
+        aria-labelledby="travel-mode-heading"
+        style={{ marginTop: spacingScale["32"] }}
+      >
+        <SectionHeading id="travel-mode-heading">Travel mode</SectionHeading>
+        {travelActive && travelConfig ? (
+          <div
+            style={{
+              padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+              background: colorRamp.accent[50],
+              border: `1px solid ${colorRamp.accent[200]}`,
+              borderRadius: radius.control,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div>
+              <p style={{ ...typography.body, color: textColors.text, margin: 0 }}>
+                ✈️ {travelConfig.destinationLabel || travelConfig.currency}
+              </p>
+              {travelConfig.dailyBudgetOverride && (
+                <p style={{ ...typography["body-sm"], color: textColors.sub, margin: 0, marginTop: 2 }}>
+                  ${travelConfig.dailyBudgetOverride}/day
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                clearTravelMode()
+                setTravelActive(false)
+                setTravelConfig(null)
+              }}
+              style={{
+                padding: `${spacingScale["8"]} ${spacingScale["12"]}`,
+                background: colorRamp.error[500],
+                color: "#fff",
+                border: "none",
+                borderRadius: radius.control,
+                cursor: "pointer",
+                ...typography["body-sm"],
+                fontWeight: 500,
+              }}
+            >
+              End trip
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenTravelMode}
+            style={{
+              width: "100%",
+              textAlign: "left",
+              padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+              background: elevations.resting.fill,
+              border: `1px solid ${elevations.resting.border}`,
+              borderRadius: radius.control,
+              cursor: "pointer",
+              ...typography.body,
+              color: textColors.text,
+            }}
+          >
+            ✈️ Going somewhere? Set a travel currency.
+          </button>
+        )}
+      </section>
     </SettingsSubScreen>
   )
 }

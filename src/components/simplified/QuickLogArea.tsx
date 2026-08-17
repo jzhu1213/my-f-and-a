@@ -13,6 +13,10 @@ import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import type { IconName } from "@/lib/icons"
 import { FONT_FAMILY } from '@/styles/typography'
 import { borderRadius, getCategoryAccent } from '@/styles/shared'
+import { getTravelCurrency } from '@/lib/travelMode'
+import { formatCurrency as formatCurrencyUtil } from '@/lib/currencyUtils'
+import { getRate } from '@/lib/exchangeRates'
+import { getHomeCurrency } from '@/lib/currencyPreferences'
 import {
   loadCategoryGridPrefs,
   saveCategoryGridPrefs,
@@ -212,6 +216,10 @@ interface SuggestionChipProps {
   /** True while the success ripple should emanate from this chip. */
   rippleActive: boolean
   reducedMotion: boolean
+  /** When travel mode is active, show amount in travel currency (task 422.3). */
+  travelCurrency?: string | null
+  /** Conversion rate from home → travel currency (task 422.3). */
+  travelConversionRate?: number | null
 }
 
 /**
@@ -224,12 +232,18 @@ interface SuggestionChipProps {
  *
  * Requirements 3.3, 3.4, 8.4, 13.5
  */
-function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion }: SuggestionChipProps) {
+function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion, travelCurrency, travelConversionRate }: SuggestionChipProps) {
   const [isHolding, setIsHolding] = useState(false)
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const amountStr =
-    suggestion.amount % 1 === 0
+  // When travel mode is active and we have a rate, show in travel currency
+  const showInTravel = travelCurrency && travelConversionRate && travelConversionRate > 0
+  const displayAmount = showInTravel
+    ? suggestion.amount * travelConversionRate
+    : suggestion.amount
+  const amountStr = showInTravel
+    ? formatCurrencyUtil(displayAmount, travelCurrency)
+    : suggestion.amount % 1 === 0
       ? `$${suggestion.amount}`
       : `$${suggestion.amount.toFixed(2)}`
 
@@ -706,6 +720,10 @@ export function QuickLogArea({
   // ── Sort mode state (Task 339.2) ──────────────────────────────────────────
   const [sortMode, setSortMode] = useState<CategorySortMode>('manual')
 
+  // ── Travel mode: convert suggestion amounts to travel currency (task 422.3) ──
+  const [travelConversionRate, setTravelConversionRate] = useState<number | null>(null)
+  const travelCurrency = getTravelCurrency()
+
   // Load saved preferences on mount
   useEffect(() => {
     const prefs = loadCategoryGridPrefs()
@@ -714,6 +732,22 @@ export function QuickLogArea({
     }
     setSortMode(loadSortMode())
   }, [])
+
+  // Fetch travel conversion rate on mount (home → travel, task 422.3)
+  useEffect(() => {
+    if (!travelCurrency) {
+      setTravelConversionRate(null)
+      return
+    }
+    let cancelled = false
+    const home = getHomeCurrency()
+    getRate(home, travelCurrency).then((rate) => {
+      if (!cancelled && rate !== null) {
+        setTravelConversionRate(rate)
+      }
+    })
+    return () => { cancelled = true }
+  }, [travelCurrency])
 
   // Clean up the ripple reset timer on unmount.
   useEffect(() => {
@@ -1403,6 +1437,8 @@ export function QuickLogArea({
                     onTap={() => handleSuggestionTap(s)}
                     rippleActive={rippleChipId === s.id}
                     reducedMotion={prefersReducedMotion}
+                    travelCurrency={travelCurrency}
+                    travelConversionRate={travelConversionRate}
                   />
                 </motion.div>
               ))}

@@ -12,6 +12,7 @@
 
 import { supabase } from '../supabaseClient'
 import { createReimbursement } from '../supabaseData'
+import { convertToLocal, formatCurrency, isValidExchangeRate } from '../currencyUtils'
 import type { ReimbursementDirection } from '../reimbursements'
 import {
   type AppSplit,
@@ -146,6 +147,10 @@ export interface CreateSplitInput {
   note?: string
   /** Participants (including the payer) */
   participants: CreateSplitParticipantInput[]
+  /** ISO 4217 code of the expense's original currency (task 426.1) */
+  currency?: string
+  /** Exchange rate at split time: home-currency per 1 unit of currency (task 426.1) */
+  exchangeRate?: number
 }
 
 // ============================================================================
@@ -186,6 +191,8 @@ export async function createSplit(
     note: input.note ?? '',
     settled: false,
     createdAt: new Date().toISOString(),
+    ...(input.currency ? { currency: input.currency } : {}),
+    ...(input.exchangeRate != null ? { exchangeRate: input.exchangeRate } : {}),
   }
   addOptimisticSplit(optimisticSplit)
 
@@ -200,6 +207,8 @@ export async function createSplit(
       split_method: input.splitMethod,
       note: input.note?.trim() ?? '',
       settled: false,
+      ...(input.currency ? { currency: input.currency } : {}),
+      ...(input.exchangeRate != null ? { exchange_rate: input.exchangeRate } : {}),
     })
     .select()
     .single()
@@ -507,6 +516,11 @@ export async function processSplitQueue(): Promise<{ succeeded: number; failed: 
  *
  * Links IOUs via `linkedTransactionId` using the split ID so each person
  * sees it in their own existing ledger.
+ *
+ * Task 426.1: When the split has currency data, IOUs store:
+ * - `amount` = share in HOME currency (ledger totals work correctly)
+ * - `originalAmount` = share in the ORIGINAL foreign currency
+ * - `currency` + `exchangeRate` = rate used for conversion
  */
 async function createPairedIOUs(
   payerUserId: string,
@@ -517,6 +531,9 @@ async function createPairedIOUs(
   // Find the payer participant to get their display name
   const payerParticipant = participants.find((p) => p.isPayer)
   const payerName = payerParticipant?.participantName ?? 'Someone'
+
+  // Determine if this is a foreign-currency split (task 426.1)
+  const hasCurrency = !!split.currency && isValidExchangeRate(split.exchangeRate)
 
   // Process each non-payer participant
   for (const participant of participants) {
@@ -532,9 +549,26 @@ async function createPairedIOUs(
     )
 
     const linkedId = split.id
-    const note = split.note
-      ? `Split: ${split.note}`
-      : `Split expense`
+
+    // Build note with currency info if applicable (task 426.1)
+    let note: string
+    if (hasCurrency && split.exchangeRate) {
+      const originalAmount = convertToLocal(participant.shareAmount, split.exchangeRate)
+      const originalFormatted = formatCurrency(originalAmount, split.currency)
+      const homeFormatted = formatCurrency(participant.shareAmount)
+      note = split.note
+        ? `Split: ${split.note} (${originalFormatted} ≈ ${homeFormatted})`
+        : `Split expense (${originalFormatted} ≈ ${homeFormatted})`
+    } else {
+      note = split.note
+        ? `Split: ${split.note}`
+        : `Split expense`
+    }
+
+    // Compute original amount for the IOU (task 426.1)
+    const originalAmount = hasCurrency && split.exchangeRate
+      ? convertToLocal(participant.shareAmount, split.exchangeRate)
+      : undefined
 
     // Payer side: this participant owes the payer
     await createReimbursement(payerUserId, {
@@ -543,6 +577,7 @@ async function createPairedIOUs(
       amount: participant.shareAmount,
       note,
       linkedTransactionId: linkedId,
+      ...(hasCurrency ? { currency: split.currency, exchangeRate: split.exchangeRate, originalAmount } : {}),
     })
 
     // If participant is a linked friend (has a userId), create the mirror entry
@@ -555,6 +590,7 @@ async function createPairedIOUs(
         amount: participant.shareAmount,
         note,
         linkedTransactionId: linkedId,
+        ...(hasCurrency ? { currency: split.currency, exchangeRate: split.exchangeRate, originalAmount } : {}),
       })
     }
     // Name-only participants (null participantUserId): single-sided only (payer side already done)

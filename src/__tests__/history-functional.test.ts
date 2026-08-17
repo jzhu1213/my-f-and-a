@@ -302,6 +302,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'all',
         dateBounds: null,
         amountBounds: { min: 10, max: 50 },
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       // Only food items with amount 10-50: the $12 food item
@@ -316,6 +318,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'all',
         dateBounds: { start: '2024-06-10', end: '2024-06-12' },
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       // Food items between Jun 10-12: $12 food (Jun 10) and $8 food refund (Jun 11)
@@ -332,6 +336,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'all',
         dateBounds: { start: '2024-06-01', end: '2024-06-30' },
         amountBounds: { min: 50, max: null },
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       // Food in June with amount >= 50: the $55 food item
@@ -345,6 +351,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'expenses',
         dateBounds: { start: '2024-06-01', end: '2024-06-30' },
         amountBounds: { min: null, max: 20 },
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       // Food expenses in June under $20: just the $12 one (the $8 is income/refund)
@@ -361,6 +369,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'all',
         dateBounds: null,
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       // All food + drinks items: 3 food + 1 drinks = 4
@@ -378,6 +388,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'expenses',
         dateBounds: null,
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       result.forEach(tx => expect(tx.type).toBe('expense'))
@@ -389,6 +401,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'income',
         dateBounds: null,
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       result.forEach(tx => expect(tx.type).toBe('income'))
@@ -400,6 +414,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'refunds',
         dateBounds: null,
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       // Only the food-refund (income type, food category)
@@ -416,6 +432,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'all',
         dateBounds: null,
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       expect(result).toBe(transactions) // Same reference — fast path
@@ -487,6 +505,8 @@ describe('408.2 Filter combinations (Requirements: 22.2)', () => {
         typeFilter: 'expenses',
         dateBounds: { start: '2024-06-01', end: '2024-06-30' },
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const result = applyOptimizedFilters(transactions, params)
       // food expenses in June: $12, $55; drinks in June: $5; health in June: $75
@@ -533,6 +553,8 @@ describe('408.3 Performance with large datasets (Requirements: 22.6)', () => {
       typeFilter: 'expenses',
       dateBounds: { start: '2024-01-01', end: '2024-12-31' },
       amountBounds: { min: 10, max: 100 },
+        currencyFilter: null,
+        homeCurrency: 'USD',
     }
 
     const start = performance.now()
@@ -548,6 +570,8 @@ describe('408.3 Performance with large datasets (Requirements: 22.6)', () => {
       typeFilter: 'all',
       dateBounds: null,
       amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
     }
 
     const start = performance.now()
@@ -577,6 +601,8 @@ describe('408.3 Performance with large datasets (Requirements: 22.6)', () => {
       typeFilter: 'all',
       dateBounds: null,
       amountBounds: { min: 20, max: null },
+        currencyFilter: null,
+        homeCurrency: 'USD',
     }
 
     const start = performance.now()
@@ -651,6 +677,8 @@ describe('408.4 Grouping modes (Requirements: 22.4)', () => {
         typeFilter: 'all',
         dateBounds: null,
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const filtered = applyOptimizedFilters(transactions, params)
       const groups = groupByCategory(filtered)
@@ -722,6 +750,8 @@ describe('408.4 Grouping modes (Requirements: 22.4)', () => {
         typeFilter: 'expenses',
         dateBounds: { start: '2024-06-10', end: '2024-06-14' },
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const filtered = applyOptimizedFilters(transactions, params)
       const groups = groupByMerchant(filtered)
@@ -744,6 +774,8 @@ describe('408.4 Grouping modes (Requirements: 22.4)', () => {
         typeFilter: 'expenses',
         dateBounds: null,
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const filtered = applyOptimizedFilters(transactions, params)
       expect(filtered.length).toBe(2) // Two food expenses
@@ -762,6 +794,8 @@ describe('408.4 Grouping modes (Requirements: 22.4)', () => {
         typeFilter: 'all',
         dateBounds: null,
         amountBounds: null,
+        currencyFilter: null,
+        homeCurrency: 'USD',
       }
       const filtered = applyOptimizedFilters(transactions, params)
 

@@ -14,7 +14,7 @@
  */
 
 import { useMemo, useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { layoutTransition, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
 import { getPeerContextEnabled } from "@/lib/uiPreferences"
 import { SectionHeader, ListRow, Card } from "@/components/ui"
@@ -38,6 +38,7 @@ import type { FundingSource } from "@/lib/fundingSources"
 import type { Transaction, Goal, Budget } from "@/types"
 import type { Debt } from "@/types/folio"
 import type { Reimbursement } from "@/lib/reimbursements"
+import { TravelModeSheet } from "./TravelModeSheet"
 
 // ============================================================================
 // Types
@@ -136,7 +137,7 @@ const SECTIONS: ToolSection[] = [
   {
     id: "planning",
     label: "Planning & Savings",
-    toolIds: ["sinking-funds", "wish-list", "savings-projections", "manage-savings", "portfolio-allocation", "investment-explorer", "cash-flow-forecast"],
+    toolIds: ["travel-mode", "sinking-funds", "wish-list", "savings-projections", "manage-savings", "portfolio-allocation", "investment-explorer", "cash-flow-forecast"],
   },
   {
     id: "calculators",
@@ -206,6 +207,8 @@ export function ToolsScreen({
     setPeerContextEnabled(getPeerContextEnabled())
   }, [])
 
+  // Travel mode sheet (task 424.2)
+  const [travelSheetOpen, setTravelSheetOpen] = useState(false)
   // Map tool IDs to feature flag keys
   const toolFlagMap: Record<string, keyof FeatureFlags> = {
     "trajectory": "financialTrajectory",
@@ -243,6 +246,7 @@ export function ToolsScreen({
     { id: "recurring-bills", iconName: "tool:recurring-bills", title: "Recurring Bills", description: "Track your monthly fixed costs.", onOpen: onOpenRecurringBills },
     { id: "recurrence-management", iconName: "tool:recurring-bills", title: "Recurring Patterns", description: "Auto-detected spending patterns you repeat.", onOpen: onOpenRecurrenceManagement },
     { id: "reimbursements", iconName: "tool:reimbursements", title: "IOUs & Reimbursements", description: "Track money friends owe you — or that you owe them.", onOpen: onOpenReimbursements },
+    { id: "travel-mode", iconName: "tool:trajectory", title: "Going somewhere?", description: "Set a travel currency and optional daily budget.", onOpen: () => setTravelSheetOpen(true) },
     { id: "sinking-funds", iconName: "tool:sinking-funds", title: "Sinking Funds", description: "Save gradually for predictable large expenses.", onOpen: onOpenSinkingFunds },
     { id: "subscriptions", iconName: "tool:subscriptions", title: "Subscription Audit", description: "Review detected recurring charges.", onOpen: onOpenSubscriptions },
     { id: "cancel-negotiate", iconName: "tool:cancel-negotiate", title: "Cancel or Negotiate", description: "Steps and scripts to lower a bill or cancel.", onOpen: onOpenCancelNegotiate },
@@ -449,6 +453,13 @@ export function ToolsScreen({
           />
         </div>
       </div>
+
+      {/* ── Travel Mode Sheet (Task 424.2) ────────────────────────────── */}
+      <AnimatePresence>
+        {travelSheetOpen && (
+          <TravelModeSheet open={travelSheetOpen} onClose={() => setTravelSheetOpen(false)} transactions={transactions} />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

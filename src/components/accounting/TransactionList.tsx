@@ -9,6 +9,8 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { springs, timings } from '@/lib/animations'
 import { computeDailyTotal } from '@/lib/transactionUtils'
+import { isForeignTransaction, formatTransactionAmount, getCurrencySymbol } from '@/lib/currencyUtils'
+import { getHomeCurrency } from '@/lib/currencyPreferences'
 import { getTagsForTransaction, getRecentTags, parseTagInput } from '@/lib/tagUtils'
 import { lookupMerchant } from '@/lib/merchantMemory'
 import { saveHistoryScrollPosition } from '@/lib/useScrollVirtualization'
@@ -1384,15 +1386,50 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <span style={{
-                        fontFamily: FONT_FAMILY,
-                        fontSize: '15px',
-                        fontWeight: 600,
-                        fontVariantNumeric: 'tabular-nums',
-                        color: isIncome ? 'var(--success)' : 'var(--text)',
-                      }}>
-                        {isIncome ? '+' : '−'}${tx.amount.toFixed(2)}
-                      </span>
+                      {(() => {
+                        const homeCurrency = getHomeCurrency()
+                        const isForeign = isForeignTransaction(tx, homeCurrency)
+                        if (isForeign) {
+                          const formatted = formatTransactionAmount(tx, homeCurrency)
+                          return (
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: '15px',
+                                fontWeight: 600,
+                                fontVariantNumeric: 'tabular-nums',
+                                color: isIncome ? 'var(--success)' : 'var(--text)',
+                                display: 'block',
+                                lineHeight: 1.3,
+                              }}>
+                                {isIncome ? '+' : '−'}{formatted.local}
+                              </span>
+                              <span style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: '11px',
+                                fontWeight: 400,
+                                fontVariantNumeric: 'tabular-nums',
+                                color: 'var(--muted)',
+                                display: 'block',
+                                lineHeight: 1.3,
+                              }}>
+                                ≈ {formatted.home}
+                              </span>
+                            </div>
+                          )
+                        }
+                        return (
+                          <span style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: '15px',
+                            fontWeight: 600,
+                            fontVariantNumeric: 'tabular-nums',
+                            color: isIncome ? 'var(--success)' : 'var(--text)',
+                          }}>
+                            {isIncome ? '+' : '−'}${tx.amount.toFixed(2)}
+                          </span>
+                        )
+                      })()}
                       <svg
                         className="w-3.5 h-3.5 transition-transform duration-150"
                         style={{ color: 'var(--sub)', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}

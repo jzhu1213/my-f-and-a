@@ -14,12 +14,17 @@ import { useReducedMotion, springs, timings } from "@/lib/animations"
 import { useTimeOfDay } from "@/hooks/useTimeOfDay"
 import { typography, pxToRem, animatedFontWeight, fontWeights } from "@/styles/typography"
 import { fills } from "@/styles/shared"
-import { colorRamp, semanticColors } from "@/styles/colors"
+import { colorRamp, semanticColors, textColors } from "@/styles/colors"
 import { AllowanceRing } from "./AllowanceRing"
 import { Icon } from "@/components/ui/Icon"
 import { getStatusIconName, type IconName } from "@/lib/icons"
 import { STATUS_LABELS } from "@/lib/vocabulary"
 import type { SpendingMode } from "@/lib/spendingModes"
+import { getTravelCurrency } from "@/lib/travelMode"
+import { getTravelModeConfig, isTravelModeActive as checkTravelActive } from "@/lib/travelMode"
+import { getRate } from "@/lib/exchangeRates"
+import { getHomeCurrency } from "@/lib/currencyPreferences"
+import { formatCurrency as formatCurrencyUtil } from "@/lib/currencyUtils"
 
 interface DailyAllowanceHeroProps {
   allowanceLeft: number
@@ -402,6 +407,28 @@ export function DailyAllowanceHero({
   const { prefersReducedMotion, listContainer, listItem } = useReducedMotion()
   const atmosphere = useTimeOfDay()
 
+  // ── Travel mode: show "≈ €X" equivalent beneath the allowance (task 422.3) ──
+  const [travelEquivalent, setTravelEquivalent] = useState<{ amount: number; currency: string } | null>(null)
+
+  // ── Travel mode badge: "✈ London" or "✈ EUR" indicator (task 424.3) ──
+  const [travelBadge, setTravelBadge] = useState<{ label: string } | null>(null)
+  useEffect(() => {
+    if (checkTravelActive()) {
+      const config = getTravelModeConfig()
+      if (config) {
+        const label = config.destinationLabel
+          ? `✈ ${config.destinationLabel}`
+          : `✈ ${config.currency}`
+        setTravelBadge({ label })
+      } else {
+        const currency = getTravelCurrency()
+        setTravelBadge(currency ? { label: `✈ ${currency}` } : null)
+      }
+    } else {
+      setTravelBadge(null)
+    }
+  }, [allowanceLeft, spentToday])
+
   // When heroDisplay is provided (heroMeaning !== 'allowance' or explicit heroDisplay),
   // use it to override the default allowance framing entirely.
   const hasCustomDisplay = heroDisplay !== undefined && heroMeaning !== undefined && heroMeaning !== 'allowance'
@@ -459,6 +486,26 @@ export function DailyAllowanceHero({
     : isTrackerMode
       ? { iconName: trackerStatus?.iconName ?? 'status:tracking', phrase: trackerStatus?.phrase ?? 'Tracking' }
       : getInstantStatus(status)
+
+  // ── Travel mode: fetch "≈ €X" equivalent for the hero value (task 422.3) ──
+  useEffect(() => {
+    const travelCurrencyCode = getTravelCurrency()
+    const value = hasCustomDisplay
+      ? heroDisplay?.displayAmount ?? 0
+      : isTrackerMode ? spentToday : allowanceLeft
+    if (!travelCurrencyCode || value <= 0) {
+      setTravelEquivalent(null)
+      return
+    }
+    let cancelled = false
+    const home = getHomeCurrency()
+    getRate(home, travelCurrencyCode).then((rate) => {
+      if (!cancelled && rate !== null) {
+        setTravelEquivalent({ amount: value * rate, currency: travelCurrencyCode })
+      }
+    })
+    return () => { cancelled = true }
+  }, [allowanceLeft, spentToday, isTrackerMode, hasCustomDisplay, heroDisplay])
 
   if (isLoading) {
     return <HeroSkeleton />
@@ -660,6 +707,28 @@ export function DailyAllowanceHero({
           {instantStatus.phrase}
         </p>
 
+        {/* Travel mode badge — "✈ London" or "✈ EUR" (task 424.3) */}
+        {travelBadge && (
+          <motion.div
+            className="flex items-center gap-1"
+            style={{
+              padding: "4px 10px",
+              background: colorRamp.accent[50],
+              border: `1px solid ${colorRamp.accent[200]}`,
+              borderRadius: "var(--radius-full)",
+              marginTop: 2,
+            }}
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={timings.normal}
+            aria-label={`Travel mode active: ${travelBadge.label}`}
+          >
+            <span style={{ fontSize: pxToRem(11), color: textColors.text, fontWeight: 500 }}>
+              {travelBadge.label}
+            </span>
+          </motion.div>
+        )}
+
         {/* Hero label — in tracker mode or custom hero meaning, show a label below the badge */}
         {(heroLabel) && (
           <p
@@ -727,6 +796,28 @@ export function DailyAllowanceHero({
         >
           {message}
         </motion.p>
+
+        {/* Travel mode equivalent — "≈ €X" beneath the allowance (task 422.3) */}
+        {travelEquivalent && (
+          <motion.p
+            className="text-center"
+            style={{
+              fontSize: pxToRem(12),
+              color: "var(--sub)",
+              opacity: 0.7,
+              margin: 0,
+              marginTop: 2,
+              fontVariantNumeric: "tabular-nums",
+              fontFamily: undefined,
+            }}
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -2 }}
+            animate={{ opacity: 0.7, y: 0 }}
+            transition={timings.normal}
+            aria-label={`Approximately ${formatCurrencyUtil(travelEquivalent.amount, travelEquivalent.currency)} in travel currency`}
+          >
+            ≈ {formatCurrencyUtil(travelEquivalent.amount, travelEquivalent.currency)}
+          </motion.p>
+        )}
 
         {/* Confidence band pill (Task 164.2) — subtle "usually $X–$Y/day" range
             for users with variable income. Only shown in guided/structured mode

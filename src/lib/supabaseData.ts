@@ -1724,6 +1724,12 @@ interface DbReimbursement {
   created_at: string
   linked_transaction_id?: string | null
   settled_via_source_id?: string | null
+  /** ISO 4217 code the IOU is denominated in (task 426.1) */
+  currency?: string | null
+  /** Exchange rate at IOU creation time (task 426.1) */
+  exchange_rate?: number | null
+  /** Amount in the original foreign currency (task 426.1) */
+  original_amount?: number | null
 }
 
 function dbReimbursementToApp(db: DbReimbursement): Reimbursement {
@@ -1739,6 +1745,9 @@ function dbReimbursementToApp(db: DbReimbursement): Reimbursement {
     createdAt: db.created_at,
     linkedTransactionId: db.linked_transaction_id ?? undefined,
     settledViaSourceId: db.settled_via_source_id ?? undefined,
+    ...(db.currency ? { currency: db.currency } : {}),
+    ...(db.exchange_rate != null ? { exchangeRate: db.exchange_rate } : {}),
+    ...(db.original_amount != null ? { originalAmount: db.original_amount } : {}),
   }
 }
 
@@ -1765,6 +1774,12 @@ export async function createReimbursement(
     amount: number
     note?: string
     linkedTransactionId?: string
+    /** ISO 4217 code the IOU is denominated in (task 426.1) */
+    currency?: string
+    /** Exchange rate at IOU creation time (task 426.1) */
+    exchangeRate?: number
+    /** Amount in the original foreign currency (task 426.1) */
+    originalAmount?: number
   }
 ): Promise<Reimbursement | null> {
   const { data, error } = await supabase
@@ -1778,6 +1793,9 @@ export async function createReimbursement(
       settled: false,
       settled_at: null,
       ...(iou.linkedTransactionId ? { linked_transaction_id: iou.linkedTransactionId } : {}),
+      ...(iou.currency ? { currency: iou.currency } : {}),
+      ...(iou.exchangeRate != null ? { exchange_rate: iou.exchangeRate } : {}),
+      ...(iou.originalAmount != null ? { original_amount: iou.originalAmount } : {}),
     })
     .select()
     .single()

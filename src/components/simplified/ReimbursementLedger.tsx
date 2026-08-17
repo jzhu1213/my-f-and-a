@@ -18,6 +18,8 @@ import {
 import type { Reimbursement, ReimbursementDirection, SettleUpEntry } from "@/lib/reimbursements"
 import { getNetBalance, getNetSummary, validateReimbursement, computeSettleUpLedger, generateReminder } from "@/lib/reimbursements"
 import type { FundingSource } from "@/lib/fundingSources"
+import { formatCurrency } from "@/lib/currencyUtils"
+import { getHomeCurrency } from "@/lib/currencyPreferences"
 import {
   getReimbursements,
   createReimbursement,
@@ -269,13 +271,13 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
           <div>
             <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>Coming your way</p>
             <p style={{ fontSize: 20, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
-              ${summary.totalOwedToMe.toFixed(2)}
+              {formatCurrency(summary.totalOwedToMe, getHomeCurrency())}
             </p>
           </div>
           <div>
             <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>Headed out</p>
             <p style={{ fontSize: 20, fontWeight: 700, color: "var(--error)", fontVariantNumeric: "tabular-nums" }}>
-              ${summary.totalOwedByMe.toFixed(2)}
+              {formatCurrency(summary.totalOwedByMe, getHomeCurrency())}
             </p>
           </div>
           <div>
@@ -288,7 +290,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {summary.net >= 0 ? "+" : ""}${summary.net.toFixed(2)}
+              {summary.net >= 0 ? "+" : ""}{formatCurrency(summary.net, getHomeCurrency())}
             </p>
           </div>
         </div>
@@ -399,7 +401,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                     Settle with {settlingPerson.personName}
                   </p>
                   <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 16 }}>
-                    {settlingPerson.iouCount} IOU{settlingPerson.iouCount !== 1 ? 's' : ''} · ${Math.abs(settlingPerson.netAmount).toFixed(2)} net
+                    {settlingPerson.iouCount} IOU{settlingPerson.iouCount !== 1 ? 's' : ''} · {formatCurrency(Math.abs(settlingPerson.netAmount), getHomeCurrency())} net
                   </p>
 
                   <p style={{ ...sectionHeader }}>How are you settling?</p>
@@ -659,7 +661,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                {net >= 0 ? `+$${net.toFixed(2)}` : `-$${Math.abs(net).toFixed(2)}`}
+                {net >= 0 ? `+${formatCurrency(net, getHomeCurrency())}` : `-${formatCurrency(Math.abs(net), getHomeCurrency())}`}
               </span>
             </div>
           ))}
@@ -724,7 +726,7 @@ interface SettleUpRowProps {
 }
 
 function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowProps) {
-  const absAmount = Math.abs(entry.netAmount).toFixed(2)
+  const absAmount = Math.abs(entry.netAmount)
   const isCopied = copiedPerson === entry.personName
 
   return (
@@ -778,7 +780,7 @@ function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowPro
           marginRight: 6,
         }}
       >
-        ${absAmount}
+        {formatCurrency(absAmount, getHomeCurrency())}
       </span>
 
       {/* Action buttons */}
@@ -837,6 +839,15 @@ interface IOURowProps {
 }
 
 function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProps) {
+  // Task 426.2: Determine if this IOU has foreign currency info
+  const hasForeignCurrency = !!(r.currency && r.originalAmount != null && r.exchangeRate)
+  const homeCurrency = getHomeCurrency()
+
+  // Compute if rate has changed significantly (>5%) — compare stored rate to current
+  // For now, we use the stored rate since live rate fetching isn't available in-component.
+  // Infrastructure is ready for future live rate display.
+  // const rateChanged = false // Placeholder for future live rate comparison
+
   return (
     <div
       style={{
@@ -876,21 +887,56 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
         )}
       </div>
 
-      {/* Amount */}
-      <span
-        style={{
-          fontSize: 14,
-          fontWeight: 600,
-          fontVariantNumeric: "tabular-nums",
-          color: r.settled
-            ? "var(--muted)"
-            : r.direction === "owed_to_me"
-              ? "var(--success)"
-              : "var(--error)",
-        }}
-      >
-        ${r.amount.toFixed(2)}
-      </span>
+      {/* Amount — task 426.2: show both currencies when foreign */}
+      <div style={{ textAlign: "right", minWidth: 0 }}>
+        {hasForeignCurrency ? (
+          <>
+            {/* Original foreign amount (prominent) */}
+            <span
+              style={{
+                display: "block",
+                fontSize: 14,
+                fontWeight: 600,
+                fontVariantNumeric: "tabular-nums",
+                color: r.settled
+                  ? "var(--muted)"
+                  : r.direction === "owed_to_me"
+                    ? "var(--success)"
+                    : "var(--error)",
+              }}
+            >
+              {formatCurrency(r.originalAmount!, r.currency)}
+            </span>
+            {/* Home-currency equivalent (secondary) */}
+            <span
+              style={{
+                display: "block",
+                fontSize: 11,
+                fontVariantNumeric: "tabular-nums",
+                color: "var(--muted)",
+                marginTop: 1,
+              }}
+            >
+              ≈ {formatCurrency(r.amount, homeCurrency)}
+            </span>
+          </>
+        ) : (
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              fontVariantNumeric: "tabular-nums",
+              color: r.settled
+                ? "var(--muted)"
+                : r.direction === "owed_to_me"
+                  ? "var(--success)"
+                  : "var(--error)",
+            }}
+          >
+            {formatCurrency(r.amount, homeCurrency)}
+          </span>
+        )}
+      </div>
 
       {/* Actions */}
       {!r.settled && onSettle && (
