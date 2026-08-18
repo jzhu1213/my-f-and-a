@@ -71,12 +71,25 @@ export function CombinedGrowthOutlook({ accounts }: CombinedGrowthOutlookProps) 
   const tenYear = horizons.find((h) => h.years === 10)?.amount ?? 0
   const hasContributions = inputs.totalMonthlyContribution > 0
 
+  // Accessible text summary for screen readers
+  const summaryText = `Combined growth outlook across ${accounts.length} account${accounts.length > 1 ? 's' : ''}: ` +
+    `total balance ${formatFull(inputs.totalBalance)}, ` +
+    `contributing ${formatFull(inputs.totalMonthlyContribution)} per month, ` +
+    `blended return ${blendedReturnPct}% per year. ` +
+    horizons.map(h => `${h.years} year${h.years === 1 ? '' : 's'}: ${formatFull(h.amount)}`).join(', ') + '.'
+
   return (
     <GlassCard
       elevation="medium"
       glow="celebration"
       style={{ padding: "18px 18px 16px", marginBottom: 20 }}
+      aria-label="Combined growth outlook"
+      aria-describedby="combined-growth-summary"
     >
+      {/* Screen reader text summary */}
+      <span id="combined-growth-summary" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0 }}>
+        {summaryText}
+      </span>
       {/* Section label */}
       <div
         style={{

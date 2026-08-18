@@ -117,6 +117,54 @@ export const en = {
   'category.income': 'Income',
 
   // --------------------------------------------------------------------------
+  // Home screen — section headers, actions, empty states
+  // --------------------------------------------------------------------------
+  'home.logExpense': 'Log expense',
+  'home.logIncome': 'Log income',
+  'home.logFirstExpense': 'Log your first expense',
+  'home.sectionRecent': 'Recent',
+  'home.sectionCategories': 'Categories',
+  'home.seeAll': 'See all →',
+  'home.split': '🤝 Split',
+  'home.canIAfford': '🤔 Can I afford this?',
+  'home.addWish': '⭐ + Wish',
+  'home.logIncomeArrow': 'Log income →',
+  'home.overBudgetGentle': 'Spent a bit more today — tomorrow resets ✨',
+  'home.overBudgetStrip': 'Tomorrow\u2019s budget resets — or log income to top up today.',
+  'home.estimateNudge': '✨ Estimated — tap to log income for accuracy →',
+  'home.zeroSpendMark': '🎯 Nothing spent? Mark as $0 day',
+  'home.zeroSpendConfirm': '✓ Day logged — streak continues',
+  'home.spendDownOnTrack': 'On track ✓',
+  'home.spendDownAhead': 'A bit ahead of pace',
+  'home.emptyFirstRunTitle': 'Your spending will show up here.',
+  'home.emptyFirstRunSubtitle': 'Log your first expense and watch your day take shape.',
+  'home.emptyTitle': 'Ready when you are',
+  'home.emptySubtitle': 'Log your first expense and Folio starts learning your habits',
+  'home.emptyAction': 'Log expense →',
+  'home.categoryEmptyTitle': 'You\u2019re all set to start — limits are optional',
+  'home.categoryEmptySubtitle': 'Add category limits anytime for a more accurate daily number',
+  'home.categoryEmptyAction': 'Set up limits →',
+  'home.viewAllSplits': 'View all ({count}) →',
+
+  // --------------------------------------------------------------------------
+  // History screen
+  // --------------------------------------------------------------------------
+  'history.title': 'History',
+  'history.showing': 'Showing {count} {noun} of {total} total',
+  'history.transaction': 'transaction',
+  'history.transactions': 'transactions',
+
+  // --------------------------------------------------------------------------
+  // Quick log — validation & actions
+  // --------------------------------------------------------------------------
+  'quicklog.logExpense': 'Log expense',
+  'quicklog.cancel': 'Cancel',
+  'quicklog.validationInvalid': 'Enter a valid amount',
+  'quicklog.validationPositive': 'Amount must be greater than $0',
+  'quicklog.validationMax': 'Amount cannot exceed ${max}',
+  'quicklog.notePlaceholderShort': 'Note (optional)',
+
+  // --------------------------------------------------------------------------
   // Settings — language selection lives here
   // --------------------------------------------------------------------------
   'settings.language': 'Language',

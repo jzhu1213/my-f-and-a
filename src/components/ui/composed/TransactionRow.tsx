@@ -127,7 +127,7 @@ export function TransactionRow({
     lineHeight: typography.body.lineHeight,
     color: getAmountColor(amount),
     flexShrink: 0,
-    textAlign: "right",
+    textAlign: "end",
   }
 
   return (

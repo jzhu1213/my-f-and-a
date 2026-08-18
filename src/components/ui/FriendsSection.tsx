@@ -139,6 +139,7 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
   const [isSearching, setIsSearching] = useState(false)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const totalCount = friends.length + pendingRequests.length
@@ -223,6 +224,13 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
   }
 
   const handleRemove = async (friendshipId: string) => {
+    if (confirmRemoveId !== friendshipId) {
+      setConfirmRemoveId(friendshipId)
+      // Auto-reset after 4s so it doesn't get stuck
+      setTimeout(() => setConfirmRemoveId((prev) => prev === friendshipId ? null : prev), 4000)
+      return
+    }
+    setConfirmRemoveId(null)
     const success = await removeFriend(friendshipId)
     if (success) {
       setActionMessage('Connection removed.')
@@ -559,14 +567,14 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                           onClick={() => handleRemove(friend.id)}
                           whileTap={!prefersReducedMotion ? { scale: 0.95 } : undefined}
                           transition={springs.snappy}
-                          aria-label="Remove friend"
+                          aria-label={confirmRemoveId === friend.id ? "Confirm remove friend" : "Remove friend"}
                           style={{
                             ...smallButtonStyle,
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            color: 'var(--muted)',
+                            background: confirmRemoveId === friend.id ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                            color: confirmRemoveId === friend.id ? 'var(--error)' : 'var(--muted)',
                           }}
                         >
-                          Remove
+                          {confirmRemoveId === friend.id ? 'Confirm?' : 'Remove'}
                         </motion.button>
                       </div>
                     )

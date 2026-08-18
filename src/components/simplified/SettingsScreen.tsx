@@ -15,7 +15,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
-import { SectionHeader } from "@/components/ui"
 import { useTheme } from "@/contexts/ThemeContext"
 import type { Budget, Goal, TransactionCategory } from "@/types"
 import type { IncomeSmoothing } from "@/types/folio"
@@ -402,7 +401,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
         transition={prefersReducedMotion ? timings.fast : springs.gentle}
         style={{ pointerEvents: activeSubScreen ? 'none' : 'auto' }}
       >
-        <SectionHeader>Settings</SectionHeader>
+        <h1 style={{ ...typography.headline, color: textColors.text, margin: 0, paddingBottom: spacingScale["8"] }}>Settings</h1>
 
         {/* Search (370.2) */}
         <div style={{ marginTop: spacingScale["16"], marginBottom: spacingScale["20"] }}>

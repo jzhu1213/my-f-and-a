@@ -190,6 +190,43 @@ export function AppShell({
 
   return (
     <div className="app-shell">
+      {/* Skip-to-content link for keyboard/screen reader users (Req 27.1) */}
+      <a
+        href="#main-content"
+        className="skip-to-content"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 'auto',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden',
+          zIndex: 100,
+          padding: '8px 16px',
+          background: 'var(--surface)',
+          color: 'var(--text)',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: 500,
+          textDecoration: 'none',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.position = 'fixed'
+          e.currentTarget.style.left = '16px'
+          e.currentTarget.style.top = '16px'
+          e.currentTarget.style.width = 'auto'
+          e.currentTarget.style.height = 'auto'
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.position = 'absolute'
+          e.currentTarget.style.left = '-9999px'
+          e.currentTarget.style.width = '1px'
+          e.currentTarget.style.height = '1px'
+        }}
+      >
+        Skip to main content
+      </a>
+
       {/* Fixed animated mesh background */}
       <GradientMesh variant={meshVariant} />
 
@@ -245,6 +282,7 @@ export function AppShell({
 
       {/* ── Scrollable content ─────────────────────────────────── */}
       <motion.main
+        id="main-content"
         ref={mergedMainRef}
         className={`app-content ${hideTopBar ? 'app-content--no-topbar' : ''} ${contentClassName}`.trim()}
         style={{

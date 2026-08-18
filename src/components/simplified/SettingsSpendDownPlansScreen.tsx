@@ -218,7 +218,7 @@ export function SettingsSpendDownPlansScreen({
               {disbursements && disbursements.length > 0 && (
                 <div style={{ marginBottom: spacingScale["16"] }}>
                   <p style={{ ...typography.caption, color: textColors.muted, margin: 0, marginBottom: spacingScale["8"] }}>
-                    Quick-fill from disbursement:
+                    Quick-fill from aid payment:
                   </p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: spacingScale["4"] }}>
                     {disbursements.map((d) => (

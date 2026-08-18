@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   getOfflineQueue,
   processOfflineQueue,
@@ -7,14 +7,17 @@ import {
   getPendingTransactionIds,
   getRecentlySyncedIds,
   markRecentlySynced,
+  hasRetryableItems,
+  getNextRetryTime,
   QUEUE_CHANGE_EVENT,
   dispatchQueueChange,
 } from '@/lib/offlineQueue'
 
 // ============================================================================
 // useOfflineSync — React hook for managing offline transaction queue
-// Requirements: 10.2, 10.3, 10.4, 13.7
+// Requirements: 10.2, 10.3, 10.4, 13.7, 28.6
 // Extends Phase 1 task 7 — exposes per-item sync state
+// Phase 20 task 474.3 — exponential backoff, persistent syncing indicator
 // ============================================================================
 
 export interface UseOfflineSyncReturn {
@@ -24,6 +27,8 @@ export interface UseOfflineSyncReturn {
   hasFailed: boolean
   /** Whether a sync operation is currently in progress */
   isSyncing: boolean
+  /** Whether the queue is in a backoff retry cycle (for persistent indicator) */
+  isRetrying: boolean
   /** Set of transaction IDs currently pending in the offline queue (for per-item indicators) */
   pendingIds: Set<string>
   /** Set of IDs recently synced (briefly shows "synced ✓" state) */
@@ -40,8 +45,12 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
   const [pendingCount, setPendingCount] = useState(0)
   const [hasFailed, setHasFailed] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [isRetrying, setIsRetrying] = useState(false)
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
   const [recentlySyncedIds, setRecentlySyncedIds] = useState<Set<string>>(new Set())
+
+  // Ref for the backoff scheduler timer so we can cancel it
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const refresh = useCallback(() => {
     const queue = getOfflineQueue()
@@ -51,6 +60,14 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
       setPendingIds(getPendingTransactionIds(userId))
     }
     setRecentlySyncedIds(getRecentlySyncedIds())
+
+    // Update isRetrying based on whether items are in backoff
+    if (userId) {
+      const hasPending = queue.some(
+        (item) => item.userId === userId && item.status === 'pending' && item.retryCount > 0
+      )
+      setIsRetrying(hasPending)
+    }
   }, [userId])
 
   // Read queue state on mount and when userId changes
@@ -76,6 +93,82 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     return () => clearTimeout(timer)
   }, [recentlySyncedIds])
 
+  /**
+   * Core sync + schedule function.
+   * Processes retryable items, then schedules the next retry based on
+   * the earliest `nextRetryAt` in the queue. Never drops mutations.
+   */
+  const syncAndSchedule = useCallback(async () => {
+    if (!userId) return
+
+    // Check if there are items ready to process
+    if (!hasRetryableItems(userId)) {
+      // Nothing ready now — schedule for when the next item is due
+      scheduleNextRetry()
+      return
+    }
+
+    setIsSyncing(true)
+    setIsRetrying(true)
+
+    const preProcessIds = getOfflineQueue()
+      .filter((i) => i.userId === userId && i.status === 'pending')
+      .map((i) => i.id)
+
+    const result = await processOfflineQueue(userId)
+
+    if (result.succeeded > 0) {
+      const postProcessIds = new Set(getOfflineQueue().map((i) => i.id))
+      const syncedIds = preProcessIds.filter((id) => !postProcessIds.has(id))
+      markRecentlySynced(syncedIds)
+    }
+
+    refresh()
+    setIsSyncing(false)
+
+    // Schedule next retry if there are still pending items
+    scheduleNextRetry()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, refresh])
+
+  /** Schedule the next processOfflineQueue call based on earliest nextRetryAt */
+  const scheduleNextRetry = useCallback(() => {
+    if (!userId) return
+
+    // Clear any existing timer
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current)
+      retryTimerRef.current = null
+    }
+
+    const queue = getOfflineQueue()
+    const hasPending = queue.some(
+      (item) => item.userId === userId && item.status === 'pending'
+    )
+
+    if (!hasPending) {
+      setIsRetrying(false)
+      return
+    }
+
+    // Find the earliest retry time
+    const nextTime = getNextRetryTime(userId)
+    if (nextTime === null) {
+      setIsRetrying(false)
+      return
+    }
+
+    const delayMs = Math.max(0, nextTime - Date.now())
+
+    // Schedule the next processing attempt
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null
+      syncAndSchedule()
+    }, delayMs)
+
+    setIsRetrying(true)
+  }, [userId, syncAndSchedule])
+
   // Attempt background sync on mount if there are pending items
   useEffect(() => {
     if (!userId) return
@@ -86,55 +179,50 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     if (hasPending) {
       // Slight delay to avoid blocking initial render
       const timer = setTimeout(() => {
-        const preProcessIds = getOfflineQueue()
-          .filter((i) => i.userId === userId && i.status === 'pending')
-          .map((i) => i.id)
-        processOfflineQueue(userId).then((result) => {
-          if (result.succeeded > 0) {
-            // Mark only the items that were actually removed (succeeded)
-            const postProcessIds = new Set(getOfflineQueue().map((i) => i.id))
-            const syncedIds = preProcessIds.filter((id) => !postProcessIds.has(id))
-            markRecentlySynced(syncedIds)
-          }
-          refresh()
-        })
+        syncAndSchedule()
       }, 2000)
       return () => clearTimeout(timer)
     }
-  }, [userId, refresh])
+  }, [userId, syncAndSchedule])
 
   // Retry pending items in the background as soon as connectivity returns.
   // This is what clears the sync indicator after an offline write eventually
-  // succeeds. (Requirements 10.2, 10.4)
+  // succeeds. (Requirements 10.2, 10.4, 28.6)
   useEffect(() => {
     if (!userId || typeof window === 'undefined') return
     const handleOnline = () => {
-      const preProcessIds = getOfflineQueue()
-        .filter((i) => i.userId === userId && i.status !== 'failed')
-        .map((i) => i.id)
-      processOfflineQueue(userId).then((result) => {
-        if (result.succeeded > 0) {
-          // Mark only the items that were actually removed (succeeded)
-          const postProcessIds = new Set(getOfflineQueue().map((i) => i.id))
-          const syncedIds = preProcessIds.filter((id) => !postProcessIds.has(id))
-          markRecentlySynced(syncedIds)
+      // When coming back online, reset nextRetryAt on all pending items
+      // so they retry immediately
+      const queue = getOfflineQueue()
+      for (const item of queue) {
+        if (item.userId === userId && item.status === 'pending' && item.nextRetryAt) {
+          updateQueueItem(item.id, { nextRetryAt: undefined })
         }
-        refresh()
-      })
+      }
+      syncAndSchedule()
     }
     window.addEventListener('online', handleOnline)
     return () => window.removeEventListener('online', handleOnline)
-  }, [userId, refresh])
+  }, [userId, syncAndSchedule])
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current)
+      }
+    }
+  }, [])
 
   const retryAll = useCallback(async () => {
     if (!userId || isSyncing) return
     setIsSyncing(true)
 
-    // Reset failed items back to pending before retrying
+    // Reset all items back to pending with no backoff delay
     const queue = getOfflineQueue()
     for (const item of queue) {
-      if (item.status === 'failed' && item.userId === userId) {
-        updateQueueItem(item.id, { status: 'pending', retryCount: 0 })
+      if (item.userId === userId && (item.status === 'failed' || item.status === 'pending')) {
+        updateQueueItem(item.id, { status: 'pending', retryCount: 0, nextRetryAt: undefined })
       }
     }
 
@@ -149,7 +237,10 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     }
     refresh()
     setIsSyncing(false)
-  }, [userId, isSyncing, refresh])
+
+    // If items remain, schedule with backoff
+    scheduleNextRetry()
+  }, [userId, isSyncing, refresh, scheduleNextRetry])
 
   const dismissFailed = useCallback(() => {
     // Remove only failed items; keep pending ones
@@ -176,6 +267,7 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     pendingCount,
     hasFailed,
     isSyncing,
+    isRetrying,
     pendingIds,
     recentlySyncedIds,
     retryAll,

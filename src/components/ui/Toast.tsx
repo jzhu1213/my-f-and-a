@@ -41,7 +41,7 @@ const toastVariantsReduced = {
 }
 
 export function Toast() {
-  const { toasts, removeToast } = useToast()
+  const { toasts, removeToast, pauseToast, resumeToast } = useToast()
   const { prefersReducedMotion } = useReducedMotion()
 
   const variants = prefersReducedMotion ? toastVariantsReduced : toastVariants
@@ -64,6 +64,11 @@ export function Toast() {
             transition={transition}
             role="status"
             aria-live="polite"
+            // Pause auto-dismiss on hover/focus for motor accessibility (Req 27.3)
+            onMouseEnter={() => pauseToast(toast.id)}
+            onMouseLeave={() => resumeToast(toast.id)}
+            onFocus={() => pauseToast(toast.id)}
+            onBlur={() => resumeToast(toast.id)}
             className="pointer-events-auto flex items-center gap-3 px-4 py-3 w-full max-w-sm"
             style={{
               background: 'rgba(26, 26, 46, 0.85)',
@@ -124,21 +129,19 @@ export function Toast() {
               </button>
             )}
 
-            {/* Close button (when no action) */}
-            {!toast.action && (
-              <button
-                onClick={() => removeToast(toast.id)}
-                className="flex-shrink-0 transition-colors duration-150"
-                style={{ color: 'var(--sub)', padding: '2px' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--sub)')}
-                aria-label="Dismiss"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
+            {/* Dismiss button — always visible so toasts can be manually dismissed (Req 27.3) */}
+            <button
+              onClick={() => removeToast(toast.id)}
+              className="flex-shrink-0 transition-colors duration-150"
+              style={{ color: 'var(--sub)', padding: '2px' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--sub)')}
+              aria-label="Dismiss notification"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </motion.div>
         ))}
       </AnimatePresence>

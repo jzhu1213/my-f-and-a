@@ -217,9 +217,9 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
         >
           ←
         </motion.button>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
           Cancel or negotiate
-        </h2>
+        </h1>
       </div>
 
       {/* ── Warm intro ─────────────────────────────────────────────── */}

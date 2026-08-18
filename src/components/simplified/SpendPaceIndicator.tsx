@@ -5,6 +5,7 @@ import type { Transaction } from "@/types"
 import { computeSpendVelocity, velocityToPath } from "@/lib/spendVelocity"
 import { motion } from "framer-motion"
 import { timings, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
+import { chartLinePatterns } from "@/styles/chartTokens"
 
 // ============================================================================
 // SpendPaceIndicator — subtle sparkline showing today's spend pace vs. typical
@@ -67,7 +68,7 @@ export function SpendPaceIndicator({ transactions, todayStr }: SpendPaceIndicato
         aria-hidden="true"
         style={{ overflow: "visible" }}
       >
-        {/* Typical day — very faint */}
+        {/* Typical day — very faint, dashed for CVD differentiation */}
         {typicalPath && (
           <path
             d={typicalPath}
@@ -75,11 +76,12 @@ export function SpendPaceIndicator({ transactions, todayStr }: SpendPaceIndicato
             strokeWidth={1.2}
             strokeLinecap="round"
             strokeLinejoin="round"
+            strokeDasharray={chartLinePatterns.dashed}
             opacity={0.12}
             fill="none"
           />
         )}
-        {/* Today — slightly more visible */}
+        {/* Today — slightly more visible, solid for CVD differentiation */}
         {hasTodayData && todayPath && (
           <path
             d={todayPath}

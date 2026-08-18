@@ -182,3 +182,5 @@ export type { SettingsRowProps } from './SettingsRow'
 
 export { DepthSurfaceTransition } from './DepthSurfaceTransition'
 export type { DepthSurfaceTransitionProps } from './DepthSurfaceTransition'
+
+export { ScreenReaderAnnouncerProvider, useScreenReaderAnnouncer } from './ScreenReaderAnnouncer'

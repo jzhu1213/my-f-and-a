@@ -54,6 +54,8 @@ export interface ChartFrameProps {
   onRetry?: () => void
   /** Accessible label for the chart region. */
   "aria-label"?: string
+  /** Links chart to an accessible text description. */
+  "aria-describedby"?: string
 }
 
 // ============================================================================
@@ -132,6 +134,7 @@ export function ChartFrame({
   errorMessage = "Chart data unavailable",
   onRetry,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
 }: ChartFrameProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
@@ -139,6 +142,7 @@ export function ChartFrame({
     <div
       role="figure"
       aria-label={ariaLabel ?? `${type} chart`}
+      aria-describedby={ariaDescribedBy}
       style={{
         position: "relative",
         width: "100%",

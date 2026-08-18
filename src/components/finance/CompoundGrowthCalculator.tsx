@@ -78,6 +78,7 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
     <div className="pb-20 px-5 pt-10">
       <button
         onClick={onBack}
+        aria-label="Go back"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -97,7 +98,7 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = 'var(--text)' }}
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = 'var(--sub)' }}
       >
-        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
         </svg>
         Back
@@ -153,13 +154,14 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
         <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
           <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Starting Amount</p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>$</span>
+            <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }} aria-hidden="true">$</span>
             <input
               type="text"
               inputMode="decimal"
               placeholder="1000"
               value={initialAmount}
               onChange={handleChange(setInitialAmount)}
+              aria-label="Starting amount in dollars"
               style={{
                 flex: 1,
                 background: 'transparent',
@@ -180,13 +182,14 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
         <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
           <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Monthly Contribution</p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>$</span>
+            <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }} aria-hidden="true">$</span>
             <input
               type="text"
               inputMode="decimal"
               placeholder="100"
               value={monthlyContribution}
               onChange={handleChange(setMonthlyContribution)}
+              aria-label="Monthly contribution in dollars"
               style={{
                 flex: 1,
                 background: 'transparent',
@@ -214,6 +217,7 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
                 placeholder="7"
                 value={annualReturn}
                 onChange={handleChange(setAnnualReturn)}
+                aria-label="Annual return percentage"
                 style={{
                   flex: 1,
                   background: 'transparent',
@@ -227,7 +231,7 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
                   paddingBottom: 4,
                 }}
               />
-              <span style={{ fontSize: 14, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>%</span>
+              <span style={{ fontSize: 14, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }} aria-hidden="true">%</span>
             </div>
           </div>
           <div>
@@ -238,6 +242,7 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
               placeholder="10"
               value={years}
               onChange={handleChange(setYears)}
+              aria-label="Number of years"
               style={{
                 width: '100%',
                 background: 'transparent',
@@ -302,11 +307,16 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
 
           {/* Growth chart */}
           <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>Year by Year</p>
+          {/* Screen reader text summary for the chart */}
+          <span id="compound-growth-chart-summary" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0 }}>
+            {`Compound growth chart: final value $${result.finalAmount.toLocaleString()} after ${years} years, with $${result.totalContributions.toLocaleString()} contributed and $${result.totalInterest.toLocaleString()} from growth.`}
+          </span>
           <ChartFrame
             type="bar"
             state="loaded"
             height={Math.max(200, displayRows.length * 50)}
             aria-label="Compound growth year-by-year bar chart"
+            aria-describedby="compound-growth-chart-summary"
           >
             <div style={{ padding: 16 }}>
               {displayRows.map((row, idx) => (

@@ -91,6 +91,14 @@ export function ContextualTipCard({
     }
   }
 
+  /** Keyboard alternative for swipe-to-dismiss (accessibility — task 452.3) */
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Delete' || e.key === 'Backspace' || e.key === 'Escape') {
+      e.preventDefault()
+      onDismiss()
+    }
+  }
+
   function handleDragEnd(_event: unknown, info: PanInfo) {
     const swipedFarEnough = Math.abs(info.offset.x) > SWIPE_DISMISS_THRESHOLD
     const flickedFastEnough = Math.abs(info.velocity.x) > SWIPE_DISMISS_VELOCITY
@@ -126,8 +134,10 @@ export function ContextualTipCard({
   return (
     <motion.div
       role="region"
-      aria-label={`Tip: ${tip.title}`}
-      className="w-full"
+      aria-label={`Tip: ${tip.title}. Press Delete or Escape to dismiss.`}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      className="w-full focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:rounded-lg"
       initial={initial}
       animate={animate}
       exit={exit}
@@ -137,7 +147,7 @@ export function ContextualTipCard({
       dragElastic={0.6}
       onDragEnd={handleDragEnd}
       whileDrag={{ cursor: "grabbing" }}
-      style={{ touchAction: "pan-y", x: dragX, rotate: prefersReducedMotion ? 0 : dragRotate, opacity: prefersReducedMotion ? undefined : dragOpacity }}
+      style={{ touchAction: "pan-y", x: dragX, rotate: prefersReducedMotion ? 0 : dragRotate, opacity: prefersReducedMotion ? undefined : dragOpacity, outline: 'none' }}
     >
       <GlassCard elevation="low" glow={style.glow} className="relative overflow-hidden">
         {/* Frosted-noise texture overlay for subtle depth */}

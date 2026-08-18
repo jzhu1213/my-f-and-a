@@ -199,9 +199,9 @@ export function PeerContextScreen({ transactions, monthKey, onBack }: PeerContex
     return (
       <div style={containerStyle}>
         {backButton}
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
           How you compare
-        </h2>
+        </h1>
         <GlassCard elevation="low" style={{ padding: "4px 0", marginTop: 12 }}>
           <EmptyState
             illustration="review"
@@ -221,9 +221,9 @@ export function PeerContextScreen({ transactions, monthKey, onBack }: PeerContex
     <div style={containerStyle}>
       {backButton}
 
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
         How you compare
-      </h2>
+      </h1>
       <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>
         {context.monthLabel} — {context.intro}
       </p>

@@ -189,6 +189,8 @@ function chipStyle(active: boolean): React.CSSProperties {
   return {
     flexShrink: 0,
     padding: "7px 14px",
+    minHeight: 44,
+    boxSizing: "border-box",
     fontFamily: FONT_FAMILY,
     fontSize: "13px",
     fontWeight: 500,
@@ -228,7 +230,7 @@ const labelStyle: React.CSSProperties = {
   color: "var(--muted)",
   textTransform: "uppercase",
   letterSpacing: "0.08em",
-  paddingLeft: 2,
+  paddingInlineStart: 2,
 }
 
 // ============================================================================

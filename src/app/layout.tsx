@@ -5,6 +5,7 @@ import { ThemeProvider } from '../contexts/ThemeContext'
 import { ToastProvider } from '../contexts/ToastContext'
 import { I18nProvider } from '../contexts/I18nContext'
 import { AmbientGlowProvider } from '../contexts/AmbientGlowContext'
+import { ScreenReaderAnnouncerProvider } from '../components/ui/ScreenReaderAnnouncer'
 
 export const metadata: Metadata = {
   title: 'Folio',
@@ -25,8 +26,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   viewportFit: 'cover',
   themeColor: '#12121f',
 }
@@ -37,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" dir="ltr" className="dark" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -52,7 +53,9 @@ export default function RootLayout({
             <AuthProvider>
               <ToastProvider>
                 <AmbientGlowProvider>
-                  {children}
+                  <ScreenReaderAnnouncerProvider>
+                    {children}
+                  </ScreenReaderAnnouncerProvider>
                 </AmbientGlowProvider>
               </ToastProvider>
             </AuthProvider>

@@ -123,6 +123,25 @@ export const DepthSurfaceTransition = forwardRef<HTMLDivElement, DepthSurfaceTra
       return () => document.removeEventListener("keydown", handleTabKey)
     }, [open])
 
+    // Focus first interactive element on open (Req 27.1 — 450.3)
+    useEffect(() => {
+      if (!open) return
+
+      const timer = setTimeout(() => {
+        const container = containerRef.current
+        if (container) {
+          const focusable = container.querySelector<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+          if (focusable) {
+            focusable.focus()
+          }
+        }
+      }, 100)
+
+      return () => clearTimeout(timer)
+    }, [open])
+
     const containerStyle: React.CSSProperties = {
       position: "fixed",
       inset: 0,

@@ -51,7 +51,7 @@ export const destinationMap: DestinationEntry[] = [
   { id: 'home', name: 'Home', owningDestination: 'home', path: [], tapCount: 0, surface: 'HomeScreen.tsx' },
   { id: 'expense-sheet', name: 'Expense Logging', owningDestination: 'home', path: ['Quick Log'], tapCount: 1, surface: 'ExpenseSheet.tsx' },
   { id: 'income-sheet', name: 'Income Logging', owningDestination: 'home', path: ['Quick Log', 'Income tab'], tapCount: 2, surface: 'IncomeSheet.tsx' },
-  { id: 'paycheck-sheet', name: 'Paycheck Allocation', owningDestination: 'home', path: ['Quick Log', 'Paycheck tab'], tapCount: 2, surface: 'PaycheckSheet.tsx' },
+  { id: 'paycheck-sheet', name: 'Paycheck Split', owningDestination: 'home', path: ['Quick Log', 'Paycheck tab'], tapCount: 2, surface: 'PaycheckSheet.tsx' },
   { id: 'edit-sheet', name: 'Edit Transaction', owningDestination: 'home', path: ['Transaction row', 'Edit'], tapCount: 2, surface: 'EditTransactionSheet.tsx' },
   { id: 'refund-sheet', name: 'Refund', owningDestination: 'home', path: ['Transaction row', 'Refund'], tapCount: 2, surface: 'RefundSheet.tsx' },
 

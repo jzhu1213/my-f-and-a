@@ -123,7 +123,7 @@ export function LinkedAccountsScreen({
           </button>
         )}
         <div style={{ flex: 1 }}>
-          <h2
+          <h1
             style={{
               fontSize: 22,
               fontWeight: 700,
@@ -132,7 +132,7 @@ export function LinkedAccountsScreen({
             }}
           >
             Linked Accounts
-          </h2>
+          </h1>
           <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.4 }}>
             Optional — Folio works great without linking a thing
           </p>

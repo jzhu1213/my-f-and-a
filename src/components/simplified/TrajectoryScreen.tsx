@@ -503,7 +503,7 @@ function SavingsBalanceCard({
             </p>
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
+        <div style={{ textAlign: "end" }}>
           <p
             style={{
               fontSize: 18,

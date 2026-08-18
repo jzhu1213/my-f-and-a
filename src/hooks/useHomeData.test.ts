@@ -7,6 +7,8 @@ import * as supabaseData from '@/lib/supabaseData'
 // Mock the Supabase data functions
 vi.mock('@/lib/supabaseData', () => ({
   getTransactions: vi.fn(),
+  getTransactionsPaginated: vi.fn().mockResolvedValue({ transactions: [], hasMore: false }),
+  getCurrentMonthTransactions: vi.fn().mockResolvedValue([]),
   getBudgets: vi.fn(),
   getGoals: vi.fn(),
   getLessonProgress: vi.fn().mockResolvedValue([]),
@@ -36,6 +38,7 @@ vi.mock('@/lib/supabaseData', () => ({
   createFundingSource: vi.fn(),
   updateFundingSource: vi.fn(),
   deleteFundingSource: vi.fn(),
+  fetchHomeDataBatch: vi.fn(),
 }))
 
 describe('useHomeData', () => {
@@ -111,10 +114,21 @@ describe('useHomeData', () => {
   })
   
   it('should load data on mount when userId is provided', async () => {
-    // Setup mocks
-    vi.mocked(supabaseData.getTransactions).mockResolvedValue(mockTransactions)
-    vi.mocked(supabaseData.getBudgets).mockResolvedValue(mockBudgets)
-    vi.mocked(supabaseData.getGoals).mockResolvedValue(mockGoals)
+    // Setup mocks - fetchHomeDataBatch is the new batched fetch (Task 471.1)
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockResolvedValue({
+      currentMonthTransactions: mockTransactions,
+      paginatedTransactions: { transactions: mockTransactions, hasMore: false },
+      budgets: mockBudgets,
+      goals: mockGoals,
+      lessonProgress: [],
+      allocations: [],
+      savingsAccounts: [],
+      debts: [],
+      paySchedule: null,
+      sinkingFunds: [],
+      fundingSources: [],
+      failedSources: [],
+    })
     
     // Render hook
     const { result } = renderHook(() => useHomeData(mockUserId))
@@ -135,10 +149,8 @@ describe('useHomeData', () => {
     expect(result.current.budgets).toEqual(mockBudgets)
     expect(result.current.goals).toEqual(mockGoals)
     
-    // Verify all API calls were made in parallel
-    expect(supabaseData.getTransactions).toHaveBeenCalledWith(mockUserId)
-    expect(supabaseData.getBudgets).toHaveBeenCalledWith(mockUserId)
-    expect(supabaseData.getGoals).toHaveBeenCalledWith(mockUserId)
+    // Verify batched API call was made
+    expect(supabaseData.fetchHomeDataBatch).toHaveBeenCalledWith(mockUserId, 75)
   })
   
   it('should not load data when userId is null', async () => {
@@ -150,9 +162,7 @@ describe('useHomeData', () => {
     })
     
     // Should not have called any API functions
-    expect(supabaseData.getTransactions).not.toHaveBeenCalled()
-    expect(supabaseData.getBudgets).not.toHaveBeenCalled()
-    expect(supabaseData.getGoals).not.toHaveBeenCalled()
+    expect(supabaseData.fetchHomeDataBatch).not.toHaveBeenCalled()
     
     // Data should be empty
     expect(result.current.transactions).toEqual([])
@@ -161,9 +171,20 @@ describe('useHomeData', () => {
   })
   
   it('should compute daily allowance when data is loaded', async () => {
-    vi.mocked(supabaseData.getTransactions).mockResolvedValue(mockTransactions)
-    vi.mocked(supabaseData.getBudgets).mockResolvedValue(mockBudgets)
-    vi.mocked(supabaseData.getGoals).mockResolvedValue(mockGoals)
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockResolvedValue({
+      currentMonthTransactions: mockTransactions,
+      paginatedTransactions: { transactions: mockTransactions, hasMore: false },
+      budgets: mockBudgets,
+      goals: mockGoals,
+      lessonProgress: [],
+      allocations: [],
+      savingsAccounts: [],
+      debts: [],
+      paySchedule: null,
+      sinkingFunds: [],
+      fundingSources: [],
+      failedSources: [],
+    })
     
     const { result } = renderHook(() => useHomeData(mockUserId))
     
@@ -180,9 +201,20 @@ describe('useHomeData', () => {
   })
   
   it('should compute category budget rows when data is loaded', async () => {
-    vi.mocked(supabaseData.getTransactions).mockResolvedValue(mockTransactions)
-    vi.mocked(supabaseData.getBudgets).mockResolvedValue(mockBudgets)
-    vi.mocked(supabaseData.getGoals).mockResolvedValue(mockGoals)
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockResolvedValue({
+      currentMonthTransactions: mockTransactions,
+      paginatedTransactions: { transactions: mockTransactions, hasMore: false },
+      budgets: mockBudgets,
+      goals: mockGoals,
+      lessonProgress: [],
+      allocations: [],
+      savingsAccounts: [],
+      debts: [],
+      paySchedule: null,
+      sinkingFunds: [],
+      fundingSources: [],
+      failedSources: [],
+    })
     
     const { result } = renderHook(() => useHomeData(mockUserId))
     
@@ -203,9 +235,20 @@ describe('useHomeData', () => {
   })
   
   it('should refresh data when refresh function is called', async () => {
-    vi.mocked(supabaseData.getTransactions).mockResolvedValue(mockTransactions)
-    vi.mocked(supabaseData.getBudgets).mockResolvedValue(mockBudgets)
-    vi.mocked(supabaseData.getGoals).mockResolvedValue(mockGoals)
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockResolvedValue({
+      currentMonthTransactions: mockTransactions,
+      paginatedTransactions: { transactions: mockTransactions, hasMore: false },
+      budgets: mockBudgets,
+      goals: mockGoals,
+      lessonProgress: [],
+      allocations: [],
+      savingsAccounts: [],
+      debts: [],
+      paySchedule: null,
+      sinkingFunds: [],
+      fundingSources: [],
+      failedSources: [],
+    })
     
     const { result } = renderHook(() => useHomeData(mockUserId))
     
@@ -228,9 +271,20 @@ describe('useHomeData', () => {
       createdAt: new Date().toISOString(),
     }]
     
-    vi.mocked(supabaseData.getTransactions).mockResolvedValue(newTransactions)
-    vi.mocked(supabaseData.getBudgets).mockResolvedValue(mockBudgets)
-    vi.mocked(supabaseData.getGoals).mockResolvedValue(mockGoals)
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockResolvedValue({
+      currentMonthTransactions: newTransactions,
+      paginatedTransactions: { transactions: newTransactions, hasMore: false },
+      budgets: mockBudgets,
+      goals: mockGoals,
+      lessonProgress: [],
+      allocations: [],
+      savingsAccounts: [],
+      debts: [],
+      paySchedule: null,
+      sinkingFunds: [],
+      fundingSources: [],
+      failedSources: [],
+    })
     
     // Call refresh
     await result.current.refresh()
@@ -240,17 +294,13 @@ describe('useHomeData', () => {
       expect(result.current.transactions.length).toBe(3)
     })
     
-    // Verify API calls were made
-    expect(supabaseData.getTransactions).toHaveBeenCalledWith(mockUserId)
-    expect(supabaseData.getBudgets).toHaveBeenCalledWith(mockUserId)
-    expect(supabaseData.getGoals).toHaveBeenCalledWith(mockUserId)
+    // Verify batched API call was made
+    expect(supabaseData.fetchHomeDataBatch).toHaveBeenCalledWith(mockUserId, 75)
   })
   
   it('should handle errors gracefully during data load', async () => {
-    // Setup mocks to throw errors
-    vi.mocked(supabaseData.getTransactions).mockRejectedValue(new Error('Network error'))
-    vi.mocked(supabaseData.getBudgets).mockRejectedValue(new Error('Network error'))
-    vi.mocked(supabaseData.getGoals).mockRejectedValue(new Error('Network error'))
+    // Setup mock to throw error
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockRejectedValue(new Error('Network error'))
     
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     
@@ -272,9 +322,20 @@ describe('useHomeData', () => {
   })
   
   it('should provide setter functions for optimistic updates', async () => {
-    vi.mocked(supabaseData.getTransactions).mockResolvedValue(mockTransactions)
-    vi.mocked(supabaseData.getBudgets).mockResolvedValue(mockBudgets)
-    vi.mocked(supabaseData.getGoals).mockResolvedValue(mockGoals)
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockResolvedValue({
+      currentMonthTransactions: mockTransactions,
+      paginatedTransactions: { transactions: mockTransactions, hasMore: false },
+      budgets: mockBudgets,
+      goals: mockGoals,
+      lessonProgress: [],
+      allocations: [],
+      savingsAccounts: [],
+      debts: [],
+      paySchedule: null,
+      sinkingFunds: [],
+      fundingSources: [],
+      failedSources: [],
+    })
     
     const { result } = renderHook(() => useHomeData(mockUserId))
     
@@ -309,9 +370,20 @@ describe('useHomeData', () => {
   })
   
   it('should recalculate allowance when transactions change via setter', async () => {
-    vi.mocked(supabaseData.getTransactions).mockResolvedValue(mockTransactions)
-    vi.mocked(supabaseData.getBudgets).mockResolvedValue(mockBudgets)
-    vi.mocked(supabaseData.getGoals).mockResolvedValue(mockGoals)
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockResolvedValue({
+      currentMonthTransactions: mockTransactions,
+      paginatedTransactions: { transactions: mockTransactions, hasMore: false },
+      budgets: mockBudgets,
+      goals: mockGoals,
+      lessonProgress: [],
+      allocations: [],
+      savingsAccounts: [],
+      debts: [],
+      paySchedule: null,
+      sinkingFunds: [],
+      fundingSources: [],
+      failedSources: [],
+    })
     
     const { result } = renderHook(() => useHomeData(mockUserId))
     
@@ -343,7 +415,20 @@ describe('useHomeData', () => {
   })
   
   it('should recalculate category rows when budgets change via setter', async () => {
-    vi.mocked(supabaseData.getTransactions).mockResolvedValue(mockTransactions)
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockResolvedValue({
+      currentMonthTransactions: mockTransactions,
+      paginatedTransactions: { transactions: mockTransactions, hasMore: false },
+      budgets: mockBudgets,
+      goals: mockGoals,
+      lessonProgress: [],
+      allocations: [],
+      savingsAccounts: [],
+      debts: [],
+      paySchedule: null,
+      sinkingFunds: [],
+      fundingSources: [],
+      failedSources: [],
+    })
     vi.mocked(supabaseData.getBudgets).mockResolvedValue(mockBudgets)
     vi.mocked(supabaseData.getGoals).mockResolvedValue(mockGoals)
     
@@ -375,9 +460,20 @@ describe('useHomeData', () => {
   })
   
   it('should memoize allowance calculation - not recalculate on unrelated changes', async () => {
-    vi.mocked(supabaseData.getTransactions).mockResolvedValue(mockTransactions)
-    vi.mocked(supabaseData.getBudgets).mockResolvedValue(mockBudgets)
-    vi.mocked(supabaseData.getGoals).mockResolvedValue(mockGoals)
+    vi.mocked(supabaseData.fetchHomeDataBatch).mockResolvedValue({
+      currentMonthTransactions: mockTransactions,
+      paginatedTransactions: { transactions: mockTransactions, hasMore: false },
+      budgets: mockBudgets,
+      goals: mockGoals,
+      lessonProgress: [],
+      allocations: [],
+      savingsAccounts: [],
+      debts: [],
+      paySchedule: null,
+      sinkingFunds: [],
+      fundingSources: [],
+      failedSources: [],
+    })
     
     const { result, rerender } = renderHook(() => useHomeData(mockUserId))
     

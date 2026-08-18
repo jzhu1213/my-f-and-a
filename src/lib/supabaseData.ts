@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { withResilience } from './resilientFetch'
 import type { 
   Transaction, 
   UserProfile, 
@@ -304,49 +305,52 @@ function dbDebtToApp(db: DbDebt): Debt {
 // ============================================
 
 export async function getCurrentUser(): Promise<UserProfile | null> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  const result = await withResilience(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
 
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
 
-  if (error) {
-    console.error('Error fetching profile:', error)
-    if (error.code === 'PGRST116') {
-      // Profile doesn't exist, create one
-      const { error: insertError } = await supabase
-        .from('profiles')
-        .insert({
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Profile doesn't exist, create one
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            name: user.user_metadata?.name || 'User',
+            email: user.email,
+          })
+
+        if (insertError) {
+          throw insertError
+        }
+
+        return {
           id: user.id,
+          email: user.email ?? '',
           name: user.user_metadata?.name || 'User',
-          email: user.email,
-        })
-      
-      if (insertError) {
-        console.error('Error creating profile:', insertError)
-        return null
+          userType: 'student' as const,
+          priority: 'save' as const,
+          hasCompletedOnboarding: false,
+          createdAt: new Date().toISOString(),
+          handle: null,
+          discoverable: false,
+        } as UserProfile
       }
-      
-      return {
-        id: user.id,
-        email: user.email ?? '',
-        name: user.user_metadata?.name || 'User',
-        userType: 'student',
-        priority: 'save',
-        hasCompletedOnboarding: false,
-        createdAt: new Date().toISOString(),
-        handle: null,
-        discoverable: false,
-      }
+      throw error
     }
-    return null
-  }
 
-  const appProfile = dbProfileToApp(profile)
-  return { ...appProfile, email: user.email ?? '' }
+    const appProfile = dbProfileToApp(profile)
+    return { ...appProfile, email: user.email ?? '' } as UserProfile
+  }, 'getCurrentUser')
+
+  if (!result.ok) return null
+  return result.data
 }
 
 export async function signInWithEmail(email: string, password: string) {
@@ -391,19 +395,20 @@ export async function signOut() {
 // ============================================
 
 export async function getTransactions(userId: string): Promise<Transaction[]> {
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false })
-    .limit(500)
+  const result = await withResilience(async () => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(500)
 
-  if (error) {
-    console.error('Error fetching transactions:', error)
-    return []
-  }
+    if (error) throw error
+    return (data || []).map(dbTransactionToApp)
+  }, 'getTransactions')
 
-  return (data || []).map(dbTransactionToApp)
+  if (!result.ok) return []
+  return result.data
 }
 
 /**
@@ -421,29 +426,31 @@ export async function getTransactionsPaginated(
   page: number = 0,
   pageSize: number = 75
 ): Promise<{ transactions: Transaction[]; hasMore: boolean }> {
-  const from = page * pageSize
-  const to = from + pageSize // fetch one extra to detect hasMore
+  const result = await withResilience(async () => {
+    const from = page * pageSize
+    const to = from + pageSize // fetch one extra to detect hasMore
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .select(TRANSACTION_LIST_FIELDS)
-    .eq('user_id', userId)
-    .order('date', { ascending: false })
-    .range(from, to)
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(TRANSACTION_LIST_FIELDS)
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .range(from, to)
 
-  if (error) {
-    console.error('Error fetching paginated transactions:', error)
-    return { transactions: [], hasMore: false }
-  }
+    if (error) throw error
 
-  const rows = data || []
-  const hasMore = rows.length > pageSize
-  const pageRows = hasMore ? rows.slice(0, pageSize) : rows
+    const rows = data || []
+    const hasMore = rows.length > pageSize
+    const pageRows = hasMore ? rows.slice(0, pageSize) : rows
 
-  return {
-    transactions: pageRows.map(dbTransactionToApp),
-    hasMore,
-  }
+    return {
+      transactions: pageRows.map(dbTransactionToApp),
+      hasMore,
+    }
+  }, 'getTransactionsPaginated')
+
+  if (!result.ok) return { transactions: [], hasMore: false }
+  return result.data
 }
 
 /**
@@ -495,20 +502,21 @@ export async function getCurrentMonthTransactions(
     ? `${year + 1}-01`
     : `${year}-${String(month + 1).padStart(2, '0')}`
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('user_id', userId)
-    .gte('date', `${monthStr}-01`)
-    .lt('date', `${nextMonth}-01`)
-    .order('date', { ascending: false })
+  const result = await withResilience(async () => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', `${monthStr}-01`)
+      .lt('date', `${nextMonth}-01`)
+      .order('date', { ascending: false })
 
-  if (error) {
-    console.error('Error fetching current month transactions:', error)
-    return []
-  }
+    if (error) throw error
+    return (data || []).map(dbTransactionToApp)
+  }, 'getCurrentMonthTransactions')
 
-  return (data || []).map(dbTransactionToApp)
+  if (!result.ok) return []
+  return result.data
 }
 
 export async function getMonthTransactions(userId: string, month: string): Promise<Transaction[]> {
@@ -544,28 +552,29 @@ export async function insertTransaction(
     fundingSourceId?: string
   }
 ): Promise<Transaction | null> {
-  const { data, error } = await supabase
-    .from('transactions')
-    .insert({
-      user_id: userId,
-      date: tx.date,
-      type: tx.type,
-      amount: tx.amount,
-      category: tx.category,
-      note: tx.note ?? null,
-      is_recurring: tx.isRecurring ?? false,
-      account_type: tx.accountType ?? 'personal',
-      ...(tx.fundingSourceId ? { funding_source_id: tx.fundingSourceId } : {}),
-    })
-    .select()
-    .single()
+  const result = await withResilience(async () => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: userId,
+        date: tx.date,
+        type: tx.type,
+        amount: tx.amount,
+        category: tx.category,
+        note: tx.note ?? null,
+        is_recurring: tx.isRecurring ?? false,
+        account_type: tx.accountType ?? 'personal',
+        ...(tx.fundingSourceId ? { funding_source_id: tx.fundingSourceId } : {}),
+      })
+      .select()
+      .single()
 
-  if (error) {
-    console.error('Error inserting transaction:', error)
-    return null
-  }
+    if (error) throw error
+    return dbTransactionToApp(data)
+  }, 'insertTransaction')
 
-  return dbTransactionToApp(data)
+  if (!result.ok) return null
+  return result.data
 }
 
 export async function updateTransaction(
@@ -579,41 +588,43 @@ export async function updateTransaction(
     note?: string
   }
 ): Promise<Transaction | null> {
-  const { data, error } = await supabase
-    .from('transactions')
-    .update({
-      date: updates.date,
-      amount: updates.amount,
-      type: updates.type,
-      category: updates.category,
-      note: updates.note ?? null,
-    })
-    .eq('id', txId)
-    .eq('user_id', userId)
-    .select()
-    .single()
+  const result = await withResilience(async () => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .update({
+        date: updates.date,
+        amount: updates.amount,
+        type: updates.type,
+        category: updates.category,
+        note: updates.note ?? null,
+      })
+      .eq('id', txId)
+      .eq('user_id', userId)
+      .select()
+      .single()
 
-  if (error) {
-    console.error('Error updating transaction:', error)
-    return null
-  }
+    if (error) throw error
+    return dbTransactionToApp(data)
+  }, 'updateTransaction')
 
-  return dbTransactionToApp(data)
+  if (!result.ok) return null
+  return result.data
 }
 
 export async function deleteTransaction(userId: string, txId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('transactions')
-    .delete()
-    .eq('id', txId)
-    .eq('user_id', userId)
+  const result = await withResilience(async () => {
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', txId)
+      .eq('user_id', userId)
 
-  if (error) {
-    console.error('Error deleting transaction:', error)
-    return false
-  }
+    if (error) throw error
+    return true
+  }, 'deleteTransaction')
 
-  return true
+  if (!result.ok) return false
+  return result.data
 }
 
 // ============================================
@@ -622,19 +633,20 @@ export async function deleteTransaction(userId: string, txId: string): Promise<b
 
 export async function getBudgets(userId: string): Promise<Budget[]> {
   const currentMonth = new Date().toISOString().slice(0, 7)
-  
-  const { data, error } = await supabase
-    .from('budgets')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('month', currentMonth)
 
-  if (error) {
-    console.error('Error fetching budgets:', error)
-    return []
-  }
+  const result = await withResilience(async () => {
+    const { data, error } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('month', currentMonth)
 
-  return (data || []).map(dbBudgetToApp)
+    if (error) throw error
+    return (data || []).map(dbBudgetToApp)
+  }, 'getBudgets')
+
+  if (!result.ok) return []
+  return result.data
 }
 
 /**
@@ -872,45 +884,47 @@ export async function updateBudgetSpent(
 // ============================================
 
 export async function getGoals(userId: string): Promise<Goal[]> {
-  const { data, error } = await supabase
-    .from('goals')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(3)
-
-  if (error) {
-    console.error('Error fetching goals:', error)
-    return []
-  }
-
-  const goals = (data || []).map(dbGoalToApp)
-
-  // Fetch participants for any shared goals
-  const sharedGoalIds = goals.filter(g => g.isShared).map(g => g.id)
-  if (sharedGoalIds.length > 0) {
-    const { data: participants } = await supabase
-      .from('goal_participants')
+  const result = await withResilience(async () => {
+    const { data, error } = await supabase
+      .from('goals')
       .select('*')
-      .in('goal_id', sharedGoalIds)
-      .order('joined_at', { ascending: true })
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(3)
 
-    if (participants && participants.length > 0) {
-      const participantsByGoal = new Map<string, import('@/types').GoalParticipant[]>()
-      for (const p of participants) {
-        const list = participantsByGoal.get(p.goal_id) || []
-        list.push(dbGoalParticipantToApp(p))
-        participantsByGoal.set(p.goal_id, list)
-      }
-      for (const goal of goals) {
-        if (participantsByGoal.has(goal.id)) {
-          goal.participants = participantsByGoal.get(goal.id)
+    if (error) throw error
+
+    const goals = (data || []).map(dbGoalToApp)
+
+    // Fetch participants for any shared goals
+    const sharedGoalIds = goals.filter(g => g.isShared).map(g => g.id)
+    if (sharedGoalIds.length > 0) {
+      const { data: participants } = await supabase
+        .from('goal_participants')
+        .select('*')
+        .in('goal_id', sharedGoalIds)
+        .order('joined_at', { ascending: true })
+
+      if (participants && participants.length > 0) {
+        const participantsByGoal = new Map<string, import('@/types').GoalParticipant[]>()
+        for (const p of participants) {
+          const list = participantsByGoal.get(p.goal_id) || []
+          list.push(dbGoalParticipantToApp(p))
+          participantsByGoal.set(p.goal_id, list)
+        }
+        for (const goal of goals) {
+          if (participantsByGoal.has(goal.id)) {
+            goal.participants = participantsByGoal.get(goal.id)
+          }
         }
       }
     }
-  }
 
-  return goals
+    return goals
+  }, 'getGoals')
+
+  if (!result.ok) return []
+  return result.data
 }
 
 export async function createGoal(
@@ -2558,6 +2572,8 @@ export interface HomeDataBatchResult {
   sinkingFunds: SinkingFund[]
   /** Funding sources */
   fundingSources: FundingSource[]
+  /** Data sources that failed to load (for partial failure UI) */
+  failedSources: string[]
 }
 
 /**
@@ -2604,31 +2620,39 @@ export async function fetchHomeDataBatch(
   const fetchTo = pageSize // fetch pageSize+1 to detect hasMore (range is inclusive)
 
   // Single combined transaction query — uses selective fields (Task 471.2)
-  const txPromise = supabase
-    .from('transactions')
-    .select(TRANSACTION_LIST_FIELDS)
-    .eq('user_id', userId)
-    .order('date', { ascending: false })
-    .range(0, fetchTo)
+  // Wrapped with resilience for timeout + retry
+  const txPromise = withResilience(async () => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(TRANSACTION_LIST_FIELDS)
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .range(0, fetchTo)
 
-  // All secondary data fetches in parallel
+    if (error) throw error
+    return data || []
+  }, 'fetchHomeDataBatch.transactions')
+
+  // All secondary data fetches in parallel — with per-source failure tracking (Task 475.2)
+  const failedSources: string[] = []
+
   const [txResult, budgetData, goalData, lessonData, allocationData, savingsData, debtData, payScheduleData, sinkingFundsData, fundingSourcesData] = await Promise.all([
     txPromise,
-    getBudgets(userId),
-    getGoals(userId),
-    getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
-    getMonthAllocations(userId, currentMonthStr).catch(() => [] as AppAllocation[]),
-    getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
-    getDebts(userId).catch(() => [] as Debt[]),
-    getPaySchedule(userId).catch(() => null as PaySchedule | null),
-    getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
-    getFundingSources(userId).catch(() => [] as FundingSource[]),
+    getBudgets(userId).catch(() => { failedSources.push('budgets'); return [] as Budget[] }),
+    getGoals(userId).catch(() => { failedSources.push('goals'); return [] as Goal[] }),
+    getLessonProgress(userId).catch(() => { failedSources.push('lessonProgress'); return [] as UserLessonProgress[] }),
+    getMonthAllocations(userId, currentMonthStr).catch(() => { failedSources.push('allocations'); return [] as AppAllocation[] }),
+    getSavingsAccounts(userId).catch(() => { failedSources.push('savingsAccounts'); return [] as SavingsAccount[] }),
+    getDebts(userId).catch(() => { failedSources.push('debts'); return [] as Debt[] }),
+    getPaySchedule(userId).catch(() => { failedSources.push('paySchedule'); return null as PaySchedule | null }),
+    getSinkingFunds(userId).catch(() => { failedSources.push('sinkingFunds'); return [] as SinkingFund[] }),
+    getFundingSources(userId).catch(() => { failedSources.push('fundingSources'); return [] as FundingSource[] }),
   ])
 
   // Process transaction result
-  const allRows: DbTransaction[] = txResult.data || []
-  if (txResult.error) {
-    console.error('Error in batched transaction fetch:', txResult.error)
+  const allRows: DbTransaction[] = txResult.ok ? txResult.data : []
+  if (!txResult.ok) {
+    failedSources.push('transactions')
   }
 
   const hasMore = allRows.length > pageSize
@@ -2676,5 +2700,6 @@ export async function fetchHomeDataBatch(
     paySchedule: payScheduleData,
     sinkingFunds: sinkingFundsData,
     fundingSources: fundingSourcesData,
+    failedSources,
   }
 }

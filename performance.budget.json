@@ -1,0 +1,57 @@
+{
+  "description": "Folio performance budget — Phase 20",
+  "budgets": {
+    "initialJS": {
+      "description": "Total first-load JavaScript for the home route (compressed)",
+      "maxKB": 500,
+      "unit": "kB"
+    },
+    "routeJS": {
+      "description": "Route-specific JS for the home route",
+      "maxKB": 300,
+      "unit": "kB"
+    },
+    "sharedJS": {
+      "description": "Shared JS chunks across all routes",
+      "maxKB": 120,
+      "unit": "kB"
+    }
+  },
+  "webVitals": {
+    "timeToInteractive": {
+      "description": "Time to interactive on simulated 3G",
+      "maxMs": 2000
+    },
+    "firstContentfulPaint": {
+      "description": "First Contentful Paint",
+      "maxMs": 1500
+    },
+    "cumulativeLayoutShift": {
+      "description": "Cumulative Layout Shift score",
+      "maxScore": 0.1
+    },
+    "interactionToNextPaint": {
+      "description": "Interaction to Next Paint",
+      "maxMs": 100
+    },
+    "scrollAnimation": {
+      "description": "Scroll/animation frame budget",
+      "targetFPS": 60,
+      "maxDroppedFrames": 0
+    }
+  },
+  "routes": {
+    "/": {
+      "maxFirstLoadKB": 500,
+      "baselineFirstLoadKB": 481,
+      "baselineRouteKB": 272
+    },
+    "/profile": {
+      "maxFirstLoadKB": 200,
+      "baselineFirstLoadKB": 157,
+      "baselineRouteKB": 11.8
+    }
+  },
+  "recorded": "2025-07-27",
+  "buildTool": "Next.js 14.2.35"
+}

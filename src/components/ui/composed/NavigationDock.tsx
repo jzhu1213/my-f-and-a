@@ -72,6 +72,35 @@ const highlightSpring = {
 
 export function NavigationDock({ active, onNavigate, hidden = false }: NavigationDockProps) {
   const { prefersReducedMotion } = useReducedMotion()
+  const buttonRefs = React.useRef<(HTMLButtonElement | null)[]>([])
+
+  // Arrow key navigation (roving tabindex for tablist pattern — task 452.1)
+  const handleDockKeyDown = React.useCallback(
+    (event: React.KeyboardEvent) => {
+      const currentIndex = DOCK_ITEMS.findIndex((item) => item.id === active)
+      let nextIndex = -1
+
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        event.preventDefault()
+        nextIndex = (currentIndex + 1) % DOCK_ITEMS.length
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        nextIndex = (currentIndex - 1 + DOCK_ITEMS.length) % DOCK_ITEMS.length
+      } else if (event.key === 'Home') {
+        event.preventDefault()
+        nextIndex = 0
+      } else if (event.key === 'End') {
+        event.preventDefault()
+        nextIndex = DOCK_ITEMS.length - 1
+      }
+
+      if (nextIndex >= 0) {
+        onNavigate(DOCK_ITEMS[nextIndex].id)
+        buttonRefs.current[nextIndex]?.focus()
+      }
+    },
+    [active, onNavigate]
+  )
 
   if (hidden) return null
 
@@ -96,14 +125,18 @@ export function NavigationDock({ active, onNavigate, hidden = false }: Navigatio
   }
 
   return (
-    <nav aria-label="Main navigation" style={dockStyle}>
-      {DOCK_ITEMS.map((item) => {
+    <nav aria-label="Main navigation" role="tablist" style={dockStyle} onKeyDown={handleDockKeyDown}>
+      {DOCK_ITEMS.map((item, index) => {
         const isActive = active === item.id
 
         return (
           <button
             key={item.id}
+            ref={(el) => { buttonRefs.current[index] = el }}
             type="button"
+            role="tab"
+            aria-selected={isActive}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onNavigate(item.id)}
             aria-current={isActive ? "page" : undefined}
             aria-label={item.label}

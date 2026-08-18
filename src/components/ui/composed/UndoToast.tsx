@@ -51,11 +51,15 @@ export function UndoToast({
 }: UndoToastProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const remainingRef = useRef<number>(duration)
+  const startedAtRef = useRef<number>(Date.now())
 
   // Auto-dismiss after duration
   useEffect(() => {
     if (!visible) return
 
+    remainingRef.current = duration
+    startedAtRef.current = Date.now()
     timerRef.current = setTimeout(() => {
       onDismiss()
     }, duration)
@@ -64,6 +68,25 @@ export function UndoToast({
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [visible, duration, onDismiss])
+
+  /** Pause timer on hover/focus — motor accessibility (Req 27.3) */
+  const handlePause = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    const elapsed = Date.now() - startedAtRef.current
+    remainingRef.current = Math.max(0, remainingRef.current - elapsed)
+  }, [])
+
+  /** Resume timer on mouse leave/blur */
+  const handleResume = useCallback(() => {
+    if (remainingRef.current <= 0) return
+    startedAtRef.current = Date.now()
+    timerRef.current = setTimeout(() => {
+      onDismiss()
+    }, remainingRef.current)
+  }, [onDismiss])
 
   const handleUndo = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -77,6 +100,11 @@ export function UndoToast({
           initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.95 }}
           animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, transition: springs.sheet }}
           exit={prefersReducedMotion ? { opacity: 0, transition: timings.fast } : { opacity: 0, y: 10, scale: 0.98, transition: { type: "tween", duration: 0.15 } }}
+          // Pause auto-dismiss on hover/focus for motor accessibility (Req 27.3)
+          onMouseEnter={handlePause}
+          onMouseLeave={handleResume}
+          onFocus={handlePause}
+          onBlur={handleResume}
           style={{
             position: "fixed",
             bottom: "calc(80px + env(safe-area-inset-bottom, 0px))",

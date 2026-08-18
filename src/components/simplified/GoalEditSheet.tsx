@@ -130,7 +130,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
     const cleanName = name.trim()
     const target = parseFloat(targetAmount)
     if (!cleanName || !target || target <= 0 || target > MAX_TARGET) {
-      setError("Add a name and a target amount above $0.")
+      setError("Give your goal a name and a target amount above $0")
       return
     }
 
@@ -148,7 +148,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
       // optimistic update — keep the sheet open so the user can retry.
       if (result === null) {
         setSubmitting(false)
-        setError("Couldn't save that. Check your connection and try again.")
+        setError("Couldn't save — check your connection and try again")
         return
       }
 
@@ -296,6 +296,8 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                     }
                   }}
                   aria-label="Target amount"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? "goal-edit-error" : undefined}
                   style={{
                     flex: 1,
                     background: "transparent",
@@ -408,7 +410,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
 
               {/* ── Inline error (persistence failure / validation) ── */}
               {error && (
-                <p role="alert" style={{ fontSize: 13, color: "var(--error)", marginBottom: 20, lineHeight: 1.5 }}>
+                <p id="goal-edit-error" role="alert" aria-live="assertive" style={{ fontSize: 13, color: "var(--error)", marginBottom: 20, lineHeight: 1.5 }}>
                   {error}
                 </p>
               )}

@@ -388,10 +388,10 @@ export function validateForecastIncome(
       "No pay schedule set yet, so this view doesn't include future income. Add your pay rhythm to see the full picture."
   } else if (hasAidIncome && isIrregular) {
     note =
-      "Your income varies and aid is spread across months, so this is a careful estimate. Your aid already boosts your daily allowance — you likely have more room than the line suggests."
+      "Your income varies and your aid is spread across months, so this is a careful estimate. Your aid already boosts your daily budget — you likely have more room than this line shows."
   } else if (hasAidIncome) {
     note =
-      "Aid disbursements are smoothed into your daily allowance rather than shown as a lump deposit here, so your real cushion may be a bit higher than this line."
+      "Your financial aid is spread into your daily allowance rather than shown as one big deposit here, so you likely have more room than this line suggests."
   } else if (isIrregular && amountDiverges && recentAverage) {
     note = `Your income varies — recent deposits have averaged around $${Math.round(recentAverage).toLocaleString()}, so treat the projected payday as an estimate.`
   } else if (isIrregular) {

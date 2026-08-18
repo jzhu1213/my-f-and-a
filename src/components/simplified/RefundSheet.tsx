@@ -166,6 +166,8 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
                   }
                 }}
                 aria-label="Refund amount"
+                aria-invalid={parseFloat(amount) > (transaction?.amount ?? 0)}
+                aria-describedby={parseFloat(amount) > (transaction?.amount ?? 0) ? "refund-error" : undefined}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -184,13 +186,18 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
               />
             </div>
             {parseFloat(amount) > transaction.amount && (
-              <p style={{
-                fontSize: 12,
-                color: 'var(--error)',
-                marginTop: 8,
-                fontFamily: FONT_FAMILY,
-              }}>
-                Can&rsquo;t exceed original (${transaction.amount % 1 === 0 ? transaction.amount : transaction.amount.toFixed(2)})
+              <p
+                id="refund-error"
+                role="alert"
+                style={{
+                  fontSize: 12,
+                  color: 'var(--error)',
+                  marginTop: 8,
+                  fontFamily: FONT_FAMILY,
+                  lineHeight: 1.4,
+                }}
+              >
+                Refund amount can&rsquo;t exceed the original (${transaction.amount % 1 === 0 ? transaction.amount : transaction.amount.toFixed(2)})
               </p>
             )}
           </div>

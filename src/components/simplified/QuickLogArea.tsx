@@ -8,6 +8,7 @@ import type { QuickTransaction, SmartSuggestion, CustomCategory } from "@/types/
 import { generateSmartSuggestions } from "@/lib/suggestionUtils"
 import { lookupMerchant, getMerchantCategoryContext, getMerchantAverageAmount } from "@/lib/merchantMemory"
 import { useToast } from "@/contexts/ToastContext"
+import { useTranslation } from "@/contexts/I18nContext"
 import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import type { IconName } from "@/lib/icons"
@@ -485,6 +486,7 @@ interface CustomAmountPanelProps {
  * Requirements 3.5, 10.5, 10.7, 14.1
  */
 function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: CustomAmountPanelProps) {
+  const t = useTranslation()
   const [rawAmount, setRawAmount] = useState("")
   const [note, setNote] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -599,10 +601,10 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
         type="text"
         value={note}
         onChange={handleNoteChange}
-        placeholder="Note (optional)"
+        placeholder={t('quicklog.notePlaceholderShort')}
         className="t-input"
         maxLength={MAX_NOTE_LENGTH}
-        aria-label="Note (optional)"
+        aria-label={t('quicklog.notePlaceholderShort')}
         style={{ fontSize: 14 }}
       />
       {note.length >= MAX_NOTE_LENGTH - 5 && (
@@ -649,14 +651,14 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
           style={{ flex: 1, height: 48, fontSize: 13 }}
           onClick={onCancel}
         >
-          Cancel
+          {t('quicklog.cancel')}
         </button>
         <button
           type="submit"
           className="btn-primary"
           style={{ flex: 2, height: 48, fontSize: 13 }}
         >
-          Log expense
+          {t('quicklog.logExpense')}
         </button>
       </div>
     </motion.form>
@@ -700,6 +702,7 @@ export function QuickLogArea({
   customCategories = [],
 }: QuickLogAreaProps) {
   const { showToast } = useToast()
+  const t = useTranslation()
   const { prefersReducedMotion } = useReducedMotion()
   const [selectedCategory, setSelectedCategory] = useState<TransactionCategory | null>(null)
   const [showCustomInput, setShowCustomInput] = useState(false)
@@ -1050,7 +1053,7 @@ export function QuickLogArea({
             letterSpacing: "0.02em",
           }}
         >
-          Log expense
+          {t('quicklog.logExpense')}
         </span>
         <div className="flex items-center gap-3">
           {isCustomizing ? (
@@ -1303,6 +1306,12 @@ export function QuickLogArea({
               } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
                 e.preventDefault()
                 nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
+              } else if (e.key === "Home") {
+                e.preventDefault()
+                nextIndex = 0
+              } else if (e.key === "End") {
+                e.preventDefault()
+                nextIndex = items.length - 1
               }
               if (nextIndex >= 0) {
                 handleCategorySelect(items[nextIndex].category)

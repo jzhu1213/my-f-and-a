@@ -64,6 +64,7 @@ export function EditTransactionSheet({
   const [date, setDate] = useState('')
   const [showNoteField, setShowNoteField] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Pre-populate with existing transaction values when opening
   useEffect(() => {
@@ -78,6 +79,7 @@ export function EditTransactionSheet({
       setDate(transaction.date)
       setShowNoteField(!!transaction.note)
       setIsSaving(false)
+      setError(null)
     }
   }, [isOpen, transaction])
 
@@ -89,6 +91,7 @@ export function EditTransactionSheet({
     const numeric = parseFloat(raw)
     if (numeric > MAX_AMOUNT) return
     setAmount(raw)
+    setError(null)
   }, [])
 
   const handleNoteChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,9 +108,17 @@ export function EditTransactionSheet({
   const handleSave = useCallback(async () => {
     if (!transaction || isSaving) return
     const parsed = parseFloat(amount)
-    if (!parsed || parsed <= 0 || parsed > MAX_AMOUNT) return
+    if (!parsed || parsed <= 0) {
+      setError('Amount must be more than $0')
+      return
+    }
+    if (parsed > MAX_AMOUNT) {
+      setError("Amount can't exceed $99,999")
+      return
+    }
 
     setIsSaving(true)
+    setError(null)
 
     // Capture old values for undo
     const oldAmount = transaction.amount
@@ -232,6 +243,8 @@ export function EditTransactionSheet({
                       }
                     }}
                     aria-label="Transaction amount"
+                    aria-invalid={!!error}
+                    aria-describedby={error ? "edit-tx-error" : undefined}
                     style={{
                       background: 'transparent',
                       border: 'none',
@@ -249,6 +262,21 @@ export function EditTransactionSheet({
                     }}
                   />
                 </div>
+                {error && (
+                  <p
+                    id="edit-tx-error"
+                    role="alert"
+                    style={{
+                      fontSize: pxToRem(13),
+                      color: 'var(--error)',
+                      marginTop: spacing.xs,
+                      fontFamily: FONT_FAMILY,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {error}
+                  </p>
+                )}
               </div>
 
               {/* ── Category Grid ────────────────────────────── */}

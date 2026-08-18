@@ -82,18 +82,24 @@ export const colorRamp = {
 
 /**
  * Per-`TransactionCategory` accent color used for the tinted icon-chip.
+ *
+ * Color-blind-safe palette (CVD-verified):
+ * - Each color is distinguishable under protanopia, deuteranopia, and tritanopia
+ * - No two adjacent-use colors share the same hue/lightness under simulation
+ * - Previously identical health/income are now differentiated (teal vs blue-green)
+ * - Purple cluster (drinks/rent/gig) spread across distinct hue angles
  */
 export const CATEGORY_ACCENTS: Record<TransactionCategory | "fallback", string> = {
-  food: "#fb923c", // warm orange
-  drinks: "#8b5cf6", // soft violet
+  food: "#fb923c", // warm orange — distinct from amber in all CVD types
+  drinks: "#7c3aed", // deep violet — shifted darker to separate from gig/rent
   rent: "#a78bfa", // brand purple (accent-2)
-  transport: "#60a5fa", // --blue
-  school: "#fbbf24", // --amber
-  fun: "#f472b6", // warm pink
-  health: "#4ade80", // --green / --success
-  subscriptions: "#22d3ee", // cyan
-  gig: "#c084fc", // violet
-  income: "#4ade80", // --green / --success
+  transport: "#3b82f6", // blue (slightly deeper for CVD contrast vs cyan)
+  school: "#f59e0b", // amber — shifted from #fbbf24 for better orange separation
+  fun: "#ec4899", // hot pink — shifted for tritanopia distinction from red
+  health: "#2dd4bf", // teal — shifted from green to avoid red-green confusion
+  subscriptions: "#22d3ee", // cyan — distinct from teal by lightness
+  gig: "#d946ef", // magenta/fuchsia — distinct from violet/purple in all CVD types
+  income: "#34d399", // emerald — differentiated from health teal by hue
   other: "#94a3b8", // neutral slate
   fallback: "#818cf8", // --accent
 }
@@ -177,11 +183,16 @@ export const sectionHeadingStrong: CSSProperties = sectionHeader
 
 /**
  * Link-style navigation button — "Manage limits →", "See all →", etc.
+ * Meets WCAG 2.5.5 minimum 44×44px touch target via minHeight/minWidth.
  */
 export const linkButton: CSSProperties = {
   background: "none",
   border: "none",
   padding: 0,
+  minHeight: 44,
+  minWidth: 44,
+  display: "inline-flex",
+  alignItems: "center",
   fontSize: pxToRem(14),
   fontWeight: 500,
   color: "var(--sub)",
@@ -255,12 +266,17 @@ export const listRow: CSSProperties = {
 
 /**
  * Ghost pill button — transparent background with rounded border.
+ * Meets WCAG 2.5.5 minimum 44px touch target height.
  */
 export const pillButton: CSSProperties = {
   background: "transparent",
   border: "1.5px solid rgba(74, 222, 128, 0.4)",
   borderRadius: 99,
   padding: "10px 20px",
+  minHeight: 44,
+  boxSizing: "border-box",
+  display: "inline-flex",
+  alignItems: "center",
   color: "var(--success)",
   fontSize: pxToRem(13),
   fontWeight: 500,
@@ -270,6 +286,7 @@ export const pillButton: CSSProperties = {
 
 /**
  * Chip button — the "Log Again" repeat chip styling.
+ * Meets WCAG 2.5.5 minimum 44px touch target height.
  */
 export const chipButton: CSSProperties = {
   flexShrink: 0,
@@ -277,6 +294,8 @@ export const chipButton: CSSProperties = {
   alignItems: "center",
   gap: 6,
   padding: "10px 16px",
+  minHeight: 44,
+  boxSizing: "border-box",
   background: fills[6],
   border: `1px solid ${fills[10]}`,
   borderRadius: 99,
@@ -337,10 +356,11 @@ export const glassSurface: CSSProperties = {
 
 /**
  * Segmented control container.
+ * Gap ensures ≥8px spacing between adjacent targets (WCAG 2.5.5).
  */
 export const segmentedControl: CSSProperties = {
   display: "flex",
-  gap: 6,
+  gap: 8,
   padding: 4,
   borderRadius: borderRadius.md,
   background: fills[4],
@@ -349,10 +369,13 @@ export const segmentedControl: CSSProperties = {
 
 /**
  * Segmented control button base.
+ * Meets WCAG 2.5.5 minimum 44px touch target height.
  */
 export const segmentedButtonBase: CSSProperties = {
   flex: 1,
   padding: "10px 0",
+  minHeight: 44,
+  boxSizing: "border-box",
   borderRadius: borderRadius.sm,
   border: "none",
   fontSize: pxToRem(13),
@@ -398,10 +421,11 @@ export const progressTrack: CSSProperties = {
 
 /**
  * Round stepper/counter button (e.g. split count +/- buttons).
+ * Meets WCAG 2.5.5 minimum 44×44px touch target.
  */
 export const roundButton: CSSProperties = {
-  width: 32,
-  height: 32,
+  width: 44,
+  height: 44,
   borderRadius: "50%",
   background: fills[6],
   border: `1px solid ${fills[10]}`,

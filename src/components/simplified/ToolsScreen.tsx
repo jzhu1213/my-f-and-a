@@ -20,6 +20,7 @@ import { getPeerContextEnabled } from "@/lib/uiPreferences"
 import { SectionHeader, ListRow, Card } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/lib/icons"
+import { useRovingTabindex } from "@/hooks/useRovingTabindex"
 import { contentColumn, spacingScale, CONTENT_MAX_WIDTH, HORIZONTAL_PADDING } from "@/styles/layout"
 import { typography } from "@/styles/typography"
 import { textColors, colorRamp } from "@/styles/colors"
@@ -176,6 +177,87 @@ const SECTIONS: ToolSection[] = [
 ]
 
 // ============================================================================
+// ToolSectionList — applies roving tabindex to a section's tool items
+// ============================================================================
+
+interface ToolSectionListProps {
+  tools: ToolItem[]
+  listContainer: import("framer-motion").Variants
+  listItem: import("framer-motion").Variants
+  prefersReducedMotion: boolean
+}
+
+function ToolSectionList({ tools, listContainer, listItem, prefersReducedMotion }: ToolSectionListProps) {
+  const { getItemProps } = useRovingTabindex({
+    itemCount: tools.length,
+    orientation: "vertical",
+  })
+
+  return (
+    <motion.div
+      variants={listContainer}
+      initial="hidden"
+      animate="visible"
+      role="group"
+      style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}
+    >
+      {tools.map((tool, toolIdx) => {
+        const rovingProps = getItemProps(toolIdx)
+        return (
+          <motion.div
+            key={tool.id}
+            variants={listItem}
+            custom={Math.min(toolIdx, MAX_STAGGER_ITEMS)}
+            layout={!prefersReducedMotion ? "position" : false}
+            layoutId={`tool-${tool.id}`}
+            transition={layoutTransition}
+          >
+            <ListRow
+              ref={rovingProps.ref as React.Ref<HTMLDivElement>}
+              variant="dense"
+              onPress={tool.onOpen}
+              tabIndex={rovingProps.tabIndex}
+              onKeyDown={rovingProps.onKeyDown as (e: React.KeyboardEvent<HTMLDivElement>) => void}
+              aria-label={tool.title}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: spacingScale["40"],
+                  height: spacingScale["40"],
+                  flexShrink: 0,
+                  borderRadius: radius.control,
+                  background: colorRamp.accent[50],
+                  color: textColors.text,
+                }}
+              >
+                <Icon name={tool.iconName} size={20} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["2"] }}>
+                  {tool.title}
+                </p>
+                <p style={{ ...typography["body-sm"], color: textColors.sub }}>
+                  {tool.description}
+                </p>
+              </div>
+              {tool.onOpen && (
+                <span style={{ color: textColors.muted, flexShrink: 0, display: "inline-flex" }}>
+                  <Icon name="action:forward" size={16} />
+                </span>
+              )}
+            </ListRow>
+          </motion.div>
+        )
+      })}
+    </motion.div>
+  )
+}
+
+// ============================================================================
 // ToolsScreen Component
 // ============================================================================
 
@@ -279,7 +361,7 @@ export function ToolsScreen({
     { id: "savings-projections", iconName: "tool:savings-projections", title: "Savings Projections", description: "Project how your savings might grow.", onOpen: onOpenSavingsProjections },
     { id: "wish-list", iconName: "tool:wish-list", title: "Wish List", description: "Track what you want and see when you can afford it.", onOpen: onOpenWishList },
     { id: "manage-savings", iconName: "tool:manage-savings", title: "Manage Savings", description: "Add, edit, or remove savings accounts.", onOpen: onOpenManageSavings },
-    { id: "portfolio-allocation", iconName: "tool:portfolio-allocation", title: "Portfolio Allocation", description: "See savings broken down by account type.", onOpen: onOpenPortfolioAllocation },
+    { id: "portfolio-allocation", iconName: "tool:portfolio-allocation", title: "Savings Breakdown", description: "See savings broken down by account type.", onOpen: onOpenPortfolioAllocation },
     { id: "investment-explorer", iconName: "tool:investment-explorer", title: "What If I Invest?", description: "Model contributions and returns over time.", onOpen: onOpenInvestmentExplorer },
     { id: "cash-flow-forecast", iconName: "tool:cash-flow-forecast", title: "Cash Flow Forecast", description: "See projected balance through next payday.", onOpen: onOpenCashFlowForecast },
     { id: "compound-growth", iconName: "tool:compound-growth", title: "Compound Growth", description: "See how savings grow with compound interest.", onOpen: onOpenCompoundGrowth },
@@ -332,7 +414,7 @@ export function ToolsScreen({
       }}
     >
       {/* ── Screen Title ─────────────────────────────────────────────── */}
-      <SectionHeader>Tools</SectionHeader>
+      <h1 style={{ ...typography.headline, color: textColors.text, margin: 0, paddingBottom: spacingScale["8"] }}>Tools</h1>
       <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["32"] }}>
         Advanced features, calculators, and tracking tools.
       </p>
@@ -416,61 +498,14 @@ export function ToolsScreen({
                 </div>
               )}
 
-              {/* Tool entries — each as a ListRow (dense) */}
+              {/* Tool entries — roving tabindex per section (Req 27.2) */}
               {sectionTools.length > 0 && (
-                <motion.div
-                  variants={listContainer}
-                  initial="hidden"
-                  animate="visible"
-                  style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}
-                >
-                  {sectionTools.map((tool, toolIdx) => (
-                    <motion.div
-                      key={tool.id}
-                      variants={listItem}
-                      custom={Math.min(toolIdx, MAX_STAGGER_ITEMS)}
-                      layout={!prefersReducedMotion ? "position" : false}
-                      layoutId={`tool-${tool.id}`}
-                      transition={layoutTransition}
-                    >
-                      <ListRow
-                        variant="dense"
-                        onPress={tool.onOpen}
-                        aria-label={tool.title}
-                      >
-                        <span
-                          aria-hidden="true"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: spacingScale["40"],
-                            height: spacingScale["40"],
-                            flexShrink: 0,
-                            borderRadius: radius.control,
-                            background: colorRamp.accent[50],
-                            color: textColors.text,
-                          }}
-                        >
-                          <Icon name={tool.iconName} size={20} />
-                        </span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["2"] }}>
-                            {tool.title}
-                          </p>
-                          <p style={{ ...typography["body-sm"], color: textColors.sub }}>
-                            {tool.description}
-                          </p>
-                        </div>
-                        {tool.onOpen && (
-                          <span style={{ color: textColors.muted, flexShrink: 0, display: "inline-flex" }}>
-                            <Icon name="action:forward" size={16} />
-                          </span>
-                        )}
-                      </ListRow>
-                    </motion.div>
-                  ))}
-                </motion.div>
+                <ToolSectionList
+                  tools={sectionTools}
+                  listContainer={listContainer}
+                  listItem={listItem}
+                  prefersReducedMotion={prefersReducedMotion}
+                />
               )}
             </motion.div>
           )

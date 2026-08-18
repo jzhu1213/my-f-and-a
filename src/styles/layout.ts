@@ -158,9 +158,9 @@ export const HORIZONTAL_PADDING_MIN = 16 as const
 export const contentColumn: React.CSSProperties = {
   width: '100%',
   maxWidth: `${CONTENT_MAX_WIDTH}px`,
-  marginLeft: 'auto',
-  marginRight: 'auto',
-  paddingLeft: `${HORIZONTAL_PADDING}px`,
-  paddingRight: `${HORIZONTAL_PADDING}px`,
+  marginInlineStart: 'auto',
+  marginInlineEnd: 'auto',
+  paddingInlineStart: `${HORIZONTAL_PADDING}px`,
+  paddingInlineEnd: `${HORIZONTAL_PADDING}px`,
   boxSizing: 'border-box',
 }

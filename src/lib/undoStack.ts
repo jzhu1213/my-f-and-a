@@ -2,9 +2,9 @@
  * undoStack — Pure utility managing a time-boxed undo stack for destructive actions.
  *
  * At most one pending undo action at a time. New actions replace the previous one.
- * Entries expire after a configurable timeout (default 5s, matching toast duration).
+ * Entries expire after a configurable timeout (default 10s, matching toast duration).
  *
- * Supports: delete_transaction, edit_transaction, bulk_delete, bulk_recategorize, refund
+ * Supports: delete_transaction, edit_transaction, edit_budget, bulk_delete, bulk_recategorize, refund
  */
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -12,6 +12,7 @@
 export type UndoActionType =
   | 'delete_transaction'
   | 'edit_transaction'
+  | 'edit_budget'
   | 'bulk_delete'
   | 'bulk_recategorize'
   | 'refund'
@@ -29,8 +30,8 @@ export interface UndoEntry {
   timerId: ReturnType<typeof setTimeout> | null
 }
 
-// ── Default expiry (matches action toast duration) ───────────────────────────
-const DEFAULT_EXPIRY_MS = 5000
+// ── Default expiry (matches action toast duration, Req 27.4 — at least 10s) ──
+const DEFAULT_EXPIRY_MS = 10000
 
 // ── Undo Stack Singleton ─────────────────────────────────────────────────────
 

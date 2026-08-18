@@ -23,6 +23,8 @@ export interface SwipeableTransactionRowProps {
   onEdit?: (id: string) => void
   /** Whether to show the bottom border */
   showBorder?: boolean
+  /** Descriptive aria-label for the row (category, amount, note, date + available actions) */
+  ariaLabel?: string
 }
 
 /** Threshold (px) that triggers the delete action on release */
@@ -52,6 +54,7 @@ export function SwipeableTransactionRow({
   onTap,
   onEdit,
   showBorder = true,
+  ariaLabel,
 }: SwipeableTransactionRowProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const { prefersReducedMotion } = useReducedMotion()
@@ -142,17 +145,17 @@ export function SwipeableTransactionRow({
           >
             <span
               style={{
-                width: 36,
-                height: 36,
+                width: 44,
+                height: 44,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                borderRadius: 10,
+                borderRadius: 12,
                 background: "var(--error)",
                 color: "var(--text)",
               }}
             >
-              <Icon name="action:delete" size={18} strokeWidth={2} />
+              <Icon name="action:delete" size={20} strokeWidth={2} />
             </span>
           </motion.div>
 
@@ -176,17 +179,17 @@ export function SwipeableTransactionRow({
             >
               <span
                 style={{
-                  width: 36,
-                  height: 36,
+                  width: 44,
+                  height: 44,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  borderRadius: 10,
+                  borderRadius: 12,
                   background: "rgba(129, 140, 248, 0.9)",
                   color: "var(--text)",
                 }}
               >
-                <Icon name="action:edit" size={18} strokeWidth={2} />
+                <Icon name="action:edit" size={20} strokeWidth={2} />
               </span>
             </motion.div>
           )}
@@ -205,7 +208,7 @@ export function SwipeableTransactionRow({
             onKeyDown={handleKeyDown}
             tabIndex={0}
             role="button"
-            aria-label="Transaction row. Press Enter to view, Delete to remove, E to edit."
+            aria-label={ariaLabel || `Transaction row. Press Enter to view, Delete to remove${onEdit ? ', E to edit' : ''}.`}
             style={{
               x: dragX,
               cursor: "pointer",

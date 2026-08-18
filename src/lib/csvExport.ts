@@ -11,6 +11,7 @@
 import type { Transaction, TransactionCategory } from '@/types'
 import { TRANSACTION_CATEGORIES } from '@/types'
 import { getTagsForTransaction } from './tagUtils'
+import { formatMoney as localeFormatMoney } from './localeFormat'
 import type { HistoryFilters } from '@/components/simplified/HistoryFilterChips'
 
 // ============================================================================
@@ -60,9 +61,9 @@ function friendlyShortDate(dateStr: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-/** Format currency. */
+/** Format currency using the user's locale preference. */
 function formatMoney(amount: number): string {
-  return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  return localeFormatMoney(amount)
 }
 
 // ============================================================================

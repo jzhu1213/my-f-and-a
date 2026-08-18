@@ -194,7 +194,7 @@ export function PortfolioAllocationScreen({
             marginBottom: 8,
           }}
         >
-          Total Portfolio
+          Total Savings
         </p>
         <p
           style={{
@@ -226,14 +226,14 @@ export function PortfolioAllocationScreen({
         style={{ marginBottom: 24 }}
       >
         <p style={{ ...sectionHeader, marginBottom: 14 }}>
-          Allocation by Type
+          Breakdown by Type
         </p>
 
         <ChartFrame
           type="bar"
           state="loaded"
           height={allocations.length * 44 + 60}
-          aria-label="Portfolio allocation breakdown by account type"
+          aria-label="Savings breakdown by account type"
         >
           <div style={{ padding: "16px 18px" }}>
             {/* Stacked allocation bar */}
@@ -247,7 +247,7 @@ export function PortfolioAllocationScreen({
                 background: "rgba(255, 255, 255, 0.04)",
               }}
               role="img"
-              aria-label="Allocation breakdown bar"
+              aria-label="Savings breakdown bar"
             >
               {allocations.map((alloc) => (
                 <div

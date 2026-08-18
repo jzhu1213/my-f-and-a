@@ -2,10 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import type { Transaction, Budget, Goal, TransactionCategory, TransactionType, UserLessonProgress, UserProfile } from '@/types'
 import type { DailyAllowance, Debt, SavingsAccount, SavingsAccountType, IncomeSmoothing } from '@/types/folio'
 import { 
-  getTransactions, 
-  getBudgets, 
-  getGoals,
-  getLessonProgress,
+  getTransactionsPaginated,
   updateLessonProgress,
   insertTransaction,
   updateTransaction,
@@ -16,25 +13,20 @@ import {
   updateGoal,
   updateGoalProgress,
   deleteGoal,
-  getMonthAllocations,
-  getSavingsAccounts,
   createSavingsAccount as createSavingsAccountApi,
   updateSavingsAccount as updateSavingsAccountApi,
   deleteSavingsAccount as deleteSavingsAccountApi,
   updateSavingsAccountBalance,
-  getDebts,
-  getPaySchedule,
-  getSinkingFunds,
   createSinkingFund as createSinkingFundApi,
   updateSinkingFund as updateSinkingFundApi,
   deleteSinkingFund as deleteSinkingFundApi,
-  getFundingSources,
   createFundingSource as createFundingSourceApi,
   updateFundingSource as updateFundingSourceApi,
   updateFundingSourceBalance as updateFundingSourceBalanceApi,
   deleteFundingSource as deleteFundingSourceApi,
+  fetchHomeDataBatch,
 } from '@/lib/supabaseData'
-import { getHomeCache, setHomeCache, isCacheStale } from '@/lib/homeCache'
+import { getHomeCache, setHomeCache, isCacheStale, addTransactionToCache, updateTransactionInCache, removeTransactionFromCache, reconcileTransactionInCache, updateBudgetsInCache, updateLastSyncedAt } from '@/lib/homeCache'
 import { addToOfflineQueue } from '@/lib/offlineQueue'
 import type { AppAllocation } from '@/lib/supabaseData'
 import type { PaySchedule } from '@/lib/paySchedule'
@@ -70,6 +62,7 @@ import { computeRhythmWeights } from '@/lib/rhythmModel'
 import type { IncomeStream } from '@/types/folio'
 import { loadIncomeStreams, saveIncomeStreams, generateIncomeStreamId } from '@/lib/incomeStreams'
 import { getIncomeProjection } from '@/lib/incomePatterns'
+import { useDeferredComputation } from '@/hooks/useDeferredComputation'
 import { isIncomeOverdue as isIncomeOverdueFn } from '@/lib/midMonthIncomeAdjust'
 import type { BudgetMode } from '@/lib/spendingModeConfig'
 import { getBudgetModes, getActiveBudgetMode, setActiveBudgetMode as setActiveBudgetModeStorage, saveBudgetMode as saveBudgetModeStorage, deleteBudgetMode as deleteBudgetModeStorage, applyBudgetModeOverrides, generateBudgetModeId } from '@/lib/spendingModeConfig'
@@ -398,6 +391,8 @@ export interface UseHomeDataReturn {
   isStale: boolean
   /** Whether the last data load failed (for error UI) */
   loadError: boolean
+  /** Timestamp of last successful background sync, or null if never synced (Task 470.1) */
+  lastSyncedAt: number | null
   
   // ── Mutation Functions ─────────────────────────────────────────
   /** Refresh all data from Supabase (Requirement 13.7) */
@@ -606,6 +601,34 @@ export interface UseHomeDataReturn {
    * Delete a budget mode by ID (persisted to localStorage).
    */
   deleteBudgetMode: (id: string) => void
+
+  // ── Transaction Pagination (Task 469) ────────────────────────────────
+  /**
+   * Load the next page of historical transactions.
+   * Appends to the existing `transactions` array.
+   * No-op if all transactions are already loaded.
+   */
+  loadMoreTransactions: () => Promise<void>
+  /**
+   * Whether more historical transaction pages are available to load.
+   */
+  hasMoreTransactions: boolean
+  /**
+   * Whether a page load is currently in progress (for infinite scroll spinners).
+   */
+  isLoadingMore: boolean
+
+  // ── Partial Data Loading (Task 475.2) ─────────────────────────────────
+  /**
+   * Data sources that failed to load during the last fetch.
+   * Empty when all data loaded successfully.
+   */
+  failedSources: string[]
+  /**
+   * Retry only the data sources that previously failed.
+   * Triggers a full refresh (since sources are fetched in a batch).
+   */
+  retryFailedSources: () => Promise<void>
 }
 
 /**
@@ -631,6 +654,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
 
   // ── Local State ────────────────────────────────────────────────
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const transactionsRef = useRef<Transaction[]>(transactions)
+  transactionsRef.current = transactions
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
   const [lessonProgress, setLessonProgress] = useState<UserLessonProgress[]>([])
@@ -672,9 +697,19 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   const [isSyncing, setIsSyncing] = useState(false)
   const [isStale, setIsStale] = useState(false)
   const [loadError, setLoadError] = useState(false)
+  const [failedSources, setFailedSources] = useState<string[]>([])
+
+  // ── Pagination State (Task 469) ────────────────────────────────
+  const [hasMoreTransactions, setHasMoreTransactions] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const paginationPage = useRef(1) // page 0 is loaded initially
+  const prefetchDone = useRef(false)
 
   // Track whether cache hydration happened so we skip the skeleton
   const hydratedFromCache = useRef(false)
+
+  // Track last successful sync timestamp for SWR indicator (Task 470.1)
+  const lastSyncedAtRef = useRef<number | null>(null)
 
   // ── Cache Hydration (synchronous, before first render paint) ───
   // Runs once when userId becomes available to populate state from localStorage cache
@@ -684,17 +719,32 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     if (cache) {
       setTransactions(cache.recentTransactions)
       setBudgets(cache.budgets)
+      if (cache.goals && cache.goals.length > 0) {
+        setGoals(cache.goals)
+      }
       setIsLoading(false) // Skip skeleton — we have cached data
       hydratedFromCache.current = true
       // Check if cache is stale
       setIsStale(isCacheStale(userId))
+      // Restore lastSyncedAt
+      if (cache.lastSyncedAt) {
+        lastSyncedAtRef.current = cache.lastSyncedAt
+      }
     }
   }, [userId])
   
   // ── Data Loading ───────────────────────────────────────────────
   /**
-   * Loads all data from Supabase
+   * Loads data from Supabase with paginated transaction loading (Task 469).
+   *
+   * Strategy:
+   * - Fetches current-month transactions (all of them, for accurate allowance)
+   * - Fetches the first page of historical transactions (older months)
+   * - Merges them with deduplication so the `transactions` array is correct
+   * - Other data (budgets, goals, etc.) loads in parallel as before
+   *
    * Requirement 13.1: Load in under 1 second by parallelizing requests
+   * Requirement 28.3: Paginate transactions for performance
    */
   const loadData = useCallback(async () => {
     if (!userId) {
@@ -710,35 +760,64 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
         setIsLoading(true)
       }
       
-      const currentMonth = new Date().toISOString().slice(0, 7)
+      // Batched data fetch for optimal performance (Requirement 13.1, Task 471.1)
+      // Uses fetchHomeDataBatch to reduce Supabase round-trips by combining the
+      // two transaction queries into one (in the common case) and issuing all
+      // secondary fetches in a single parallel batch.
+      const batch = await fetchHomeDataBatch(userId, 75)
       
-      // Parallel data fetch for optimal performance (Requirement 13.1)
-      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, debtData, payScheduleData, sinkingFundsData, fundingSourcesData] = await Promise.all([
-        getTransactions(userId),
-        getBudgets(userId),
-        getGoals(userId),
-        getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
-        getMonthAllocations(userId, currentMonth).catch(() => [] as AppAllocation[]),
-        getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
-        getDebts(userId).catch(() => [] as Debt[]),
-        getPaySchedule(userId).catch(() => null),
-        getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
-        getFundingSources(userId).catch(() => [] as FundingSource[]),
-      ])
-      
-      setTransactions(txData)
-      setBudgets(budgetData)
-      setGoals(goalData)
-      setLessonProgress(lessonData)
-      setAllocations(allocationData)
-      setSavingsAccounts(savingsData)
-      setDebts(debtData)
-      setPaySchedule(payScheduleData)
-      setSinkingFunds(sinkingFundsData)
-      setFundingSources(fundingSourcesData)
+      // Track partial failures (Task 475.2) — don't blank the screen for a partial failure
+      if (batch.failedSources.length > 0) {
+        setFailedSources(batch.failedSources)
+      } else {
+        setFailedSources([])
+      }
+
+      // Only update state for sources that succeeded.
+      // If transactions failed, preserve whatever is cached.
+      if (!batch.failedSources.includes('transactions')) {
+        // Merge current-month + first page, deduplicating by ID.
+        // Current-month transactions take priority (they are the complete set for this month).
+        const mergedMap = new Map<string, Transaction>()
+        for (const tx of batch.currentMonthTransactions) {
+          mergedMap.set(tx.id, tx)
+        }
+        for (const tx of batch.paginatedTransactions.transactions) {
+          if (!mergedMap.has(tx.id)) {
+            mergedMap.set(tx.id, tx)
+          }
+        }
+        // Sort merged by date desc (most recent first)
+        const mergedTransactions = Array.from(mergedMap.values())
+          .sort((a, b) => b.date.localeCompare(a.date))
+        
+        setTransactions(mergedTransactions)
+        setHasMoreTransactions(batch.paginatedTransactions.hasMore)
+        paginationPage.current = 1 // next page to fetch is page 1
+      }
+      if (!batch.failedSources.includes('budgets')) setBudgets(batch.budgets)
+      if (!batch.failedSources.includes('goals')) setGoals(batch.goals)
+      if (!batch.failedSources.includes('lessonProgress')) setLessonProgress(batch.lessonProgress)
+      if (!batch.failedSources.includes('allocations')) setAllocations(batch.allocations)
+      if (!batch.failedSources.includes('savingsAccounts')) setSavingsAccounts(batch.savingsAccounts)
+      if (!batch.failedSources.includes('debts')) setDebts(batch.debts)
+      if (!batch.failedSources.includes('paySchedule')) setPaySchedule(batch.paySchedule)
+      if (!batch.failedSources.includes('sinkingFunds')) setSinkingFunds(batch.sinkingFunds)
+      if (!batch.failedSources.includes('fundingSources')) setFundingSources(batch.fundingSources)
       
       setIsStale(false)
-      setLoadError(false)
+      // Only clear loadError if we have at least some critical data
+      // (transactions). If transactions failed and we had no cache, treat as full error.
+      if (batch.failedSources.includes('transactions') && !hydratedFromCache.current && transactionsRef.current.length === 0) {
+        setLoadError(true)
+      } else {
+        setLoadError(false)
+      }
+      // Update last synced timestamp (Task 470.1)
+      lastSyncedAtRef.current = Date.now()
+      if (userId) {
+        updateLastSyncedAt(userId)
+      }
     } catch (err) {
       console.error('Error loading home data:', err)
       setLoadError(true)
@@ -760,6 +839,83 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     loadData()
   }, [loadData])
   
+  // ── Load More Transactions (Task 469.1 — infinite scroll) ─────
+  /**
+   * Fetches the next page of historical transactions and appends to state.
+   * Called by HistoryScreen on infinite scroll. Guards against concurrent calls.
+   */
+  const loadMoreTransactions = useCallback(async () => {
+    if (!userId || !hasMoreTransactions || isLoadingMore) return
+    
+    setIsLoadingMore(true)
+    try {
+      const { transactions: nextPage, hasMore } = await getTransactionsPaginated(
+        userId,
+        paginationPage.current,
+        75
+      )
+      
+      if (nextPage.length > 0) {
+        setTransactions(prev => {
+          // Deduplicate — some current-month txns may overlap with paginated results
+          const existingIds = new Set(prev.map(t => t.id))
+          const newTxns = nextPage.filter(t => !existingIds.has(t.id))
+          return [...prev, ...newTxns].sort((a, b) => b.date.localeCompare(a.date))
+        })
+      }
+      
+      paginationPage.current += 1
+      setHasMoreTransactions(hasMore)
+    } catch (err) {
+      console.error('Error loading more transactions:', err)
+      // Don't break pagination state — user can retry
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }, [userId, hasMoreTransactions, isLoadingMore])
+  
+  // ── Background Prefetch (Task 469.3) ──────────────────────────
+  /**
+   * After the home screen is interactive (initial load complete), prefetch
+   * the next page of transactions in the background so navigation to
+   * history is instant. Also prefetch goals and budgets if not yet loaded.
+   * Uses requestIdleCallback (or setTimeout fallback) to avoid blocking UI.
+   */
+  useEffect(() => {
+    if (!userId || isLoading || prefetchDone.current) return
+    if (!hasMoreTransactions) return
+    
+    const prefetch = () => {
+      prefetchDone.current = true
+      // Silently load the next page in the background
+      getTransactionsPaginated(userId, paginationPage.current, 75)
+        .then(({ transactions: nextPage, hasMore }) => {
+          if (nextPage.length > 0) {
+            setTransactions(prev => {
+              const existingIds = new Set(prev.map(t => t.id))
+              const newTxns = nextPage.filter(t => !existingIds.has(t.id))
+              if (newTxns.length === 0) return prev
+              return [...prev, ...newTxns].sort((a, b) => b.date.localeCompare(a.date))
+            })
+            paginationPage.current += 1
+            setHasMoreTransactions(hasMore)
+          }
+        })
+        .catch(() => {
+          // Prefetch failure is non-critical — user can still load on scroll
+        })
+    }
+    
+    // Use requestIdleCallback where available, else setTimeout
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(prefetch, { timeout: 3000 })
+      return () => window.cancelIdleCallback(id)
+    } else {
+      const timer = setTimeout(prefetch, 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [userId, isLoading, hasMoreTransactions])
+
   // ── Refresh Function ───────────────────────────────────────────
   /**
    * Refresh handler for pull-to-refresh
@@ -770,32 +926,52 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     
     try {
       setIsSyncing(true)
-      const currentMonth = new Date().toISOString().slice(0, 7)
       
-      // Parallel refresh for optimal performance
-      const [txData, budgetData, goalData, lessonData, allocationData, savingsData, payScheduleData, sinkingFundsData, fundingSourcesData] = await Promise.all([
-        getTransactions(userId),
-        getBudgets(userId),
-        getGoals(userId),
-        getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
-        getMonthAllocations(userId, currentMonth).catch(() => [] as AppAllocation[]),
-        getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
-        getPaySchedule(userId).catch(() => null),
-        getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
-        getFundingSources(userId).catch(() => [] as FundingSource[]),
-      ])
+      // Batched refresh using optimized fetch (Task 471.1)
+      const batch = await fetchHomeDataBatch(userId, 75)
       
-      setTransactions(txData)
-      setBudgets(budgetData)
-      setGoals(goalData)
-      setLessonProgress(lessonData)
-      setAllocations(allocationData)
-      setSavingsAccounts(savingsData)
-      setPaySchedule(payScheduleData)
-      setSinkingFunds(sinkingFundsData)
-      setFundingSources(fundingSourcesData)
+      // Track partial failures (Task 475.2)
+      if (batch.failedSources.length > 0) {
+        setFailedSources(batch.failedSources)
+      } else {
+        setFailedSources([])
+      }
+
+      // Only update state for sources that succeeded
+      if (!batch.failedSources.includes('transactions')) {
+        // Merge current-month + first page, deduplicating by ID
+        const mergedMap = new Map<string, Transaction>()
+        for (const tx of batch.currentMonthTransactions) {
+          mergedMap.set(tx.id, tx)
+        }
+        for (const tx of batch.paginatedTransactions.transactions) {
+          if (!mergedMap.has(tx.id)) {
+            mergedMap.set(tx.id, tx)
+          }
+        }
+        const mergedTransactions = Array.from(mergedMap.values())
+          .sort((a, b) => b.date.localeCompare(a.date))
+        
+        setTransactions(mergedTransactions)
+        setHasMoreTransactions(batch.paginatedTransactions.hasMore)
+        paginationPage.current = 1
+        prefetchDone.current = false
+      }
+      if (!batch.failedSources.includes('budgets')) setBudgets(batch.budgets)
+      if (!batch.failedSources.includes('goals')) setGoals(batch.goals)
+      if (!batch.failedSources.includes('lessonProgress')) setLessonProgress(batch.lessonProgress)
+      if (!batch.failedSources.includes('allocations')) setAllocations(batch.allocations)
+      if (!batch.failedSources.includes('savingsAccounts')) setSavingsAccounts(batch.savingsAccounts)
+      if (!batch.failedSources.includes('paySchedule')) setPaySchedule(batch.paySchedule)
+      if (!batch.failedSources.includes('sinkingFunds')) setSinkingFunds(batch.sinkingFunds)
+      if (!batch.failedSources.includes('fundingSources')) setFundingSources(batch.fundingSources)
       
       setIsStale(false)
+      // Update last synced timestamp (Task 470.1)
+      lastSyncedAtRef.current = Date.now()
+      if (userId) {
+        updateLastSyncedAt(userId)
+      }
     } catch (err) {
       console.error('Error refreshing home data:', err)
       // Don't clear existing data on refresh failure
@@ -804,6 +980,15 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     }
   }, [userId])
   
+  // ── Retry Failed Sources (Task 475.2) ─────────────────────────
+  /**
+   * Retries loading by triggering a full refresh. Since all sources are fetched
+   * in a single batch, we re-run the batch and only update sources that succeed.
+   */
+  const retryFailedSources = useCallback(async () => {
+    await refresh()
+  }, [refresh])
+
   // ── Transaction Mutations ──────────────────────────────────────
   
   /** Persistence timeout — treat as failure if DB doesn't respond within 10s (Requirement 17.5) */
@@ -859,6 +1044,11 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     
     setTransactions(prev => [optimisticTx, ...prev])
     
+    // Incremental cache update (Task 470.2) — keep cache in sync with optimistic state
+    if (userId) {
+      addTransactionToCache(userId, optimisticTx)
+    }
+    
     try {
       // 2. Persist to Supabase with timeout
       const result = await withTimeout(
@@ -873,6 +1063,9 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
         // 3. Reconcile — swap temp ID with real server-assigned ID
         setTransactions(prev => prev.map(t => t.id === tempId ? result : t))
         
+        // Reconcile cache with real ID (Task 470.2)
+        reconcileTransactionInCache(userId, tempId, result)
+        
         // Recalculate budget spent if it's an expense
         if (data.type === 'expense') {
           await recalculateBudgetSpentForCategory(data.category)
@@ -882,6 +1075,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       } else {
         // Persistence returned null — rollback optimistic insert and queue
         setTransactions(prev => prev.filter(t => t.id !== tempId))
+        // Rollback cache (Task 470.2)
+        removeTransactionFromCache(userId, tempId)
         addToOfflineQueue(userId, {
           kind: 'create',
           payload: {
@@ -898,6 +1093,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       // 4. Failure or timeout — rollback optimistic insert
       console.error('Error adding transaction:', err)
       setTransactions(prev => prev.filter(t => t.id !== tempId))
+      // Rollback cache (Task 470.2)
+      removeTransactionFromCache(userId, tempId)
       
       // Queue for background retry (Requirements 10.2, 13.7)
       addToOfflineQueue(userId, {
@@ -953,10 +1150,15 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     if (!userId) return null
     
     // Find the old transaction to know what to rollback to
-    const oldTx = transactions.find(t => t.id === id)
+    const oldTx = transactionsRef.current.find(t => t.id === id)
     
     // 1. Optimistic update — immediately apply changes to local state
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
+    
+    // Incremental cache update (Task 470.2)
+    if (userId) {
+      updateTransactionInCache(userId, id, data)
+    }
     
     try {
       // 2. Persist to Supabase with timeout
@@ -982,6 +1184,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
         // Persistence returned null — rollback and queue
         if (oldTx) {
           setTransactions(prev => prev.map(t => t.id === id ? oldTx : t))
+          // Rollback cache (Task 470.2)
+          updateTransactionInCache(userId, id, oldTx)
         }
         addToOfflineQueue(userId, {
           kind: 'update',
@@ -1001,6 +1205,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       console.error('Error updating transaction:', err)
       if (oldTx) {
         setTransactions(prev => prev.map(t => t.id === id ? oldTx : t))
+        // Rollback cache (Task 470.2)
+        updateTransactionInCache(userId, id, oldTx)
       }
       
       // Queue for background retry (Requirements 10.2)
@@ -1017,7 +1223,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       })
       return null
     }
-  }, [userId, transactions])
+  }, [userId])
   
   /**
    * Delete a transaction with optimistic-first pattern (Requirement 17.4, 17.5)
@@ -1032,10 +1238,15 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     if (!userId) return false
     
     // Capture the transaction before removal for potential rollback
-    const tx = transactions.find(t => t.id === id)
+    const tx = transactionsRef.current.find(t => t.id === id)
     
     // 1. Optimistic remove — immediately filter from local state
     setTransactions(prev => prev.filter(t => t.id !== id))
+    
+    // Incremental cache update (Task 470.2)
+    if (userId) {
+      removeTransactionFromCache(userId, id)
+    }
     
     // Recalculate budget spent eagerly if it was an expense
     if (tx?.type === 'expense') {
@@ -1056,6 +1267,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
         // Persistence returned false — rollback and queue
         if (tx) {
           setTransactions(prev => [tx, ...prev])
+          // Rollback cache (Task 470.2)
+          addTransactionToCache(userId, tx)
           if (tx.type === 'expense') {
             await recalculateBudgetSpentForCategory(tx.category)
           }
@@ -1071,6 +1284,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       console.error('Error deleting transaction:', err)
       if (tx) {
         setTransactions(prev => [tx, ...prev])
+        // Rollback cache (Task 470.2)
+        addTransactionToCache(userId, tx)
         if (tx.type === 'expense') {
           await recalculateBudgetSpentForCategory(tx.category)
         }
@@ -1083,7 +1298,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
       })
       return false
     }
-  }, [userId, transactions])
+  }, [userId])
   
   // ── Budget Mutations ───────────────────────────────────────────
   /**
@@ -1687,22 +1902,25 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     setOverLimitResponseState(response)
   }, [])
 
-  // ── Rhythm Weights (Task 164.1) ────────────────────────────────
-  // Memoize the rhythm model — only recompute when transactions or currentDay change.
-  // This learns the user's weekly spending pattern from their history.
-  const rhythmWeights = useMemo(() => {
+  // ── Rhythm Weights (Task 164.1, Task 472.2) ─────────────────────
+  // Deferred via requestIdleCallback — rhythm weights are a secondary refinement
+  // to the daily number, not needed for the initial render. With 2000+ transactions
+  // and a 56-day window, this can exceed 16ms. Previous value is kept while
+  // recomputing (keepStale: true) to avoid the hero number flickering.
+  const rhythmWeights = useDeferredComputation(() => {
     if (transactions.length === 0) return null
     return computeRhythmWeights(transactions, currentDay)
-  }, [transactions, currentDay])
+  }, [transactions, currentDay], { timeout: 2000, keepStale: true })
 
-  // Task 335.3: Memoize income projection — uses pattern analysis to project
-  // monthly income from historical transactions. Only activates when confidence
-  // is sufficient (>= 0.4). The projection feeds into the allowance engine as
-  // a smarter fallback when no explicit budget or income streams are configured.
-  const incomeProjection = useMemo(() => {
+  // Task 335.3, Task 472.2: Deferred income projection — uses pattern analysis to
+  // project monthly income from historical transactions. Scheduled via
+  // requestIdleCallback since it filters, sorts, and computes statistics over all
+  // income transactions. Not needed for the initial render frame. Only activates
+  // when confidence is sufficient (>= 0.4).
+  const incomeProjection = useDeferredComputation(() => {
     if (transactions.length === 0) return null
     return getIncomeProjection(transactions, currentDay)
-  }, [transactions, currentDay])
+  }, [transactions, currentDay], { timeout: 2000, keepStale: true })
 
   // Task 336.2: Detect income shortfall — surface a tip when projected income
   // is overdue based on detected regularity. Pure derivation, no side effects.
@@ -1861,8 +2079,8 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
   // with no jarring jumps.
   useEffect(() => {
     if (!userId || isLoading || !travelAdjustedAllowance) return
-    setHomeCache(userId, { allowance: travelAdjustedAllowance, transactions, budgets })
-  }, [userId, travelAdjustedAllowance, transactions, budgets, isLoading])
+    setHomeCache(userId, { allowance: travelAdjustedAllowance, transactions, budgets, goals })
+  }, [userId, travelAdjustedAllowance, transactions, budgets, goals, isLoading])
   
   // ── Period Transition Detection (Task 343.1) ───────────────────
   // Detect if a new budget period has started since the last app open.
@@ -2210,6 +2428,7 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     isSyncing,
     isStale,
     loadError,
+    lastSyncedAt: lastSyncedAtRef.current,
     
     // Mutation functions
     refresh,
@@ -2287,5 +2506,12 @@ export function useHomeData(userId: string | null | undefined, userProfile?: Use
     // Period transition message (Task 343.1)
     periodTransitionMessage,
     dismissPeriodTransition,
+    // Transaction pagination (Task 469)
+    loadMoreTransactions,
+    hasMoreTransactions,
+    isLoadingMore,
+    // Partial data loading (Task 475.2)
+    failedSources,
+    retryFailedSources,
   }
 }

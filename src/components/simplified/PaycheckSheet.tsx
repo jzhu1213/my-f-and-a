@@ -197,7 +197,7 @@ export function PaycheckSheet({
       return
     }
 
-    showToast('Income allocated ✓', 'success')
+    showToast('Income split ✓', 'success')
     onClose()
   }, [isValid, allocation, onAllocate, activeGoals, hasSavingsStep, showToast, onClose, showAutoContributeBanner, autoContributions, autoContributeTotal, onContribute])
 
@@ -214,7 +214,7 @@ export function PaycheckSheet({
       setShowSavingsContributions(true)
       return
     }
-    showToast('Income allocated ✓', 'success')
+    showToast('Income split ✓', 'success')
     onClose()
   }, [hasSavingsStep, showToast, onClose])
 
@@ -225,13 +225,13 @@ export function PaycheckSheet({
   }, [onContributeToSavings, showToast])
 
   const handleFinishSavings = useCallback(() => {
-    showToast('Income allocated ✓', 'success')
+    showToast('Income split ✓', 'success')
     onClose()
   }, [showToast, onClose])
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <Sheet open={isOpen} onClose={onClose} size="full" aria-label="Allocate paycheck">
+    <Sheet open={isOpen} onClose={onClose} size="full" aria-label="Split paycheck">
       <div style={{ padding: '0 24px 32px' }}>
               {/* ── Header ──────────────────────────────────────── */}
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
@@ -537,7 +537,7 @@ export function PaycheckSheet({
                                     padding: '10px 0',
                                   }}
                                 >
-                                  Invest bucket fully allocated
+                                  Invest bucket fully split
                                 </p>
                               )}
                             </div>
@@ -549,7 +549,7 @@ export function PaycheckSheet({
                     {/* ── Finish button (always skippable) ─────────── */}
                     <button
                       onClick={handleFinishSavings}
-                      aria-label="Done — finish allocation"
+                      aria-label="Done — finish splitting income"
                       style={{
                         width: '100%',
                         height: 52,
@@ -622,7 +622,7 @@ export function PaycheckSheet({
                       {/* Custom button */}
                       <button
                         onClick={() => setActivePreset(null)}
-                        aria-label="Custom allocation"
+                        aria-label="Custom split"
                         style={{
                           flex: 1,
                           padding: '10px 6px',
@@ -723,7 +723,7 @@ export function PaycheckSheet({
                       >
                         {totalPercent > 100
                           ? `Over by ${totalPercent - 100}% — adjust to total 100%`
-                          : `${100 - totalPercent}% unallocated — assign the rest`}
+                          : `${100 - totalPercent}% left to assign`}
                       </p>
                     )}
 
@@ -731,7 +731,7 @@ export function PaycheckSheet({
                     <button
                       onClick={handleConfirm}
                       disabled={!isValid}
-                      aria-label="Confirm allocation"
+                      aria-label="Confirm split"
                       style={{
                         width: '100%',
                         height: 52,
@@ -753,7 +753,7 @@ export function PaycheckSheet({
                     >
                       {activeGoals.length > 0 && allocation.save > 0
                         ? 'Confirm & Contribute to Goals'
-                        : 'Confirm Allocation'}
+                        : 'Confirm Split'}
                     </button>
                   </motion.div>
                 ) : (
@@ -866,7 +866,7 @@ export function PaycheckSheet({
                                     padding: '10px 0',
                                   }}
                                 >
-                                  Save bucket fully allocated
+                                  Save bucket fully split
                                 </p>
                               )}
                             </div>
@@ -878,7 +878,7 @@ export function PaycheckSheet({
                     {/* ── Done button ──────────────────────────────── */}
                     <button
                       onClick={handleDone}
-                      aria-label="Done — finish allocation"
+                      aria-label="Done — finish splitting income"
                       style={{
                         width: '100%',
                         height: 52,

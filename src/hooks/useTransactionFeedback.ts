@@ -34,7 +34,7 @@ import type { CelebrationEvent } from "@/types/folio"
 export interface UseTransactionFeedbackOptions {
   /** Called when the user activates undo — should remove the transaction and restore prior amount. */
   onUndoTransaction: (transactionId: string) => void
-  /** Undo display duration in ms (default 7000, must be 5000–10000 per Req 9.4). */
+  /** Undo display duration in ms (default 10000, must be ≥10000 per Req 27.4). */
   undoDurationMs?: number
 }
 
@@ -83,7 +83,7 @@ export interface UseTransactionFeedbackResult {
 
 export function useTransactionFeedback({
   onUndoTransaction,
-  undoDurationMs = 7000,
+  undoDurationMs = 10000,
 }: UseTransactionFeedbackOptions): UseTransactionFeedbackResult {
   const [state, setState] = useState<TransactionFeedbackState>({
     pulseOrigin: null,

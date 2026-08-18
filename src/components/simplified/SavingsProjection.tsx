@@ -68,8 +68,22 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
     [account]
   )
 
+  // Accessible text summary for projections
+  const projectionSummary = useMemo(
+    () =>
+      `${account.name} projection: current balance $${account.balance.toLocaleString('en-US', { maximumFractionDigits: 0 })}. ` +
+      projections.map(p => `${p.years} year${p.years === 1 ? '' : 's'}: ${formatCurrency(p.amount)}`).join(', ') + '.',
+    [account.name, account.balance, projections]
+  )
+
+  const summaryId = `savings-proj-summary-${account.name.replace(/\s+/g, '-').toLowerCase()}`
+
   return (
-    <GlassCard elevation="low" style={{ padding: '16px 18px' }}>
+    <GlassCard elevation="low" style={{ padding: '16px 18px' }} aria-label={`${account.name} savings projection`} aria-describedby={summaryId}>
+      {/* Screen reader text summary */}
+      <span id={summaryId} style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0 }}>
+        {projectionSummary}
+      </span>
       {/* Header: account name + current balance */}
       <div
         style={{

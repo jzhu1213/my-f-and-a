@@ -62,6 +62,9 @@ export function SettingsToggle({
         position: "relative",
         transition: "background 0.2s ease",
         opacity: disabled ? 0.5 : 1,
+        // Extend touch target to 44×44px minimum (WCAG 2.5.5)
+        padding: "9px 0",
+        boxSizing: "content-box",
       }}
     >
       <span

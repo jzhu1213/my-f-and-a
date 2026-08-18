@@ -219,6 +219,7 @@ export function CategoryHubScreen({
   const [showAddForm, setShowAddForm] = useState(false)
   const [newLabel, setNewLabel] = useState("")
   const [newEmoji, setNewEmoji] = useState("📦")
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   // Rebuild when custom categories change externally
   const itemIds = useMemo(() => items.map(i => i.id).join(","), [items])
@@ -326,6 +327,12 @@ export function CategoryHubScreen({
   }
 
   async function handleDeleteCustom(id: string) {
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id)
+      setTimeout(() => setConfirmDeleteId((prev) => prev === id ? null : prev), 4000)
+      return
+    }
+    setConfirmDeleteId(null)
     const success = await onRemoveCustomCategory(id)
     if (success) {
       const next = items.filter(i => i.id !== id)
@@ -368,7 +375,7 @@ export function CategoryHubScreen({
         >
           ←
         </motion.button>
-        <h2
+        <h1
           style={{
             fontSize: 22,
             fontWeight: 700,
@@ -377,7 +384,7 @@ export function CategoryHubScreen({
           }}
         >
           Manage Categories
-        </h2>
+        </h1>
         <motion.button
           onClick={() => setShowAddForm(true)}
           whileTap={{ scale: 0.95 }}
@@ -640,17 +647,19 @@ export function CategoryHubScreen({
                       whileTap={{ scale: 0.9 }}
                       transition={springs.snappy}
                       style={{
-                        background: "none",
+                        background: confirmDeleteId === item.id ? "rgba(239, 68, 68, 0.15)" : "none",
                         border: "none",
-                        fontSize: 14,
+                        fontSize: confirmDeleteId === item.id ? 11 : 14,
+                        fontWeight: confirmDeleteId === item.id ? 600 : undefined,
                         color: "rgba(248, 113, 113, 0.8)",
                         cursor: "pointer",
                         padding: "4px 6px",
+                        borderRadius: 6,
                       }}
-                      aria-label={`Delete ${item.label}`}
-                      title="Delete"
+                      aria-label={confirmDeleteId === item.id ? `Confirm delete ${item.label}` : `Delete ${item.label}`}
+                      title={confirmDeleteId === item.id ? "Confirm delete" : "Delete"}
                     >
-                      ✕
+                      {confirmDeleteId === item.id ? "Sure?" : "✕"}
                     </motion.button>
                   )}
                 </div>

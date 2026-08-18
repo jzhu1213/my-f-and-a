@@ -162,9 +162,9 @@ export function PrivacyDataScreen({
         ← Back
       </button>
 
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
         Privacy &amp; data
-      </h2>
+      </h1>
       <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 24, lineHeight: 1.5 }}>
         Your money data is yours. Here&apos;s exactly what Folio keeps, how to take a copy,
         and how to erase it all whenever you want.
@@ -172,12 +172,12 @@ export function PrivacyDataScreen({
 
       {/* ── Section 1: What's stored ─────────────────────────────────────── */}
       <section aria-labelledby="privacy-stored-heading" style={{ marginBottom: 28 }}>
-        <h3
+        <h2
           id="privacy-stored-heading"
           style={{ ...sectionHeader, marginBottom: 12 }}
         >
           What&apos;s stored
-        </h3>
+        </h2>
 
         <GlassCard elevation="low" style={{ padding: "6px 20px" }}>
           {/* Profile row (always present) */}
@@ -256,12 +256,12 @@ export function PrivacyDataScreen({
 
       {/* ── Section 2: Export ────────────────────────────────────────────── */}
       <section aria-labelledby="privacy-export-heading" style={{ marginBottom: 28 }}>
-        <h3
+        <h2
           id="privacy-export-heading"
           style={{ ...sectionHeader, marginBottom: 12 }}
         >
           Take a copy
-        </h3>
+        </h2>
 
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
           <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 16, lineHeight: 1.5 }}>
@@ -307,12 +307,12 @@ export function PrivacyDataScreen({
 
       {/* ── Section 3: Delete everything (GDPR / CCPA) ───────────────────── */}
       <section aria-labelledby="privacy-delete-heading">
-        <h3
+        <h2
           id="privacy-delete-heading"
           style={{ ...sectionHeader, marginBottom: 12, color: "var(--error)" }}
         >
           Delete everything
-        </h3>
+        </h2>
 
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
           {!showDeleteConfirm ? (

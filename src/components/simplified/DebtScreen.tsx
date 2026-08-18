@@ -119,6 +119,7 @@ export function DebtScreen({
   const [form, setForm] = useState<DebtFormData>(DEFAULT_FORM)
   const [saving, setSaving] = useState(false)
   const [activeWhatIf, setActiveWhatIf] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   // ── Computed ───────────────────────────────────────────────────────────────
   const totalBalance = getTotalDebtBalance(debts)
@@ -177,6 +178,12 @@ export function DebtScreen({
   }
 
   async function handleDelete(id: string) {
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id)
+      setTimeout(() => setConfirmDeleteId((prev) => prev === id ? null : prev), 4000)
+      return
+    }
+    setConfirmDeleteId(null)
     await onDeleteDebt(id)
     if (editingId === id) cancelForm()
   }
@@ -221,7 +228,7 @@ export function DebtScreen({
         >
           ←
         </motion.button>
-        <h2
+        <h1
           style={{
             fontSize: 22,
             fontWeight: 700,
@@ -230,7 +237,7 @@ export function DebtScreen({
           }}
         >
           Debts
-        </h2>
+        </h1>
       </div>
 
       {/* ── Summary Card ───────────────────────────────────────────────────── */}
@@ -450,17 +457,19 @@ export function DebtScreen({
                     whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
                     transition={springs.snappy}
                     style={{
-                      background: "none",
+                      background: confirmDeleteId === debt.id ? "rgba(239, 68, 68, 0.15)" : "none",
                       border: "none",
                       padding: "4px 8px",
                       cursor: "pointer",
-                      fontSize: 16,
+                      fontSize: confirmDeleteId === debt.id ? 12 : 16,
+                      fontWeight: confirmDeleteId === debt.id ? 600 : undefined,
                       color: "var(--error)",
                       marginLeft: 8,
+                      borderRadius: 6,
                     }}
-                    aria-label={`Delete ${debt.name}`}
+                    aria-label={confirmDeleteId === debt.id ? `Confirm delete ${debt.name}` : `Delete ${debt.name}`}
                   >
-                    ✕
+                    {confirmDeleteId === debt.id ? "Confirm?" : "✕"}
                   </motion.button>
                 </div>
               )}

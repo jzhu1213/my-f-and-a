@@ -9,8 +9,8 @@ import type { UndoActionType } from '@/lib/undoStack'
  * Provides `performWithUndo` which:
  * 1. Performs the destructive action immediately
  * 2. Shows a toast with an "Undo" button
- * 3. If user taps "Undo" within 5s → executes the undo function
- * 4. After 5s → the action is committed permanently (toast auto-dismisses)
+ * 3. If user taps "Undo" within 10s → executes the undo function
+ * 4. After 10s → the action is committed permanently (toast auto-dismisses)
  *
  * Only one undo action is pending at a time. New actions replace previous ones.
  */

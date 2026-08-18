@@ -157,22 +157,69 @@ function buildIndex(transactions: Transaction[]): IndexEntry[] {
 }
 
 // ============================================================================
-// Memoized index
+// Memoized index (Task 472.2: deferred index building)
 // ============================================================================
 
 let cachedTransactions: Transaction[] | null = null
 let cachedIndex: IndexEntry[] = []
+let pendingBuildId: number | ReturnType<typeof setTimeout> | null = null
 
 /**
- * Get or build the search index. Only rebuilds when the transactions array
- * reference changes (shallow equality check).
+ * Get the search index, building it synchronously if needed for immediate search.
+ * Only rebuilds when the transactions array reference changes.
  */
 function getIndex(transactions: Transaction[]): IndexEntry[] {
   if (transactions !== cachedTransactions) {
+    // Cancel any pending deferred build
+    if (pendingBuildId !== null) {
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(pendingBuildId as number)
+      } else {
+        clearTimeout(pendingBuildId as ReturnType<typeof setTimeout>)
+      }
+      pendingBuildId = null
+    }
     cachedTransactions = transactions
     cachedIndex = buildIndex(transactions)
   }
   return cachedIndex
+}
+
+/**
+ * Schedule an index rebuild in the background using requestIdleCallback.
+ * Call this when transactions change to pre-warm the index without blocking
+ * the render frame. If the user searches before the build completes, getIndex()
+ * will build synchronously as a fallback.
+ *
+ * **Validates: Requirements 28.5** — offloads search indexing from the render path
+ */
+export function scheduleIndexBuild(transactions: Transaction[]): void {
+  // Already up to date
+  if (transactions === cachedTransactions) return
+
+  // Cancel previous pending build
+  if (pendingBuildId !== null) {
+    if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+      window.cancelIdleCallback(pendingBuildId as number)
+    } else {
+      clearTimeout(pendingBuildId as ReturnType<typeof setTimeout>)
+    }
+  }
+
+  const build = () => {
+    pendingBuildId = null
+    // Only build if the reference is still the one we were asked to index
+    // (prevents stale builds from overwriting a newer index)
+    if (transactions === cachedTransactions) return
+    cachedTransactions = transactions
+    cachedIndex = buildIndex(transactions)
+  }
+
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    pendingBuildId = window.requestIdleCallback(build, { timeout: 3000 })
+  } else {
+    pendingBuildId = setTimeout(build, 0)
+  }
 }
 
 // ============================================================================

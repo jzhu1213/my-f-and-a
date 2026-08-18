@@ -102,7 +102,7 @@ export function ComingUpSection({ items, onPreLog }: ComingUpSectionProps) {
           margin: 0,
           font: "inherit",
           color: "inherit",
-          textAlign: "left",
+          textAlign: "start",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
@@ -235,7 +235,7 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
           fontFamily: FONT_FAMILY,
           flexShrink: 0,
           minWidth: 60,
-          textAlign: "right",
+          textAlign: "end",
         }}
       >
         {daysLabel}

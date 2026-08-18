@@ -14,7 +14,7 @@
 // Default experience is unchanged: with no stored locale the language is "en"
 // and every string renders its English copy, exactly as before.
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { getLocale, setLocale, DEFAULT_LOCALE } from '../lib/localePreferences'
 import {
   DEFAULT_LANGUAGE,
@@ -23,6 +23,7 @@ import {
   type Language,
   type TranslateFn,
 } from '../lib/i18n'
+import { getDirection, isRTL as checkRTL, type Direction } from '../lib/rtl'
 
 interface I18nContextType {
   /** The active base language ("en" | "es"), derived from the stored locale. */
@@ -31,6 +32,10 @@ interface I18nContextType {
   setLanguage: (language: Language) => void
   /** Translate a key (with optional `{placeholder}` values), English fallback. */
   t: TranslateFn
+  /** The layout direction ('ltr' | 'rtl') derived from the active locale. */
+  direction: Direction
+  /** True when the active locale is a right-to-left language. */
+  isRTL: boolean
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
@@ -71,9 +76,21 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     [language]
   )
 
+  // Compute direction from the full stored locale (not just the base language).
+  const locale = typeof window === 'undefined' ? DEFAULT_LOCALE : getLocale()
+  const direction = getDirection(locale)
+  const rtl = checkRTL(locale)
+
+  // Sync <html> dir and lang attributes whenever language/direction changes.
+  useEffect(() => {
+    const html = document.documentElement
+    html.setAttribute('dir', direction)
+    html.setAttribute('lang', locale)
+  }, [direction, locale])
+
   const value = useMemo<I18nContextType>(
-    () => ({ language, setLanguage, t }),
-    [language, setLanguage, t]
+    () => ({ language, setLanguage, t, direction, isRTL: rtl }),
+    [language, setLanguage, t, direction, rtl]
   )
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
@@ -96,4 +113,13 @@ export function useI18n(): I18nContextType {
  */
 export function useTranslation(): TranslateFn {
   return useI18n().t
+}
+
+/**
+ * Convenience hook for components that need layout direction information.
+ * Returns the direction ('ltr' | 'rtl') and a boolean isRTL flag.
+ */
+export function useDirection(): { direction: Direction; isRTL: boolean } {
+  const { direction, isRTL } = useI18n()
+  return { direction, isRTL }
 }

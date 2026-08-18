@@ -15,12 +15,33 @@ import { HistoryScreen } from '@/components/simplified/HistoryScreen'
 import { SettingsScreen } from '@/components/simplified/SettingsScreen'
 import type { SettingsCategory } from '@/components/simplified/SettingsScreen'
 import { ToolsScreen } from '@/components/simplified/ToolsScreen'
-import { ExpenseSheet } from '@/components/simplified/ExpenseSheet'
-import { IncomeSheet } from '@/components/simplified/IncomeSheet'
-import { PaycheckSheet } from '@/components/simplified/PaycheckSheet'
-import { EditTransactionSheet } from '@/components/simplified/EditTransactionSheet'
-import { RefundSheet } from '@/components/simplified/RefundSheet'
-import { QuickLogConfirmSheet } from '@/components/simplified/QuickLogConfirmSheet'
+// ── Heavy sheets: lazy-loaded so the sheet wrapper appears instantly while
+// complex sub-components (split UI, allocation builder, projections) stream in.
+// (Task 467.2 – code splitting refinement)
+const ExpenseSheet = dynamic(
+  () => import('@/components/simplified/ExpenseSheet').then(m => ({ default: m.ExpenseSheet })),
+  { ssr: false }
+)
+const IncomeSheet = dynamic(
+  () => import('@/components/simplified/IncomeSheet').then(m => ({ default: m.IncomeSheet })),
+  { ssr: false }
+)
+const PaycheckSheet = dynamic(
+  () => import('@/components/simplified/PaycheckSheet').then(m => ({ default: m.PaycheckSheet })),
+  { ssr: false }
+)
+const EditTransactionSheet = dynamic(
+  () => import('@/components/simplified/EditTransactionSheet').then(m => ({ default: m.EditTransactionSheet })),
+  { ssr: false }
+)
+const RefundSheet = dynamic(
+  () => import('@/components/simplified/RefundSheet').then(m => ({ default: m.RefundSheet })),
+  { ssr: false }
+)
+const QuickLogConfirmSheet = dynamic(
+  () => import('@/components/simplified/QuickLogConfirmSheet').then(m => ({ default: m.QuickLogConfirmSheet })),
+  { ssr: false }
+)
 import { AppLockScreen } from '@/components/simplified/AppLockScreen'
 import { readQuickCaptureIntent } from '@/lib/quickCapture'
 import { TutorialSetupStepRenderer, TutorialSetupState, SetupFixedExpense, buildOnboardingResult, BUDGET_PRESETS, buildStepsForPath, buildDemoOnlySteps } from '@/components/simplified/TutorialSteps'
@@ -226,14 +247,18 @@ import { useComingUpItems } from '@/hooks/useComingUpItems'
 import { getAutomationPreferences } from '@/lib/automationPreferences'
 import { useSmartNotifications } from '@/hooks/useSmartNotifications'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
+import { ServiceWorkerUpdatePrompt } from '@/components/ui/ServiceWorkerUpdatePrompt'
 import { useAppLock } from '@/hooks/useAppLock'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 import { useOverlayRouter } from '@/hooks/useOverlayRouter'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useLocalToCloudMigration } from '@/hooks/useLocalToCloudMigration'
 import { SyncIndicator } from '@/components/simplified/SyncIndicator'
+import { KeyboardShortcutsHelp } from '@/components/simplified/KeyboardShortcutsHelp'
 import { OfflineBanner } from '@/components/ui/OfflineBanner'
+import { PartialLoadBanner } from '@/components/ui/PartialLoadBanner'
 
 type OnboardingStep = 'loading' | 'tutorial' | 'conversational' | 'transitioning' | 'demo_replay' | 'done'
 
@@ -278,6 +303,53 @@ export default function FolioApp() {
 
   // Single overlay/sheet state machine (replaces ~20 individual boolean flags)
   const overlay = useOverlayRouter()
+
+  // ── Keyboard Shortcuts (task 452.2) ────────────────────────────
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Tab index mapping for keyboard nav (1=home, 2=history, 3=tools, 4=settings)
+  const NAV_TABS: AppNavKey[] = ['home', 'history', 'tools', 'settings']
+
+  useKeyboardShortcuts({
+    openExpense: () => overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: false }),
+    openIncome: () => overlay.openSheet('income'),
+    switchTab: (index: number) => {
+      if (index >= 0 && index < NAV_TABS.length) {
+        handleNavChange(NAV_TABS[index])
+      }
+    },
+    closeOverlay: () => {
+      if (showKeyboardHelp) {
+        setShowKeyboardHelp(false)
+      } else if (overlay.anySheetOpen) {
+        // Close the most recently opened sheet
+        const sheetIds: Array<import('@/hooks/useOverlayRouter').SheetId> = ['expense', 'income', 'paycheck', 'edit', 'refund', 'backfill', 'bulkRepeat', 'profile', 'quickLog']
+        for (const id of sheetIds) {
+          if (overlay.isSheetOpen(id)) {
+            overlay.closeSheet(id)
+            break
+          }
+        }
+      } else if (overlay.activeOverlay) {
+        overlay.closeOverlay()
+      }
+    },
+    focusSearch: () => {
+      // Focus the search input on the history screen
+      if (activeNav !== 'history') {
+        handleNavChange('history')
+      }
+      // Attempt to focus via DOM query (HistorySearchBar input)
+      setTimeout(() => {
+        const searchInput = document.querySelector<HTMLInputElement>('input[aria-label="Search transactions"]')
+        if (searchInput) {
+          searchInput.focus()
+        }
+      }, 100)
+    },
+    toggleHelp: () => setShowKeyboardHelp(prev => !prev),
+  })
 
   // ── Depth surface transition origin tracking (task 19.3) ───────
   // When a depth surface is opened from a visible Tools item, store the
@@ -414,6 +486,11 @@ export default function FolioApp() {
     setBudgetPeriod,
     periodTransitionMessage,
     dismissPeriodTransition,
+    loadMoreTransactions,
+    hasMoreTransactions,
+    isLoadingMore,
+    failedSources,
+    retryFailedSources,
   } = useHomeData(user?.id, user, recurringBills)
 
   // ── Suggested Entries (task 411 — auto-suggested transactions) ──
@@ -454,6 +531,7 @@ export default function FolioApp() {
   const {
     pendingCount: offlinePendingCount,
     hasFailed: offlineHasFailed,
+    isRetrying: offlineIsRetrying,
     recentlySyncedIds: offlineRecentlySyncedIds,
     retryAll: retryOfflineSync,
     dismissFailed: dismissOfflineFailed,
@@ -552,7 +630,8 @@ export default function FolioApp() {
   }, [user?.id])
 
   // ── Service Worker registration (task 77 — PWA notifications) ──
-  useServiceWorker()
+  // (task 476 — enhanced caching + update detection)
+  const { updateAvailable, applyUpdate } = useServiceWorker()
 
   // ── Local → Cloud migration (task 292.1 — one-way migration on first auth) ──
   useLocalToCloudMigration()
@@ -1412,7 +1491,7 @@ export default function FolioApp() {
       // Trigger a refresh to pick up the new allocation and recalculate totalSetAside
       await refresh()
     } else {
-      showToast('Allocation saved locally — will sync when connected', 'success')
+      showToast('Split saved locally — will sync when connected', 'success')
     }
   }, [user?.id, refresh, showToast])
 
@@ -2009,6 +2088,38 @@ export default function FolioApp() {
     // handleSignOut clears local onboarding state and returns to the tutorial.
     handleSignOut()
   }, [user?.id, showToast, overlay])
+
+  // ── Memoized HomeScreen props (Issue 1 — prevent new references every render) ──
+  const hasSkippedSetupSteps = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return getOnboardingProgress().skippedSteps.length > 0 || localStorage.getItem('folio-income-anchor-offered') !== 'true'
+  }, [transactions]) // recalc when data changes (onboarding progress is derived from setup state)
+
+  const skippedSetupSteps = useMemo(() => {
+    if (typeof window === 'undefined') return [] as string[]
+    return [
+      ...getOnboardingProgress().skippedSteps,
+      ...(localStorage.getItem('folio-income-anchor-offered') !== 'true' ? ['income-anchor'] : []),
+    ]
+  }, [transactions])
+
+  const isFirstRun = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('folio-just-onboarded') === 'true' && transactions.filter(t => t.type === 'expense').length === 0
+  }, [transactions])
+
+  // ── Stable callbacks for HomeScreen (Issue 2 — prevent new function refs every render) ──
+  const handleHeroTapDetails = useCallback(() => handleNavChange('history'), [handleNavChange])
+  const handleLogIncome = useCallback(() => overlay.openSheet('income'), [overlay])
+  const handleViewAllHistory = useCallback(() => handleNavChange('history'), [handleNavChange])
+  const handleCelebrationDismiss = useCallback(() => setCelebrationEvent(null), [])
+  const handleOpenBudgetSettingsFromHome = useCallback(() => overlay.openOverlay('budgetSettings'), [overlay])
+  const handleAddWish = useCallback(() => { setOverlayOriginToolId('wish-list'); overlay.openOverlay('wishList') }, [overlay])
+  const handleOpenReimbursementsFromHome = useCallback(() => overlay.openOverlay('reimbursements'), [overlay])
+  const handleOpenLessonFromHome = useCallback((lessonId: string) => {
+    overlay.openOverlay('learn', { initialLessonId: lessonId })
+  }, [overlay])
+  const handleOpenBackfillFromHome = useCallback(() => overlay.openSheet('backfill'), [overlay])
 
   // ── Profile Handlers ───────────────────────────────────────────
   const handleOpenProfile = () => {
@@ -2745,7 +2856,7 @@ export default function FolioApp() {
       <DepthSurfaceTransition
         open
         layoutId={overlayOriginToolId === 'portfolio-allocation' ? 'tool-portfolio-allocation' : undefined}
-        aria-label="Portfolio Allocation"
+        aria-label="Savings Breakdown"
       >
         <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
         <div className="min-h-screen" style={{ paddingTop: 60 }}>
@@ -2781,6 +2892,30 @@ export default function FolioApp() {
   // ── Main App Shell ─────────────────────────────────────────────
   return (
     <>
+      {/* Skip-to-main-content link for keyboard users (task 452.1) */}
+      <a
+        href="#main-content"
+        style={{
+          position: 'fixed',
+          top: -9999,
+          left: 0,
+          zIndex: 99999,
+          padding: '12px 20px',
+          background: 'var(--accent)',
+          color: 'var(--text)',
+          fontFamily: FONT_FAMILY,
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          borderRadius: '0 0 8px 0',
+          textDecoration: 'none',
+          outline: 'none',
+        }}
+        onFocus={(e) => { e.currentTarget.style.top = '0' }}
+        onBlur={(e) => { e.currentTarget.style.top = '-9999px' }}
+      >
+        Skip to main content
+      </a>
+
       <AppShell
         activeNav={activeNav}
         onNavChange={handleNavChange}
@@ -2791,20 +2926,28 @@ export default function FolioApp() {
         onQuickLog={anySheetOpen ? undefined : () => overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: false, originFromFab: true })}
         hideDock={anySheetOpen}
       >
+        {/* Main content landmark for skip link (task 452.1) */}
+        <div id="main-content" tabIndex={-1} style={{ outline: 'none' }}>
         {/* Offline banner — shown when network is down */}
         <OfflineBanner visible={!isOnline} />
-        {(offlinePendingCount > 0 || offlineRecentlySyncedIds.size > 0) && (
+        {(offlinePendingCount > 0 || offlineRecentlySyncedIds.size > 0 || offlineIsRetrying) && (
           <div style={{ marginBottom: 12 }}>
             <SyncIndicator
               pendingCount={offlinePendingCount}
               hasFailed={offlineHasFailed}
               recentlySyncedCount={offlineRecentlySyncedIds.size}
               isOnline={isOnline}
+              isRetrying={offlineIsRetrying}
               onRetry={retryOfflineSync}
               onDismiss={dismissOfflineFailed}
             />
           </div>
         )}
+        {/* Partial load banner — shown when some data sources fail but not all (Task 475.2) */}
+        <PartialLoadBanner
+          visible={failedSources.length > 0 && !loadError}
+          onRetry={retryFailedSources}
+        />
         <AnimatePresence mode="wait" custom={navDirection}>
           <motion.div
             key={activeNav}
@@ -2834,11 +2977,8 @@ export default function FolioApp() {
                 savingsAccounts={savingsAccounts}
                 fundingSources={fundingSources}
                 completedLessonIds={completedLessonIds}
-                hasSkippedSetupSteps={getOnboardingProgress().skippedSteps.length > 0 || localStorage.getItem('folio-income-anchor-offered') !== 'true'}
-                skippedSetupSteps={[
-                  ...getOnboardingProgress().skippedSteps,
-                  ...(typeof window !== 'undefined' && localStorage.getItem('folio-income-anchor-offered') !== 'true' ? ['income-anchor'] : []),
-                ]}
+                hasSkippedSetupSteps={hasSkippedSetupSteps}
+                skippedSetupSteps={skippedSetupSteps}
                 onResumeSetupStep={handleResumeSetupStep}
                 checklistSteps={checklistStepsWithStatus}
                 checklistCompletedCount={checklistProgress.completed}
@@ -2850,30 +2990,28 @@ export default function FolioApp() {
                 periodContext={periodContext}
                 periodTransitionMessage={periodTransitionMessage}
                 onDismissPeriodTransition={dismissPeriodTransition}
-                isFirstRun={typeof window !== 'undefined' && localStorage.getItem('folio-just-onboarded') === 'true' && transactions.filter(t => t.type === 'expense').length === 0}
-                onHeroTapDetails={() => handleNavChange('history')}
+                isFirstRun={isFirstRun}
+                onHeroTapDetails={handleHeroTapDetails}
                 onLogExpense={handleOpenExpenseSheet}
-                onLogIncome={() => overlay.openSheet('income')}
+                onLogIncome={handleLogIncome}
                 onRepeatLog={handleRepeatLog}
                 onViewTransaction={handleEditTransaction}
-                onViewAllHistory={() => handleNavChange('history')}
+                onViewAllHistory={handleViewAllHistory}
                 onDeleteTransaction={handleDeleteTransaction}
                 onEditTransaction={handleInlineSaveTransaction}
                 onRefresh={refresh}
                 celebrationEvent={celebrationEvent}
-                onCelebrationDismiss={() => setCelebrationEvent(null)}
+                onCelebrationDismiss={handleCelebrationDismiss}
                 detectedSubscriptions={detectedSubscriptions}
-                onOpenBudgetSettings={() => overlay.openOverlay('budgetSettings')}
+                onOpenBudgetSettings={handleOpenBudgetSettingsFromHome}
                 onOpenSplitExpense={handleOpenSplitExpense}
-                onAddWish={() => { setOverlayOriginToolId('wish-list'); overlay.openOverlay('wishList') }}
+                onAddWish={handleAddWish}
                 outstandingSplits={outstandingSplits}
-                onOpenReimbursements={() => overlay.openOverlay('reimbursements')}
+                onOpenReimbursements={handleOpenReimbursementsFromHome}
                 onSettleSplit={handleSettleSplit}
                 splitTransactionIds={splitTransactionIds}
-                onOpenLesson={(lessonId) => {
-                  overlay.openOverlay('learn', { initialLessonId: lessonId })
-                }}
-                onOpenBackfill={() => overlay.openSheet('backfill')}
+                onOpenLesson={handleOpenLessonFromHome}
+                onOpenBackfill={handleOpenBackfillFromHome}
                 suggestedEntries={gatedSuggestions}
                 suggestedEntriesTotal={gatedSuggestionsTotal}
                 suggestionsIncludedInAllowance={includeSuggestionsInAllowance}
@@ -2889,13 +3027,16 @@ export default function FolioApp() {
                 isLoading={dataLoading}
                 onEditTransaction={handleEditTransaction}
                 onDeleteTransaction={handleDeleteTransaction}
-                onLogExpense={() => handleOpenExpenseSheet()}
+                onLogExpense={handleOpenExpenseSheet}
                 onRepeatTransaction={handleRepeatTransaction}
                 allowance={allowance}
                 fundingSources={fundingSources}
                 onBulkDelete={handleBulkDelete}
                 onBulkRecategorize={handleBulkRecategorize}
                 onBulkTag={handleBulkTag}
+                onLoadMore={loadMoreTransactions}
+                hasMore={hasMoreTransactions}
+                isLoadingMore={isLoadingMore}
               />
             )}
             {activeNav === 'tools' && (
@@ -2991,6 +3132,7 @@ export default function FolioApp() {
             )}
           </motion.div>
         </AnimatePresence>
+        </div>
       </AppShell>
 
       {/* ── Expense Sheet ──────────────────────────────────────── */}
@@ -3175,6 +3317,18 @@ export default function FolioApp() {
       />
 
       <Toast />
+
+      {/* ── Service Worker Update Prompt (task 476.3) ──────── */}
+      <ServiceWorkerUpdatePrompt
+        visible={updateAvailable}
+        onUpdate={applyUpdate}
+      />
+
+      {/* ── Keyboard Shortcuts Help Overlay (task 452.2) ──────── */}
+      <KeyboardShortcutsHelp
+        isOpen={showKeyboardHelp}
+        onClose={() => setShowKeyboardHelp(false)}
+      />
     </>
   )
 }

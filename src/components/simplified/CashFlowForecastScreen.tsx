@@ -19,6 +19,7 @@ import {
   chartLabel,
   chartValueLabel,
   CHART_GRADIENT_PREFIX,
+  chartSeriesStyles,
 } from "@/styles/chartTokens"
 import { generateCashFlowForecast, validateForecastIncome } from "@/lib/cashFlowForecast"
 import type { ForecastInput, ForecastDay } from "@/lib/cashFlowForecast"
@@ -214,7 +215,7 @@ export function CashFlowForecastScreen({
         transition={springs.gentle}
         style={{ marginBottom: 20 }}
       >
-        <h2
+        <h1
           style={{
             fontSize: 22,
             fontWeight: 700,
@@ -223,7 +224,7 @@ export function CashFlowForecastScreen({
           }}
         >
           Your money through {forecast.summary.endDateLabel}
-        </h2>
+        </h1>
         <p
           style={{
             fontSize: 14,
@@ -278,12 +279,17 @@ export function CashFlowForecastScreen({
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...springs.gentle, delay: 0.1 }}
       >
+        {/* Screen reader text summary for the chart */}
+        <span id="cashflow-chart-summary" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0 }}>
+          {`Cash flow forecast: starting at $${Math.round(currentBalance)}, ending at $${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0)} by ${forecast.summary.endDateLabel}. ${forecast.summary.willGoNegative ? 'Balance is projected to go negative during this period.' : `Lowest projected balance: $${Math.round(forecast.summary.lowestBalance)}.`}`}
+        </span>
         <ChartFrame
           type="line"
           state={forecast.days.length >= 2 ? "loaded" : "error"}
           height={CHART_HEIGHT + 60}
           errorMessage="Not enough data to chart"
           aria-label={`Balance projection chart from $${Math.round(currentBalance)} today to $${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0)} on ${forecast.summary.endDateLabel}`}
+          aria-describedby="cashflow-chart-summary"
         >
           <div style={{ padding: "20px 16px" }}>
             <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
@@ -312,12 +318,13 @@ export function CashFlowForecastScreen({
                 fill={`url(#${CHART_GRADIENT_PREFIX}-cashflow)`}
                 stroke="none"
               />
-              {/* Line */}
+              {/* Line — uses dashed pattern for CVD differentiation (secondary series) */}
               <path
                 d={chartPath}
                 fill="none"
                 stroke={chartColors.secondary}
                 strokeWidth={chartStrokes.lineWidthLight}
+                strokeDasharray={chartSeriesStyles.secondary.dashPattern}
                 vectorEffect="non-scaling-stroke"
                 strokeLinecap="round"
               />

@@ -190,7 +190,7 @@ export function FundingSourcesScreen({
           </button>
         )}
         <div style={{ flex: 1 }}>
-          <h2
+          <h1
             style={{
               fontSize: 22,
               fontWeight: 700,
@@ -199,7 +199,7 @@ export function FundingSourcesScreen({
             }}
           >
             Payment Methods
-          </h2>
+          </h1>
           <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.4 }}>
             Manage how you pay for things
           </p>

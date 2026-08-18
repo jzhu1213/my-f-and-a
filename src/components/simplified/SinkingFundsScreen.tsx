@@ -494,12 +494,12 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
         role="button"
         tabIndex={0}
         aria-expanded={expanded}
-        aria-label="Toggle Financial Aid / Disbursement section"
+        aria-label="Toggle Financial Aid section"
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setExpanded(prev => !prev) }}
       >
         <div>
           <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", margin: 0 }}>
-            🎓 Financial Aid / Disbursement
+            🎓 Financial Aid / Lump-Sum Income
           </p>
           <p style={{ fontSize: 12, color: "var(--sub)", margin: "4px 0 0" }}>
             Spread a lump-sum across months to boost your daily budget
@@ -578,7 +578,7 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
                 onChange={e => setLabel(e.target.value)}
                 placeholder="e.g. Fall 2024 Aid Refund"
                 style={inputStyle}
-                aria-label="Disbursement label"
+                aria-label="Aid label"
               />
             </div>
 
@@ -649,7 +649,7 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
                   backgroundRepeat: "no-repeat",
                   backgroundPosition: "right 12px center",
                 }}
-                aria-label="Number of months to spread disbursement"
+                aria-label="Number of months to spread this income over"
               >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
                   <option key={n} value={n}>
@@ -694,9 +694,9 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
                 cursor: lumpSum <= 0 ? "not-allowed" : "pointer",
                 opacity: lumpSum <= 0 ? 0.5 : 1,
               }}
-              aria-label="Apply disbursement to daily allowance"
+              aria-label="Add aid to daily budget"
             >
-              {onAddDisbursement ? 'Add disbursement' : 'Apply to daily allowance'}
+              {onAddDisbursement ? 'Add aid income' : 'Apply to daily budget'}
             </motion.button>
           </motion.div>
         )}

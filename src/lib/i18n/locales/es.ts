@@ -117,4 +117,52 @@ export const es: PartialTranslationResource = {
   'settings.languageHelp': 'Elige el idioma de las etiquetas y los mensajes.',
   'settings.languageEnglish': 'English',
   'settings.languageSpanish': 'Español',
+
+  // --------------------------------------------------------------------------
+  // Home screen
+  // --------------------------------------------------------------------------
+  'home.logExpense': 'Registrar gasto',
+  'home.logIncome': 'Registrar ingreso',
+  'home.logFirstExpense': 'Registra tu primer gasto',
+  'home.sectionRecent': 'Recientes',
+  'home.sectionCategories': 'Categorías',
+  'home.seeAll': 'Ver todo →',
+  'home.split': '🤝 Dividir',
+  'home.canIAfford': '🤔 ¿Me alcanza?',
+  'home.addWish': '⭐ + Deseo',
+  'home.logIncomeArrow': 'Registrar ingreso →',
+  'home.overBudgetGentle': 'Hoy gastaste un poco más — mañana empieza de nuevo ✨',
+  'home.overBudgetStrip': 'El presupuesto de mañana se reinicia — o registra un ingreso hoy.',
+  'home.estimateNudge': '✨ Estimado — registra un ingreso para mayor precisión →',
+  'home.zeroSpendMark': '🎯 ¿Nada gastado? Marcar como día $0',
+  'home.zeroSpendConfirm': '✓ Día registrado — la racha continúa',
+  'home.spendDownOnTrack': 'En buen camino ✓',
+  'home.spendDownAhead': 'Un poco adelantado',
+  'home.emptyFirstRunTitle': 'Aquí aparecerán tus gastos.',
+  'home.emptyFirstRunSubtitle': 'Registra tu primer gasto y mira cómo toma forma tu día.',
+  'home.emptyTitle': 'Listo cuando quieras',
+  'home.emptySubtitle': 'Registra tu primer gasto y Folio empieza a aprender tus hábitos',
+  'home.emptyAction': 'Registrar gasto →',
+  'home.categoryEmptyTitle': 'Todo listo para empezar — los límites son opcionales',
+  'home.categoryEmptySubtitle': 'Agrega límites por categoría en cualquier momento para un número diario más preciso',
+  'home.categoryEmptyAction': 'Configurar límites →',
+  'home.viewAllSplits': 'Ver todo ({count}) →',
+
+  // --------------------------------------------------------------------------
+  // History screen
+  // --------------------------------------------------------------------------
+  'history.title': 'Historial',
+  'history.showing': 'Mostrando {count} {noun} de {total} en total',
+  'history.transaction': 'transacción',
+  'history.transactions': 'transacciones',
+
+  // --------------------------------------------------------------------------
+  // Quick log — validation & actions
+  // --------------------------------------------------------------------------
+  'quicklog.logExpense': 'Registrar gasto',
+  'quicklog.cancel': 'Cancelar',
+  'quicklog.validationInvalid': 'Ingresa un monto válido',
+  'quicklog.validationPositive': 'El monto debe ser mayor a $0',
+  'quicklog.validationMax': 'El monto no puede exceder ${max}',
+  'quicklog.notePlaceholderShort': 'Nota (opcional)',
 }

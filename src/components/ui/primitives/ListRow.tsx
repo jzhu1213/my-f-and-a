@@ -70,6 +70,10 @@ export interface ListRowProps {
   onEditDismiss?: () => void
   /** Whether this row is being removed (triggers exit animation). */
   removing?: boolean
+  /** Override the default tabIndex (for roving tabindex patterns). */
+  tabIndex?: number
+  /** Additional keydown handler (merged with internal Enter/Space handler). */
+  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void
   /** Additional inline styles. */
   style?: React.CSSProperties
   /** CSS class name. */
@@ -179,6 +183,8 @@ export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(function ListRow
     editContent,
     onEditDismiss,
     removing = false,
+    tabIndex: tabIndexProp,
+    onKeyDown: onKeyDownProp,
     style,
     className,
     "aria-label": ariaLabel,
@@ -281,19 +287,16 @@ export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(function ListRow
         whileTap={onPress ? "pressed" : undefined}
         onClick={onPress}
         role={onPress ? "button" : undefined}
-        tabIndex={onPress ? 0 : undefined}
+        tabIndex={tabIndexProp ?? (onPress ? 0 : undefined)}
         aria-label={ariaLabel}
         data-testid={testId}
-        onKeyDown={
-          onPress
-            ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault()
-                  onPress()
-                }
-              }
-            : undefined
-        }
+        onKeyDown={(e) => {
+          onKeyDownProp?.(e)
+          if (onPress && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault()
+            onPress()
+          }
+        }}
       >
         {children}
       </motion.div>

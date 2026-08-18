@@ -57,17 +57,34 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
   if (monthExpenseCount < 3) return null
   if (largestExpenses.length === 0 && breakdown.length === 0) return null
 
+  // Build a text summary for screen readers
+  const textSummary = useMemo(() => {
+    const parts: string[] = []
+    if (largestExpenses.length > 0) {
+      parts.push(`Top expenses: ${largestExpenses.map(e => `${e.label} $${Math.round(e.amount)}`).join(', ')}.`)
+    }
+    if (breakdown.length > 0) {
+      parts.push(`Category breakdown: ${breakdown.map(r => `${r.label} ${r.percent}%`).join(', ')}.`)
+    }
+    return parts.join(' ')
+  }, [largestExpenses, breakdown])
+
   return (
     <AnimatePresence>
       {!dismissed && (
         <motion.section
           aria-label="Spending breakdown insight"
+          aria-describedby="insight-breakdown-summary"
           initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={prefersReducedMotion ? undefined : { opacity: 0, height: 0, marginTop: 0 }}
           transition={prefersReducedMotion ? { duration: 0 } : timings.normal}
         >
           <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
+            {/* Screen reader text summary */}
+            <span id="insight-breakdown-summary" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0 }}>
+              {textSummary}
+            </span>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
               <span style={{ fontSize: 18, lineHeight: 1.4 }} aria-hidden="true">
                 💸

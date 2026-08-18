@@ -452,3 +452,55 @@ export function getSettleMs(
 ): number {
   return reducedMotion ? getReducedMotionSettleMs() : normalMs
 }
+
+
+// ============================================================================
+// RTL-Aware Gesture Helpers (Task 458.1, Requirement 27.5)
+// ============================================================================
+
+/**
+ * Semantic horizontal direction that accounts for RTL layout.
+ *
+ * In LTR: 'forward' = right, 'backward' = left
+ * In RTL: 'forward' = left, 'backward' = right
+ */
+export type SemanticDirection = 'forward' | 'backward'
+
+/**
+ * Convert a physical swipe direction to a semantic direction based on
+ * the document's text direction.
+ *
+ * In LTR mode:
+ *   - Swipe right → 'backward' (navigate back)
+ *   - Swipe left  → 'forward'  (navigate forward)
+ *
+ * In RTL mode:
+ *   - Swipe left  → 'backward' (navigate back)
+ *   - Swipe right → 'forward'  (navigate forward)
+ *
+ * This mirrors iOS/Android conventions where "back" always slides
+ * toward the reading start edge.
+ */
+export function resolveSemanticDirection(
+  physicalDirection: 'left' | 'right',
+  isRTL: boolean,
+): SemanticDirection {
+  if (isRTL) {
+    return physicalDirection === 'left' ? 'backward' : 'forward'
+  }
+  return physicalDirection === 'right' ? 'backward' : 'forward'
+}
+
+/**
+ * Get the physical direction for row-reveal actions based on RTL mode.
+ *
+ * In LTR: swipe left to reveal actions (standard iOS pattern).
+ * In RTL: swipe right to reveal actions (mirrored).
+ *
+ * Returns the displacement sign that should reveal actions:
+ *   LTR → negative (left)
+ *   RTL → positive (right)
+ */
+export function getRowRevealSign(isRTL: boolean): -1 | 1 {
+  return isRTL ? 1 : -1
+}

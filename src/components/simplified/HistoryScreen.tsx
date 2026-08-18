@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react"
+import { useState, useMemo, useCallback, useEffect, useRef, memo } from "react"
+import { useTranslation } from "@/contexts/I18nContext"
 import type { Transaction, TransactionCategory } from "@/types"
 import type { DailyAllowance } from "@/types/folio"
 import type { FundingSource } from "@/lib/fundingSources"
@@ -14,7 +15,7 @@ import { InsightBreakdownCard } from "./InsightBreakdownCard"
 import { HistorySearchBar } from "./HistorySearchBar"
 import { HistoryFilterChips, EMPTY_FILTERS } from "./HistoryFilterChips"
 import type { HistoryFilters } from "./HistoryFilterChips"
-import { searchTransactions } from "@/lib/transactionSearch"
+import { searchTransactions, scheduleIndexBuild } from "@/lib/transactionSearch"
 import { useFilteredTransactions } from "@/lib/useFilteredTransactions"
 import type { QuickFilter } from "@/lib/transactionSearch"
 import { HistoryViewToggle } from "./HistoryViewToggle"
@@ -80,6 +81,12 @@ export interface HistoryScreenProps {
   splitMap?: Map<string, { splitId: string; participantCount: number }>
   /** Callback when split indicator is tapped (Task 401.3) */
   onViewSplit?: (splitId: string) => void
+  /** Load next page of historical transactions (Task 469.1) */
+  onLoadMore?: () => Promise<void>
+  /** Whether more historical transactions are available (Task 469.1) */
+  hasMore?: boolean
+  /** Whether a page load is in progress (Task 469.1) */
+  isLoadingMore?: boolean
 }
 
 // ============================================================================
@@ -94,7 +101,7 @@ export interface HistoryScreenProps {
  *
  * Requirements: 9.2, 11.1
  */
-export function HistoryScreen({
+export const HistoryScreen = memo(function HistoryScreen({
   transactions,
   isLoading,
   onEditTransaction,
@@ -108,7 +115,11 @@ export function HistoryScreen({
   onBulkTag,
   splitMap,
   onViewSplit,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
 }: HistoryScreenProps) {
+  const t = useTranslation()
   const { prefersReducedMotion, listContainer, listItem } = useReducedMotion()
 
   // ── Search state ──────────────────────────────────────────────────
@@ -134,6 +145,15 @@ export function HistoryScreen({
   useEffect(() => {
     saveHistoryFilters(historyFilters)
   }, [historyFilters])
+
+  // Task 472.2: Pre-warm the search index in the background when transactions
+  // change. This offloads the O(n) index build from the search interaction so
+  // the first keystroke is instant.
+  useEffect(() => {
+    if (transactions.length > 0) {
+      scheduleIndexBuild(transactions)
+    }
+  }, [transactions])
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null
@@ -190,6 +210,27 @@ export function HistoryScreen({
   const [filterAnnouncement, setFilterAnnouncement] = useState("")
   const prevFilteredCountRef = useRef(filteredTransactions.length)
 
+  // ── Infinite scroll: IntersectionObserver for load-more sentinel (Task 469.1) ─
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!onLoadMore || !hasMore) return
+    const sentinel = loadMoreRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isLoadingMore) {
+          onLoadMore()
+        }
+      },
+      { rootMargin: '200px' }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [onLoadMore, hasMore, isLoadingMore])
+
   useEffect(() => {
     // Only announce if count actually changed (avoid initial render)
     if (prevFilteredCountRef.current !== filteredTransactions.length) {
@@ -199,7 +240,11 @@ export function HistoryScreen({
 
       if (hasFilters) {
         setFilterAnnouncement(
-          `Showing ${filteredTransactions.length} ${filteredTransactions.length === 1 ? "transaction" : "transactions"} of ${transactions.length} total`
+          t('history.showing', {
+            count: filteredTransactions.length,
+            noun: filteredTransactions.length === 1 ? t('history.transaction') : t('history.transactions'),
+            total: transactions.length,
+          })
         )
       } else {
         setFilterAnnouncement(
@@ -217,6 +262,18 @@ export function HistoryScreen({
       initial="hidden"
       animate="visible"
     >
+      {/* Visually-hidden h1 for screen reader heading hierarchy (Req 27.1) */}
+      <h1 style={{
+        position: "absolute",
+        width: 1,
+        height: 1,
+        padding: 0,
+        margin: -1,
+        overflow: "hidden",
+        clip: "rect(0, 0, 0, 0)",
+        whiteSpace: "nowrap",
+        borderWidth: 0,
+      }}>{t('history.title')}</h1>
       {/* Visually-hidden live region for screen readers: announces filter/result changes */}
       <div
         role="status"
@@ -408,6 +465,33 @@ export function HistoryScreen({
       </AnimatePresence>
       </motion.div>
 
+      {/* Infinite scroll sentinel (Task 469.1) — triggers loadMore when visible */}
+      {onLoadMore && hasMore && (
+        <div
+          ref={loadMoreRef}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '24px 0',
+            minHeight: 48,
+          }}
+        >
+          {isLoadingMore && (
+            <div
+              style={{
+                width: 24,
+                height: 24,
+                border: '2px solid rgba(255,255,255,0.15)',
+                borderTopColor: 'var(--accent, #a78bfa)',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+              }}
+            />
+          )}
+        </div>
+      )}
+
       {/* Export summary confirmation sheet (Task 406.2) */}
       <ExportSummarySheet
         open={exportSheetOpen}
@@ -417,4 +501,4 @@ export function HistoryScreen({
       />
     </motion.div>
   )
-}
+})

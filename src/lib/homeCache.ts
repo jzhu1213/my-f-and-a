@@ -1,25 +1,33 @@
-import type { Transaction, Budget } from '@/types'
+import type { Transaction, Budget, Goal } from '@/types'
 import type { DailyAllowance } from '@/types/folio'
 
 // ============================================================================
 // Home Screen Cache — Zero Perceptible Load
 // ============================================================================
+// Implements stale-while-revalidate (470.1), incremental updates (470.2),
+// and size management with LRU eviction (470.3).
+// Requirement 28.4: SWR caching with incremental mutation sync.
 
 /** Default stale threshold: 5 minutes */
 const DEFAULT_STALE_THRESHOLD_MS = 300_000
+
+/** Maximum cache size in bytes (~5MB) */
+const MAX_CACHE_SIZE_BYTES = 5 * 1024 * 1024
 
 /** Cache key prefix (user-specific) */
 const CACHE_KEY_PREFIX = 'folio-home-cache-'
 
 /**
  * Shape of the cached home screen state.
- * Includes everything needed to paint the hero + recent transactions instantly.
+ * Includes everything needed to paint the hero + recent transactions + budgets + goals instantly.
  */
 export interface HomeCachePayload {
   allowance: DailyAllowance
   recentTransactions: Transaction[]
   budgets: Budget[]
+  goals: Goal[]
   cachedAt: number // Date.now() timestamp
+  lastSyncedAt: number | null // timestamp of last successful background sync
 }
 
 /** Build the localStorage key for a given user */
@@ -50,6 +58,14 @@ export function getHomeCache(userId: string): HomeCachePayload | null {
       return null
     }
 
+    // Backfill optional fields for older cache entries
+    if (!Array.isArray(parsed.goals)) {
+      parsed.goals = []
+    }
+    if (parsed.lastSyncedAt === undefined) {
+      parsed.lastSyncedAt = null
+    }
+
     return parsed
   } catch {
     // Corrupted cache — treat as no cache
@@ -59,7 +75,8 @@ export function getHomeCache(userId: string): HomeCachePayload | null {
 
 /**
  * Persist a snapshot of the home screen state to localStorage.
- * Stores the 5 most recent transactions to keep payload small.
+ * Stores up to 50 recent transactions for offline access.
+ * Enforces cache size limit with eviction (Task 470.3).
  */
 export function setHomeCache(
   userId: string,
@@ -67,6 +84,7 @@ export function setHomeCache(
     allowance: DailyAllowance
     transactions: Transaction[]
     budgets: Budget[]
+    goals?: Goal[]
   }
 ): void {
   if (typeof window === 'undefined') return
@@ -74,12 +92,31 @@ export function setHomeCache(
   try {
     const payload: HomeCachePayload = {
       allowance: data.allowance,
-      recentTransactions: data.transactions.slice(0, 5),
+      recentTransactions: data.transactions.slice(0, 50),
       budgets: data.budgets,
+      goals: data.goals ?? [],
       cachedAt: Date.now(),
+      lastSyncedAt: Date.now(),
     }
 
-    localStorage.setItem(cacheKey(userId), JSON.stringify(payload))
+    const serialized = JSON.stringify(payload)
+
+    // Check if this write would exceed budget — evict if needed
+    if (!ensureCacheSpace(userId, serialized.length)) {
+      // Even after eviction we can't fit — write a minimal cache
+      const minimalPayload: HomeCachePayload = {
+        allowance: data.allowance,
+        recentTransactions: data.transactions.slice(0, 5),
+        budgets: data.budgets,
+        goals: data.goals?.slice(0, 10) ?? [],
+        cachedAt: Date.now(),
+        lastSyncedAt: Date.now(),
+      }
+      localStorage.setItem(cacheKey(userId), JSON.stringify(minimalPayload))
+      return
+    }
+
+    localStorage.setItem(cacheKey(userId), serialized)
   } catch {
     // localStorage full or unavailable — fail silently
   }
@@ -110,4 +147,230 @@ export function isCacheStale(
   if (!cache) return true
 
   return Date.now() - cache.cachedAt > thresholdMs
+}
+
+// ============================================================================
+// Incremental Cache Updates (Task 470.2)
+// ============================================================================
+// After mutations, patch the cache without refetching everything.
+// The full cache-write useEffect serves as background reconciliation.
+
+/**
+ * Add a transaction to the cache incrementally.
+ * Inserts at the front (most recent) and trims to 50 entries.
+ */
+export function addTransactionToCache(userId: string, transaction: Transaction): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    const cache = getHomeCache(userId)
+    if (!cache) return
+
+    // Insert at front, deduplicate, trim
+    const updated = [transaction, ...cache.recentTransactions.filter(t => t.id !== transaction.id)]
+    cache.recentTransactions = updated.slice(0, 50)
+    cache.cachedAt = Date.now()
+
+    localStorage.setItem(cacheKey(userId), JSON.stringify(cache))
+  } catch {
+    // Fail silently
+  }
+}
+
+/**
+ * Update a transaction in the cache incrementally.
+ * If the transaction isn't in the cache, it's a no-op.
+ */
+export function updateTransactionInCache(userId: string, id: string, updates: Partial<Transaction>): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    const cache = getHomeCache(userId)
+    if (!cache) return
+
+    const idx = cache.recentTransactions.findIndex(t => t.id === id)
+    if (idx === -1) return
+
+    cache.recentTransactions[idx] = { ...cache.recentTransactions[idx], ...updates }
+    cache.cachedAt = Date.now()
+
+    localStorage.setItem(cacheKey(userId), JSON.stringify(cache))
+  } catch {
+    // Fail silently
+  }
+}
+
+/**
+ * Remove a transaction from the cache incrementally.
+ */
+export function removeTransactionFromCache(userId: string, id: string): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    const cache = getHomeCache(userId)
+    if (!cache) return
+
+    cache.recentTransactions = cache.recentTransactions.filter(t => t.id !== id)
+    cache.cachedAt = Date.now()
+
+    localStorage.setItem(cacheKey(userId), JSON.stringify(cache))
+  } catch {
+    // Fail silently
+  }
+}
+
+/**
+ * Replace a temp transaction ID with the real server-assigned ID in cache.
+ * Used after successful persistence to keep cache in sync with optimistic reconciliation.
+ */
+export function reconcileTransactionInCache(userId: string, tempId: string, realTransaction: Transaction): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    const cache = getHomeCache(userId)
+    if (!cache) return
+
+    cache.recentTransactions = cache.recentTransactions.map(t =>
+      t.id === tempId ? realTransaction : t
+    )
+    cache.cachedAt = Date.now()
+
+    localStorage.setItem(cacheKey(userId), JSON.stringify(cache))
+  } catch {
+    // Fail silently
+  }
+}
+
+/**
+ * Update budgets in the cache incrementally.
+ */
+export function updateBudgetsInCache(userId: string, budgets: Budget[]): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    const cache = getHomeCache(userId)
+    if (!cache) return
+
+    cache.budgets = budgets
+    cache.cachedAt = Date.now()
+
+    localStorage.setItem(cacheKey(userId), JSON.stringify(cache))
+  } catch {
+    // Fail silently
+  }
+}
+
+/**
+ * Update the lastSyncedAt timestamp (called after successful background refresh).
+ */
+export function updateLastSyncedAt(userId: string): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    const cache = getHomeCache(userId)
+    if (!cache) return
+
+    cache.lastSyncedAt = Date.now()
+
+    localStorage.setItem(cacheKey(userId), JSON.stringify(cache))
+  } catch {
+    // Fail silently
+  }
+}
+
+// ============================================================================
+// Cache Size Management (Task 470.3)
+// ============================================================================
+
+/**
+ * Get the current size of the folio cache for a user in bytes.
+ */
+export function getCacheSize(userId: string): number {
+  if (typeof window === 'undefined') return 0
+
+  try {
+    const raw = localStorage.getItem(cacheKey(userId))
+    if (!raw) return 0
+    // Each character in localStorage is 2 bytes (UTF-16)
+    return raw.length * 2
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Get total localStorage usage by all folio cache entries (across all users).
+ */
+export function getTotalCacheSize(): number {
+  if (typeof window === 'undefined') return 0
+
+  try {
+    let total = 0
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith(CACHE_KEY_PREFIX)) {
+        const value = localStorage.getItem(key)
+        if (value) {
+          total += (key.length + value.length) * 2
+        }
+      }
+    }
+    return total
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Ensure there's enough space to write `neededBytes` to cache.
+ * Evicts oldest transaction entries first from the cache payload.
+ * Critical data (current month transactions, budgets, goals) is never evicted.
+ * Returns true if space was made available, false if eviction couldn't free enough.
+ */
+function ensureCacheSpace(userId: string, neededBytes: number): boolean {
+  if (typeof window === 'undefined') return false
+
+  try {
+    const totalUsed = getTotalCacheSize()
+
+    // If we're well under the limit, no eviction needed
+    if (totalUsed + neededBytes <= MAX_CACHE_SIZE_BYTES) {
+      return true
+    }
+
+    // Evict from existing cache: trim older transactions (beyond current month)
+    const cache = getHomeCache(userId)
+    if (!cache) return true // No existing cache to worry about
+
+    const currentMonth = new Date().toISOString().slice(0, 7)
+
+    // Split transactions: current month (protected) vs older (evictable)
+    const currentMonthTxns = cache.recentTransactions.filter(t => t.date.startsWith(currentMonth))
+    const olderTxns = cache.recentTransactions.filter(t => !t.date.startsWith(currentMonth))
+
+    // Evict oldest transactions first (they're sorted by date desc, so pop from end)
+    let evicted = 0
+    while (olderTxns.length > 0) {
+      const removed = olderTxns.pop()
+      if (removed) {
+        evicted += JSON.stringify(removed).length * 2
+      }
+      // Check if we've freed enough
+      if (totalUsed - evicted + neededBytes <= MAX_CACHE_SIZE_BYTES) {
+        break
+      }
+    }
+
+    // Write the trimmed cache
+    cache.recentTransactions = [...currentMonthTxns, ...olderTxns]
+      .sort((a, b) => b.date.localeCompare(a.date))
+    cache.cachedAt = Date.now()
+    localStorage.setItem(cacheKey(userId), JSON.stringify(cache))
+
+    // Verify we have space now
+    const newTotal = getTotalCacheSize()
+    return newTotal + neededBytes <= MAX_CACHE_SIZE_BYTES
+  } catch {
+    return false
+  }
 }

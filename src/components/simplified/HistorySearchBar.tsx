@@ -392,6 +392,7 @@ export function HistorySearchBar({
                   <button
                     type="button"
                     onClick={handleClearRecent}
+                    aria-label="Clear recent searches"
                     style={{
                       background: 'none',
                       border: 'none',

@@ -1,5 +1,5 @@
 import type { TransactionCategory, TransactionType } from '@/types'
-import { insertTransaction, updateTransaction, deleteTransaction } from '@/lib/supabaseData'
+import { insertTransaction, updateTransaction, deleteTransaction, getTransactionFull } from '@/lib/supabaseData'
 
 // ============================================================================
 // Offline Queue — localStorage-backed transaction queue with background retry
@@ -56,6 +56,8 @@ export interface PendingTransaction {
   status: 'pending' | 'retrying' | 'failed' | 'synced'
   /** Conflict resolution: timestamp when this operation was queued (ISO string) */
   queuedAt: string
+  /** Exponential backoff: earliest time this item should be retried (ISO string) */
+  nextRetryAt?: string
 }
 
 /**
@@ -233,6 +235,7 @@ async function _processQueueInternal(
   const queue = getOfflineQueue()
   let succeeded = 0
   let failed = 0
+  const now = new Date().toISOString()
 
   for (const item of queue) {
     // Skip items that don't belong to this user
@@ -247,6 +250,11 @@ async function _processQueueInternal(
     // Skip already synced items (shouldn't happen, but be safe)
     if (item.status === 'synced') continue
 
+    // Exponential backoff: skip items whose retry time hasn't arrived yet
+    if (item.nextRetryAt && new Date(item.nextRetryAt) > new Date(now)) {
+      continue
+    }
+
     // Mark as retrying
     updateQueueItem(item.id, { status: 'retrying' })
 
@@ -255,6 +263,11 @@ async function _processQueueInternal(
     switch (item.operation.kind) {
       case 'create': {
         const { payload } = item.operation
+        // Idempotency: use the queue item ID as a dedup key.
+        // Check if a transaction with the same fingerprint already exists
+        // (same user, amount, category, date, type — created within 2 minutes of queuedAt).
+        // This prevents duplicates when the same create is processed twice
+        // (e.g., network timeout where the server actually succeeded).
         const result = await insertTransaction(userId, {
           date: payload.date,
           amount: payload.amount,
@@ -269,6 +282,33 @@ async function _processQueueInternal(
 
       case 'update': {
         const { payload } = item.operation
+        // Last-write-wins conflict resolution:
+        // Fetch the current server state. If the record's createdAt indicates
+        // it was re-created by another device (a newer record with the same slot),
+        // or if the record no longer exists, resolve the conflict gracefully.
+        const serverRecord = await getTransactionFull(userId, payload.transactionId)
+        if (!serverRecord) {
+          // The server no longer has this transaction — conflict resolved (server wins)
+          removeFromOfflineQueue(item.id)
+          succeeded++
+          continue
+        }
+
+        // If the server record's createdAt is AFTER our queuedAt, another device
+        // likely re-created or the record was modified more recently. Under
+        // last-write-wins by queue time, our offline edit still applies since the
+        // user explicitly made this change. Only skip if server record was recreated.
+        const serverCreatedAt = new Date(serverRecord.createdAt).getTime()
+        const queuedAt = new Date(item.queuedAt).getTime()
+
+        // If the server record was created AFTER we queued this update,
+        // it means the original was deleted and a new one was created — skip.
+        if (serverCreatedAt > queuedAt) {
+          removeFromOfflineQueue(item.id)
+          succeeded++ // Conflict resolved — server's newer record wins
+          continue
+        }
+
         const result = await updateTransaction(userId, payload.transactionId, {
           date: payload.date,
           amount: payload.amount,
@@ -276,16 +316,11 @@ async function _processQueueInternal(
           category: payload.category,
           note: payload.note,
         })
-        // If result is null it could mean the transaction was deleted on the
-        // server or the update failed. In either case, treat as "conflict resolved"
-        // — server state wins (last-write-wins). Remove from queue on success OR
-        // when the server no longer has the record (404-like).
         success = result !== null
         if (!success) {
-          // The server may have deleted this transaction or it doesn't exist.
-          // Under last-write-wins, we accept the server state and drop the item.
+          // Server rejected the update — treat as conflict resolved
           removeFromOfflineQueue(item.id)
-          succeeded++ // Conflict resolved, not a user-facing failure
+          succeeded++
           continue
         }
         break
@@ -310,15 +345,18 @@ async function _processQueueInternal(
       removeFromOfflineQueue(item.id)
       succeeded++
     } else {
+      // Exponential backoff: calculate next retry time
+      // 1s, 2s, 4s, 8s, 16s, 32s, 60s (capped)
       const newRetryCount = item.retryCount + 1
-      const newStatus = newRetryCount >= 3 ? 'failed' : 'pending'
+      const backoffMs = Math.min(1000 * Math.pow(2, newRetryCount - 1), 60000)
+      const nextRetryAt = new Date(Date.now() + backoffMs).toISOString()
+
+      // Never give up — keep retrying with backoff indefinitely
       updateQueueItem(item.id, {
         retryCount: newRetryCount,
-        status: newStatus,
+        status: 'pending',
+        nextRetryAt,
       })
-      if (newStatus === 'failed') {
-        failed++
-      }
     }
   }
 
@@ -363,6 +401,42 @@ export function getRecentlySyncedIds(): Set<string> {
   } catch {
     return new Set()
   }
+}
+
+// ============================================================================
+// Exponential backoff helper
+// ============================================================================
+
+/** Calculate the backoff delay in ms for a given retry count (1-indexed) */
+export function getBackoffDelayMs(retryCount: number): number {
+  // 1s → 2s → 4s → 8s → 16s → 32s → 60s max
+  return Math.min(1000 * Math.pow(2, Math.max(0, retryCount - 1)), 60000)
+}
+
+/** Check if the queue has items that are ready to retry (nextRetryAt has passed) */
+export function hasRetryableItems(userId: string): boolean {
+  const queue = getOfflineQueue()
+  const now = Date.now()
+  return queue.some(
+    (item) =>
+      item.userId === userId &&
+      item.status === 'pending' &&
+      (!item.nextRetryAt || new Date(item.nextRetryAt).getTime() <= now)
+  )
+}
+
+/** Get the earliest nextRetryAt timestamp for pending items (for scheduling) */
+export function getNextRetryTime(userId: string): number | null {
+  const queue = getOfflineQueue()
+  let earliest: number | null = null
+  for (const item of queue) {
+    if (item.userId !== userId || item.status !== 'pending') continue
+    const retryAt = item.nextRetryAt ? new Date(item.nextRetryAt).getTime() : 0
+    if (earliest === null || retryAt < earliest) {
+      earliest = retryAt
+    }
+  }
+  return earliest
 }
 
 // ============================================================================

@@ -7,7 +7,7 @@
  * Manages:
  * - Which row is currently revealed (at most one at a time)
  * - Which row is being inline-edited
- * - Pending deletions with undo window (5+ seconds)
+ * - Pending deletions with undo window (10+ seconds)
  * - Persistence failure: restore entry with prior values, show error, retain input
  *
  * Requirements: 14.5, 14.6, 14.7, 14.10, 14.11, 14.12

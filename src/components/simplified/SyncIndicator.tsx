@@ -21,6 +21,8 @@ interface SyncIndicatorProps {
   recentlySyncedCount?: number
   /** Whether the network is currently online */
   isOnline?: boolean
+  /** Whether the queue is actively retrying with backoff (persistent indicator) */
+  isRetrying?: boolean
   /** Callback to retry failed transactions */
   onRetry: () => void
   /** Callback to dismiss failed items */
@@ -68,6 +70,7 @@ export function SyncIndicator({
   hasFailed,
   recentlySyncedCount = 0,
   isOnline = true,
+  isRetrying = false,
   onRetry,
   onDismiss,
 }: SyncIndicatorProps) {
@@ -76,10 +79,10 @@ export function SyncIndicator({
   const transition = prefersReducedMotion ? timings.fast : springs.snappy
 
   // Determine what to show
-  const showSynced = pendingCount === 0 && recentlySyncedCount > 0
+  const showSynced = pendingCount === 0 && !isRetrying && recentlySyncedCount > 0
   const showFailed = hasFailed && pendingCount > 0
-  const showPending = !hasFailed && pendingCount > 0
-  const showNothing = pendingCount === 0 && recentlySyncedCount === 0
+  const showPending = !hasFailed && (pendingCount > 0 || isRetrying)
+  const showNothing = pendingCount === 0 && !isRetrying && recentlySyncedCount === 0
 
   if (showNothing) return null
 
@@ -208,9 +211,11 @@ export function SyncIndicator({
               fontWeight: 400,
             }}
           >
-            {isOnline
-              ? `Syncing ${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'}…`
-              : `${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'} saved — will sync when online`}
+            {!isOnline
+              ? `${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'} saved — will sync when online`
+              : isRetrying
+                ? `Syncing… retrying ${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'}`
+                : `Syncing ${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'}…`}
           </p>
         </motion.div>
       )}

@@ -677,7 +677,7 @@ export function DailyAllowanceHero({
           ? `${heroDisplay!.label}: ${formatCurrency(heroDisplay!.displayAmount)}. ${message}. Tap for details.`
           : isTrackerMode
             ? `Spent today: ${formatCurrency(spentToday)}. ${instantStatus.phrase}. ${message}. Tap for details.`
-            : `Daily allowance: ${formatCurrency(allowanceLeft)}. ${instantStatus.phrase}. ${message}.${reservedForBills && reservedForBills > 0 && upcomingBillCount ? ` ${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}.` : ''} Tap for details.`}
+            : `Daily allowance: ${formatCurrency(allowanceLeft)}. Status: ${instantStatus.phrase}. You've spent ${formatCurrency(spentToday)} today.${reservedForBills && reservedForBills > 0 && upcomingBillCount ? ` ${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}.` : ''} Tap for details.`}
         aria-expanded={showBreakdown}
         aria-live="polite"
         aria-atomic="true"
@@ -700,7 +700,7 @@ export function DailyAllowanceHero({
         >
           <span
             aria-hidden="true"
-            style={{ marginRight: 6, display: "inline-flex", verticalAlign: "middle" }}
+            style={{ marginInlineEnd: 6, display: "inline-flex", verticalAlign: "middle" }}
           >
             <Icon name={instantStatus.iconName} size={20} />
           </span>
@@ -1059,7 +1059,7 @@ export function DailyAllowanceHero({
                     {isTrackerMode ? (
                       <ol
                         className="flex flex-col gap-2 text-xs"
-                        style={{ color: "var(--sub)", margin: 0, paddingLeft: 16 }}
+                        style={{ color: "var(--sub)", margin: 0, paddingInlineStart: 16 }}
                       >
                         <li>
                           <strong style={{ color: "var(--text)" }}>Spent today</strong> = sum of all expenses you logged for today
@@ -1074,7 +1074,7 @@ export function DailyAllowanceHero({
                     ) : (
                       <ol
                         className="flex flex-col gap-2 text-xs"
-                        style={{ color: "var(--sub)", margin: 0, paddingLeft: 16 }}
+                        style={{ color: "var(--sub)", margin: 0, paddingInlineStart: 16 }}
                       >
                         <li>
                           <strong style={{ color: "var(--text)" }}>Daily budget</strong> = (monthly income − fixed bills) ÷ days in month
