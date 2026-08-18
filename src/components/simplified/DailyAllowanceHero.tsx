@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   motion,
   AnimatePresence,
@@ -51,6 +51,18 @@ interface DailyAllowanceHeroProps {
   heroMeaning?: HeroMeaning
   /** Pre-computed display values matching heroMeaning — pass alongside heroMeaning */
   heroDisplay?: HeroDisplay
+  /** Task 483.1: When true, ring does a single brief glow pulse on new-day detection */
+  isNewDay?: boolean
+  /** Task 483.2: Temporary period transition text shown as subtitle inside the hero */
+  periodTransitionText?: string
+  /** Task 483.2: Callback to dismiss the period transition subtitle */
+  onDismissPeriodTransition?: () => void
+  /** Task 483.3: When true, shows "~" prefix on the hero amount to indicate estimation */
+  isEstimated?: boolean
+  /** Task 483.3: Callback for tapping the hero when in estimated mode — routes to income logging */
+  onLogIncome?: () => void
+  /** Task 484.3: Callback for long-pressing the hero — opens affordability check */
+  onLongPress?: () => void
 }
 
 /**
@@ -401,11 +413,83 @@ export function DailyAllowanceHero({
   spendingMode = 'guided',
   heroMeaning,
   heroDisplay,
+  isNewDay,
+  periodTransitionText,
+  onDismissPeriodTransition,
+  isEstimated,
+  onLogIncome,
+  onLongPress,
 }: DailyAllowanceHeroProps) {
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showExplainer, setShowExplainer] = useState(false)
   const { prefersReducedMotion, listContainer, listItem } = useReducedMotion()
   const atmosphere = useTimeOfDay()
+
+  // ── Task 484.3: Long-press to open affordability check ──────────────────
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showLongPressTooltip, setShowLongPressTooltip] = useState(false)
+  const longPressTriggeredRef = useRef(false)
+
+  // Show a first-use tooltip if the user hasn't seen it before
+  useEffect(() => {
+    if (onLongPress && typeof window !== 'undefined') {
+      const hasSeenTip = localStorage.getItem('folio_hero_longpress_tip_shown')
+      if (!hasSeenTip) {
+        setShowLongPressTooltip(true)
+        localStorage.setItem('folio_hero_longpress_tip_shown', '1')
+        const timer = setTimeout(() => setShowLongPressTooltip(false), 4000)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [onLongPress])
+
+  const handlePointerDown = useCallback(() => {
+    if (!onLongPress) return
+    longPressTriggeredRef.current = false
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTriggeredRef.current = true
+      triggerHaptic()
+      onLongPress()
+    }, 500)
+  }, [onLongPress])
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }, [])
+
+  const handlePointerLeave = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }, [])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current)
+      }
+    }
+  }, [])
+
+  // ── Task 483.2: Auto-dismiss period transition subtitle after 5s or on interaction ──
+  const [showPeriodTransition, setShowPeriodTransition] = useState(!!periodTransitionText)
+  useEffect(() => {
+    if (!periodTransitionText) {
+      setShowPeriodTransition(false)
+      return
+    }
+    setShowPeriodTransition(true)
+    const timer = setTimeout(() => {
+      setShowPeriodTransition(false)
+      onDismissPeriodTransition?.()
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [periodTransitionText, onDismissPeriodTransition])
 
   // ── Travel mode: show "≈ €X" equivalent beneath the allowance (task 422.3) ──
   const [travelEquivalent, setTravelEquivalent] = useState<{ amount: number; currency: string } | null>(null)
@@ -630,6 +714,22 @@ export function DailyAllowanceHero({
       ]
 
   function handleTap() {
+    // Task 484.3: If long-press was triggered, don't fire tap handler
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false
+      return
+    }
+    // Task 483.2: dismiss period transition on any interaction
+    if (showPeriodTransition) {
+      setShowPeriodTransition(false)
+      onDismissPeriodTransition?.()
+    }
+    // Task 483.3: route to income logging when in estimated mode
+    if (isEstimated && onLogIncome) {
+      triggerHaptic()
+      onLogIncome()
+      return
+    }
     setShowBreakdown((prev) => !prev)
     triggerHaptic()
     onTapForDetails()
@@ -673,11 +773,14 @@ export function DailyAllowanceHero({
         className="flex flex-col items-center gap-2 w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-lg"
         style={{ background: "transparent", border: "none", cursor: "pointer" }}
         onClick={handleTap}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
         aria-label={hasCustomDisplay
           ? `${heroDisplay!.label}: ${formatCurrency(heroDisplay!.displayAmount)}. ${message}. Tap for details.`
           : isTrackerMode
             ? `Spent today: ${formatCurrency(spentToday)}. ${instantStatus.phrase}. ${message}. Tap for details.`
-            : `Daily allowance: ${formatCurrency(allowanceLeft)}. Status: ${instantStatus.phrase}. You've spent ${formatCurrency(spentToday)} today.${reservedForBills && reservedForBills > 0 && upcomingBillCount ? ` ${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}.` : ''} Tap for details.`}
+            : `Daily allowance: ${formatCurrency(allowanceLeft)}. Status: ${instantStatus.phrase}. You've spent ${formatCurrency(spentToday)} today.${reservedForBills && reservedForBills > 0 && upcomingBillCount ? ` ${formatCurrency(reservedForBills)} set aside for ${upcomingBillCount} upcoming bill${upcomingBillCount === 1 ? '' : 's'}.` : ''} Tap for details. Hold to check affordability.`}
         aria-expanded={showBreakdown}
         aria-live="polite"
         aria-atomic="true"
@@ -685,6 +788,37 @@ export function DailyAllowanceHero({
         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
         transition={prefersReducedMotion ? timings.fast : timings.slow}
       >
+        {/* Task 484.3: First-use tooltip — "Hold to check affordability" */}
+        <AnimatePresence>
+          {showLongPressTooltip && onLongPress && (
+            <motion.span
+              role="tooltip"
+              aria-live="polite"
+              style={{
+                position: 'absolute',
+                top: -28,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: '11px',
+                color: 'var(--text)',
+                background: fills[6],
+                border: `1px solid ${fills[10]}`,
+                borderRadius: 'var(--radius-full)',
+                padding: '4px 12px',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                zIndex: 10,
+              }}
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={timings.normal}
+            >
+              Hold to check affordability
+            </motion.span>
+          )}
+        </AnimatePresence>
+
         {/* Instant status — emoji + phrase, the first thing the eye catches */}
         <p
           className="text-center"
@@ -766,6 +900,22 @@ export function DailyAllowanceHero({
             transition={shadowTransition}
           />
 
+          {/* Task 483.1: New-day ring glow pulse — single brief animation on day change */}
+          {isNewDay && !prefersReducedMotion && (
+            <div
+              className="hero-ring-newday-glow"
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: -8,
+                borderRadius: "50%",
+                background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+          )}
+
           {/* Barely-visible shimmer around the ring when healthy */}
           {showShimmer && <ShimmerParticles size={ringSize} />}
 
@@ -775,6 +925,24 @@ export function DailyAllowanceHero({
             size={ringSize}
             strokeWidth={8}
           >
+            {/* Task 483.3: Show "~" prefix when estimated */}
+            {isEstimated && (
+              <span
+                aria-hidden="true"
+                style={{
+                  fontSize: pxToRem(16),
+                  color: "var(--sub)",
+                  opacity: 0.7,
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-150%, -85%)",
+                  fontWeight: 500,
+                }}
+              >
+                ~
+              </span>
+            )}
             <AnimatedAmount
               value={heroValue}
               status={status}
@@ -796,6 +964,52 @@ export function DailyAllowanceHero({
         >
           {message}
         </motion.p>
+
+        {/* Task 483.2: Period transition subtitle — temporary, auto-dismisses after 5s */}
+        <AnimatePresence>
+          {showPeriodTransition && periodTransitionText && (
+            <motion.p
+              role="status"
+              aria-live="polite"
+              className="text-center"
+              style={{
+                fontSize: pxToRem(12),
+                color: "var(--accent)",
+                opacity: 0.9,
+                margin: 0,
+                marginTop: 4,
+                maxWidth: 260,
+                fontWeight: 500,
+              }}
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+              animate={{ opacity: 0.9, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+              transition={timings.normal}
+            >
+              ✨ {periodTransitionText}
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        {/* Task 483.3: Estimation label — subtle "(est.)" suffix when isEstimated */}
+        {isEstimated && (
+          <motion.p
+            className="text-center"
+            style={{
+              fontSize: pxToRem(11),
+              color: "var(--sub)",
+              opacity: 0.7,
+              margin: 0,
+              marginTop: 2,
+            }}
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+            animate={{ opacity: 0.7 }}
+            transition={timings.normal}
+            aria-label="Estimated budget — tap to log income for accuracy"
+          >
+            estimated · tap to log income
+          </motion.p>
+        )}
 
         {/* Travel mode equivalent — "≈ €X" beneath the allowance (task 422.3) */}
         {travelEquivalent && (

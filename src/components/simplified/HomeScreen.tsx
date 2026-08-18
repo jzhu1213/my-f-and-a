@@ -76,6 +76,7 @@ import { WhatsNewCard } from "./WhatsNewCard"
 import { SetupChecklistCard, ProgressiveChecklistCard } from "./SetupChecklistCard"
 import type { ChecklistStep } from '@/lib/setupChecklist'
 import { PeriodContextIndicator } from "./PeriodContextIndicator"
+import { HeroContextRow } from "./HeroContextRow"
 import { PinnedHomeCards } from "./PinnedHomeCards"
 import type { PinnedCardType } from "@/lib/homeWidgets"
 import { getPinnedCards } from "@/lib/homeWidgets"
@@ -131,98 +132,12 @@ const ShareMilestoneSheet = dynamic(
  *
  * HOME SCREEN AS LAUNCHPAD:
  *   - Hero + quick actions own the first screenful (above the fold)
- *   - OverBudgetStrip is contextual to hero, stays above fold when shown
+ *   - OverBudgetStrip removed — over-budget shown via hero color + HeroContextRow line (task 483.4)
  *   - Log Again repeats, insights, category cards are below the fold
  *   - Contextual tip is opt-in via Settings → Preferences → "Show daily insight"
  *   - No infinite scroll or feed patterns
  * ─────────────────────────────────────────────────────────────────────────────
  */
-
-// ============================================================================
-// OverBudgetStrip sub-component (task 70.3)
-// ============================================================================
-
-/**
- * A compact, warm inline suggestion strip shown directly below the hero when
- * the user's allowance status is 'over'. Offers one practical next step and a
- * one-tap shortcut to log income.
- *
- * - Dismissed automatically when the user logs income (status leaves 'over')
- * - No persistent dismiss button — auto-hides when no longer needed
- * - Entrance animation: fade-in only (respects prefers-reduced-motion)
- */
-function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
-  const { prefersReducedMotion } = useAppReducedMotion()
-  const t = useTranslation()
-
-  const motionProps = prefersReducedMotion
-    ? {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-        transition: timings.fast,
-      }
-    : {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-        transition: timings.slow,
-      }
-
-  return (
-    <motion.div
-      role="status"
-      aria-label="Spending suggestion"
-      {...motionProps}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-        background: colorRamp.error[100],
-        border: `1px solid ${colorRamp.error[200]}`,
-        borderRadius: borderRadius.md,
-        padding: '12px 16px',
-      }}
-    >
-      <p
-        style={{
-          margin: 0,
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: 'var(--sub)',
-          fontFamily: FONT_FAMILY,
-          flex: 1,
-        }}
-      >
-        {t('home.overBudgetStrip')}
-      </p>
-
-      <motion.button
-        type="button"
-        onClick={onLogIncome}
-        whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
-        transition={springs.bouncy}
-        aria-label="Log income to top up your budget"
-        style={{
-          flexShrink: 0,
-          background: colorRamp.error[200],
-          border: `1px solid ${colorRamp.error[300]}`,
-          borderRadius: borderRadius.full,
-          padding: '7px 14px',
-          color: 'var(--error)',
-          fontSize: 13,
-          fontWeight: 500,
-          fontFamily: FONT_FAMILY,
-          cursor: 'pointer',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {t('home.logIncomeArrow')}
-      </motion.button>
-    </motion.div>
-  )
-}
 
 // ============================================================================
 // HomeScreen Props
@@ -427,7 +342,7 @@ export interface HomeScreenProps {
  *
  *   ── ABOVE THE FOLD (first screenful) ──
  *   Hero (DailyAllowanceHero + contextual indicators)
- *   OverBudgetStrip (when applicable)
+ *   HeroContextRow (consolidated info + over-budget message)
  *   Quick Actions (Log expense / Log income)
  *
  *   ── BELOW THE FOLD (scroll to see) ──
@@ -462,8 +377,8 @@ export const HomeScreen = memo(function HomeScreen({
   weekendAllowance,
   timeHorizonStats,
   onOpenBudgetSettings,
-  onOpenSplitExpense,
-  onAddWish,
+  onOpenSplitExpense: _onOpenSplitExpense,
+  onAddWish: _onAddWish,
   onOpenLesson,
   outstandingSplits,
   onOpenReimbursements,
@@ -472,7 +387,7 @@ export const HomeScreen = memo(function HomeScreen({
   spendingMode = 'guided',
   heroMeaning,
   heroDisplay,
-  overLimitResponse = 'gentle',
+  overLimitResponse: _overLimitResponse = 'gentle',
   activeSpendDown,
   savingsRate,
   savingsAccounts,
@@ -1124,359 +1039,60 @@ export const HomeScreen = memo(function HomeScreen({
             spendingMode={spendingMode}
             heroMeaning={heroMeaning}
             heroDisplay={heroDisplay}
+            isNewDay={showNewDayRefresh}
+            periodTransitionText={periodTransitionMessage?.text}
+            onDismissPeriodTransition={onDismissPeriodTransition}
+            isEstimated={!!(allowance?.isEstimated && !hasSkippedSetupSteps)}
+            onLogIncome={onLogIncome}
+            onLongPress={() => setShowAffordabilitySheet(true)}
           />
 
-          {/* ── Streak counter badge (task 430.1) — opt-in, tappable ── */}
-          {streaksEnabled && !isLoading && streakData.currentStreak > 0 && (
-            <motion.button
-              type="button"
-              onClick={() => setShowStreakDetail(true)}
-              aria-label={`${streakData.currentStreak}-day streak. Tap for details.`}
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={timings.normal}
-              whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 5,
-                marginTop: 8,
-                padding: "5px 12px",
-                background: "rgba(251, 191, 36, 0.08)",
-                border: "1px solid rgba(251, 191, 36, 0.15)",
-                borderRadius: borderRadius.full,
-                width: "fit-content",
-                marginLeft: "auto",
-                marginRight: "auto",
-                cursor: "pointer",
-                fontFamily: FONT_FAMILY,
-              }}
-            >
-              <span style={{ fontSize: 13 }} aria-hidden>🔥</span>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "var(--sub)",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {streakData.currentStreak} {streakData.currentStreak === 1 ? "day" : "days"}
-              </span>
-            </motion.button>
-          )}
+          {/* ── Consolidated context row (task 482) — all sub-hero indicators ── */}
+          <HeroContextRow
+            isLoading={isLoading}
+            streakDays={streakData.currentStreak}
+            streaksEnabled={streaksEnabled}
+            onOpenStreakDetail={() => setShowStreakDetail(true)}
+            periodContext={periodContext}
+            savingsRate={savingsRate}
+            savingsRateBadgeEnabled={savingsRateBadgeEnabled}
+            paceIndicatorEnabled={paceIndicatorEnabled}
+            transactions={transactions}
+            todayStr={todayStr}
+            timeHorizonStats={timeHorizonStats}
+            activeSpendDown={activeSpendDown}
+            allowanceAmount={allowance?.amount ?? 0}
+            suggestedEntriesTotal={suggestedEntriesTotal}
+            suggestionsIncludedInAllowance={suggestionsIncludedInAllowance}
+            suggestedEntriesCount={suggestedEntries?.length ?? 0}
+            comingUpEnabled={comingUpEnabled}
+            comingUpItems={comingUpItems}
+            overBudgetMessage={
+              !isLoading && spendingMode !== 'tracker' && allowance?.status === 'over'
+                ? "A little over — tomorrow resets"
+                : undefined
+            }
+          />
 
-          {/* ── Period context indicator (task 342.3) — subtle, below hero ── */}
-          {periodContext && !isLoading && (
-            <PeriodContextIndicator periodContext={periodContext} />
-          )}
+          {/* Period transition — MOVED into DailyAllowanceHero subtitle (task 483.2) */}
 
-          {/* ── Period transition message (task 343.1) — warm welcome-back ── */}
-          <AnimatePresence>
-            {periodTransitionMessage && !isLoading && (
-              <motion.div
-                role="status"
-                aria-live="polite"
-                aria-label={periodTransitionMessage.text}
-                initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-                transition={timings.normal}
-                onClick={onDismissPeriodTransition}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  marginTop: 10,
-                  padding: "8px 16px",
-                  background: "rgba(139, 92, 246, 0.08)",
-                  border: "1px solid rgba(139, 92, 246, 0.15)",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                }}
-              >
-                <span style={{ fontSize: 14 }}>✨</span>
-                <span
-                  style={{
-                    fontSize: 13,
-                    color: "var(--text)",
-                    fontFamily: FONT_FAMILY,
-                    fontWeight: 500,
-                    opacity: 0.9,
-                  }}
-                >
-                  {periodTransitionMessage.text}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Suggestion allowance impact — MOVED into HeroContextRow (task 482.8) */}
 
-          {/* ── Suggestion allowance impact (task 411.3) ── */}
-          {suggestedEntries && suggestedEntries.length > 0 && suggestionsIncludedInAllowance && !isLoading && (
-            <motion.div
-              role="status"
-              aria-label={`Approximately $${Math.round((allowance?.amount ?? 0) - (suggestedEntriesTotal ?? 0))} per day after expected bills`}
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={timings.normal}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                marginTop: 8,
-                padding: "6px 14px",
-                background: "rgba(167, 139, 250, 0.06)",
-                border: "1px solid rgba(167, 139, 250, 0.12)",
-                borderRadius: 8,
-              }}
-            >
-              <span style={{ fontSize: 12 }} aria-hidden>📋</span>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: "var(--sub)",
-                  fontFamily: FONT_FAMILY,
-                  fontWeight: 400,
-                }}
-              >
-                ~${Math.max(0, Math.round((allowance?.amount ?? 0) - (suggestedEntriesTotal ?? 0)))}/day after expected bills
-              </span>
-            </motion.div>
-          )}
+          {/* Coming-up awareness — MOVED into HeroContextRow (task 482.9) */}
 
-          {/* ── Coming-up awareness message (task 413.2) — secondary line ── */}
-          {comingUpEnabled && !isLoading && comingUpItems && comingUpItems.length > 0 && (() => {
-            // Pick the most significant upcoming item (highest predictedAmount)
-            const sorted = [...comingUpItems].sort((a, b) => b.predictedAmount - a.predictedAmount)
-            const msg = getComingUpAwarenessMessage(
-              allowance?.amount ?? 0,
-              sorted[0] ?? null
-            )
-            if (!msg) return null
-            return (
-              <motion.div
-                role="status"
-                aria-label={msg}
-                initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={timings.normal}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  marginTop: 8,
-                  padding: "6px 14px",
-                  background: "rgba(251, 191, 36, 0.06)",
-                  border: "1px solid rgba(251, 191, 36, 0.12)",
-                  borderRadius: 8,
-                }}
-              >
-                <span style={{ fontSize: 12 }} aria-hidden>📅</span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: "var(--sub)",
-                    fontFamily: FONT_FAMILY,
-                    fontWeight: 400,
-                  }}
-                >
-                  {msg}
-                </span>
-              </motion.div>
-            )
-          })()}
+          {/* Savings-rate badge — MOVED into HeroContextRow (task 482.4) */}
 
-          {/* ── Savings-rate badge (task 159.2) — opt-in, off by default ──
-              A small, unobtrusive indicator of the monthly savings rate.
-              Only rendered when enabled in Settings → Hero & display AND when
-              there's a positive rate to show (avoids a discouraging "0%"). */}
-          {savingsRateBadgeEnabled && !isLoading && typeof savingsRate === "number" && savingsRate > 0 && (
-            <motion.div
-              role="status"
-              aria-label={`You're saving ${savingsRate}% of your income this month`}
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={timings.normal}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                marginTop: 10,
-                padding: "6px 14px",
-                background: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: "var(--radius-full)",
-                width: "fit-content",
-                marginLeft: "auto",
-                marginRight: "auto",
-              }}
-            >
-              <span style={{ fontSize: 13 }} aria-hidden="true">💪</span>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: "var(--sub)",
-                  fontFamily: FONT_FAMILY,
-                  opacity: 0.85,
-                }}
-              >
-                Saving{" "}
-                <span style={{ color: "var(--success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                  {savingsRate}%
-                </span>{" "}
-                this month
-              </span>
-            </motion.div>
-          )}
+          {/* Spending-pace indicator — MOVED into HeroContextRow (task 482.5) */}
 
-          {/* ── Spending-pace indicator (task 250) — subtle sparkline ────── */}
-          {paceIndicatorEnabled && !isLoading && transactions.length > 0 && (
-            <SpendPaceIndicator
-              transactions={transactions}
-              todayStr={todayStr}
-            />
-          )}
+          {/* "New day" celebration — MOVED to hero ring glow (task 483.1) */}
 
-          {/* "New day" micro-celebration (task 74) — warm, brief indicator */}
-          <AnimatePresence>
-            {showNewDayRefresh && (
-              <motion.div
-                role="status"
-                aria-live="polite"
-                aria-label="New day — your budget has refreshed"
-                initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-                transition={timings.slow}
-                style={{
-                  textAlign: "center",
-                  marginTop: 10,
-                  fontFamily: FONT_FAMILY,
-                  fontSize: 12,
-                  color: "var(--accent)",
-                  opacity: 0.9,
-                }}
-              >
-                ☀️ Fresh start — new day, new budget
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {!isLoading && allowance && allowance.isEstimated && !hasSkippedSetupSteps && (
-            <motion.button
-              type="button"
-              onClick={onLogIncome}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={timings.slow}
-              style={{
-                fontSize: 12,
-                color: "var(--sub)",
-                textAlign: "center",
-                fontFamily: FONT_FAMILY,
-                marginTop: 10,
-                padding: "8px 14px",
-                background: "rgba(167, 139, 250, 0.08)",
-                borderRadius: borderRadius.md,
-                lineHeight: 1.5,
-                border: "none",
-                cursor: "pointer",
-                width: "100%",
-              }}
-              aria-label="Estimated budget — tap to log income for a more accurate daily budget"
-            >
-              {t('home.estimateNudge')}
-            </motion.button>
-          )}
-          {/* ── Over-budget strip (task 70.3) — inside hero section ───── */}
-          {/* In tracker mode, there is no "over budget" concept — suppress this entirely */}
-          <AnimatePresence>
-            {!isLoading && spendingMode !== 'tracker' && allowance?.status === 'over' && (
-              <div style={{ marginTop: 10 }}>
-                {/* quiet: color change only — no strip */}
-                {overLimitResponse === 'gentle' && (
-                  <motion.p
-                    role="status"
-                    aria-live="polite"
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={timings.slow}
-                    style={{
-                      margin: 0,
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                      color: 'var(--sub)',
-                      fontFamily: FONT_FAMILY,
-                      textAlign: 'center',
-                      padding: '8px 4px',
-                    }}
-                    aria-label="Over-limit gentle note"
-                  >
-                    {t('home.overBudgetGentle')}
-                  </motion.p>
-                )}
-                {overLimitResponse === 'headsup' && (
-                  <OverBudgetStrip onLogIncome={onLogIncome} />
-                )}
-              </div>
-            )}
-          </AnimatePresence>
+          {/* Estimation indicator — MOVED into hero label (task 483.3) */}
 
-          {/* ── Time horizon pills (task 128.1) — weekend, payday, term ── */}
-          {timeHorizonStats && <TimeHorizonPills stats={timeHorizonStats} />}
+          {/* Over-budget messaging — simplified to hero color + HeroContextRow line (task 483.4) */}
 
-          {/* ── Spend-down plan indicator (task 122.1) ────────────────── */}
-          {activeSpendDown && (
-            <motion.div
-              role="status"
-              aria-label={`${activeSpendDown.label}: $${activeSpendDown.dailyAmount} per day, $${activeSpendDown.remaining} left`}
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={timings.normal}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                marginTop: 10,
-                padding: '6px 14px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: 'var(--radius-full)',
-                alignSelf: 'center',
-                width: 'fit-content',
-                marginLeft: 'auto',
-                marginRight: 'auto',
-              }}
-            >
-              <span style={{ fontSize: 13 }} aria-hidden="true">💰</span>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sub)',
-                  fontFamily: FONT_FAMILY,
-                  opacity: 0.85,
-                }}
-              >
-                ${activeSpendDown.dailyAmount}/day • ${activeSpendDown.remaining} left
-              </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  color: activeSpendDown.onTrack ? 'var(--success)' : 'var(--warning)',
-                  fontFamily: FONT_FAMILY,
-                  marginLeft: 2,
-                }}
-              >
-                {activeSpendDown.onTrack ? t('home.spendDownOnTrack') : t('home.spendDownAhead')}
-              </span>
-            </motion.div>
-          )}
+          {/* Time horizon pills — MOVED into HeroContextRow (task 482.6) */}
+
+          {/* Spend-down plan indicator — MOVED into HeroContextRow (task 482.7) */}
         </motion.section>
 
         {/* ── 1.5. Pinned Home Cards (task 344) ───────────────────────── */}
@@ -1566,67 +1182,8 @@ export const HomeScreen = memo(function HomeScreen({
             </motion.button>
           </div>
 
-          {/* Tertiary: Can I afford this? — subtle text link below primary buttons */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 8 }}>
-            {onOpenSplitExpense && (
-              <button
-                type="button"
-                onClick={onOpenSplitExpense}
-                aria-label="Split an expense with a friend"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--sub)',
-                  background: colorRamp.accent[100],
-                  border: `1px solid ${colorRamp.accent[200]}`,
-                  borderRadius: borderRadius.full,
-                  padding: '6px 14px',
-                  cursor: 'pointer',
-                  fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
-                }}
-              >
-                {t('home.split')}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowAffordabilitySheet(true)}
-              aria-label="Check if you can afford something"
-              style={{
-                fontSize: 13,
-                color: 'var(--sub)',
-                background: fills[3],
-                border: `1px solid ${fills[8]}`,
-                borderRadius: borderRadius.full,
-                padding: '6px 14px',
-                cursor: 'pointer',
-                fontFamily: FONT_FAMILY,
-                fontWeight: 500,
-              }}
-            >
-              {t('home.canIAfford')}
-            </button>
-            {onAddWish && (
-              <button
-                type="button"
-                onClick={onAddWish}
-                aria-label="Add a wish list item"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--sub)',
-                  background: fills[3],
-                  border: `1px solid ${fills[8]}`,
-                  borderRadius: borderRadius.full,
-                  padding: '6px 14px',
-                  cursor: 'pointer',
-                  fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
-                }}
-              >
-                {t('home.addWish')}
-              </button>
-            )}
-          </div>
+          {/* Task 484: Secondary action row removed — Split accessible in ExpenseSheet,
+              affordability via hero long-press, Wish via Tools screen */}
           </>
           )}
         </motion.section>
