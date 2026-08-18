@@ -29,6 +29,7 @@ const FOLIO_CACHE_PREFIX = "folio-"
 // Next.js hashed chunks are cached at runtime (they change per build).
 const SHELL_ASSETS = [
   "/",
+  "/offline.html",
   "/manifest.json",
   "/icon.svg",
   "/icon-192.png",
@@ -208,7 +209,9 @@ sw.addEventListener("fetch", (event) => {
   // ── Navigation requests — NETWORK FIRST, fallback to cached shell ──
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match("/"))
+      fetch(event.request).catch(() =>
+        caches.match("/").then((shell) => shell || caches.match("/offline.html"))
+      )
     )
     return
   }

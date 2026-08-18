@@ -247,7 +247,9 @@ import { useComingUpItems } from '@/hooks/useComingUpItems'
 import { getAutomationPreferences } from '@/lib/automationPreferences'
 import { useSmartNotifications } from '@/hooks/useSmartNotifications'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
+import { usePwaInstallPrompt } from '@/hooks/usePwaInstallPrompt'
 import { ServiceWorkerUpdatePrompt } from '@/components/ui/ServiceWorkerUpdatePrompt'
+import { PwaInstallBanner } from '@/components/ui/PwaInstallBanner'
 import { useAppLock } from '@/hooks/useAppLock'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
@@ -632,6 +634,9 @@ export default function FolioApp() {
   // ── Service Worker registration (task 77 — PWA notifications) ──
   // (task 476 — enhanced caching + update detection)
   const { updateAvailable, applyUpdate } = useServiceWorker()
+
+  // ── PWA Install Prompt (task 477.1 — engaged moment install) ──
+  const { canShowInstallPrompt, showInstallPrompt, dismissInstallPrompt } = usePwaInstallPrompt()
 
   // ── Local → Cloud migration (task 292.1 — one-way migration on first auth) ──
   useLocalToCloudMigration()
@@ -3322,6 +3327,13 @@ export default function FolioApp() {
       <ServiceWorkerUpdatePrompt
         visible={updateAvailable}
         onUpdate={applyUpdate}
+      />
+
+      {/* ── PWA Install Banner (task 477.1) ──────── */}
+      <PwaInstallBanner
+        visible={canShowInstallPrompt}
+        onInstall={showInstallPrompt}
+        onDismiss={dismissInstallPrompt}
       />
 
       {/* ── Keyboard Shortcuts Help Overlay (task 452.2) ──────── */}
