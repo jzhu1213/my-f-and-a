@@ -17,8 +17,12 @@ import { springPresets, type SpringPresetName } from "@/styles/motion"
  *   Never translational.
  * - List stagger: 30–50ms/item, capped 400ms total, max 12 items.
  * - Press acknowledgment: ≤120ms.
+ * - Animation budget: max 3 simultaneous budgeted animations per viewport.
+ *   Staggered entrances don't count (sequenced). Idle state must have zero
+ *   running budgeted animations. See `src/lib/animationBudget.ts` for the
+ *   budget tracker and `useAnimationBudget` / `useVisibilityPause` hooks.
  *
- * Validates: Requirements 6.1, 6.2, 6.4, 6.8
+ * Validates: Requirements 6.1, 6.2, 6.4, 6.8, 28.5
  */
 
 // ============================================================================

@@ -209,13 +209,15 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
         }}
       >
         <motion.div
-          initial={{ width: reducedMotion ? `${pct}%` : 0 }}
-          animate={{ width: `${pct}%` }}
+          initial={{ scaleX: reducedMotion ? pct / 100 : 0 }}
+          animate={{ scaleX: pct / 100 }}
           transition={reducedMotion ? timings.fast : springs.gentle}
           style={{
+            width: "100%",
             height: "100%",
             borderRadius: borderRadius.full,
             background: fillColor,
+            transformOrigin: "left center",
           }}
         />
       </div>
@@ -572,7 +574,7 @@ export function GoalsScreen({
 
       {/* ── Title + cap indicator ──────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>Goals</h2>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>Goals</h1>
         <span style={{ fontSize: 13, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
           {goals.length}/{MAX_GOALS}
         </span>

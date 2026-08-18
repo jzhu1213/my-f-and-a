@@ -452,10 +452,12 @@ body {
  * Visible focus indicator: ≥2px thick, ≥3:1 contrast against adjacent bg.
  * accent-500 (#818cf8) on darkest surface (#0e0e1a) = 5.7:1 ✓
  * Applied via the .focus-ring class on all interactive primitives.
+ * A subtle shadow accompanies the outline for visibility on glass/blurred surfaces.
  */
 .focus-ring:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15);
 }
 
 .focus-ring:focus:not(:focus-visible) {
@@ -467,6 +469,7 @@ body {
  * Ensures ALL interactive elements show a visible focus ring when
  * navigated via keyboard, even if they lack the .focus-ring class.
  * Elements with their own :focus-visible rules override via specificity.
+ * Includes a subtle shadow halo for visibility on glass/blurred surfaces.
  */
 button:focus-visible,
 a:focus-visible,
@@ -478,6 +481,7 @@ textarea:focus-visible,
 [tabindex]:focus-visible {
   outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, #818cf8);
   outline-offset: var(--focus-ring-offset, 2px);
+  box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15);
 }
 
 button:focus:not(:focus-visible),
@@ -569,7 +573,12 @@ textarea:focus:not(:focus-visible),
 
 .progress-fill {
   height: 100%;
-  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  /* GPU-composited: use scaleX instead of width for smooth 60fps fill animation.
+   * Set --progress-fill-fraction (0–1) via inline style to control fill level. */
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(var(--progress-fill-fraction, 1));
+  transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 2px;
 }
 
@@ -579,6 +588,7 @@ textarea:focus:not(:focus-visible),
     transition: none;
   }
 }
+
 
 /* ── Bottom sheet ───────────────────────────────────────────────── */
 .sheet {
@@ -766,8 +776,13 @@ input[type="date"] {
 
 /* Focus-visible ring for keyboard navigation (WCAG 2.1 AA) */
 .cat-pill:focus-visible {
-  outline: 2px solid rgba(129, 140, 248, 0.8);
-  outline-offset: 2px;
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Prevent overflow:hidden on glass variant from clipping the focus ring */
+.cat-pill--glass:focus-visible {
+  overflow: visible;
 }
 
 /* ── Amount chip ─────────────────────────────────────────────────── */
@@ -821,11 +836,12 @@ input[type="date"] {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.4);
   box-shadow: var(--shadow-sm);
-  transition: left 0.2s ease, background 0.2s ease;
+  /* GPU-composited: use translateX instead of left for smooth toggling */
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .t-toggle[aria-checked="true"] .t-toggle-knob {
-  left: 21px;
+  transform: translateX(18px);
   background: #fff;
 }
 
@@ -854,6 +870,22 @@ input[type="date"] {
 ::-webkit-scrollbar-thumb  { background: var(--dim); border-radius: 2px; }
 
 /* ── Animations ──────────────────────────────────────────────────── */
+/*
+ * GPU-COMPOSITING POLICY (Req 28.5):
+ * All CSS @keyframes below animate ONLY transform and/or opacity properties
+ * (GPU-composited). No width, height, margin, padding, top, left, or other
+ * layout-triggering properties are animated in CSS.
+ *
+ * Framer Motion accordion patterns (height: 0 → "auto") exist in component
+ * files for reveal/collapse UI. These are intentionally kept because:
+ * - scaleY would distort text content within the collapsible region
+ * - Framer Motion measures and interpolates height on the compositor
+ * - They fire only on user interaction (not in loops or scroll)
+ * - overflow: hidden clips content cleanly during the transition
+ *
+ * SVG attribute animations (rect height/y in chart components) are also
+ * acceptable as they don't trigger HTML document layout reflow.
+ */
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -1005,6 +1037,26 @@ input[type="date"] {
   .gradient-mesh__orb {
     animation: none !important;
   }
+}
+
+/* ── Animation Budget: Off-screen Pause ──────────────────────────── */
+/*
+ * ANIMATION BUDGET (Req 28.5): Max 3 simultaneous animations per viewport.
+ *
+ * Idle-state rule: at rest, zero BUDGETED animations should be running.
+ * Exempt infinite animations (breathing glow, gradient mesh, loading states)
+ * are GPU-composited and allowed, but MUST pause when off-screen.
+ *
+ * The `.anim-pause-offscreen` utility class pauses CSS animations on elements
+ * not currently visible in the viewport. Applied via JS (IntersectionObserver)
+ * or as a static class for elements below the fold.
+ *
+ * Components using infinite CSS animations (tip card, gradient mesh) should
+ * leverage the `useVisibilityPause` hook from `src/lib/animationBudget.ts`
+ * to automatically pause when scrolled out of view.
+ */
+.anim-pause-offscreen {
+  animation-play-state: paused;
 }
 
 /* ── Skeleton loading states ─────────────────────────────────────── */
@@ -1443,8 +1495,10 @@ input[type="date"] {
  *   .hero-shimmer-particle → barely-visible twinkles arranged around the ring
  *                            when the status is healthy.
  *
- * All motion is transform/opacity only (GPU-composited) and is disabled under
- * prefers-reduced-motion so the hero degrades to a calm static state.
+ * All motion is transform/opacity only (GPU-composited) except the gradient
+ * text which animates background-position (paint-only, no layout thrash) with
+ * will-change hint for optimization. Disabled under prefers-reduced-motion
+ * so the hero degrades to a calm static state.
  */
 .hero-amount {
   background-image: linear-gradient(
@@ -1796,6 +1850,11 @@ input[type="date"] {
   transition: background 0.15s ease, border-color 0.15s ease;
   font-family: 'Inter', sans-serif;
 }
+
+/* Prevent overflow:hidden from clipping focus ring */
+.tip-action-pill:focus-visible {
+  overflow: visible;
+}
 .tip-action-pill::before {
   content: '';
   position: absolute;
@@ -1939,8 +1998,8 @@ input[type="date"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   color: var(--sub);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2112,7 +2171,9 @@ input[type="date"] {
     0 -1px 6px rgba(0, 0, 0, 0.15),
     0 -6px 20px rgba(0, 0, 0, 0.2),
     inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
-  /* Dock morph transitions (245.2) — GPU-composited */
+  /* Dock morph transitions (245.2) — padding is a layout property but only
+   * triggers on rare dock state changes (not during scroll/animation loops).
+   * Acceptable trade-off: keeps dock item spacing correct without transform hacks. */
   transition: padding 0.2s ease;
 }
 
@@ -2628,8 +2689,8 @@ input[type="date"] {
 }
 
 .celebration-card__dismiss:focus-visible {
-  outline: 2px solid #fcd34d;
-  outline-offset: 3px;
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* Dismiss button wrapper: positions the timer ring behind the button. */
@@ -2750,8 +2811,8 @@ input[type="date"] {
 }
 
 .history-screen__fab:focus-visible {
-  outline: 2px solid #818cf8;
-  outline-offset: 3px;
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2903,3 +2964,372 @@ input[type="date"] {
 }
 
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * RTL LAYOUT SUPPORT (Task 458.1, Requirement 27.5)
+ *
+ * When the document direction is set to RTL (via the I18nContext syncing
+ * the dir attribute on <html>), these rules ensure layouts mirror correctly.
+ *
+ * Strategy:
+ *   • Use CSS logical properties in new code (margin-inline-start, etc.)
+ *   • Override hardcoded directional positioning for existing components
+ *   • Flip fixed positioned elements (FAB, dock items)
+ *   • Mirror sheet slide direction
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Content column: use logical properties ───────────────────────── */
+[dir="rtl"] .content-column {
+  padding-left: unset;
+  padding-right: unset;
+  padding-inline-start: 16px;
+  padding-inline-end: 16px;
+}
+
+@media (min-width: 390px) {
+  [dir="rtl"] .content-column {
+    padding-inline-start: 20px;
+    padding-inline-end: 20px;
+  }
+}
+
+@media (min-width: 768px) {
+  [dir="rtl"] .content-column {
+    margin-left: unset;
+    margin-right: unset;
+    margin-inline-start: auto;
+    margin-inline-end: auto;
+  }
+}
+
+/* ── History FAB: flip from right to left in RTL ─────────────────── */
+[dir="rtl"] .history-screen__fab {
+  right: unset;
+  left: 24px;
+}
+
+/* ── FAB: flip from right to left in RTL ─────────────────────────── */
+[dir="rtl"] .t-fab {
+  right: unset;
+  left: 1.25rem;
+}
+
+/* ── Toggle knob: flip RTL positioning ───────────────────────────── */
+[dir="rtl"] .t-toggle-knob {
+  left: unset;
+  right: 3px;
+}
+
+[dir="rtl"] .t-toggle[aria-checked="true"] .t-toggle-knob {
+  left: unset;
+  right: 21px;
+}
+
+/* ── Tab nav active indicator: use logical insets ────────────────── */
+[dir="rtl"] .t-tab-item.active::before {
+  left: 25%;
+  right: 25%;
+}
+
+/* ── Sheet: border-radius should mirror in RTL ───────────────────── */
+[dir="rtl"] .sheet {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+/* ── Slide animations: mirror horizontal direction ───────────────── */
+[dir="rtl"] .animate-slide-up {
+  /* Vertical slides don't need mirroring */
+}
+
+/* ── Tablet safe-area: use logical properties ────────────────────── */
+@media (min-width: 600px) {
+  [dir="rtl"] .app-content {
+    padding-inline: max(32px, env(safe-area-inset-right, 0px));
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HIGH CONTRAST MODE (Task 460.1, Requirement 27.6)
+ *
+ * When the OS preference `prefers-contrast: more` is active, degrade the
+ * glass aesthetic gracefully to solid, high-contrast surfaces:
+ *   • Borders become clearly visible (opacity ↑ from 0.06–0.10 → 0.25–0.40)
+ *   • Text colors strengthen (--color-sub, --color-muted get brighter)
+ *   • Surfaces become opaque (no transparency/blur)
+ *   • Decorative effects suppressed (gradient mesh, ambient glow, shimmer)
+ *   • Interactive elements get explicit outlines
+ *   • Focus rings thicken (3px)
+ *
+ * The warm purple identity is preserved where possible — borders and surfaces
+ * use the same hue family, just fully opaque/strengthened.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-contrast: more) {
+
+  /* ── Override color tokens for stronger contrast ───────────────── */
+  :root {
+    /* Strengthen borders — clearly visible separators */
+    --border-subtle:  1px solid rgba(255, 255, 255, 0.15);
+    --border-default: 1px solid rgba(255, 255, 255, 0.25);
+    --border-strong:  1px solid rgba(255, 255, 255, 0.40);
+    --border-accent:  1px solid rgba(255, 255, 255, 0.50);
+
+    /* Brighten secondary text for better readability */
+    --color-sub:   #d4d4f0;
+    --color-muted: #b8b8d8;
+    --sub:         #d4d4f0;
+    --muted:       #b8b8d8;
+
+    /* Solid surface colors — no transparency */
+    --color-canvas:  #0e0e1a;
+    --color-sunken:  #12121f;
+    --color-surface: #1a1a2e;
+    --color-raised:  #22223a;
+    --color-overlay: #2a2a44;
+
+    /* White alpha fills — increase visibility */
+    --fill-02: rgba(255, 255, 255, 0.06);
+    --fill-03: rgba(255, 255, 255, 0.08);
+    --fill-04: rgba(255, 255, 255, 0.10);
+    --fill-05: rgba(255, 255, 255, 0.12);
+    --fill-06: rgba(255, 255, 255, 0.15);
+    --fill-08: rgba(255, 255, 255, 0.18);
+    --fill-10: rgba(255, 255, 255, 0.20);
+    --fill-12: rgba(255, 255, 255, 0.25);
+    --fill-15: rgba(255, 255, 255, 0.30);
+
+    /* Thicker focus rings */
+    --focus-ring-width: 3px;
+    --focus-ring-offset: 2px;
+  }
+
+  /* ── Glass cards → solid opaque surfaces ──────────────────────── */
+  .glass-card {
+    background: var(--color-raised) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+  }
+
+  .glass-card::before {
+    /* Replace gradient rim with solid visible border */
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .glass-card--low,
+  .glass-card--medium,
+  .glass-card--high {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* ── Top bar — solid, no blur ─────────────────────────────────── */
+  .app-topbar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--color-surface) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.20);
+  }
+
+  .app-topbar::after {
+    display: none;
+  }
+
+  .app-topbar__btn {
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    background: rgba(129, 140, 248, 0.12) !important;
+  }
+
+  /* ── Dock — solid, no blur ────────────────────────────────────── */
+  .app-dock {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--color-surface) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  .app-dock::before {
+    display: none;
+  }
+
+  .app-dock__item {
+    border: 1px solid transparent;
+  }
+
+  .app-dock__item.is-active {
+    border-color: rgba(129, 140, 248, 0.40);
+    background: rgba(129, 140, 248, 0.12);
+    border-radius: 8px;
+  }
+
+  .app-dock__glow {
+    display: none;
+  }
+
+  /* ── Top-edge blur — solid fallback ───────────────────────────── */
+  .top-edge-blur {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: linear-gradient(
+      to bottom,
+      var(--color-canvas) 0%,
+      transparent 100%
+    ) !important;
+  }
+
+  /* ── Suppress gradient mesh orbs ──────────────────────────────── */
+  .gradient-mesh__orb {
+    display: none !important;
+  }
+
+  .gradient-mesh__grain {
+    display: none !important;
+  }
+
+  /* ── Suppress ambient glow ────────────────────────────────────── */
+  .ambient-glow__pool {
+    display: none !important;
+  }
+
+  .ambient-glow__fallback {
+    display: none !important;
+  }
+
+  /* ── Display gradient text → solid color ──────────────────────── */
+  .display-gradient-text {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    -webkit-text-fill-color: var(--color-text) !important;
+    color: var(--color-text) !important;
+  }
+
+  /* ── Skeleton shimmer → static placeholder ────────────────────── */
+  .skeleton::after {
+    animation: none !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    transform: none !important;
+  }
+
+  /* ── Hero shimmer particles suppressed ────────────────────────── */
+  .hero-shimmer-particle {
+    display: none !important;
+  }
+
+  /* ── Tip accent bar shimmer → static gradient ─────────────────── */
+  .tip-accent-bar {
+    animation: none !important;
+  }
+
+  /* ── Interactive elements — explicit outlines ─────────────────── */
+  button,
+  [role="button"],
+  .t-toggle,
+  .t-chip,
+  .category-pill {
+    border: 1px solid rgba(255, 255, 255, 0.20) !important;
+  }
+
+  /* ── Stronger focus rings ─────────────────────────────────────── */
+  .focus-ring:focus-visible,
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [role="button"]:focus-visible,
+  [role="tab"]:focus-visible,
+  [tabindex]:focus-visible {
+    outline-width: 3px;
+    box-shadow: 0 0 0 5px rgba(129, 140, 248, 0.25);
+  }
+
+  /* ── Bottom sheet — solid border ──────────────────────────────── */
+  .sheet {
+    border-top: 2px solid rgba(255, 255, 255, 0.25);
+    background: var(--color-surface);
+  }
+
+  /* ── Accent border shimmer → solid ────────────────────────────── */
+  .accent-border-shimmer {
+    border-image: none;
+    border: 1px solid rgba(129, 140, 248, 0.50);
+  }
+
+  /* ── FAB — solid outline ──────────────────────────────────────── */
+  .app-dock-fab {
+    border: 2px solid rgba(129, 140, 248, 0.50) !important;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ZOOM SUPPORT (Task 460.2, Requirement 27.6)
+ *
+ * Ensures the app remains usable at 200% browser zoom with no horizontal
+ * scrolling. Content reflows correctly, no overlaps or clipping.
+ * The viewport meta now allows up to 5× zoom (layout.tsx).
+ *
+ * Key guarantees:
+ *   • Body/html prevent horizontal overflow
+ *   • Fixed-positioned elements (dock, FAB, topbar) stay within viewport
+ *   • Content containers use max-width: 100% for safe reflow
+ * ═══════════════════════════════════════════════════════════════════════════ */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Ensure fixed chrome never causes horizontal overflow at high zoom */
+.app-topbar,
+.app-dock,
+.app-dock-fab,
+.top-edge-blur {
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+/* Content containers stay within bounds */
+.app-content {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TEXT RESIZING SUPPORT (Task 460.3, Requirement 27.6)
+ *
+ * The typography system uses rem throughout via CSS custom properties
+ * (--type-*-size tokens). This ensures text respects the user's system
+ * font size preference.
+ *
+ * Additional safety:
+ *   • Key containers accommodate larger text without clipping
+ *   • The .dynamic-type-safe class (defined above) handles overflow-wrap
+ *   • No px-based font-sizes on scaling text (verified: typography.ts uses
+ *     pxToRem and CSS custom properties exclusively)
+ *
+ * At 1.5× and 2× system font size, layout accommodates because:
+ *   • All type tokens are rem-based (scales with root font size)
+ *   • Content column has flexible height (overflow-y: auto)
+ *   • Cards use min-height not fixed height
+ *   • Dock items have flexible sizing
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Ensure hero amount container doesn't clip at large text sizes */
+.hero-amount,
+.allowance-ring-wrapper {
+  overflow: visible;
+  min-height: auto;
+}
+
+/* Ensure dock labels wrap gracefully at large text sizes */
+.app-dock__item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

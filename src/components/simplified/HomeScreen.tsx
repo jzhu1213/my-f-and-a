@@ -1,6 +1,7 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "@/contexts/I18nContext"
 import type { Transaction, Budget, Goal, TransactionCategory } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { CelebrationEvent } from "@/types/folio"
@@ -152,6 +153,7 @@ const ShareMilestoneSheet = dynamic(
  */
 function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
   const { prefersReducedMotion } = useAppReducedMotion()
+  const t = useTranslation()
 
   const motionProps = prefersReducedMotion
     ? {
@@ -193,7 +195,7 @@ function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
           flex: 1,
         }}
       >
-        Tomorrow&rsquo;s budget resets — or log income to top up today.
+        {t('home.overBudgetStrip')}
       </p>
 
       <motion.button
@@ -216,7 +218,7 @@ function OverBudgetStrip({ onLogIncome }: { onLogIncome: () => void }) {
           whiteSpace: 'nowrap',
         }}
       >
-        Log income →
+        {t('home.logIncomeArrow')}
       </motion.button>
     </motion.div>
   )
@@ -436,7 +438,7 @@ export interface HomeScreenProps {
  *
  * Requirements: 9.1, 8.1, 8.4
  */
-export function HomeScreen({
+export const HomeScreen = memo(function HomeScreen({
   allowance,
   transactions,
   budgets,
@@ -499,6 +501,9 @@ export function HomeScreen({
   onEditSuggestion,
   comingUpItems,
 }: HomeScreenProps) {
+  // ── i18n ───────────────────────────────────────────────────────────────────
+  const t = useTranslation()
+
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
   const [localCelebration, setLocalCelebration] = useState<CelebrationEvent | null>(null)
@@ -897,6 +902,18 @@ export function HomeScreen({
     <FadeInContent key="home-content">
     <PullToRefresh onRefresh={handleRefresh} disabled={isLoading}>
     <div className="home-screen" style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+      {/* Visually-hidden h1 for screen reader heading hierarchy (Req 27.1) */}
+      <h1 style={{
+        position: "absolute",
+        width: 1,
+        height: 1,
+        padding: 0,
+        margin: -1,
+        overflow: "hidden",
+        clip: "rect(0, 0, 0, 0)",
+        whiteSpace: "nowrap",
+        borderWidth: 0,
+      }}>{t('nav.home')}</h1>
       <motion.div
         className="home-screen__content"
         variants={homeContainer}
@@ -1372,7 +1389,7 @@ export function HomeScreen({
               }}
               aria-label="Estimated budget — tap to log income for a more accurate daily budget"
             >
-              ✨ Estimated — tap to log income for accuracy →
+              {t('home.estimateNudge')}
             </motion.button>
           )}
           {/* ── Over-budget strip (task 70.3) — inside hero section ───── */}
@@ -1400,7 +1417,7 @@ export function HomeScreen({
                     }}
                     aria-label="Over-limit gentle note"
                   >
-                    Spent a bit more today — tomorrow resets ✨
+                    {t('home.overBudgetGentle')}
                   </motion.p>
                 )}
                 {overLimitResponse === 'headsup' && (
@@ -1456,7 +1473,7 @@ export function HomeScreen({
                   marginLeft: 2,
                 }}
               >
-                {activeSpendDown.onTrack ? 'On track ✓' : 'A bit ahead of pace'}
+                {activeSpendDown.onTrack ? t('home.spendDownOnTrack') : t('home.spendDownAhead')}
               </span>
             </motion.div>
           )}
@@ -1496,7 +1513,7 @@ export function HomeScreen({
               }}
               aria-label="Log your first expense"
             >
-              Log your first expense
+              {t('home.logFirstExpense')}
             </motion.button>
           ) : (
           <>
@@ -1522,7 +1539,7 @@ export function HomeScreen({
                 boxShadow: "0 4px 20px rgba(124, 58, 237, 0.3)",
               }}
             >
-              Log expense
+              {t('home.logExpense')}
             </motion.button>
 
             {/* Secondary: Log income — ghost pill with green border */}
@@ -1545,7 +1562,7 @@ export function HomeScreen({
                 textAlign: "center",
               }}
             >
-              Log income
+              {t('home.logIncome')}
             </motion.button>
           </div>
 
@@ -1568,7 +1585,7 @@ export function HomeScreen({
                   fontWeight: 500,
                 }}
               >
-                🤝 Split
+                {t('home.split')}
               </button>
             )}
             <button
@@ -1587,7 +1604,7 @@ export function HomeScreen({
                 fontWeight: 500,
               }}
             >
-              🤔 Can I afford this?
+              {t('home.canIAfford')}
             </button>
             {onAddWish && (
               <button
@@ -1606,7 +1623,7 @@ export function HomeScreen({
                   fontWeight: 500,
                 }}
               >
-                ⭐ + Wish
+                {t('home.addWish')}
               </button>
             )}
           </div>
@@ -1639,7 +1656,7 @@ export function HomeScreen({
                 opacity: 0.85,
               }}
             >
-              🎯 Nothing spent? Mark as $0 day
+              {t('home.zeroSpendMark')}
             </button>
           </motion.div>
         )}
@@ -1667,7 +1684,7 @@ export function HomeScreen({
                 role="status"
                 aria-live="polite"
               >
-                ✓ Day logged — streak continues
+                {t('home.zeroSpendConfirm')}
               </span>
             </motion.div>
           )}
@@ -1795,7 +1812,7 @@ export function HomeScreen({
                   textAlign: 'center',
                 }}
               >
-                View all ({outstandingSplits.length}) →
+                {t('home.viewAllSplits', { count: String(outstandingSplits.length) })}
               </button>
             )}
           </motion.div>
@@ -1935,7 +1952,7 @@ export function HomeScreen({
             }}
           >
             <h2 style={sectionHeader}>
-              Categories
+              {t('home.sectionCategories')}
             </h2>
             {categoryRows.length > 4 && (
               <button
@@ -1948,7 +1965,7 @@ export function HomeScreen({
                 }}
                 aria-label="See all categories"
               >
-                See all →
+                {t('home.seeAll')}
               </button>
             )}
           </div>
@@ -1961,9 +1978,9 @@ export function HomeScreen({
               <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: borderRadius.lg }}>
                 <EmptyState
                   illustration="budget"
-                  title="You're all set to start — limits are optional"
-                  subtitle="Add category limits anytime for a more accurate daily number"
-                  actionLabel={onOpenBudgetSettings ? "Set up limits →" : undefined}
+                  title={t('home.categoryEmptyTitle')}
+                  subtitle={t('home.categoryEmptySubtitle')}
+                  actionLabel={onOpenBudgetSettings ? t('home.categoryEmptyAction') : undefined}
                   onAction={onOpenBudgetSettings ?? undefined}
                   actionAriaLabel="Set up category limits"
                 />
@@ -2039,12 +2056,14 @@ export function HomeScreen({
                             }}
                           >
                             <motion.div
-                              animate={{ width: `${Math.min(row.weekPct, 100)}%` }}
+                              animate={{ scaleX: Math.min(row.weekPct, 100) / 100 }}
                               transition={springs.gentle}
                               style={{
+                                width: "100%",
                                 height: "100%",
                                 borderRadius: 2,
                                 background: barColor,
+                                transformOrigin: "left center",
                               }}
                             />
                           </div>
@@ -2119,7 +2138,7 @@ export function HomeScreen({
             }}
           >
             <h2 style={sectionHeader}>
-              Recent
+              {t('home.sectionRecent')}
             </h2>
             {recentTransactions.length > 0 && (
               <button
@@ -2132,7 +2151,7 @@ export function HomeScreen({
                 }}
                 aria-label="See all transactions"
               >
-                See all →
+                {t('home.seeAll')}
               </button>
             )}
           </div>
@@ -2157,7 +2176,7 @@ export function HomeScreen({
                         margin: 0,
                       }}
                     >
-                      Your spending will show up here.
+                      {t('home.emptyFirstRunTitle')}
                     </p>
                     <p
                       style={{
@@ -2169,7 +2188,7 @@ export function HomeScreen({
                         lineHeight: 1.5,
                       }}
                     >
-                      Log your first expense and watch your day take shape.
+                      {t('home.emptyFirstRunSubtitle')}
                     </p>
                   </div>
                 </GlassCard>
@@ -2177,9 +2196,9 @@ export function HomeScreen({
                 <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: borderRadius.lg }}>
                   <EmptyState
                     illustration="transactions"
-                    title="Ready when you are"
-                    subtitle="Log your first expense and Folio starts learning your habits"
-                    actionLabel="Log expense →"
+                    title={t('home.emptyTitle')}
+                    subtitle={t('home.emptySubtitle')}
+                    actionLabel={t('home.emptyAction')}
                     onAction={() => onLogExpense()}
                     actionAriaLabel="Log your first expense"
                     actionColor="success"
@@ -2286,6 +2305,16 @@ export function HomeScreen({
                           txIdx === group.txs.length - 1
                         const accent = getCategoryAccent(tx.category)
 
+                        // Build descriptive aria-label: category, amount, note, date + actions (Task 449.3)
+                        const categoryLabel = catInfo?.label || tx.category
+                        const amountLabel = `${tx.type === "income" ? "+" : ""}$${tx.amount.toFixed(2)}`
+                        const noteLabel = tx.note ? `, ${tx.note}` : ""
+                        const dateLabel = tx.date
+                        const actionsLabel = onEditTransaction
+                          ? "Swipe left to delete, swipe right to edit, or press Enter to view."
+                          : "Swipe left to delete, or press Enter to view."
+                        const txAriaLabel = `${categoryLabel}, ${amountLabel}${noteLabel}, ${dateLabel}. ${actionsLabel}`
+
                         return (
                           <motion.div
                             key={tx.id}
@@ -2298,6 +2327,7 @@ export function HomeScreen({
                               onTap={() => onViewTransaction(tx)}
                               onEdit={onEditTransaction ? (id) => setInlineEditId(id) : undefined}
                               showBorder={!isLast && inlineEditId !== tx.id}
+                              ariaLabel={txAriaLabel}
                             >
                               <motion.div
                                 layoutId={!prefersReducedMotion ? `tx-row-${tx.id}` : undefined}
@@ -2450,4 +2480,4 @@ export function HomeScreen({
     </FadeInContent>
     </AnimatePresence>
   )
-}
+})

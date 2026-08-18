@@ -203,10 +203,10 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                 }}
               >
                 <motion.div
-                  initial={{ width: prefersReducedMotion ? `${pct}%` : 0 }}
-                  animate={{ width: `${pct}%` }}
+                  initial={{ scaleX: prefersReducedMotion ? pct / 100 : 0 }}
+                  animate={{ scaleX: pct / 100 }}
                   transition={prefersReducedMotion ? timings.fast : springs.gentle}
-                  style={{ height: "100%", borderRadius: borderRadius.full, background: "var(--accent)" }}
+                  style={{ width: "100%", height: "100%", borderRadius: borderRadius.full, background: "var(--accent)", transformOrigin: "left center" }}
                 />
               </div>
               <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 24, fontVariantNumeric: "tabular-nums" }}>

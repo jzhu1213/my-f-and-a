@@ -72,13 +72,15 @@ function ProgressBar({ progress, target }: { progress: number; target: number })
       aria-label={`${percent}% complete`}
     >
       <motion.div
-        initial={{ width: 0 }}
-        animate={{ width: `${percent}%` }}
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: percent / 100 }}
         transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5, ease: "easeOut" }}
         style={{
+          width: "100%",
           height: "100%",
           borderRadius: radius.full,
           background: percent >= 100 ? colorRamp.success[500] : colorRamp.accent[500],
+          transformOrigin: "left center",
         }}
       />
     </div>

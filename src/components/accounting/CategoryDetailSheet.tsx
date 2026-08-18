@@ -83,9 +83,9 @@ export function CategoryDetailSheet({
                 <div
                   className="progress-fill"
                   style={{
-                    width: `${row.weekPct}%`,
+                    ["--progress-fill-fraction" as string]: row.weekPct / 100,
                     background: row.overWeekly ? 'var(--red)' : row.nearLimit ? 'var(--amber)' : 'var(--green)',
-                  }}
+                  } as React.CSSProperties}
                 />
               </div>
               {row.monthlyLimit > 0 && (
