@@ -34,10 +34,20 @@ interface DbTransaction {
   note?: string
   is_recurring?: boolean
   recurring_id?: string
-  account_type: string
+  account_type?: string
   created_at: string
   funding_source_id?: string
 }
+
+/**
+ * Selective fields fetched for list/display views (Task 471.2).
+ * Covers: list display (id, date, amount, category, note, type),
+ * allowance calculation (date, amount, type, category),
+ * and grouping/filtering (is_recurring, funding_source_id, created_at for sorting).
+ *
+ * Full records (all metadata) are fetched only for detail/edit views via getTransactionFull().
+ */
+const TRANSACTION_LIST_FIELDS = 'id,user_id,date,type,amount,category,note,is_recurring,created_at,funding_source_id' as const
 
 interface DbProfile {
   id: string
@@ -390,6 +400,111 @@ export async function getTransactions(userId: string): Promise<Transaction[]> {
 
   if (error) {
     console.error('Error fetching transactions:', error)
+    return []
+  }
+
+  return (data || []).map(dbTransactionToApp)
+}
+
+/**
+ * Paginated transaction fetch — returns a page of transactions ordered by date desc.
+ * Used by the transaction pagination system (Task 469.1).
+ * Uses selective field fetching (Task 471.2) — only columns needed for list display.
+ *
+ * @param userId - The user's ID
+ * @param page - Zero-indexed page number
+ * @param pageSize - Number of transactions per page (default 75)
+ * @returns Object with transactions array and whether more pages exist
+ */
+export async function getTransactionsPaginated(
+  userId: string,
+  page: number = 0,
+  pageSize: number = 75
+): Promise<{ transactions: Transaction[]; hasMore: boolean }> {
+  const from = page * pageSize
+  const to = from + pageSize // fetch one extra to detect hasMore
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(TRANSACTION_LIST_FIELDS)
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .range(from, to)
+
+  if (error) {
+    console.error('Error fetching paginated transactions:', error)
+    return { transactions: [], hasMore: false }
+  }
+
+  const rows = data || []
+  const hasMore = rows.length > pageSize
+  const pageRows = hasMore ? rows.slice(0, pageSize) : rows
+
+  return {
+    transactions: pageRows.map(dbTransactionToApp),
+    hasMore,
+  }
+}
+
+/**
+ * Fetches a single transaction with ALL fields for the detail/edit view (Task 471.2).
+ * Use this when the user opens a transaction to view or edit — it returns the complete
+ * record including metadata fields (recurringId, accountType, scheduled, tags, etc.)
+ * that are omitted from list fetches for performance.
+ *
+ * @param userId - The user's ID (for RLS safety)
+ * @param transactionId - The transaction's ID
+ * @returns The full Transaction record, or null if not found
+ */
+export async function getTransactionFull(
+  userId: string,
+  transactionId: string
+): Promise<Transaction | null> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', transactionId)
+    .eq('user_id', userId)
+    .single()
+
+  if (error || !data) {
+    console.error('Error fetching full transaction:', error)
+    return null
+  }
+
+  return dbTransactionToApp(data as DbTransaction)
+}
+
+/**
+ * Fetches ALL transactions for the current month (from the 1st to the last day).
+ * Used to guarantee accurate daily allowance calculation even when paginating
+ * historical transactions (Task 469.2).
+ *
+ * @param userId - The user's ID
+ * @param currentDate - Optional reference date (defaults to now)
+ * @returns All current-month transactions, ordered by date desc
+ */
+export async function getCurrentMonthTransactions(
+  userId: string,
+  currentDate: Date = new Date()
+): Promise<Transaction[]> {
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth() + 1
+  const monthStr = `${year}-${String(month).padStart(2, '0')}`
+  const nextMonth = month === 12
+    ? `${year + 1}-01`
+    : `${year}-${String(month + 1).padStart(2, '0')}`
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', `${monthStr}-01`)
+    .lt('date', `${nextMonth}-01`)
+    .order('date', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching current month transactions:', error)
     return []
   }
 
@@ -2409,4 +2524,157 @@ export async function revokeOtherSessions(
 export async function signOutOtherSessions(): Promise<{ error: Error | null }> {
   const { error } = await supabase.auth.signOut({ scope: 'others' })
   return { error }
+}
+
+
+// ============================================
+// BATCHED HOME DATA FETCH (Task 471.1)
+// ============================================
+
+/**
+ * Result type for the batched home data fetch.
+ * Combines transaction data with all secondary collections in a single call.
+ */
+export interface HomeDataBatchResult {
+  /** All current-month transactions (complete set for allowance accuracy) */
+  currentMonthTransactions: Transaction[]
+  /** First page of transactions (for display), with hasMore flag */
+  paginatedTransactions: { transactions: Transaction[]; hasMore: boolean }
+  /** Current-month budgets */
+  budgets: Budget[]
+  /** User's goals (with participants pre-loaded) */
+  goals: Goal[]
+  /** Lesson progress records */
+  lessonProgress: UserLessonProgress[]
+  /** Current-month income allocations */
+  allocations: AppAllocation[]
+  /** Savings accounts */
+  savingsAccounts: SavingsAccount[]
+  /** Debt records */
+  debts: Debt[]
+  /** Pay schedule (or null if not set) */
+  paySchedule: PaySchedule | null
+  /** Sinking funds */
+  sinkingFunds: SinkingFund[]
+  /** Funding sources */
+  fundingSources: FundingSource[]
+}
+
+/**
+ * Fetches all home screen data in a single optimized batch (Task 471.1).
+ *
+ * Optimizations over individual calls:
+ * 1. Combines the two transaction queries (current-month + paginated) into a single
+ *    larger query when the current month likely fits within the page size, falling back
+ *    to two queries only when necessary. This eliminates one Supabase round-trip in the
+ *    common case (users with <75 transactions this month).
+ * 2. Issues all secondary data fetches in a single Promise.all with per-table error
+ *    isolation (non-critical data failures don't block the UI).
+ * 3. Goals + participants are fetched without N+1 (already optimized with .in() query).
+ *
+ * @param userId - The authenticated user's ID
+ * @param pageSize - Transaction page size (default 75)
+ * @returns All home screen data in one structured result
+ */
+export async function fetchHomeDataBatch(
+  userId: string,
+  pageSize: number = 75
+): Promise<HomeDataBatchResult> {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  const currentMonthStr = `${year}-${String(month).padStart(2, '0')}`
+  const nextMonthStr = month === 12
+    ? `${year + 1}-01`
+    : `${year}-${String(month + 1).padStart(2, '0')}`
+
+  // ── Strategy: Combined Transaction Fetch ─────────────────────────
+  // Instead of two separate queries on the transactions table, we issue ONE query
+  // that fetches pageSize+1 most-recent transactions. Since page 0 is ordered by
+  // date desc, it naturally includes all (or most) current-month transactions.
+  //
+  // We then partition the result into:
+  //   - currentMonthTransactions: all rows where date >= currentMonth-01
+  //   - paginatedTransactions: the first `pageSize` rows (with hasMore flag)
+  //
+  // If the current month has more transactions than pageSize (rare for college
+  // students), we fall back to a dedicated current-month query to guarantee
+  // allowance accuracy. This avoids the second round-trip in the >95% common case.
+
+  const fetchTo = pageSize // fetch pageSize+1 to detect hasMore (range is inclusive)
+
+  // Single combined transaction query — uses selective fields (Task 471.2)
+  const txPromise = supabase
+    .from('transactions')
+    .select(TRANSACTION_LIST_FIELDS)
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .range(0, fetchTo)
+
+  // All secondary data fetches in parallel
+  const [txResult, budgetData, goalData, lessonData, allocationData, savingsData, debtData, payScheduleData, sinkingFundsData, fundingSourcesData] = await Promise.all([
+    txPromise,
+    getBudgets(userId),
+    getGoals(userId),
+    getLessonProgress(userId).catch(() => [] as UserLessonProgress[]),
+    getMonthAllocations(userId, currentMonthStr).catch(() => [] as AppAllocation[]),
+    getSavingsAccounts(userId).catch(() => [] as SavingsAccount[]),
+    getDebts(userId).catch(() => [] as Debt[]),
+    getPaySchedule(userId).catch(() => null as PaySchedule | null),
+    getSinkingFunds(userId).catch(() => [] as SinkingFund[]),
+    getFundingSources(userId).catch(() => [] as FundingSource[]),
+  ])
+
+  // Process transaction result
+  const allRows: DbTransaction[] = txResult.data || []
+  if (txResult.error) {
+    console.error('Error in batched transaction fetch:', txResult.error)
+  }
+
+  const hasMore = allRows.length > pageSize
+  const pageRows = hasMore ? allRows.slice(0, pageSize) : allRows
+  const paginatedTransactions = {
+    transactions: pageRows.map(dbTransactionToApp),
+    hasMore,
+  }
+
+  // Partition: extract current-month transactions from the fetched page
+  const currentMonthStart = `${currentMonthStr}-01`
+  const currentMonthRows = allRows.filter(
+    (row) => row.date >= currentMonthStart && row.date < `${nextMonthStr}-01`
+  )
+
+  // Check if we might be missing current-month transactions (i.e., the page
+  // ended before reaching the start of the month). This happens when:
+  // - The oldest row in our page is still within the current month AND hasMore is true
+  // In this rare case, we need a dedicated current-month fetch for accuracy.
+  let currentMonthTransactions: Transaction[]
+  const oldestInPage = allRows[allRows.length - 1]
+  const needsFullMonthFetch =
+    hasMore &&
+    oldestInPage &&
+    oldestInPage.date >= currentMonthStart
+
+  if (needsFullMonthFetch) {
+    // Rare path: user has >pageSize transactions this month alone.
+    // Fall back to dedicated current-month query for allowance accuracy.
+    currentMonthTransactions = await getCurrentMonthTransactions(userId, now)
+  } else {
+    // Common path: all current-month transactions are within our page.
+    currentMonthTransactions = currentMonthRows.map(dbTransactionToApp)
+  }
+
+  return {
+    currentMonthTransactions,
+    paginatedTransactions,
+    budgets: budgetData,
+    goals: goalData,
+    lessonProgress: lessonData,
+    allocations: allocationData,
+    savingsAccounts: savingsData,
+    debts: debtData,
+    paySchedule: payScheduleData,
+    sinkingFunds: sinkingFundsData,
+    fundingSources: fundingSourcesData,
+  }
 }
