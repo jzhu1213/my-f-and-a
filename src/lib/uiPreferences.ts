@@ -148,45 +148,4 @@ export function setCreditScoreCheckinEnabled(enabled: boolean): void {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Home Style Preferences — compact (minimal) vs. comfortable (dashboard)
-// ---------------------------------------------------------------------------
-//
-// Task 345.1 — "Home style" setting.
-//
-// Minimal: hero + quick log + recent + tip, no pinned cards (today's default).
-// Dashboard: hero + pinned cards + quick log + recent (tips suppressed when
-// pinned cards are present to avoid overcrowding).
 
-/** The two available home screen layout styles. */
-export type HomeStyle = 'minimal' | 'dashboard'
-
-/** localStorage key for the home style preference. */
-const HOME_STYLE_KEY = 'folio-home-style'
-
-/**
- * Returns the user's preferred home screen style. Defaults to `'minimal'`
- * (preserves current behavior — no change for users who haven't configured it).
- */
-export function getHomeStyle(): HomeStyle {
-  if (typeof window === 'undefined') return 'minimal'
-  try {
-    const stored = localStorage.getItem(HOME_STYLE_KEY)
-    if (stored === 'dashboard') return 'dashboard'
-    return 'minimal'
-  } catch {
-    return 'minimal'
-  }
-}
-
-/**
- * Persists the user's preferred home screen style.
- */
-export function setHomeStyle(style: HomeStyle): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(HOME_STYLE_KEY, style)
-  } catch {
-    // localStorage unavailable — fail silently
-  }
-}

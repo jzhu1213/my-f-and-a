@@ -88,14 +88,6 @@ const CategorizationRulesScreen = dynamic(
   () => import('@/components/simplified/CategorizationRulesScreen').then(m => ({ default: m.CategorizationRulesScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
-const RecurringBillsScreen = dynamic(
-  () => import('@/components/simplified/RecurringBillsScreen').then(m => ({ default: m.RecurringBillsScreen })),
-  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
-)
-const RecurrenceManagementScreen = dynamic(
-  () => import('@/components/simplified/RecurrenceManagementScreen').then(m => ({ default: m.RecurrenceManagementScreen })),
-  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
-)
 const CancelNegotiateHelper = dynamic(
   () => import('@/components/simplified/CancelNegotiateHelper').then(m => ({ default: m.CancelNegotiateHelper })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
@@ -140,6 +132,10 @@ const BackfillSheet = dynamic(
   () => import('@/components/simplified/BackfillSheet').then(m => ({ default: m.BackfillSheet })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
+const TravelModeSheet = dynamic(
+  () => import('@/components/simplified/TravelModeSheet').then(m => ({ default: m.TravelModeSheet })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
 const BulkRepeatSheet = dynamic(
   () => import('@/components/simplified/BulkRepeatSheet').then(m => ({ default: m.BulkRepeatSheet })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
@@ -164,10 +160,6 @@ const TrajectoryScreen = dynamic(
   () => import('@/components/simplified/TrajectoryScreen').then(m => ({ default: m.TrajectoryScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
-const RoommateInviteScreen = dynamic(
-  () => import('@/components/simplified/RoommateInviteScreen').then(m => ({ default: m.RoommateInviteScreen })),
-  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
-)
 const SharingScreen = dynamic(
   () => import('@/components/simplified/SharingScreen').then(m => ({ default: m.SharingScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
@@ -176,20 +168,8 @@ const CategoryHubScreen = dynamic(
   () => import('@/components/simplified/CategoryHubScreen').then(m => ({ default: m.CategoryHubScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
-const SavingsProjectionsScreen = dynamic(
-  () => import('@/components/simplified/SavingsProjectionsScreen').then(m => ({ default: m.SavingsProjectionsScreen })),
-  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
-)
-const ManageSavingsAccountsScreen = dynamic(
-  () => import('@/components/simplified/ManageSavingsAccountsScreen').then(m => ({ default: m.ManageSavingsAccountsScreen })),
-  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
-)
 const CashFlowForecastScreen = dynamic(
   () => import('@/components/simplified/CashFlowForecastScreen').then(m => ({ default: m.CashFlowForecastScreen })),
-  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
-)
-const PortfolioAllocationScreen = dynamic(
-  () => import('@/components/simplified/PortfolioAllocationScreen').then(m => ({ default: m.PortfolioAllocationScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
 const InvestmentExplorerScreen = dynamic(
@@ -208,10 +188,6 @@ const IncomeTrendsScreen = dynamic(
   () => import('@/components/simplified/IncomeTrendsScreen').then(m => ({ default: m.IncomeTrendsScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
-const SharedBudgetsScreen = dynamic(
-  () => import('@/components/simplified/SharedBudgetsScreen').then(m => ({ default: m.SharedBudgetsScreen })),
-  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
-)
 const StatementImportSheet = dynamic(
   () => import('@/components/simplified/StatementImportSheet').then(m => ({ default: m.StatementImportSheet })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
@@ -220,12 +196,29 @@ const ConfidenceScreen = dynamic(
   () => import('@/components/simplified/ConfidenceScreen').then(m => ({ default: m.ConfidenceScreen })),
   { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
 )
+// Merged screens (task 489)
+const RecurringScreen = dynamic(
+  () => import('@/components/simplified/RecurringScreen').then(m => ({ default: m.RecurringScreen })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
+const SavingsScreen = dynamic(
+  () => import('@/components/simplified/SavingsScreen').then(m => ({ default: m.SavingsScreen })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
+const SharedScreen = dynamic(
+  () => import('@/components/simplified/SharedScreen').then(m => ({ default: m.SharedScreen })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
+const ProgressMilestonesScreen = dynamic(
+  () => import('@/components/simplified/ProgressMilestonesScreen').then(m => ({ default: m.ProgressMilestonesScreen })),
+  { ssr: false, loading: () => <DepthSurfaceSkeleton /> }
+)
 import type { DetectedSubscription } from '@/lib/subscriptionDetector'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
-import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, settleReimbursement, upsertPaySchedule, upsertBudget, deleteAllUserData } from '@/lib/supabaseData'
+import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, upsertPaySchedule, upsertBudget, deleteAllUserData } from '@/lib/supabaseData'
 import { createSplit, type CreateSplitInput } from '@/lib/social/splits'
 import type { StoredDataCategory } from '@/components/simplified/PrivacyDataScreen'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
@@ -326,7 +319,7 @@ export default function FolioApp() {
         setShowKeyboardHelp(false)
       } else if (overlay.anySheetOpen) {
         // Close the most recently opened sheet
-        const sheetIds: Array<import('@/hooks/useOverlayRouter').SheetId> = ['expense', 'income', 'paycheck', 'edit', 'refund', 'backfill', 'bulkRepeat', 'profile', 'quickLog']
+        const sheetIds: Array<import('@/hooks/useOverlayRouter').SheetId> = ['expense', 'income', 'paycheck', 'edit', 'refund', 'backfill', 'bulkRepeat', 'profile', 'quickLog', 'travelMode']
         for (const id of sheetIds) {
           if (overlay.isSheetOpen(id)) {
             overlay.closeSheet(id)
@@ -432,7 +425,6 @@ export default function FolioApp() {
     goals,
     lessonProgress,
     allowance,
-    weekendAllowance,
     totalSetAside,
     savingsRate,
     paySchedule,
@@ -1243,30 +1235,6 @@ export default function FolioApp() {
   const handleOpenExpenseSheet = useCallback((category?: TransactionCategory) => {
     overlay.openSheet('expense', { defaultCategory: category, splitPreEnabled: false })
   }, [overlay])
-
-  // Opens expense sheet with split toggle pre-enabled (task 65 — one-tap split)
-  const handleOpenSplitExpense = useCallback(() => {
-    overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: true })
-  }, [overlay])
-
-  // Settle all unsettled IOUs for a given person (task 123.1 — one-tap settle from HomeScreen)
-  const handleSettleSplit = useCallback(async (personName: string) => {
-    if (!user?.id) return
-    const unsettled = reimbursements.filter(
-      (r) => !r.settled && r.personName.trim().toLowerCase() === personName.trim().toLowerCase() && r.direction === 'owed_to_me'
-    )
-    if (unsettled.length === 0) return
-    // Optimistic update
-    setReimbursements((prev) =>
-      prev.map((r) =>
-        unsettled.some((u) => u.id === r.id) ? { ...r, settled: true, settledAt: new Date().toISOString() } : r
-      )
-    )
-    // Persist each settlement
-    for (const r of unsettled) {
-      await settleReimbursement(user.id, r.id)
-    }
-  }, [user?.id, reimbursements])
 
   const handleExpenseSubmit = useCallback(async (data: {
     amount: number
@@ -2119,12 +2087,7 @@ export default function FolioApp() {
   const handleViewAllHistory = useCallback(() => handleNavChange('history'), [handleNavChange])
   const handleCelebrationDismiss = useCallback(() => setCelebrationEvent(null), [])
   const handleOpenBudgetSettingsFromHome = useCallback(() => overlay.openOverlay('budgetSettings'), [overlay])
-  const handleAddWish = useCallback(() => { setOverlayOriginToolId('wish-list'); overlay.openOverlay('wishList') }, [overlay])
   const handleOpenReimbursementsFromHome = useCallback(() => overlay.openOverlay('reimbursements'), [overlay])
-  const handleOpenLessonFromHome = useCallback((lessonId: string) => {
-    overlay.openOverlay('learn', { initialLessonId: lessonId })
-  }, [overlay])
-  const handleOpenBackfillFromHome = useCallback(() => overlay.openSheet('backfill'), [overlay])
 
   // ── Profile Handlers ───────────────────────────────────────────
   const handleOpenProfile = () => {
@@ -2373,33 +2336,31 @@ export default function FolioApp() {
     )
   }
 
-  // ── Recurring Bills (full-screen overlay, task 65) ─────────────
-  if (flags.recurringBills && overlay.activeOverlay === 'recurringBills') {
+  // ── Recurring — merged screen (task 489.1) ──────────────────────
+  if (flags.recurringBills && overlay.activeOverlay === 'recurring') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <RecurringBillsScreen
-          bills={recurringBills}
-          onAddBill={addBill}
-          onUpdateBill={updateBill}
-          onDeleteBill={deleteBill}
-          onClose={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'recurring' ? 'tool-recurring' : undefined}
+        aria-label="Recurring"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <RecurringScreen
+            bills={recurringBills}
+            transactions={transactions}
+            onAddBill={addBill}
+            onUpdateBill={updateBill}
+            onDeleteBill={deleteBill}
+            onClose={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
-  // ── Recurrence Management (full-screen overlay, task 410) ─────────────
-  if (overlay.activeOverlay === 'recurrenceManagement') {
-    return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <RecurrenceManagementScreen
-          transactions={transactions}
-          bills={recurringBills}
-          onClose={() => overlay.closeOverlay()}
-        />
-      </div>
-    )
-  }
+  // ── Recurrence Management (full-screen overlay, task 410) — removed, now part of merged Recurring screen
 
   // ── Categorization & Routing Rules (full-screen overlay, task 187.1) ──
   if (overlay.activeOverlay === 'categorizationRules') {
@@ -2584,19 +2545,6 @@ export default function FolioApp() {
     )
   }
 
-  // ── Invite a Roommate (full-screen overlay, task 201.1) ────────
-  if (overlay.activeOverlay === 'inviteRoommate') {
-    return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <RoommateInviteScreen
-          inviterName={user?.name}
-          goals={goals}
-          onClose={() => overlay.closeOverlay()}
-        />
-      </div>
-    )
-  }
-
   // ── Wish List (full-screen overlay, task 352.1) ────────────────
   if (overlay.activeOverlay === 'wishList') {
     return (
@@ -2639,17 +2587,22 @@ export default function FolioApp() {
     )
   }
 
-  // ── Shared Budgets (full-screen overlay, task 360) ─────────────
-  if (overlay.activeOverlay === 'sharedBudgets') {
+  // ── Shared — merged screen (task 489.4) ─────────────────────────
+  if (overlay.activeOverlay === 'shared') {
     return (
       <DepthSurfaceTransition
         open
-        layoutId={overlayOriginToolId === 'shared-budgets' ? 'tool-shared-budgets' : undefined}
-        aria-label="Shared Budgets"
+        layoutId={overlayOriginToolId === 'shared' ? 'tool-shared' : undefined}
+        aria-label="Shared"
       >
         <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
         <div className="min-h-screen" style={{ paddingTop: 60 }}>
-          <SharedBudgetsScreen onBack={handleCloseDepthSurface} />
+          <SharedScreen
+            onClose={handleCloseDepthSurface}
+            onOpenHouseholdPool={() => overlay.openOverlay('sharing')}
+            inviterName={user?.name}
+            goals={goals}
+          />
         </div>
         </DepthSurfaceLoadGuard>
       </DepthSurfaceTransition>
@@ -2808,65 +2761,22 @@ export default function FolioApp() {
     )
   }
 
-  // ── Savings Projections (full-screen overlay, task 156) ────────
-  if (flags.savingsProjections && overlay.activeOverlay === 'savingsProjections') {
+  // ── Savings — merged screen (task 489.3) ────────────────────────
+  if (flags.savingsProjections && overlay.activeOverlay === 'savings') {
     return (
       <DepthSurfaceTransition
         open
-        layoutId={overlayOriginToolId === 'savings-projections' ? 'tool-savings-projections' : undefined}
-        aria-label="Savings Projections"
+        layoutId={overlayOriginToolId === 'savings' ? 'tool-savings' : undefined}
+        aria-label="Savings"
       >
         <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
         <div className="min-h-screen" style={{ paddingTop: 60 }}>
-          <SavingsProjectionsScreen
+          <SavingsScreen
             savingsAccounts={savingsAccounts}
             totalBalance={totalSavingsBalance}
             onCreateAccount={createSavingsAccount}
             onUpdateAccount={updateSavingsAccount}
             onDeleteAccount={deleteSavingsAccount}
-            onBack={handleCloseDepthSurface}
-          />
-        </div>
-        </DepthSurfaceLoadGuard>
-      </DepthSurfaceTransition>
-    )
-  }
-
-  // ── Manage Savings Accounts (full CRUD overlay, task 158.1) ────
-  if (flags.savingsProjections && overlay.activeOverlay === 'manageSavings') {
-    return (
-      <DepthSurfaceTransition
-        open
-        layoutId={overlayOriginToolId === 'manage-savings' ? 'tool-manage-savings' : undefined}
-        aria-label="Manage Savings Accounts"
-      >
-        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
-        <div className="min-h-screen" style={{ paddingTop: 60 }}>
-          <ManageSavingsAccountsScreen
-            savingsAccounts={savingsAccounts}
-            onCreateAccount={createSavingsAccount}
-            onUpdateAccount={updateSavingsAccount}
-            onDeleteAccount={deleteSavingsAccount}
-            onBack={handleCloseDepthSurface}
-          />
-        </div>
-        </DepthSurfaceLoadGuard>
-      </DepthSurfaceTransition>
-    )
-  }
-
-  // ── Portfolio Allocation (full-screen overlay, task 172.1) ─────
-  if (flags.savingsProjections && overlay.activeOverlay === 'portfolioAllocation') {
-    return (
-      <DepthSurfaceTransition
-        open
-        layoutId={overlayOriginToolId === 'portfolio-allocation' ? 'tool-portfolio-allocation' : undefined}
-        aria-label="Savings Breakdown"
-      >
-        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
-        <div className="min-h-screen" style={{ paddingTop: 60 }}>
-          <PortfolioAllocationScreen
-            savingsAccounts={savingsAccounts}
             onBack={handleCloseDepthSurface}
           />
         </div>
@@ -2889,6 +2799,32 @@ export default function FolioApp() {
             onBack={handleCloseDepthSurface}
           />
         </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
+    )
+  }
+
+  // ── Progress & Milestones — merged screen (task 489.5) ──────────
+  if (overlay.activeOverlay === 'progressMilestones') {
+    return (
+      <DepthSurfaceTransition
+        open
+        layoutId={overlayOriginToolId === 'progress-milestones' ? 'tool-progress-milestones' : undefined}
+        aria-label="Progress & Milestones"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+          <ProgressMilestonesScreen
+            transactions={transactions}
+            goals={goals}
+            gardenMetrics={{
+              completedGoals: goals?.filter(g => g.currentAmount >= g.targetAmount).length ?? 0,
+              currentStreak: 0,
+              totalActiveDays: transactions?.length ?? 0,
+              completedChallenges: 0,
+              totalSpendingTracked: transactions?.reduce((sum, t) => sum + Math.abs(t.amount), 0) ?? 0,
+            }}
+            onClose={handleCloseDepthSurface}
+          />
         </DepthSurfaceLoadGuard>
       </DepthSurfaceTransition>
     )
@@ -2968,33 +2904,31 @@ export default function FolioApp() {
                 transactions={transactions}
                 budgets={budgets}
                 goals={goals}
-                userName={user?.email?.split('@')[0]}
                 isLoading={dataLoading}
                 isStale={isStale}
-                weekendAllowance={weekendAllowance}
                 activeSpendDown={activeSpendDown}
                 timeHorizonStats={timeHorizonStats}
                 spendingMode={spendingMode}
                 heroMeaning={heroMeaning}
                 heroDisplay={heroDisplay}
-                overLimitResponse={overLimitResponse}
                 savingsRate={savingsRate}
                 savingsAccounts={savingsAccounts}
                 fundingSources={fundingSources}
                 completedLessonIds={completedLessonIds}
                 hasSkippedSetupSteps={hasSkippedSetupSteps}
-                skippedSetupSteps={skippedSetupSteps}
-                onResumeSetupStep={handleResumeSetupStep}
-                checklistSteps={checklistStepsWithStatus}
-                checklistCompletedCount={checklistProgress.completed}
-                checklistTotalCount={checklistProgress.total}
-                showProgressiveChecklist={progressiveChecklistVisible}
-                onChecklistStepAction={handleChecklistStepAction}
-                onDismissChecklist={handleDismissChecklist}
+                checklistConfig={{
+                  steps: checklistStepsWithStatus,
+                  completedCount: checklistProgress.completed,
+                  totalCount: checklistProgress.total,
+                  showProgressive: progressiveChecklistVisible,
+                  onStepAction: handleChecklistStepAction,
+                  onDismiss: handleDismissChecklist,
+                  skippedSteps: skippedSetupSteps,
+                  onResumeStep: handleResumeSetupStep,
+                }}
                 incomeOverdue={incomeOverdue}
                 periodContext={periodContext}
-                periodTransitionMessage={periodTransitionMessage}
-                onDismissPeriodTransition={dismissPeriodTransition}
+                periodTransition={periodTransitionMessage ? { message: periodTransitionMessage, onDismiss: dismissPeriodTransition } : null}
                 isFirstRun={isFirstRun}
                 onHeroTapDetails={handleHeroTapDetails}
                 onLogExpense={handleOpenExpenseSheet}
@@ -3005,24 +2939,23 @@ export default function FolioApp() {
                 onDeleteTransaction={handleDeleteTransaction}
                 onEditTransaction={handleInlineSaveTransaction}
                 onRefresh={refresh}
-                celebrationEvent={celebrationEvent}
-                onCelebrationDismiss={handleCelebrationDismiss}
+                celebrationConfig={{
+                  event: celebrationEvent,
+                  onDismiss: handleCelebrationDismiss,
+                }}
                 detectedSubscriptions={detectedSubscriptions}
                 onOpenBudgetSettings={handleOpenBudgetSettingsFromHome}
-                onOpenSplitExpense={handleOpenSplitExpense}
-                onAddWish={handleAddWish}
                 outstandingSplits={outstandingSplits}
                 onOpenReimbursements={handleOpenReimbursementsFromHome}
-                onSettleSplit={handleSettleSplit}
                 splitTransactionIds={splitTransactionIds}
-                onOpenLesson={handleOpenLessonFromHome}
-                onOpenBackfill={handleOpenBackfillFromHome}
-                suggestedEntries={gatedSuggestions}
-                suggestedEntriesTotal={gatedSuggestionsTotal}
-                suggestionsIncludedInAllowance={includeSuggestionsInAllowance}
-                onConfirmSuggestion={handleConfirmSuggestion}
-                onDismissSuggestion={handleDismissSuggestion}
-                onEditSuggestion={handleEditSuggestion}
+                suggestionsConfig={{
+                  entries: gatedSuggestions,
+                  total: gatedSuggestionsTotal,
+                  includedInAllowance: includeSuggestionsInAllowance,
+                  onConfirm: handleConfirmSuggestion,
+                  onDismiss: handleDismissSuggestion,
+                  onEdit: handleEditSuggestion,
+                }}
                 comingUpItems={gatedComingUpItems}
               />
             )}
@@ -3049,31 +2982,23 @@ export default function FolioApp() {
                 onOpenCompoundGrowth={() => { setOverlayOriginToolId('compound-growth'); overlay.openOverlay('compoundGrowth') }}
                 onOpenCreditPayoff={() => { setOverlayOriginToolId('credit-payoff'); overlay.openOverlay('creditPayoff') }}
                 onOpenSubscriptions={() => { setOverlayOriginToolId('subscriptions'); overlay.openOverlay('subscriptionAudit') }}
-                onOpenCancelNegotiate={() => {
-                  setOverlayOriginToolId('cancel-negotiate')
-                  overlay.openOverlay('cancelNegotiate', { target: null })
-                }}
                 onOpenSinkingFunds={() => { setOverlayOriginToolId('sinking-funds'); overlay.openOverlay('sinkingFunds') }}
                 onOpenLearn={() => { setOverlayOriginToolId('learn'); overlay.openOverlay('learn', { initialLessonId: null }) }}
-                onOpenSavingsProjections={() => { setOverlayOriginToolId('savings-projections'); overlay.openOverlay('savingsProjections') }}
-                onOpenManageSavings={() => { setOverlayOriginToolId('manage-savings'); overlay.openOverlay('manageSavings') }}
                 onOpenDebt={handleOpenDebt}
-                onOpenRecurringBills={() => { setOverlayOriginToolId('recurring-bills'); overlay.openOverlay('recurringBills') }}
-                onOpenRecurrenceManagement={() => { setOverlayOriginToolId('recurrence-management'); overlay.openOverlay('recurrenceManagement') }}
                 onOpenReimbursements={() => { setOverlayOriginToolId('reimbursements'); overlay.openOverlay('reimbursements') }}
                 onOpenTrajectory={() => { setOverlayOriginToolId('trajectory'); overlay.openOverlay('trajectory') }}
                 onOpenCashFlowForecast={() => { setOverlayOriginToolId('cash-flow-forecast'); overlay.openOverlay('cashFlowForecast') }}
-                onOpenPortfolioAllocation={() => { setOverlayOriginToolId('portfolio-allocation'); overlay.openOverlay('portfolioAllocation') }}
-                onOpenInvestmentExplorer={() => { setOverlayOriginToolId('investment-explorer'); overlay.openOverlay('investmentExplorer') }}
                 onOpenYearInReview={() => { setOverlayOriginToolId('year-in-review'); overlay.openOverlay('yearInReview') }}
                 onOpenTermReview={() => { setOverlayOriginToolId('term-review'); overlay.openOverlay('termReview') }}
                 onOpenPeerContext={() => { setOverlayOriginToolId('peer-context'); overlay.openOverlay('peerContext') }}
-                onOpenInviteRoommate={() => { setOverlayOriginToolId('invite-roommate'); overlay.openOverlay('inviteRoommate') }}
                 onOpenWishList={() => { setOverlayOriginToolId('wish-list'); overlay.openOverlay('wishList') }}
                 onOpenIncomeTrends={() => { setOverlayOriginToolId('income-trends'); overlay.openOverlay('incomeTrends') }}
-                onOpenSharedBudgets={() => { setOverlayOriginToolId('shared-budgets'); overlay.openOverlay('sharedBudgets') }}
                 onOpenStatementImport={() => { setOverlayOriginToolId('statement-import'); overlay.openOverlay('statementImport') }}
                 onOpenConfidence={() => { setOverlayOriginToolId('confidence'); overlay.openOverlay('confidence') }}
+                onOpenRecurring={() => { setOverlayOriginToolId('recurring'); overlay.openOverlay('recurring') }}
+                onOpenSavings={() => { setOverlayOriginToolId('savings'); overlay.openOverlay('savings') }}
+                onOpenShared={() => { setOverlayOriginToolId('shared'); overlay.openOverlay('shared') }}
+                onOpenProgressMilestones={() => { setOverlayOriginToolId('progress-milestones'); overlay.openOverlay('progressMilestones') }}
                 totalSetAside={totalSetAside}
                 savingsRate={savingsRate}
                 fundingSources={fundingSources}
@@ -3083,6 +3008,7 @@ export default function FolioApp() {
                 goals={goals}
                 budgets={budgets}
                 contributeToGoal={contributeToGoal}
+                savingsAccounts={savingsAccounts}
               />
             )}
             {activeNav === 'settings' && (
@@ -3107,6 +3033,7 @@ export default function FolioApp() {
                 onOpenFundingSources={() => overlay.openOverlay('fundingSources')}
                 onOpenLinkedAccounts={() => overlay.openOverlay('linkedAccounts')}
                 onOpenBackfill={() => overlay.openSheet('backfill')}
+                onOpenTravelMode={() => overlay.openSheet('travelMode')}
                 onSignOut={handleSignOut}
                 onResetOnboarding={handleResetOnboarding}
                 onReplayDemos={handleReplayDemos}
@@ -3295,6 +3222,13 @@ export default function FolioApp() {
             note: data.note,
           })
         }}
+      />
+
+      {/* ── Travel Mode Sheet (task 495.3) ────────────────────── */}
+      <TravelModeSheet
+        open={overlay.isSheetOpen('travelMode')}
+        onClose={() => overlay.closeSheet('travelMode')}
+        transactions={transactions}
       />
 
       {/* ── Bulk Repeat Sheet (task 93.1) ─────────────────────── */}

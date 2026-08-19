@@ -30,7 +30,6 @@ import {
   removePinnedCard,
   MAX_PINNED_CARDS,
 } from '@/lib/homeWidgets'
-import { getHomeStyle, setHomeStyle } from '@/lib/uiPreferences'
 import type { Transaction, Budget } from '@/types'
 
 // ============================================================================
@@ -567,52 +566,4 @@ describe('349.4 Pinned cards + home density', () => {
     ])
   })
 
-  it('should hide pinned cards in "minimal" mode and show them in "dashboard" mode', () => {
-    // Pin some cards
-    addPinnedCard('goal_progress')
-    addPinnedCard('savings_snapshot')
-    addPinnedCard('income_tracker')
-
-    // Switch to minimal — cards still stored, but UI hides them
-    setHomeStyle('minimal')
-    expect(getHomeStyle()).toBe('minimal')
-    // Cards are still persisted (data layer unaffected)
-    expect(getPinnedCards()).toHaveLength(3)
-
-    // Switch to dashboard — cards visible
-    setHomeStyle('dashboard')
-    expect(getHomeStyle()).toBe('dashboard')
-    expect(getPinnedCards()).toHaveLength(3)
-  })
-
-  it('should return cards when switching back from minimal to dashboard', () => {
-    addPinnedCard('goal_progress')
-    addPinnedCard('spend_pace')
-
-    // Go to dashboard
-    setHomeStyle('dashboard')
-    const cardsInDashboard = getPinnedCards()
-    expect(cardsInDashboard).toHaveLength(2)
-
-    // Switch to minimal
-    setHomeStyle('minimal')
-    expect(getHomeStyle()).toBe('minimal')
-
-    // Switch back to dashboard
-    setHomeStyle('dashboard')
-    expect(getHomeStyle()).toBe('dashboard')
-
-    // Cards should still be there
-    const cardsRestored = getPinnedCards()
-    expect(cardsRestored).toHaveLength(2)
-    expect(cardsRestored.map(c => c.type)).toEqual([
-      'goal_progress',
-      'spend_pace',
-    ])
-  })
-
-  it('should default to minimal home style', () => {
-    // No explicit style set
-    expect(getHomeStyle()).toBe('minimal')
-  })
 })

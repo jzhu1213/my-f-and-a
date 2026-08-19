@@ -46,6 +46,7 @@ import { SettingsEducationScreen } from "./SettingsEducationScreen"
 import { getEducationPreferences } from "@/lib/educationPreferences"
 import { SettingsNavList } from "./SettingsNavList"
 import { SettingsDangerZone } from "./SettingsDangerZone"
+import { WHATS_NEW_ITEMS } from "@/lib/whatsNew"
 
 // ============================================================================
 // Types
@@ -110,6 +111,8 @@ export interface SettingsScreenProps {
   onResumeChecklist?: () => void
   /** Whether the resume setup option should be visible (dismissed but not complete) */
   showResumeChecklist?: boolean
+  /** Opens the travel mode sheet (task 495.3). */
+  onOpenTravelMode?: () => void
   /** Deep-link: auto-open a specific sub-screen on mount (384.3). */
   initialSubScreen?: SettingsCategory | null
 }
@@ -190,6 +193,9 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
   // ── Sub-screen navigation ────────────────────────────────────────────
   const [activeSubScreen, setActiveSubScreen] = useState<SettingsCategory | null>(null)
+
+  // ── What's New toggle (495.1) ────────────────────────────────────────
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
 
   // ── Focus management (385.2) ─────────────────────────────────────────
   const rowRefs = useRef<Map<SettingsCategory, HTMLDivElement | null>>(new Map())
@@ -308,6 +314,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
         onSetOverLimitResponse={props.onSetOverLimitResponse ?? (() => {})}
         userGoal={props.userGoal}
         onGoalChange={props.onGoalChange}
+        onOpenTravelMode={props.onOpenTravelMode}
       />
     ),
     'budget-income': (
@@ -445,32 +452,168 @@ export function SettingsScreen(props: SettingsScreenProps) {
           </nav>
         )}
 
-        {/* Resume setup (task 392.2) — shown when checklist is dismissed but not complete */}
-        {props.showResumeChecklist && props.onResumeChecklist && (
-          <button
-            type="button"
-            onClick={props.onResumeChecklist}
+        {/* Help & Info section (task 495) — relocated features */}
+        <section
+          aria-labelledby="help-info-heading"
+          style={{ marginTop: spacingScale["24"] }}
+        >
+          <h2
+            id="help-info-heading"
             style={{
-              marginTop: spacingScale["16"],
-              width: "100%",
-              padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
-              background: elevations.sunken.fill,
-              border: `1px solid ${elevations.resting.border}`,
-              borderRadius: radius.control,
-              display: "flex",
-              alignItems: "center",
-              gap: spacingScale["8"],
-              cursor: "pointer",
               ...typography["body-sm"],
-              color: textColors.text,
+              color: textColors.muted,
+              margin: 0,
+              marginBottom: spacingScale["12"],
               fontWeight: 500,
+              paddingLeft: spacingScale["4"],
             }}
-            aria-label="Resume setup checklist"
           >
-            <span aria-hidden="true">🔄</span>
-            <span>Resume setup</span>
-          </button>
-        )}
+            Help & Info
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
+            {/* What's New (495.1) */}
+            {WHATS_NEW_ITEMS.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  // Show a sub-screen-like display — for now open inline. We use a state toggle below.
+                  setShowWhatsNew(v => !v)
+                }}
+                style={{
+                  width: "100%",
+                  padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+                  background: elevations.sunken.fill,
+                  border: `1px solid ${elevations.resting.border}`,
+                  borderRadius: radius.control,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: spacingScale["8"],
+                  cursor: "pointer",
+                  ...typography["body-sm"],
+                  color: textColors.text,
+                  fontWeight: 500,
+                  textAlign: "left",
+                }}
+                aria-label="What's New"
+                aria-expanded={showWhatsNew}
+              >
+                <span aria-hidden="true">✨</span>
+                <span style={{ flex: 1 }}>What&apos;s New</span>
+                <span aria-hidden="true" style={{ color: textColors.muted }}>{showWhatsNew ? '▾' : '›'}</span>
+              </button>
+            )}
+
+            {/* What's New content (inline expandable) */}
+            {showWhatsNew && WHATS_NEW_ITEMS.length > 0 && (
+              <div
+                style={{
+                  padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+                  background: "rgba(96, 165, 250, 0.06)",
+                  border: "1px solid rgba(96, 165, 250, 0.18)",
+                  borderRadius: radius.control,
+                }}
+              >
+                {WHATS_NEW_ITEMS.map((item) => (
+                  <div key={item.version} style={{ display: "flex", gap: spacingScale["8"], marginBottom: spacingScale["8"] }}>
+                    <span style={{ fontSize: 16, flexShrink: 0 }} aria-hidden="true">{item.emoji}</span>
+                    <div>
+                      <p style={{ ...typography["body-sm"], color: textColors.text, margin: 0, fontWeight: 500 }}>
+                        {item.title}
+                      </p>
+                      <p style={{ ...typography.caption, color: textColors.sub, margin: 0, marginTop: 2 }}>
+                        {item.message}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Catch up on missed days (495.2) */}
+            {props.onOpenBackfill && (
+              <button
+                type="button"
+                onClick={props.onOpenBackfill}
+                style={{
+                  width: "100%",
+                  padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+                  background: elevations.sunken.fill,
+                  border: `1px solid ${elevations.resting.border}`,
+                  borderRadius: radius.control,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: spacingScale["8"],
+                  cursor: "pointer",
+                  ...typography["body-sm"],
+                  color: textColors.text,
+                  fontWeight: 500,
+                  textAlign: "left",
+                }}
+                aria-label="Catch up on missed days"
+              >
+                <span aria-hidden="true">📅</span>
+                <span style={{ flex: 1 }}>Catch up on missed days</span>
+                <span aria-hidden="true" style={{ color: textColors.muted }}>›</span>
+              </button>
+            )}
+
+            {/* Travel Mode (495.3) */}
+            {props.onOpenTravelMode && (
+              <button
+                type="button"
+                onClick={props.onOpenTravelMode}
+                style={{
+                  width: "100%",
+                  padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+                  background: elevations.sunken.fill,
+                  border: `1px solid ${elevations.resting.border}`,
+                  borderRadius: radius.control,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: spacingScale["8"],
+                  cursor: "pointer",
+                  ...typography["body-sm"],
+                  color: textColors.text,
+                  fontWeight: 500,
+                  textAlign: "left",
+                }}
+                aria-label="Travel mode"
+              >
+                <span aria-hidden="true">✈️</span>
+                <span style={{ flex: 1 }}>Travel mode</span>
+                <span aria-hidden="true" style={{ color: textColors.muted }}>›</span>
+              </button>
+            )}
+
+            {/* Resume setup (495.4, task 392.2) — shown when checklist is dismissed but not complete */}
+            {props.showResumeChecklist && props.onResumeChecklist && (
+              <button
+                type="button"
+                onClick={props.onResumeChecklist}
+                style={{
+                  width: "100%",
+                  padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+                  background: elevations.sunken.fill,
+                  border: `1px solid ${elevations.resting.border}`,
+                  borderRadius: radius.control,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: spacingScale["8"],
+                  cursor: "pointer",
+                  ...typography["body-sm"],
+                  color: textColors.text,
+                  fontWeight: 500,
+                  textAlign: "left",
+                }}
+                aria-label="Resume setup checklist"
+              >
+                <span aria-hidden="true">🔄</span>
+                <span style={{ flex: 1 }}>Resume setup</span>
+                <span aria-hidden="true" style={{ color: textColors.muted }}>›</span>
+              </button>
+            )}
+          </div>
+        </section>
 
         {/* Danger zone */}
         {onDeleteAccount && <SettingsDangerZone onDeleteAccount={onDeleteAccount} />}

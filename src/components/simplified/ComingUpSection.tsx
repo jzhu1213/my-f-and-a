@@ -13,6 +13,8 @@ import {
   dismissComingUpItem,
 } from "@/lib/comingUpPreferences"
 import type { TransactionCategory } from "@/types"
+import type { SuggestedEntry } from "@/lib/suggestedEntries"
+import { SuggestedTransactionRow } from "./SuggestedTransactionRow"
 
 // ============================================================================
 // Types
@@ -39,6 +41,18 @@ export interface ComingUpSectionProps {
   items: ComingUpItem[]
   /** Called when user taps the checkmark to pre-log an expense */
   onPreLog: (item: ComingUpItem) => void
+  /** Task 485.4: Suggested entries merged into this section */
+  suggestedEntries?: SuggestedEntry[]
+  /** Called when user confirms a suggested entry */
+  onConfirmSuggestion?: (entry: SuggestedEntry) => void
+  /** Called when user dismisses a suggested entry */
+  onDismissSuggestion?: (entryId: string) => void
+  /** Called when user wants to edit a suggested entry */
+  onEditSuggestion?: (entry: SuggestedEntry) => void
+  /** Total amount of pending suggestions */
+  suggestedEntriesTotal?: number
+  /** Whether suggestions are included in allowance */
+  suggestionsIncludedInAllowance?: boolean
 }
 
 // ============================================================================
@@ -47,12 +61,22 @@ export interface ComingUpSectionProps {
 
 /**
  * ComingUpSection — collapsible section showing the next 3 predicted expenses
- * in the next 7 days. Each row shows merchant, predicted amount, and time until
- * due, with confirm (pre-log) and dismiss actions.
+ * in the next 7 days, plus merged suggested entries (task 485.4). Each row
+ * shows merchant, predicted amount, and time until due, with confirm (pre-log)
+ * and dismiss actions. Suggested entries show confirm/dismiss/edit actions.
  *
- * Validates: Requirements 23.4
+ * Validates: Requirements 23.4, 29.4
  */
-export function ComingUpSection({ items, onPreLog }: ComingUpSectionProps) {
+export function ComingUpSection({
+  items,
+  onPreLog,
+  suggestedEntries,
+  onConfirmSuggestion,
+  onDismissSuggestion,
+  onEditSuggestion,
+  suggestedEntriesTotal,
+  suggestionsIncludedInAllowance,
+}: ComingUpSectionProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const [isCollapsed, setIsCollapsed] = useState(() => getComingUpCollapsed())
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => getComingUpDismissed())
@@ -78,8 +102,9 @@ export function ComingUpSection({ items, onPreLog }: ComingUpSectionProps) {
 
   // Filter out dismissed items
   const visibleItems = items.filter(item => !dismissedIds.has(item.id))
+  const hasSuggestions = suggestedEntries && suggestedEntries.length > 0
 
-  if (visibleItems.length === 0) return null
+  if (visibleItems.length === 0 && !hasSuggestions) return null
 
   return (
     <motion.section
@@ -115,19 +140,32 @@ export function ComingUpSection({ items, onPreLog }: ComingUpSectionProps) {
         <h3 style={{ ...sectionHeader, margin: 0 }}>
           Coming up
         </h3>
-        <motion.span
-          animate={{ rotate: isCollapsed ? -90 : 0 }}
-          transition={springs.snappy}
-          style={{
-            fontSize: 12,
-            color: "var(--sub)",
-            opacity: 0.7,
-            display: "inline-block",
-          }}
-          aria-hidden="true"
-        >
-          ▾
-        </motion.span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {hasSuggestions && suggestedEntriesTotal != null && suggestedEntriesTotal > 0 && (
+            <span
+              style={{
+                fontSize: 11,
+                color: "var(--muted)",
+                fontFamily: FONT_FAMILY,
+              }}
+            >
+              {suggestionsIncludedInAllowance ? "Incl. in allowance" : "Not in allowance"} · ~${suggestedEntriesTotal.toFixed(0)}
+            </span>
+          )}
+          <motion.span
+            animate={{ rotate: isCollapsed ? -90 : 0 }}
+            transition={springs.snappy}
+            style={{
+              fontSize: 12,
+              color: "var(--sub)",
+              opacity: 0.7,
+              display: "inline-block",
+            }}
+            aria-hidden="true"
+          >
+            ▾
+          </motion.span>
+        </div>
       </button>
 
       {/* Collapsible content */}
@@ -143,6 +181,24 @@ export function ComingUpSection({ items, onPreLog }: ComingUpSectionProps) {
             transition={springs.gentle}
             style={{ overflow: "hidden" }}
           >
+            {/* Suggested entries — confirm/dismiss/edit (task 485.4 merged) */}
+            {hasSuggestions && onConfirmSuggestion && onDismissSuggestion && onEditSuggestion && (
+              <div style={{ marginBottom: visibleItems.length > 0 ? 8 : 0 }}>
+                <AnimatePresence>
+                  {suggestedEntries!.map(entry => (
+                    <SuggestedTransactionRow
+                      key={entry.id}
+                      entry={entry}
+                      onConfirm={onConfirmSuggestion}
+                      onDismiss={onDismissSuggestion}
+                      onEdit={onEditSuggestion}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* Predicted recurring expenses — pre-log or dismiss */}
             {visibleItems.map(item => (
               <ComingUpRow
                 key={item.id}

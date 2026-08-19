@@ -17,6 +17,12 @@ interface StreakDetailViewProps {
   transactions: { date: string }[]
   isOpen: boolean
   onClose: () => void
+  /** Task 485.1: Callback to mark today as a $0 day */
+  onMarkZeroSpend?: () => void
+  /** Task 485.1: Whether the $0 day button should be enabled */
+  canMarkZeroSpend?: boolean
+  /** Task 485.2: Grace day message (moved from home screen) */
+  graceDayMessage?: string | null
 }
 
 // ============================================================================
@@ -191,6 +197,9 @@ export function StreakDetailView({
   transactions,
   isOpen,
   onClose,
+  onMarkZeroSpend,
+  canMarkZeroSpend,
+  graceDayMessage,
 }: StreakDetailViewProps) {
   const { prefersReducedMotion } = useAppReducedMotion()
 
@@ -332,6 +341,58 @@ export function StreakDetailView({
               <LegendItem color="rgba(251, 191, 36, 0.5)" label="Grace day" />
               <LegendItem color="rgba(255, 255, 255, 0.06)" label="Missed" />
             </div>
+
+            {/* Grace day message (task 485.2 — moved from home screen) */}
+            {graceDayMessage && (
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: "10px 14px",
+                  background: "rgba(251, 191, 36, 0.06)",
+                  border: "1px solid rgba(251, 191, 36, 0.12)",
+                  borderRadius: borderRadius.md,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span style={{ fontSize: 13 }} aria-hidden>🔥</span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--sub)",
+                    fontFamily: FONT_FAMILY,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {graceDayMessage}
+                </span>
+              </div>
+            )}
+
+            {/* $0 Day marker (task 485.1 — moved from home screen) */}
+            {onMarkZeroSpend && canMarkZeroSpend && (
+              <button
+                type="button"
+                onClick={onMarkZeroSpend}
+                aria-label="Mark today as a zero-spend day to keep your streak"
+                style={{
+                  display: "block",
+                  margin: "16px auto 0",
+                  padding: "10px 20px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontFamily: FONT_FAMILY,
+                  color: "var(--accent)",
+                  background: "rgba(139, 92, 246, 0.08)",
+                  border: "1px solid rgba(139, 92, 246, 0.2)",
+                  borderRadius: borderRadius.full,
+                  cursor: "pointer",
+                }}
+              >
+                Mark today as $0 day
+              </button>
+            )}
 
             {/* Close button */}
             <button

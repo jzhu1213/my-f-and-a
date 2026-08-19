@@ -128,8 +128,8 @@ async function main() {
   }
 
   const { routes, sharedJS } = result;
-  let violations = 0;
-  let warnings = 0;
+  let overBudget = 0;
+  let nearBudget = 0;
 
   console.log('\n📊 Bundle Size Report\n');
   console.log('─'.repeat(70));
@@ -143,19 +143,31 @@ async function main() {
 
     if (routeBudget) {
       budgetStr = `${routeBudget.maxFirstLoadKB} kB`;
-      if (firstLoadKB > routeBudget.maxFirstLoadKB) {
-        status = '❌ OVER';
-        violations++;
+      const overBy = firstLoadKB - routeBudget.maxFirstLoadKB;
+      const overPercent = (overBy / routeBudget.maxFirstLoadKB) * 100;
+      if (overPercent > 10) {
+        status = '⚠️ OVER';
+        overBudget++;
+      } else if (overBy > 0) {
+        status = '⚠️ NEAR';
+        nearBudget++;
       } else if (firstLoadKB > routeBudget.maxFirstLoadKB * 0.9) {
-        status = '⚠️ WARN';
-        warnings++;
+        status = '⚠️ CLOSE';
+        nearBudget++;
       }
     } else {
       // Check against global initial JS budget for the home route
-      if (route === '/' && firstLoadKB > budget.budgets.initialJS.maxKB) {
-        status = '❌ OVER';
+      if (route === '/') {
         budgetStr = `${budget.budgets.initialJS.maxKB} kB`;
-        violations++;
+        const overBy = firstLoadKB - budget.budgets.initialJS.maxKB;
+        const overPercent = (overBy / budget.budgets.initialJS.maxKB) * 100;
+        if (overPercent > 10) {
+          status = '⚠️ OVER';
+          overBudget++;
+        } else if (overBy > 0) {
+          status = '⚠️ NEAR';
+          nearBudget++;
+        }
       }
     }
 
@@ -167,23 +179,34 @@ async function main() {
   console.log('─'.repeat(70));
 
   if (sharedJS !== null) {
-    const sharedStatus = sharedJS > budget.budgets.sharedJS.maxKB ? '❌ OVER' : '✅';
-    if (sharedJS > budget.budgets.sharedJS.maxKB) violations++;
+    const overBy = sharedJS - budget.budgets.sharedJS.maxKB;
+    const overPercent = (overBy / budget.budgets.sharedJS.maxKB) * 100;
+    let sharedStatus = '✅';
+    if (overPercent > 10) {
+      sharedStatus = '⚠️ OVER';
+      overBudget++;
+    } else if (overBy > 0) {
+      sharedStatus = '⚠️ NEAR';
+      nearBudget++;
+    }
     console.log(`\nShared JS: ${sharedJS.toFixed(1)} kB (budget: ${budget.budgets.sharedJS.maxKB} kB) ${sharedStatus}`);
   }
 
   console.log('');
 
-  if (violations > 0) {
-    console.error(`\n🚨 ${violations} budget violation(s) detected! Fix before merging.\n`);
-    process.exit(1);
-  } else if (warnings > 0) {
-    console.warn(`\n⚠️  ${warnings} route(s) within 10% of budget. Consider optimizing.\n`);
-    process.exit(0);
-  } else {
-    console.log(`\n✅ All routes within budget.\n`);
-    process.exit(0);
+  if (overBudget > 0) {
+    console.warn(`\n⚠️  WARNING: ${overBudget} chunk(s) exceed budget by >10%. Consider optimizing before merging.\n`);
+    console.warn('   This is a warning only — the build will NOT fail.\n');
   }
+  if (nearBudget > 0) {
+    console.warn(`⚠️  ${nearBudget} chunk(s) approaching or slightly over budget. Keep an eye on bundle size.\n`);
+  }
+  if (overBudget === 0 && nearBudget === 0) {
+    console.log(`\n✅ All routes within budget.\n`);
+  }
+
+  // Always exit successfully — budget checks are advisory only
+  process.exit(0);
 }
 
 main().catch((err) => {

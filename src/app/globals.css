@@ -1551,11 +1551,25 @@ input[type="date"] {
   50%      { opacity: 0.35; transform: scale(1); }
 }
 
+/* New-day ring glow pulse (Task 483.1) — single brief pulse on day change detection */
+.hero-ring-newday-glow {
+  will-change: opacity, transform;
+  animation: hero-newday-pulse 1.8s ease-out forwards;
+}
+
+@keyframes hero-newday-pulse {
+  0%   { opacity: 0; transform: scale(0.95); }
+  30%  { opacity: 0.6; transform: scale(1.06); }
+  60%  { opacity: 0.3; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
 /* Reduced motion — freeze the shifting gradient, breathing and shimmer */
 @media (prefers-reduced-motion: reduce) {
   .hero-amount          { animation: none; }
   .hero-breathe         { animation: none; transform: none; }
   .hero-shimmer-particle { animation: none; opacity: 0; }
+  .hero-ring-newday-glow { animation: none; opacity: 0; }
 }
 
 /* ── Quick log: elevated interaction design (task 9.4) ──────────── */

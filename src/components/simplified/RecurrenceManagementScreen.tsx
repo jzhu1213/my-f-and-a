@@ -36,6 +36,8 @@ export interface RecurrenceManagementScreenProps {
   onDismissRecurrence?: (recurrenceId: string) => void
   /** Called when the user pauses a recurrence */
   onPauseRecurrence?: (recurrenceId: string) => void
+  /** When true, renders inline without position:fixed wrapper and header (for embedding in RecurringScreen) */
+  embedded?: boolean
 }
 
 // ============================================================================
@@ -134,6 +136,7 @@ export function RecurrenceManagementScreen({
   onConfirmRecurrence,
   onDismissRecurrence,
   onPauseRecurrence,
+  embedded = false,
 }: RecurrenceManagementScreenProps) {
   // ── Local state for dismissed/paused items (persisted in parent via callbacks) ──
   const [localDismissed, setLocalDismissed] = useState<Set<string>>(new Set())
@@ -187,17 +190,22 @@ export function RecurrenceManagementScreen({
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  const embeddedStyle: React.CSSProperties = {
+    fontFamily: FONT_FAMILY,
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={springs.gentle}
-      style={screenStyle}
-      role="dialog"
+      style={embedded ? embeddedStyle : screenStyle}
+      role={embedded ? undefined : "dialog"}
       aria-label="Recurring Expenses"
     >
-      {/* Header */}
+      {/* Header — hidden when embedded */}
+      {!embedded && (
       <div style={headerStyle}>
         <h1 style={{ fontSize: 18, fontWeight: 600, color: "var(--text)", margin: 0 }}>
           Recurring Expenses
@@ -219,7 +227,7 @@ export function RecurrenceManagementScreen({
           ✕
         </motion.button>
       </div>
-
+      )}
       <div style={contentStyle}>
         {/* Summary card */}
         <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 24 }}>

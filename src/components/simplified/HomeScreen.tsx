@@ -28,9 +28,8 @@ import { CELEBRATION_COPY, CELEBRATION_EMOJI } from "@/lib/vocabulary"
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { recordLastActive } from "@/lib/reminderPreferences"
-import { getInsightsEnabled, getSavingsRateBadgeEnabled, getHomeStyle } from "@/lib/uiPreferences"
+import { getInsightsEnabled, getSavingsRateBadgeEnabled } from "@/lib/uiPreferences"
 import { getPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
-import { SpendPaceIndicator } from "./SpendPaceIndicator"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, STAGGER_STEP, layoutTransition, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY, spacing } from "@/styles/typography"
@@ -47,40 +46,29 @@ import {
   progressTrack,
   getCategoryAccent,
   colorRamp,
-  fills,
 } from "@/styles/shared"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
-import { ContextualTipCard } from "./ContextualTipCard"
+import { useToast } from "@/contexts/ToastContext"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { HomeScreenSkeleton, FadeInContent } from "@/components/ui/Skeleton"
 import { CategoryDetailSheet } from "@/components/accounting/CategoryDetailSheet"
 import { SwipeableTransactionRow } from "./SwipeableTransactionRow"
 import { InlineTransactionEditor } from "./InlineTransactionEditor"
 import { PullToRefresh } from "./PullToRefresh"
-import { TimeHorizonPills } from "./TimeHorizonPills"
 import type { TimeHorizonStats } from "@/lib/timeHorizonStats"
 import type { PeriodContext } from "@/lib/budgetPeriod"
 import type { PeriodTransitionMessage } from "@/lib/periodTransition"
 import { AffordabilitySheet } from "./AffordabilitySheet"
-import { SuggestedEntriesSection } from "./SuggestedEntriesSection"
 import type { SuggestedEntry } from "@/lib/suggestedEntries"
 import { ComingUpSection } from "./ComingUpSection"
 import type { ComingUpItem } from "./ComingUpSection"
 import { getComingUpEnabled } from "@/lib/comingUpPreferences"
-import { getComingUpAwarenessMessage } from "@/lib/vocabulary"
 import { computeStreakData, markZeroSpendDay, getStreakData, saveStreakData, getGraceDayMessage } from "@/lib/streaks"
-import { isStreakCounterActive, isProgressGardenActive } from "@/lib/gamificationPreferences"
+import { isStreakCounterActive } from "@/lib/gamificationPreferences"
 import { StreakDetailView } from "./StreakDetailView"
-import { WelcomeBackBadge } from "./WelcomeBackBadge"
-import { WhatsNewCard } from "./WhatsNewCard"
 import { SetupChecklistCard, ProgressiveChecklistCard } from "./SetupChecklistCard"
 import type { ChecklistStep } from '@/lib/setupChecklist'
-import { PeriodContextIndicator } from "./PeriodContextIndicator"
 import { HeroContextRow } from "./HeroContextRow"
-import { PinnedHomeCards } from "./PinnedHomeCards"
-import type { PinnedCardType } from "@/lib/homeWidgets"
-import { getPinnedCards } from "@/lib/homeWidgets"
-import type { PinnedCard } from "@/lib/homeWidgets"
 import dynamic from "next/dynamic"
 
 // Code-split: celebration animations are heavy (canvas-confetti + framer-motion
@@ -143,6 +131,50 @@ const ShareMilestoneSheet = dynamic(
 // HomeScreen Props
 // ============================================================================
 
+/** Consolidated checklist configuration (task 493.1) */
+export interface ChecklistConfig {
+  /** All checklist steps with completion status (new progressive system) */
+  steps?: (ChecklistStep & { completed: boolean })[]
+  /** Number of completed checklist steps */
+  completedCount?: number
+  /** Total number of checklist steps */
+  totalCount?: number
+  /** Whether the new progressive checklist should be shown */
+  showProgressive?: boolean
+  /** Called when the user taps a checklist step action */
+  onStepAction?: (stepId: string, action: string) => void
+  /** Called when the user dismisses the progressive checklist */
+  onDismiss?: () => void
+  /** Skipped step IDs — used by the setup checklist card (task 223) */
+  skippedSteps?: string[]
+  /** Called when the user taps a specific step to deep-link resume (task 223.3) */
+  onResumeStep?: (stepId: string) => void
+}
+
+/** Consolidated suggestions configuration (task 493.1) */
+export interface SuggestionsConfig {
+  /** Pending auto-suggested transaction entries from recurrence predictions */
+  entries?: SuggestedEntry[]
+  /** Total amount of pending suggestions */
+  total?: number
+  /** Whether suggestions are factored into the allowance */
+  includedInAllowance?: boolean
+  /** Called when user confirms a suggested entry */
+  onConfirm?: (entry: SuggestedEntry) => void
+  /** Called when user dismisses a suggested entry */
+  onDismiss?: (entryId: string) => void
+  /** Called when user wants to edit a suggested entry */
+  onEdit?: (entry: SuggestedEntry) => void
+}
+
+/** Consolidated celebration configuration (task 493.1) */
+export interface CelebrationConfig {
+  /** Active celebration event passed from the parent (e.g. after expense logged) */
+  event?: CelebrationEvent | null
+  /** Called when the celebration overlay is dismissed (auto-timeout or user tap) */
+  onDismiss?: () => void
+}
+
 export interface HomeScreenProps {
   /** Computed daily allowance data for the hero section */
   allowance: DailyAllowance | null
@@ -152,8 +184,6 @@ export interface HomeScreenProps {
   budgets: Budget[]
   /** User savings goals */
   goals: Goal[]
-  /** User display name (for greeting) */
-  userName?: string
   /** Whether data is still loading */
   isLoading: boolean
   /** Whether cached data is stale and background fetch hasn't completed */
@@ -182,26 +212,17 @@ export interface HomeScreenProps {
   /** Called when user pulls to refresh — refetches transactions and budgets */
   onRefresh?: () => Promise<void>
 
-  // ── Celebrations ───────────────────────────────────────────────────────────
-  /** Active celebration event passed from the parent (e.g. after expense logged) */
-  celebrationEvent?: CelebrationEvent | null
-  /** Called when the celebration overlay is dismissed (auto-timeout or user tap) */
-  onCelebrationDismiss?: () => void
+  // ── Celebrations (consolidated) ────────────────────────────────────────────
+  /** Celebration config: event and dismiss handler */
+  celebrationConfig?: CelebrationConfig
 
-  // ── Bill reminders ─────────────────────────────────────────────────────────
+  // ── Tip engine inputs ──────────────────────────────────────────────────────
   /** Bills due within the next 3 days — used for contextual bill-due tips */
   upcomingBills?: { label: string; amount: number; dueDay: number }[]
-
-  // ── Subscription alerts ─────────────────────────────────────────────────────
-  /**
-   * Detected subscriptions (already filtered for dismissals) — used to surface
-   * gentle "renewing soon" / "trial ending" heads-up tips.
-   */
+  /** Detected subscriptions — used for contextual tips */
   detectedSubscriptions?: DetectedSubscription[]
-
-  // ── Weekend allowance ──────────────────────────────────────────────────────
-  /** Pre-computed weekend allowance data from useHomeData */
-  weekendAllowance?: { weekendAmount: number; label: string; daysUntilWeekend: number } | null
+  /** When set, projected income is overdue — drives the income shortfall tip. */
+  incomeOverdue?: { expectedAmount: number; daysPastDue: number }
 
   // ── Time horizon stats (task 128.1) ────────────────────────────────────────
   /** Unified time-horizon stats for secondary pills below the hero */
@@ -210,22 +231,12 @@ export interface HomeScreenProps {
   // ── Navigation helpers for empty states ────────────────────────────────────
   /** Called when user taps the CTA in the "no budgets" empty state */
   onOpenBudgetSettings?: () => void
-  /** Called when user taps the "Split" quick action (task 5.3 — one-tap split) */
-  onOpenSplitExpense?: () => void
-  /** Called when user taps "+ Wish" quick-add (task 352.2 — wish list quick-add from home) */
-  onAddWish?: () => void
 
-  // ── Lessons navigation (task 118.1) ────────────────────────────────────────
-  /** Called when a contextual tip links to a lesson — navigates to the Learn overlay */
-  onOpenLesson?: (lessonId: string) => void
-
-  // ── Outstanding Splits (task 5.3 — who-owes-whom summary) ──────────────────
+  // ── Outstanding Splits ─────────────────────────────────────────────────────
   /** Outstanding split balances: positive = they owe you */
   outstandingSplits?: { name: string; amount: number }[]
   /** Called when user taps the outstanding splits summary to see full ledger */
   onOpenReimbursements?: () => void
-  /** Called when user taps "Settled?" on a split — settles all IOUs for that person (task 123.1) */
-  onSettleSplit?: (personName: string) => void
   /** Set of transaction IDs that were split (for badge display) */
   splitTransactionIds?: Set<string>
 
@@ -235,29 +246,13 @@ export interface HomeScreenProps {
   heroMeaning?: HeroMeaning
   /** Pre-computed display values for the chosen hero meaning */
   heroDisplay?: HeroDisplay
-  /**
-   * Over-limit response — controls what the UI shows when the user exceeds
-   * their daily allowance. Defaults to 'gentle' when not provided.
-   * - quiet: color change only (no additional text)
-   * - gentle: one calm line below the hero
-   * - headsup: one calm line + a small actionable chip
-   */
-  overLimitResponse?: import('@/lib/spendingModes').OverLimitResponse
   /** Active spend-down plan result (for compact indicator below the hero) */
   activeSpendDown?: import('@/lib/spendDown').SpendDownResult | null
-  /**
-   * Monthly savings rate (0-100). Used by the opt-in savings-rate badge shown
-   * below the hero. Only rendered when the user has enabled the badge in
-   * Settings → Hero & display (off by default).
-   */
+  /** Monthly savings rate (0-100) for the opt-in badge */
   savingsRate?: number
 
   // ── Savings contribution reminder (task 160.2) ─────────────────────────────
-  /**
-   * Savings/investment accounts — used for the end-of-month contribution gap
-   * reminder that surfaces in the contextual tip slot when a monthly
-   * contribution target hasn't been met near month-end.
-   */
+  /** Savings/investment accounts — used for contextual tip engine */
   savingsAccounts?: SavingsAccount[]
 
   // ── Credit education wiring (task 151.1) ───────────────────────────────────
@@ -269,60 +264,26 @@ export interface HomeScreenProps {
   // ── Minimal path nudge (task 218.3) ────────────────────────────────────────
   /** True when the user skipped setup steps during onboarding (minimal path). */
   hasSkippedSetupSteps?: boolean
-  /** Skipped step IDs — used by the setup checklist card (task 223) */
-  skippedSetupSteps?: string[]
-  /** Called when the user taps a specific step to deep-link resume (task 223.3) */
-  onResumeSetupStep?: (stepId: string) => void
 
-  // ── Progressive Setup Checklist (task 392) ─────────────────────────────────
-  /** All checklist steps with completion status (new progressive system) */
-  checklistSteps?: (ChecklistStep & { completed: boolean })[]
-  /** Number of completed checklist steps */
-  checklistCompletedCount?: number
-  /** Total number of checklist steps */
-  checklistTotalCount?: number
-  /** Whether the new progressive checklist should be shown */
-  showProgressiveChecklist?: boolean
-  /** Called when the user taps a checklist step action */
-  onChecklistStepAction?: (stepId: string, action: string) => void
-  /** Called when the user dismisses the progressive checklist */
-  onDismissChecklist?: () => void
-
-  // ── Income overdue signal (task 336.2) ─────────────────────────────────────
-  /** When set, projected income is overdue — drives the income shortfall tip. */
-  incomeOverdue?: { expectedAmount: number; daysPastDue: number }
+  // ── Progressive Setup Checklist (consolidated — task 493.1) ────────────────
+  /** Checklist configuration: steps, counts, and callbacks */
+  checklistConfig?: ChecklistConfig
 
   // ── Budget period context (task 342.3) ─────────────────────────────────────
   /** Computed period context for the user's budget period preference */
   periodContext?: PeriodContext | null
 
   // ── Period transition message (task 343.1) ─────────────────────────────────
-  /** Warm welcome-back message shown on first open after a period resets */
-  periodTransitionMessage?: PeriodTransitionMessage | null
-  /** Dismiss the period transition message */
-  onDismissPeriodTransition?: () => void
+  /** Warm welcome-back message shown on first open after a period resets, with dismiss handler */
+  periodTransition?: { message: PeriodTransitionMessage; onDismiss?: () => void } | null
 
   // ── First-run state (task 391.2) ───────────────────────────────────────────
   /** True when the user just completed onboarding this session — shows first-run home layout */
   isFirstRun?: boolean
 
-  // ── Welcome-back backfill (task 395.1) ─────────────────────────────────────
-  /** Opens BackfillSheet so the user can catch up on missed days */
-  onOpenBackfill?: () => void
-
-  // ── Suggested entries (task 411) ───────────────────────────────────────────
-  /** Pending auto-suggested transaction entries from recurrence predictions */
-  suggestedEntries?: SuggestedEntry[]
-  /** Total amount of pending suggestions */
-  suggestedEntriesTotal?: number
-  /** Whether suggestions are factored into the allowance */
-  suggestionsIncludedInAllowance?: boolean
-  /** Called when user confirms a suggested entry */
-  onConfirmSuggestion?: (entry: SuggestedEntry) => void
-  /** Called when user dismisses a suggested entry */
-  onDismissSuggestion?: (entryId: string) => void
-  /** Called when user wants to edit a suggested entry */
-  onEditSuggestion?: (entry: SuggestedEntry) => void
+  // ── Suggested entries (consolidated — task 493.1) ──────────────────────────
+  /** Suggestions configuration: entries, totals, and callbacks */
+  suggestionsConfig?: SuggestionsConfig
 
   // ── Coming up items (task 413) ─────────────────────────────────────────────
   /** Upcoming predicted expenses for the "Coming up" section (max 3, next 7 days) */
@@ -358,7 +319,6 @@ export const HomeScreen = memo(function HomeScreen({
   transactions,
   budgets,
   goals,
-  userName,
   isLoading,
   isStale,
   onHeroTapDetails,
@@ -370,54 +330,54 @@ export const HomeScreen = memo(function HomeScreen({
   onDeleteTransaction,
   onEditTransaction,
   onRefresh,
-  celebrationEvent: externalCelebration,
-  onCelebrationDismiss,
+  celebrationConfig,
   upcomingBills,
   detectedSubscriptions,
-  weekendAllowance,
   timeHorizonStats,
   onOpenBudgetSettings,
-  onOpenSplitExpense: _onOpenSplitExpense,
-  onAddWish: _onAddWish,
-  onOpenLesson,
   outstandingSplits,
   onOpenReimbursements,
-  onSettleSplit,
   splitTransactionIds,
   spendingMode = 'guided',
   heroMeaning,
   heroDisplay,
-  overLimitResponse: _overLimitResponse = 'gentle',
   activeSpendDown,
   savingsRate,
   savingsAccounts,
   fundingSources,
   completedLessonIds,
   hasSkippedSetupSteps,
-  skippedSetupSteps,
-  onResumeSetupStep,
-  checklistSteps,
-  checklistCompletedCount,
-  checklistTotalCount,
-  showProgressiveChecklist,
-  onChecklistStepAction,
-  onDismissChecklist,
+  checklistConfig,
   incomeOverdue,
   periodContext,
-  periodTransitionMessage,
-  onDismissPeriodTransition,
+  periodTransition,
   isFirstRun,
-  onOpenBackfill,
-  suggestedEntries,
-  suggestedEntriesTotal,
-  suggestionsIncludedInAllowance,
-  onConfirmSuggestion,
-  onDismissSuggestion,
-  onEditSuggestion,
+  suggestionsConfig,
   comingUpItems,
 }: HomeScreenProps) {
+  // ── Destructure consolidated config objects ────────────────────────────────
+  const externalCelebration = celebrationConfig?.event ?? null
+  const onCelebrationDismiss = celebrationConfig?.onDismiss
+
+  const suggestedEntries = suggestionsConfig?.entries
+  const suggestedEntriesTotal = suggestionsConfig?.total
+  const suggestionsIncludedInAllowance = suggestionsConfig?.includedInAllowance
+  const onConfirmSuggestion = suggestionsConfig?.onConfirm
+  const onDismissSuggestion = suggestionsConfig?.onDismiss
+  const onEditSuggestion = suggestionsConfig?.onEdit
+
+  const checklistSteps = checklistConfig?.steps
+  const checklistCompletedCount = checklistConfig?.completedCount
+  const checklistTotalCount = checklistConfig?.totalCount
+  const showProgressiveChecklist = checklistConfig?.showProgressive
+  const onChecklistStepAction = checklistConfig?.onStepAction
+  const onDismissChecklist = checklistConfig?.onDismiss
+  const skippedSetupSteps = checklistConfig?.skippedSteps
+  const onResumeSetupStep = checklistConfig?.onResumeStep
+
   // ── i18n ───────────────────────────────────────────────────────────────────
   const t = useTranslation()
+  const { showToast } = useToast()
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [selectedRow, setSelectedRow] = useState<CategoryBudgetRow | null>(null)
@@ -454,15 +414,29 @@ export const HomeScreen = memo(function HomeScreen({
   // Shows a brief warm indicator when the user opens the app on a new calendar day.
   const [showNewDayRefresh, setShowNewDayRefresh] = useState(false)
 
-  // ── Setup checklist dismissal (consolidated nudge surface — task 232) ────
-  const [estimateNudgeDismissed, setEstimateNudgeDismissed] = useState(() => {
+  // ── Setup checklist bottom sheet (task 485.7) ─────────────────────────────
+  // Shows on 2nd and 3rd app open only — not on the first (let user explore first)
+  const [showChecklistSheet, setShowChecklistSheet] = useState(() => {
     if (typeof window === 'undefined') return false
-    return localStorage.getItem('folio-estimate-nudge-dismissed') === 'true'
+    try {
+      const openCount = parseInt(localStorage.getItem('folio-app-open-count') ?? '0', 10)
+      const dismissed = localStorage.getItem('folio-checklist-sheet-dismissed') === 'true'
+      // Show on 2nd and 3rd opens only, and not if already dismissed
+      return !dismissed && openCount >= 2 && openCount <= 3
+    } catch {
+      return false
+    }
   })
-  const handleDismissEstimateNudge = useCallback(() => {
-    setEstimateNudgeDismissed(true)
-    localStorage.setItem('folio-estimate-nudge-dismissed', 'true')
-  }, [])
+  const handleDismissChecklistSheet = useCallback(() => {
+    setShowChecklistSheet(false)
+    try {
+      localStorage.setItem('folio-checklist-sheet-dismissed', 'true')
+    } catch {
+      // localStorage unavailable
+    }
+    // Also call parent dismiss if available
+    onDismissChecklist?.()
+  }, [onDismissChecklist])
   const { prefersReducedMotion, homeContainer, homeSection } = useAppReducedMotion()
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -514,14 +488,6 @@ export const HomeScreen = memo(function HomeScreen({
   // ── Coming up preference (task 413.3) ─────────────────────────────────────
   // On by default; controlled via Settings → Home screen.
   const [comingUpEnabled] = useState(() => getComingUpEnabled())
-
-  // ── Pinned home cards (task 344) ──────────────────────────────────────────
-  // Empty by default — home screen stays minimal until user opts in.
-  const [pinnedCards] = useState<PinnedCard[]>(() => getPinnedCards())
-
-  // ── Home style preference (task 345.1) ────────────────────────────────────
-  // 'minimal' = today's layout (no pinned cards); 'dashboard' = show pinned cards.
-  const [homeStyle] = useState(() => getHomeStyle())
 
   // ── User goal (task 222.3) ─────────────────────────────────────────────────
   // Read the persisted goal so tip selection can boost relevant content.
@@ -673,6 +639,18 @@ export const HomeScreen = memo(function HomeScreen({
     // Record engagement: tip was shown (Task 167.1)
     recordEngagement(activeTip.id, activeTip.type, 'shown')
   }, [activeTip])
+
+  // ── Contextual tip → toast delivery (task 487.2) ──────────────────────────
+  // Instead of rendering an inline card in the scroll area, surface the tip as
+  // a brief auto-dismissing toast after the user logs a transaction.
+  const tipToastFiredRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!insightsEnabled || !activeTip || !lastLoggedTransaction) return
+    // Only fire once per tip (don't re-fire if same tip is still active)
+    if (tipToastFiredRef.current === activeTip.id) return
+    tipToastFiredRef.current = activeTip.id
+    showToast(activeTip.message, 'info')
+  }, [insightsEnabled, activeTip, lastLoggedTransaction, showToast])
 
   const handleDismissTip = useCallback(() => {
     if (!activeTip) return
@@ -1040,8 +1018,8 @@ export const HomeScreen = memo(function HomeScreen({
             heroMeaning={heroMeaning}
             heroDisplay={heroDisplay}
             isNewDay={showNewDayRefresh}
-            periodTransitionText={periodTransitionMessage?.text}
-            onDismissPeriodTransition={onDismissPeriodTransition}
+            periodTransitionText={periodTransition?.message?.text}
+            onDismissPeriodTransition={periodTransition?.onDismiss}
             isEstimated={!!(allowance?.isEstimated && !hasSkippedSetupSteps)}
             onLogIncome={onLogIncome}
             onLongPress={() => setShowAffordabilitySheet(true)}
@@ -1072,6 +1050,11 @@ export const HomeScreen = memo(function HomeScreen({
                 ? "A little over — tomorrow resets"
                 : undefined
             }
+            noTransactionsToday={!hasTodayTransactions}
+            isTodayZeroSpend={isTodayZeroSpend}
+            graceDayMessage={graceDayMessage}
+            outstandingSplits={outstandingSplits}
+            onOpenReimbursements={onOpenReimbursements}
           />
 
           {/* Period transition — MOVED into DailyAllowanceHero subtitle (task 483.2) */}
@@ -1094,16 +1077,6 @@ export const HomeScreen = memo(function HomeScreen({
 
           {/* Spend-down plan indicator — MOVED into HeroContextRow (task 482.7) */}
         </motion.section>
-
-        {/* ── 1.5. Pinned Home Cards (task 344) ───────────────────────── */}
-        {homeStyle === 'dashboard' && (
-          <PinnedHomeCards
-            pinnedCards={pinnedCards.filter(c => c.type !== 'progress_garden' || isProgressGardenActive())}
-            goals={goals}
-            transactions={transactions}
-            upcomingBills={upcomingBills}
-          />
-        )}
 
         {/* ── 2. Quick Actions (thumb zone — immediately after hero) ── */}        <motion.section variants={homeSection} aria-label="Quick actions">
           {isFirstRun ? (
@@ -1188,192 +1161,12 @@ export const HomeScreen = memo(function HomeScreen({
           )}
         </motion.section>
 
-        {/* ── 2.1. "$0 Day" Marker (task 429.2) — subtle, only when no transactions today ── */}
-        {streaksEnabled && !isLoading && !hasTodayTransactions && !isTodayZeroSpend && !isFirstRun && (
-          <motion.div
-            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={timings.normal}
-            style={{ display: 'flex', justifyContent: 'center', marginTop: -8 }}
-          >
-            <button
-              type="button"
-              onClick={handleMarkZeroSpendDay}
-              aria-label="Mark today as a zero-spend day to keep your streak"
-              style={{
-                fontSize: 12,
-                color: 'var(--sub)',
-                background: 'rgba(139, 92, 246, 0.06)',
-                border: '1px solid rgba(139, 92, 246, 0.12)',
-                borderRadius: borderRadius.full,
-                padding: '6px 14px',
-                cursor: 'pointer',
-                fontFamily: FONT_FAMILY,
-                fontWeight: 400,
-                opacity: 0.85,
-              }}
-            >
-              {t('home.zeroSpendMark')}
-            </button>
-          </motion.div>
-        )}
-        {/* ── "$0 Day" confirmation feedback ── */}
-        <AnimatePresence>
-          {streaksEnabled && !isLoading && isTodayZeroSpend && !hasTodayTransactions && !isFirstRun && (
-            <motion.div
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={timings.normal}
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                marginTop: -8,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--success)',
-                  fontFamily: FONT_FAMILY,
-                  opacity: 0.85,
-                }}
-                role="status"
-                aria-live="polite"
-              >
-                {t('home.zeroSpendConfirm')}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* ── "$0 Day" marker MOVED to StreakDetailView (task 485.1) ── */}
+        {/* ── "$0 Day" confirmation feedback MOVED to StreakDetailView (task 485.1) ── */}
 
-        {/* ── 2.1b. Grace day notification (task 429.3) ── */}
-        <AnimatePresence>
-          {graceDayMessage && !isLoading && !isFirstRun && (
-            <motion.div
-              role="status"
-              aria-live="polite"
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={timings.normal}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                padding: '8px 16px',
-                background: 'rgba(251, 191, 36, 0.06)',
-                border: '1px solid rgba(251, 191, 36, 0.12)',
-                borderRadius: borderRadius.md,
-              }}
-            >
-              <span style={{ fontSize: 13 }} aria-hidden>🔥</span>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sub)',
-                  fontFamily: FONT_FAMILY,
-                  fontWeight: 400,
-                  lineHeight: 1.5,
-                }}
-              >
-                {graceDayMessage}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* ── Grace day notification MOVED to StreakDetailView + HeroContextRow (task 485.2) ── */}
 
-        {/* ── Outstanding Splits Summary (task 5.3 + 123.1 — one-tap settle) ── */}
-        {outstandingSplits && outstandingSplits.length > 0 && (
-          <motion.div
-            variants={homeSection}
-            style={{
-              width: '100%',
-              marginTop: 4,
-              background: colorRamp.accent[50],
-              border: `1px solid ${colorRamp.accent[200]}`,
-              borderRadius: borderRadius.md,
-              overflow: 'hidden',
-            }}
-          >
-            {outstandingSplits.slice(0, 3).map((split, idx) => (
-              <div
-                key={split.name}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 16px',
-                  borderTop: idx > 0 ? `1px solid ${fills[4]}` : undefined,
-                }}
-              >
-                <span style={{ fontSize: 14 }} aria-hidden="true">💸</span>
-                <span
-                  style={{
-                    flex: 1,
-                    fontFamily: FONT_FAMILY,
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: 'var(--sub)',
-                    textAlign: 'left',
-                  }}
-                >
-                  {split.name} · ${split.amount % 1 === 0 ? split.amount : split.amount.toFixed(2)} to settle
-                </span>
-                {onSettleSplit && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSettleSplit(split.name)
-                    }}
-                    aria-label={`Mark ${split.name}'s split as settled`}
-                    style={{
-                      fontSize: 11,
-                      fontFamily: FONT_FAMILY,
-                      fontWeight: 600,
-                      color: 'var(--success)',
-                      background: colorRamp.success[100],
-                      border: `1px solid ${colorRamp.success[200]}`,
-                      borderRadius: borderRadius.full,
-                      padding: '4px 10px',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Settled? ✓
-                  </button>
-                )}
-              </div>
-            ))}
-            {outstandingSplits.length > 3 && (
-              <button
-                type="button"
-                onClick={onOpenReimbursements}
-                aria-label="View all open splits"
-                style={{
-                  width: '100%',
-                  padding: '8px 16px',
-                  borderTop: '1px solid rgba(255, 255, 255, 0.04)',
-                  background: 'transparent',
-                  border: 'none',
-                  borderTopStyle: 'solid',
-                  borderTopWidth: 1,
-                  borderTopColor: 'rgba(255, 255, 255, 0.04)',
-                  cursor: 'pointer',
-                  fontFamily: FONT_FAMILY,
-                  fontSize: 12,
-                  color: 'var(--sub)',
-                  opacity: 0.7,
-                  textAlign: 'center',
-                }}
-              >
-                {t('home.viewAllSplits', { count: String(outstandingSplits.length) })}
-              </button>
-            )}
-          </motion.div>
-        )}
+        {/* ── Outstanding Splits — MOVED to HeroContextRow expanded section (task 487.2) ── */}
 
         {/* ══════════════════════════════════════════════════════════
             ── BELOW THE FOLD ──────────────────────────────────────────
@@ -1436,67 +1229,43 @@ export const HomeScreen = memo(function HomeScreen({
           </motion.section>
         )}
 
-        {/* ── 2.5b. Coming Up section (task 413.1) — upcoming predicted expenses ── */}
+        {/* ── 2.5b. Coming Up section (task 413.1 + 485.4 merged) — upcoming + suggested ── */}
         {comingUpEnabled && comingUpItems && comingUpItems.length > 0 && (
           <ComingUpSection
             items={comingUpItems}
             onPreLog={(item) => onLogExpense(item.category)}
+            suggestedEntries={suggestedEntries}
+            onConfirmSuggestion={onConfirmSuggestion}
+            onDismissSuggestion={onDismissSuggestion}
+            onEditSuggestion={onEditSuggestion}
+            suggestedEntriesTotal={suggestedEntriesTotal}
+            suggestionsIncludedInAllowance={suggestionsIncludedInAllowance}
+          />
+        )}
+        {/* Show suggestions alone if no coming up items but suggestions exist (task 485.4) */}
+        {(!comingUpEnabled || !comingUpItems || comingUpItems.length === 0) && suggestedEntries && suggestedEntries.length > 0 && onConfirmSuggestion && onDismissSuggestion && onEditSuggestion && (
+          <ComingUpSection
+            items={[]}
+            onPreLog={(item) => onLogExpense(item.category)}
+            suggestedEntries={suggestedEntries}
+            onConfirmSuggestion={onConfirmSuggestion}
+            onDismissSuggestion={onDismissSuggestion}
+            onEditSuggestion={onEditSuggestion}
+            suggestedEntriesTotal={suggestedEntriesTotal}
+            suggestionsIncludedInAllowance={suggestionsIncludedInAllowance}
           />
         )}
 
-        {/* ── 2.6. Welcome-back badge (task 77) — below fold ───── */}
-        <WelcomeBackBadge
-          allowanceAmount={allowance?.amount}
-          onCatchMeUp={onOpenBackfill}
-        />
+        {/* ── WelcomeBackBadge MOVED to auto-sheet + Settings (task 485.6) ── */}
 
-        {/* ── 2.6b. What's new card (task 395.2) — once per version ───── */}
-        <WhatsNewCard />
+        {/* ── WhatsNewCard MOVED to Settings (task 485.5) ── */}
 
-        {/* ── 2.7. Setup Checklist (task 392 — progressive checklist) ──── */}
-        {showProgressiveChecklist && checklistSteps && onChecklistStepAction && onDismissChecklist && (
-          <ProgressiveChecklistCard
-            steps={checklistSteps}
-            completedCount={checklistCompletedCount ?? 0}
-            totalCount={checklistTotalCount ?? 0}
-            onStepAction={onChecklistStepAction}
-            onDismiss={onDismissChecklist}
-          />
-        )}
+        {/* ── Setup Checklist MOVED to bottom sheet on 2nd/3rd open + Settings (task 485.7) ── */}
+        {/* Rendered as SetupChecklistSheet below, not inline */}
 
-        {/* ── 2.7b. Legacy Setup Checklist (task 223 — fallback) ──── */}
-        {!showProgressiveChecklist && skippedSetupSteps && skippedSetupSteps.length > 0 && !estimateNudgeDismissed && onResumeSetupStep && (
-          <SetupChecklistCard
-            skippedSteps={skippedSetupSteps}
-            onResumeStep={onResumeSetupStep}
-            onDismiss={handleDismissEstimateNudge}
-            variant="home"
-          />
-        )}
-
-        {/* ── 2.8. Contextual Insight (opt-in, at most one) ─────── */}
-        {/* Tip deprioritization (task 345.1): suppress tips in dashboard mode
-            when pinned cards are present to avoid overcrowding. */}
-        <AnimatePresence>
-          {insightsEnabled && activeTip && !(homeStyle === 'dashboard' && pinnedCards.length > 0) && (
-            <ContextualTipCard
-              tip={activeTip}
-              onDismiss={handleDismissTip}
-              onLearnMore={() => {
-                if (activeTip.relatedLessonId && onOpenLesson) {
-                  onOpenLesson(activeTip.relatedLessonId)
-                }
-              }}
-              onActionComplete={() => {
-                // Record engagement: user acted on the tip (Task 167.1)
-                recordEngagement(activeTip.id, activeTip.type, 'acted')
-                if (activeTip.actionType === 'learn_more' && activeTip.relatedLessonId && onOpenLesson) {
-                  onOpenLesson(activeTip.relatedLessonId)
-                }
-              }}
-            />
-          )}
-        </AnimatePresence>
+        {/* ── Contextual Tip — surfaced as toast after user action, not inline (task 487.2) ── */}
+        {/* Tips now fire via the toast system (see useEffect below the render tree).
+            No inline ContextualTipCard renders in the home scroll area. */}
 
         {/* ── 3. Category Budget Cards (top 4 only for cleanliness) ────────────────────────────── */}
         <motion.section variants={homeSection} aria-label="Budget categories">
@@ -1674,17 +1443,7 @@ export const HomeScreen = memo(function HomeScreen({
         {/* ── 4. Recent Transactions ──────────────────────────────── */}
         <motion.section variants={homeSection} aria-label="Recent transactions">
 
-          {/* Suggested entries above recent transactions (task 411) */}
-          {suggestedEntries && suggestedEntries.length > 0 && onConfirmSuggestion && onDismissSuggestion && onEditSuggestion && (
-            <SuggestedEntriesSection
-              entries={suggestedEntries}
-              onConfirm={onConfirmSuggestion}
-              onDismiss={onDismissSuggestion}
-              onEdit={onEditSuggestion}
-              pendingTotal={suggestedEntriesTotal ?? 0}
-              includedInAllowance={suggestionsIncludedInAllowance ?? true}
-            />
-          )}
+          {/* Suggested entries merged into Coming Up section (task 485.4) */}
 
           <div
             style={{
@@ -2030,8 +1789,86 @@ export const HomeScreen = memo(function HomeScreen({
           transactions={transactions}
           isOpen={showStreakDetail}
           onClose={() => setShowStreakDetail(false)}
+          onMarkZeroSpend={handleMarkZeroSpendDay}
+          canMarkZeroSpend={!hasTodayTransactions && !isTodayZeroSpend}
+          graceDayMessage={graceDayMessage}
         />
       )}
+
+      {/* ── Setup Checklist Bottom Sheet (task 485.7) ────────── */}
+      {/* Shows on 2nd and 3rd app open as a bottom sheet, not inline on home */}
+      <AnimatePresence>
+        {showChecklistSheet && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={timings.fast}
+              onClick={handleDismissChecklistSheet}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0, 0, 0, 0.5)",
+                zIndex: 999,
+              }}
+              aria-hidden
+            />
+            {/* Sheet */}
+            <motion.div
+              role="dialog"
+              aria-label="Setup checklist"
+              aria-modal="true"
+              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 60 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 60 }}
+              transition={springs.gentle}
+              style={{
+                position: "fixed",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                maxHeight: "70vh",
+                background: "var(--surface)",
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: "24px 20px 32px",
+                zIndex: 1000,
+                overflowY: "auto",
+              }}
+            >
+              {/* Drag handle */}
+              <div
+                style={{
+                  width: 36,
+                  height: 4,
+                  borderRadius: 2,
+                  background: "rgba(255, 255, 255, 0.15)",
+                  margin: "0 auto 20px",
+                }}
+                aria-hidden
+              />
+              {showProgressiveChecklist && checklistSteps && onChecklistStepAction && onDismissChecklist ? (
+                <ProgressiveChecklistCard
+                  steps={checklistSteps}
+                  completedCount={checklistCompletedCount ?? 0}
+                  totalCount={checklistTotalCount ?? 0}
+                  onStepAction={onChecklistStepAction}
+                  onDismiss={handleDismissChecklistSheet}
+                />
+              ) : skippedSetupSteps && skippedSetupSteps.length > 0 && onResumeSetupStep ? (
+                <SetupChecklistCard
+                  skippedSteps={skippedSetupSteps}
+                  onResumeStep={onResumeSetupStep}
+                  onDismiss={handleDismissChecklistSheet}
+                  variant="home"
+                />
+              ) : null}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
     </PullToRefresh>
     </FadeInContent>

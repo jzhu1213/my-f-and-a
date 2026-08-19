@@ -39,6 +39,11 @@ export type OverlayId =
   | 'statementImport'
   | 'confidence'
   | 'recurrenceManagement'
+  // Merged screens (task 489)
+  | 'recurring'
+  | 'savings'
+  | 'shared'
+  | 'progressMilestones'
 
 // ── Sheet IDs (bottom sheets — can be open alongside main content) ───────────
 
@@ -52,6 +57,7 @@ export type SheetId =
   | 'bulkRepeat'
   | 'profile'
   | 'quickLog'
+  | 'travelMode'
 
 // ── Payloads — some overlays/sheets carry associated data ────────────────────
 
@@ -90,6 +96,11 @@ export interface OverlayPayloads {
   statementImport: undefined
   confidence: undefined
   recurrenceManagement: undefined
+  // Merged screens (task 489)
+  recurring: undefined
+  savings: undefined
+  shared: undefined
+  progressMilestones: undefined
 }
 
 export interface SheetPayloads {
@@ -103,6 +114,8 @@ export interface SheetPayloads {
   profile: undefined
   /** Quick-log confirm sheet for captures from the OS share sheet / assistant (task 180.1) */
   quickLog: { rawText: string; source: 'share' | 'assistant' }
+  /** Travel mode sheet (task 495.3) */
+  travelMode: undefined
 }
 
 // ── State ────────────────────────────────────────────────────────────────────

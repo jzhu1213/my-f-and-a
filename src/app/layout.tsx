@@ -6,6 +6,7 @@ import { ToastProvider } from '../contexts/ToastContext'
 import { I18nProvider } from '../contexts/I18nContext'
 import { AmbientGlowProvider } from '../contexts/AmbientGlowContext'
 import { ScreenReaderAnnouncerProvider } from '../components/ui/ScreenReaderAnnouncer'
+import { WebVitalsReporter } from '../components/WebVitalsReporter'
 
 export const metadata: Metadata = {
   title: 'Folio',
@@ -48,6 +49,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen antialiased bg-background text-foreground">
+        <WebVitalsReporter />
         <ThemeProvider>
           <I18nProvider>
             <AuthProvider>

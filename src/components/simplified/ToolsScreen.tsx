@@ -13,10 +13,11 @@
  * Requirements: 15.1, 15.2, 15.3, 15.4, 10.4
  */
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { layoutTransition, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
-import { getPeerContextEnabled } from "@/lib/uiPreferences"
+import { getPeerContextEnabled, setPeerContextEnabled } from "@/lib/uiPreferences"
+import { recordToolUsage, getRecentlyUsedTools, hasSectionBeenUsed } from "@/lib/toolUsageTracker"
 import { SectionHeader, ListRow, Card } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/lib/icons"
@@ -29,7 +30,6 @@ import { safeAreaBottom } from "@/styles/layout"
 import { SourceBalancesView } from "./SourceBalancesView"
 import { ObligationsSummary } from "./ObligationsSummary"
 import { SharedActivityView } from "./SharedActivityView"
-import { InsightsFeed } from "./InsightsFeed"
 import { RoundUpSetting } from "./RoundUpSetting"
 import { AutoSaveSetting } from "./AutoSaveSetting"
 import { computeNetObligations } from "@/lib/obligationsUtils"
@@ -37,14 +37,10 @@ import { useFeatureFlags } from "@/hooks/useFeatureFlags"
 import type { FeatureFlags } from "@/lib/featureFlags"
 import type { FundingSource } from "@/lib/fundingSources"
 import type { Transaction, Goal, Budget } from "@/types"
-import type { Debt } from "@/types/folio"
+import type { Debt, SavingsAccount } from "@/types/folio"
 import type { Reimbursement } from "@/lib/reimbursements"
-import { TravelModeSheet } from "./TravelModeSheet"
-import { ActiveChallenges } from "./ActiveChallenges"
 import {
   isChallengesActive,
-  isMilestoneCelebrationsActive,
-  isProgressGardenActive,
 } from "@/lib/gamificationPreferences"
 
 // ============================================================================
@@ -55,45 +51,39 @@ export interface ToolsScreenProps {
   onOpenCompoundGrowth?: () => void
   onOpenCreditPayoff?: () => void
   onOpenSubscriptions?: () => void
-  onOpenCancelNegotiate?: () => void
   onOpenSinkingFunds?: () => void
   onOpenLearn?: () => void
-  onOpenSavingsProjections?: () => void
-  onOpenManageSavings?: () => void
   onOpenDebt?: () => void
-  onOpenRecurringBills?: () => void
   onOpenReimbursements?: () => void
   onOpenTrajectory?: () => void
   onOpenCashFlowForecast?: () => void
-  onOpenHouseholdPool?: () => void
-  /** Open the warm invite-a-roommate flow (task 201.1) */
-  onOpenInviteRoommate?: () => void
   /** Open the wish list screen (task 352.1) */
   onOpenWishList?: () => void
   /** Open the income trends screen (task 355) */
   onOpenIncomeTrends?: () => void
-  /** Open the shared budgets screen (task 360) */
-  onOpenSharedBudgets?: () => void
   /** Open the bank statement import screen (task 362) */
   onOpenStatementImport?: () => void
   /** Open the confidence score screen (task 365) */
   onOpenConfidence?: () => void
-  /** Open the recurrence management screen (task 410) */
-  onOpenRecurrenceManagement?: () => void
-  /** Open the milestone gallery (task 433) */
-  onOpenMilestones?: () => void
-  /** Open the activity heatmap (task 434) */
-  onOpenActivityHeatmap?: () => void
-  /** Open the progress garden (task 435) */
-  onOpenProgressGarden?: () => void
   /** Trigger a celebration event (task 432.2) */
   onCelebrate?: (event: import('@/types/folio').CelebrationEvent) => void
-  onOpenPortfolioAllocation?: () => void
-  onOpenInvestmentExplorer?: () => void
   onOpenYearInReview?: () => void
   onOpenTermReview?: () => void
   /** Open the opt-in "typical for a student" peer context (task 186.1) */
   onOpenPeerContext?: () => void
+  // ── Merged screen handlers (task 489) ──
+  /** Open the merged Recurring screen (bills + patterns) */
+  onOpenRecurring?: () => void
+  /** Open the merged Savings screen (projections + manage + allocation) */
+  onOpenSavings?: () => void
+  /** Open the merged Shared screen (pools + budgets + invite) */
+  onOpenShared?: () => void
+  /** Open the merged Progress & Milestones screen */
+  onOpenProgressMilestones?: () => void
+  /** Open the challenges screen (task 491) */
+  onOpenChallenges?: () => void
+  /** Open the weekly insights screen (task 492.3) */
+  onOpenWeeklyInsights?: () => void
   /** Display-only: total set-aside amount this month */
   totalSetAside?: number
   /** Display-only: savings rate percentage */
@@ -114,6 +104,8 @@ export interface ToolsScreenProps {
   contributeToGoal?: (goalId: string, amount: number) => Promise<unknown>
   /** User's daily budget/allowance amount — for insights feed */
   dailyBudget?: number
+  /** Savings accounts — for gating advanced investment tools (task 490.2) */
+  savingsAccounts?: SavingsAccount[]
 }
 
 // ============================================================================
@@ -142,37 +134,42 @@ const SECTIONS: ToolSection[] = [
   {
     id: "money-map",
     label: "Money Map",
-    toolIds: ["trajectory"],
+    toolIds: ["trajectory", "cash-flow-forecast"],
   },
   {
-    id: "obligations",
-    label: "Obligations",
-    toolIds: ["debt", "recurring-bills", "recurrence-management", "reimbursements", "subscriptions", "cancel-negotiate", "household-pool", "invite-roommate", "shared-budgets"],
+    id: "bills-subscriptions",
+    label: "Bills & Subscriptions",
+    toolIds: ["recurring", "subscriptions"],
   },
   {
-    id: "planning",
-    label: "Planning & Savings",
-    toolIds: ["travel-mode", "sinking-funds", "wish-list", "savings-projections", "manage-savings", "portfolio-allocation", "investment-explorer", "cash-flow-forecast"],
+    id: "saving-planning",
+    label: "Saving & Planning",
+    toolIds: ["savings", "sinking-funds", "wish-list"],
+  },
+  {
+    id: "people-splits",
+    label: "People & Splits",
+    toolIds: ["reimbursements", "shared"],
+  },
+  {
+    id: "debt",
+    label: "Debt",
+    toolIds: ["debt", "credit-payoff"],
+  },
+  {
+    id: "insights-reviews",
+    label: "Insights & Reviews",
+    toolIds: ["weekly-insights", "income-trends", "term-review", "year-in-review", "peer-context", "confidence", "statement-import"],
+  },
+  {
+    id: "learn-grow",
+    label: "Learn & Grow",
+    toolIds: ["learn", "progress-milestones", "challenges"],
   },
   {
     id: "calculators",
     label: "Calculators",
-    toolIds: ["compound-growth", "credit-payoff"],
-  },
-  {
-    id: "reviews",
-    label: "Reviews",
-    toolIds: ["income-trends", "term-review", "year-in-review", "peer-context", "confidence", "statement-import"],
-  },
-  {
-    id: "learn",
-    label: "Learn",
-    toolIds: ["learn"],
-  },
-  {
-    id: "milestones",
-    label: "Milestones",
-    toolIds: ["milestones", "activity-heatmap", "progress-garden"],
+    toolIds: ["compound-growth"],
   },
 ]
 
@@ -265,33 +262,27 @@ export function ToolsScreen({
   onOpenCompoundGrowth,
   onOpenCreditPayoff,
   onOpenSubscriptions,
-  onOpenCancelNegotiate,
   onOpenSinkingFunds,
   onOpenLearn,
-  onOpenSavingsProjections,
-  onOpenManageSavings,
   onOpenDebt,
-  onOpenRecurringBills,
   onOpenReimbursements,
   onOpenTrajectory,
   onOpenCashFlowForecast,
-  onOpenHouseholdPool,
-  onOpenInviteRoommate,
   onOpenWishList,
   onOpenIncomeTrends,
-  onOpenSharedBudgets,
   onOpenStatementImport,
   onOpenConfidence,
-  onOpenRecurrenceManagement,
-  onOpenMilestones,
-  onOpenActivityHeatmap,
-  onOpenProgressGarden,
   onCelebrate,
-  onOpenPortfolioAllocation,
-  onOpenInvestmentExplorer,
   onOpenYearInReview,
   onOpenTermReview,
   onOpenPeerContext,
+  // Merged screen handlers (task 489)
+  onOpenRecurring,
+  onOpenSavings,
+  onOpenShared,
+  onOpenProgressMilestones,
+  onOpenChallenges,
+  onOpenWeeklyInsights,
   totalSetAside,
   savingsRate,
   fundingSources,
@@ -302,36 +293,63 @@ export function ToolsScreen({
   budgets,
   contributeToGoal,
   dailyBudget,
+  savingsAccounts,
 }: ToolsScreenProps) {
   const { flags } = useFeatureFlags()
   const { listContainer, listItem, prefersReducedMotion } = useReducedMotion()
 
   // Peer context is opt-in and OFF by default
-  const [peerContextEnabled, setPeerContextEnabled] = useState(false)
+  const [peerContextEnabled, setPeerContextEnabledState] = useState(false)
   useEffect(() => {
-    setPeerContextEnabled(getPeerContextEnabled())
+    setPeerContextEnabledState(getPeerContextEnabled())
   }, [])
 
-  // Travel mode sheet (task 424.2)
-  const [travelSheetOpen, setTravelSheetOpen] = useState(false)
+  // ── Task 490.1: "Start Here" curated view for new users ────────────────
+  // A user is "new" if all their transactions are within the last 14 days (or none exist).
+  const isNewUser = useMemo(() => {
+    if (!transactions || transactions.length === 0) return true
+    const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000
+    const earliestTxDate = Math.min(...transactions.map((t) => new Date(t.date).getTime()))
+    return earliestTxDate >= fourteenDaysAgo
+  }, [transactions])
+
+  const START_HERE_STORAGE_KEY = 'folio-show-all-tools'
+  const [showAllTools, setShowAllTools] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = localStorage.getItem(START_HERE_STORAGE_KEY)
+      if (stored === 'true') setShowAllTools(true)
+    } catch { /* localStorage unavailable */ }
+  }, [])
+
+  const handleToggleShowAll = useCallback(() => {
+    setShowAllTools((prev) => {
+      const next = !prev
+      try { localStorage.setItem(START_HERE_STORAGE_KEY, String(next)) } catch { /* */ }
+      return next
+    })
+  }, [])
+
+  /** The curated tool IDs for the "Start Here" view */
+  const START_HERE_TOOL_IDS = ['recurring', 'learn', 'subscriptions']
+
+  // Whether to show the curated view (new user who hasn't toggled "show all")
+  const showCuratedView = isNewUser && !showAllTools
   // Map tool IDs to feature flag keys
   const toolFlagMap: Record<string, keyof FeatureFlags> = {
     "trajectory": "financialTrajectory",
     "debt": "debtTracking",
-    "recurring-bills": "recurringBills",
+    "recurring": "recurringBills",
     "reimbursements": "reimbursements",
     "sinking-funds": "sinkingFunds",
     "subscriptions": "subscriptionAudit",
-    "cancel-negotiate": "subscriptionAudit",
-    "savings-projections": "savingsProjections",
-    "manage-savings": "savingsProjections",
-    "portfolio-allocation": "savingsProjections",
-    "investment-explorer": "savingsProjections",
+    "savings": "savingsProjections",
     "cash-flow-forecast": "cashFlowForecast",
     "compound-growth": "compoundGrowthCalculator",
     "credit-payoff": "creditPayoffCalculator",
     "learn": "lessons",
-    "household-pool": "householdPool",
+    "shared": "householdPool",
   }
 
   // Compute net obligations
@@ -348,42 +366,45 @@ export function ToolsScreen({
   const allTools: ToolItem[] = [
     { id: "trajectory", iconName: "tool:trajectory", title: "Financial Trajectory", description: "See how your money habits are trending.", onOpen: onOpenTrajectory },
     { id: "debt", iconName: "tool:debt", title: "Debt Tracking", description: "Track balances, APRs, and payoff timelines.", onOpen: onOpenDebt },
-    { id: "recurring-bills", iconName: "tool:recurring-bills", title: "Recurring Bills", description: "Track your monthly fixed costs.", onOpen: onOpenRecurringBills },
-    { id: "recurrence-management", iconName: "tool:recurring-bills", title: "Recurring Patterns", description: "Auto-detected spending patterns you repeat.", onOpen: onOpenRecurrenceManagement },
+    // Merged: Recurring (task 489.1) — replaces individual recurring-bills + recurrence-management
+    { id: "recurring", iconName: "tool:recurring-bills", title: "Recurring", description: "Bills and auto-detected patterns in one place.", onOpen: onOpenRecurring },
     { id: "reimbursements", iconName: "tool:reimbursements", title: "IOUs & Reimbursements", description: "Track money friends owe you — or that you owe them.", onOpen: onOpenReimbursements },
-    { id: "travel-mode", iconName: "tool:trajectory", title: "Going somewhere?", description: "Set a travel currency and optional daily budget.", onOpen: () => setTravelSheetOpen(true) },
     { id: "sinking-funds", iconName: "tool:sinking-funds", title: "Sinking Funds", description: "Save gradually for predictable large expenses.", onOpen: onOpenSinkingFunds },
-    { id: "subscriptions", iconName: "tool:subscriptions", title: "Subscription Audit", description: "Review detected recurring charges.", onOpen: onOpenSubscriptions },
-    { id: "cancel-negotiate", iconName: "tool:cancel-negotiate", title: "Cancel or Negotiate", description: "Steps and scripts to lower a bill or cancel.", onOpen: onOpenCancelNegotiate },
-    { id: "household-pool", iconName: "tool:household-pool", title: "Shared Pools", description: "Split shared expenses with roommates.", onOpen: onOpenHouseholdPool },
-    { id: "invite-roommate", iconName: "tool:invite-roommate", title: "Invite a Roommate", description: "Share a pool or goal with a roommate.", onOpen: onOpenInviteRoommate },
-    { id: "shared-budgets", iconName: "tool:household-pool", title: "Shared Budgets", description: "Budget together with a friend.", onOpen: onOpenSharedBudgets },
-    { id: "savings-projections", iconName: "tool:savings-projections", title: "Savings Projections", description: "Project how your savings might grow.", onOpen: onOpenSavingsProjections },
+    { id: "subscriptions", iconName: "tool:subscriptions", title: "Subscriptions", description: "Review and manage recurring charges.", onOpen: onOpenSubscriptions },
+    // Merged: Shared (task 489.4) — replaces individual household-pool + invite-roommate + shared-budgets
+    { id: "shared", iconName: "tool:household-pool", title: "Shared", description: "Pools, budgets, and invites — all shared money.", onOpen: onOpenShared },
+    // Merged: Savings (task 489.3) — replaces individual savings-projections + manage-savings + portfolio-allocation
+    { id: "savings", iconName: "tool:savings-projections", title: "Savings", description: "Projections, accounts, and allocation in one view.", onOpen: onOpenSavings },
     { id: "wish-list", iconName: "tool:wish-list", title: "Wish List", description: "Track what you want and see when you can afford it.", onOpen: onOpenWishList },
-    { id: "manage-savings", iconName: "tool:manage-savings", title: "Manage Savings", description: "Add, edit, or remove savings accounts.", onOpen: onOpenManageSavings },
-    { id: "portfolio-allocation", iconName: "tool:portfolio-allocation", title: "Savings Breakdown", description: "See savings broken down by account type.", onOpen: onOpenPortfolioAllocation },
-    { id: "investment-explorer", iconName: "tool:investment-explorer", title: "What If I Invest?", description: "Model contributions and returns over time.", onOpen: onOpenInvestmentExplorer },
     { id: "cash-flow-forecast", iconName: "tool:cash-flow-forecast", title: "Cash Flow Forecast", description: "See projected balance through next payday.", onOpen: onOpenCashFlowForecast },
     { id: "compound-growth", iconName: "tool:compound-growth", title: "Compound Growth", description: "See how savings grow with compound interest.", onOpen: onOpenCompoundGrowth },
     { id: "credit-payoff", iconName: "tool:credit-payoff", title: "Credit Payoff", description: "Plan how to pay off credit card debt faster.", onOpen: onOpenCreditPayoff },
-    { id: "term-review", iconName: "tool:term-review", title: "Term in Review", description: "A warm end-of-term recap of your wins.", onOpen: onOpenTermReview },
+    { id: "term-review", iconName: "tool:term-review", title: "Term / Year in Review", description: "A warm recap of your wins — by term or year.", onOpen: onOpenTermReview },
     { id: "year-in-review", iconName: "tool:year-in-review", title: "Year in Review", description: "A once-a-year look back at your streaks and savings.", onOpen: onOpenYearInReview },
     { id: "peer-context", iconName: "tool:peer-context", title: "How You Compare", description: "Optional anonymized context against student ranges.", onOpen: onOpenPeerContext },
-    { id: "learn", iconName: "tool:learn", title: "Learn", description: "Short lessons on budgeting, saving, and investing.", onOpen: onOpenLearn },
+    { id: "learn", iconName: "tool:learn", title: "Lessons", description: "Short lessons on budgeting, saving, and investing.", onOpen: onOpenLearn },
     { id: "income-trends", iconName: "tool:income-trends", title: "Income Trends", description: "See how your earnings grow over time.", onOpen: onOpenIncomeTrends },
     { id: "statement-import", iconName: "tool:income-trends", title: "Import Statement", description: "Import transactions from a bank CSV.", onOpen: onOpenStatementImport },
     { id: "confidence", iconName: "tool:confidence", title: "Money Confidence", description: "A gentle journal of your financial habits.", onOpen: onOpenConfidence },
-    { id: "milestones", iconName: "tip:goal", title: "Milestone Gallery", description: "Your personal achievements — collected over time.", onOpen: onOpenMilestones },
-    { id: "activity-heatmap", iconName: "tool:trajectory", title: "Activity Heatmap", description: "A visual map of your logging consistency.", onOpen: onOpenActivityHeatmap },
-    { id: "progress-garden", iconName: "tip:goal", title: "Progress Garden", description: "A living garden that grows with your engagement.", onOpen: onOpenProgressGarden },
+    { id: "weekly-insights", iconName: "tool:income-trends", title: "Weekly Insights", description: "Bite-sized spending patterns and tips each week.", onOpen: onOpenWeeklyInsights },
+    // Merged: Progress & Milestones (task 489.5) — replaces individual milestones + activity-heatmap + progress-garden
+    { id: "progress-milestones", iconName: "tip:goal", title: "Progress & Milestones", description: "Achievements, heatmap, and garden in one view.", onOpen: onOpenProgressMilestones },
+    { id: "challenges", iconName: "tip:goal", title: "Challenges", description: "Fun weekly challenges to build better habits.", onOpen: onOpenChallenges },
   ]
 
   const isToolVisible = (toolId: string): boolean => {
-    if (toolId === "peer-context") return peerContextEnabled
+    // Task 490.3: Peer context no longer appears as a standalone tool entry.
+    // It only surfaces via the inline toggle in the Reviews section header.
+    if (toolId === "peer-context") return false
+    // Task 491: year-in-review is combined into term-review as a single entry
+    if (toolId === "year-in-review") return false
     // Gamification tools respect per-feature toggles (Req 25.5)
-    if (toolId === "milestones") return isMilestoneCelebrationsActive()
-    if (toolId === "activity-heatmap") return isMilestoneCelebrationsActive()
-    if (toolId === "progress-garden") return isProgressGardenActive()
+    if (toolId === "challenges") return isChallengesActive()
+    // Show merged entries only when their handler is provided
+    if (toolId === "recurring" && !onOpenRecurring) return false
+    if (toolId === "savings" && !onOpenSavings) return false
+    if (toolId === "shared" && !onOpenShared) return false
+    if (toolId === "progress-milestones" && !onOpenProgressMilestones) return false
     const flagKey = toolFlagMap[toolId]
     if (!flagKey) return true
     return flags[flagKey]
@@ -401,9 +422,63 @@ export function ToolsScreen({
   const visibleSections = SECTIONS.filter((section) => {
     const visibleTools = getVisibleToolsForSection(section)
     if (section.id === "money-map") return visibleTools.length > 0 || hasSourceBalances
-    if (section.id === "obligations") return visibleTools.length > 0
+    if (section.id === "people-splits") return visibleTools.length > 0
     return visibleTools.length > 0
   })
+
+  // ── Smart Collapse: default expand/collapse per section (Task 488.2) ──
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
+
+  // Initialize expanded state based on usage history (client-side only)
+  useEffect(() => {
+    const initialState: Record<string, boolean> = {}
+    for (const section of SECTIONS) {
+      const visibleToolIds = allTools
+        .filter((t) => section.toolIds.includes(t.id) && isToolVisible(t.id))
+        .map((t) => t.id)
+      // Sections with at least one used tool default to expanded
+      initialState[section.id] = hasSectionBeenUsed(visibleToolIds)
+    }
+    setExpandedSections(initialState)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const toggleSection = useCallback((sectionId: string) => {
+    setExpandedSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }))
+  }, [])
+
+  // ── Recently Used (Task 488.3) ────────────────────────────────────────
+  const [recentToolIds, setRecentToolIds] = useState<string[]>([])
+
+  useEffect(() => {
+    const allVisibleIds = allTools.filter((t) => isToolVisible(t.id)).map((t) => t.id)
+    setRecentToolIds(getRecentlyUsedTools(allVisibleIds, 4))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const recentTools = useMemo(
+    () => recentToolIds.map((id) => allTools.find((t) => t.id === id)).filter(Boolean) as ToolItem[],
+    [recentToolIds, allTools]
+  )
+
+  // ── Wrap onOpen to record usage (Task 488.1) ──────────────────────────
+  const wrapOnOpen = useCallback((tool: ToolItem): ToolItem => {
+    if (!tool.onOpen) return tool
+    return {
+      ...tool,
+      onOpen: () => {
+        recordToolUsage(tool.id)
+        tool.onOpen!()
+      },
+    }
+  }, [])
+
+  // ── Task 490.3: Inline peer-context toggle handler ─────────────────────
+  const handlePeerContextToggle = useCallback(() => {
+    const next = !peerContextEnabled
+    setPeerContextEnabledState(next)
+    setPeerContextEnabled(next)
+  }, [peerContextEnabled])
 
   return (
     <div
@@ -419,43 +494,93 @@ export function ToolsScreen({
         Advanced features, calculators, and tracking tools.
       </p>
 
-      {/* ── Stat Cards (Set Aside / Savings Rate) ─────────────────────── */}
-      {((totalSetAside ?? 0) > 0 || (savingsRate ?? 0) > 0) && (
-        <div style={{ display: "flex", gap: spacingScale["12"], marginBottom: spacingScale["32"] }}>
-          {(totalSetAside ?? 0) > 0 && (
-            <Card style={{ padding: `${spacingScale["12"]} ${spacingScale["16"]}`, flex: 1 }}>
-              <p style={{ ...typography.caption, color: textColors.muted, marginBottom: spacingScale["2"] }}>
-                Set aside this month
-              </p>
-              <p style={{ ...typography.subhead, color: textColors.text, fontVariantNumeric: "tabular-nums" }}>
-                ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
-              </p>
-            </Card>
-          )}
-          {(savingsRate ?? 0) > 0 && (
-            <Card style={{ padding: `${spacingScale["12"]} ${spacingScale["16"]}`, flex: 1 }}>
-              <p style={{ ...typography.caption, color: textColors.muted, marginBottom: spacingScale["2"] }}>
-                Savings rate
-              </p>
-              <p style={{ ...typography.subhead, color: colorRamp.success[500], fontVariantNumeric: "tabular-nums" }}>
-                {savingsRate}%
-              </p>
-            </Card>
-          )}
-        </div>
-      )}
+      {/* ── Stat cards removed (task 491.3): savings rate is in HeroContextRow,
+           "Set aside this month" is now inline in the Saving & Planning section ─── */}
 
-      {/* ── Active Challenges (Task 432) ──────────────────────────── */}
-      {isChallengesActive() && (
+      {/* ── Recently Used (Task 488.3) ────────────────────────────── */}
+      {!showCuratedView && recentTools.length > 0 && (
         <div style={{ marginBottom: spacingScale["32"] }}>
-          <ActiveChallenges onCelebrate={onCelebrate} />
+          <SectionHeader>Recently Used</SectionHeader>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+              gap: spacingScale["8"],
+            }}
+          >
+            {recentTools.map((tool) => {
+              const wrapped = wrapOnOpen(tool)
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={wrapped.onOpen}
+                  aria-label={tool.title}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: spacingScale["6"],
+                    padding: `${spacingScale["12"]} ${spacingScale["8"]}`,
+                    background: colorRamp.accent[50],
+                    border: `1px solid ${colorRamp.accent[200]}`,
+                    borderRadius: radius.control,
+                    cursor: "pointer",
+                    textAlign: "center",
+                  }}
+                >
+                  <span style={{ color: textColors.text, display: "inline-flex" }}>
+                    <Icon name={tool.iconName} size={20} />
+                  </span>
+                  <span style={{ ...typography.caption, color: textColors.text }}>
+                    {tool.title}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
-      {/* ── Grouped Sections ─────────────────────────────────────────── */}
-      <motion.div variants={listContainer} initial="hidden" animate="visible">
+      {/* ── Task 490.1: Start Here curated view for new users ──────── */}
+      {showCuratedView && (
+        <div style={{ marginBottom: spacingScale["32"] }}>
+          <SectionHeader>Start Here</SectionHeader>
+          <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["16"] }}>
+            These three tools will help you get started with budgeting.
+          </p>
+          <ToolSectionList
+            tools={allTools
+              .filter((t) => START_HERE_TOOL_IDS.includes(t.id) && isToolVisible(t.id))
+              .map(wrapOnOpen)}
+            listContainer={listContainer}
+            listItem={listItem}
+            prefersReducedMotion={prefersReducedMotion}
+          />
+          <button
+            type="button"
+            onClick={handleToggleShowAll}
+            style={{
+              ...typography.body,
+              color: colorRamp.accent[400],
+              background: "none",
+              border: "none",
+              padding: `${spacingScale["12"]} 0`,
+              cursor: "pointer",
+              marginTop: spacingScale["16"],
+            }}
+          >
+            See all tools →
+          </button>
+        </div>
+      )}
+
+      {/* ── Grouped Sections (shown when NOT in curated view) ─────── */}
+      {!showCuratedView && (
+        <motion.div variants={listContainer} initial="hidden" animate="visible">
         {visibleSections.map((section, sectionIdx) => {
-          const sectionTools = getVisibleToolsForSection(section)
+          const sectionTools = getVisibleToolsForSection(section).map(wrapOnOpen)
+          const isExpanded = expandedSections[section.id] ?? false
 
           return (
             <motion.div
@@ -464,53 +589,193 @@ export function ToolsScreen({
               custom={sectionIdx}
               style={{ marginBottom: spacingScale["32"] }}
             >
-              <SectionHeader>{section.label}</SectionHeader>
+              {/* Collapsible section header */}
+              <button
+                type="button"
+                onClick={() => toggleSection(section.id)}
+                aria-expanded={isExpanded}
+                aria-controls={`section-${section.id}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: spacingScale["8"],
+                  width: "100%",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  marginBottom: isExpanded ? undefined : 0,
+                }}
+              >
+                <SectionHeader style={{ flex: 1, marginBottom: 0 }}>
+                  {section.label}
+                  {!isExpanded && (
+                    <span
+                      style={{
+                        ...typography.caption,
+                        color: textColors.muted,
+                        marginLeft: spacingScale["6"],
+                        fontWeight: 400,
+                        textTransform: "none",
+                        letterSpacing: "normal",
+                      }}
+                    >
+                      ({sectionTools.length})
+                    </span>
+                  )}
+                </SectionHeader>
+                <span
+                  style={{
+                    color: textColors.muted,
+                    display: "inline-flex",
+                    transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                    transition: "transform 200ms ease",
+                  }}
+                >
+                  <Icon name="action:forward" size={14} />
+                </span>
+              </button>
 
-              {/* Money Map inline widget */}
-              {section.id === "money-map" && hasSourceBalances && (
-                <div style={{ marginBottom: sectionTools.length > 0 ? spacingScale["12"] : 0 }}>
-                  <SourceBalancesView
-                    fundingSources={fundingSources!}
-                    transactions={transactions!}
-                  />
-                </div>
-              )}
+              {/* Expandable content */}
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.div
+                    id={`section-${section.id}`}
+                    initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={prefersReducedMotion ? undefined : { height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    {/* Money Map inline widget */}
+                    {section.id === "money-map" && hasSourceBalances && (
+                      <div style={{ marginBottom: sectionTools.length > 0 ? spacingScale["12"] : 0 }}>
+                        <SourceBalancesView
+                          fundingSources={fundingSources!}
+                          transactions={transactions!}
+                        />
+                      </div>
+                    )}
 
-              {/* Obligations inline widget */}
-              {section.id === "obligations" && (
-                <div style={{ marginBottom: sectionTools.length > 0 ? spacingScale["12"] : 0 }}>
-                  <ObligationsSummary obligations={obligations} />
-                </div>
-              )}
+                    {/* People & Splits: Obligations summary + shared activity */}
+                    {section.id === "people-splits" && (
+                      <div style={{ marginBottom: sectionTools.length > 0 ? spacingScale["12"] : 0 }}>
+                        <ObligationsSummary obligations={obligations} />
+                      </div>
+                    )}
 
-              {/* Shared Activity — calm list of recent social events (after Obligations) */}
-              {section.id === "obligations" && (
-                <SharedActivityView />
-              )}
+                    {section.id === "people-splits" && (
+                      <SharedActivityView />
+                    )}
 
-              {/* Insights Feed — inline in Reviews section */}
-              {section.id === "reviews" && transactions && (dailyBudget ?? 0) > 0 && (
-                <div style={{ marginBottom: sectionTools.length > 0 ? spacingScale["12"] : 0 }}>
-                  <InsightsFeed
-                    transactions={transactions}
-                    dailyBudget={dailyBudget!}
-                  />
-                </div>
-              )}
+                    {/* Saving & Planning: "Set aside this month" inline stat (task 491.3) */}
+                    {section.id === "saving-planning" && (totalSetAside ?? 0) > 0 && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: `${spacingScale["8"]} 0`,
+                          marginBottom: spacingScale["12"],
+                        }}
+                      >
+                        <p style={{ ...typography["body-sm"], color: textColors.sub, margin: 0 }}>
+                          Set aside this month
+                        </p>
+                        <p style={{ ...typography.subhead, color: textColors.text, margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                          ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
+                        </p>
+                      </div>
+                    )}
 
-              {/* Tool entries — roving tabindex per section (Req 27.2) */}
-              {sectionTools.length > 0 && (
-                <ToolSectionList
-                  tools={sectionTools}
-                  listContainer={listContainer}
-                  listItem={listItem}
-                  prefersReducedMotion={prefersReducedMotion}
-                />
-              )}
+                    {/* Task 490.3: Inline peer-context toggle in Insights & Reviews section */}
+                    {section.id === "insights-reviews" && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: `${spacingScale["8"]} 0`,
+                          marginBottom: spacingScale["8"],
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ ...typography["body-sm"], color: textColors.text, margin: 0 }}>
+                            Show &ldquo;How You Compare&rdquo;
+                          </p>
+                          <p style={{ ...typography.caption, color: textColors.muted, margin: 0 }}>
+                            Encouraging, anonymized peer context
+                          </p>
+                        </div>
+                        <label
+                          style={{ position: "relative", display: "inline-flex", alignItems: "center", cursor: "pointer" }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={peerContextEnabled}
+                            onChange={handlePeerContextToggle}
+                            aria-label="Enable peer context comparisons"
+                            style={{
+                              width: 40,
+                              height: 22,
+                              appearance: "none",
+                              WebkitAppearance: "none",
+                              background: peerContextEnabled ? colorRamp.accent[400] : colorRamp.accent[100],
+                              borderRadius: 11,
+                              position: "relative",
+                              cursor: "pointer",
+                              transition: "background 200ms ease",
+                              border: "none",
+                              outline: "none",
+                            }}
+                          />
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              position: "absolute",
+                              top: 3,
+                              left: peerContextEnabled ? 21 : 3,
+                              width: 16,
+                              height: 16,
+                              borderRadius: "50%",
+                              background: "#fff",
+                              transition: "left 200ms ease",
+                              pointerEvents: "none",
+                            }}
+                          />
+                        </label>
+                      </div>
+                    )}
+
+                    {/* Peer context tool (shown only when enabled via toggle above) */}
+                    {section.id === "insights-reviews" && peerContextEnabled && onOpenPeerContext && (
+                      <div style={{ marginBottom: spacingScale["8"] }}>
+                        <ToolSectionList
+                          tools={[wrapOnOpen(allTools.find((t) => t.id === "peer-context")!)]}
+                          listContainer={listContainer}
+                          listItem={listItem}
+                          prefersReducedMotion={prefersReducedMotion}
+                        />
+                      </div>
+                    )}
+
+                    {/* Tool entries — roving tabindex per section (Req 27.2) */}
+                    {sectionTools.length > 0 && (
+                      <ToolSectionList
+                        tools={sectionTools}
+                        listContainer={listContainer}
+                        listItem={listItem}
+                        prefersReducedMotion={prefersReducedMotion}
+                      />
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )
         })}
       </motion.div>
+      )}
 
       {/* ── Savings Automation ─────────────────────────────────────────── */}
       <div style={{ marginTop: spacingScale["32"] }}>
@@ -526,12 +791,6 @@ export function ToolsScreen({
         </div>
       </div>
 
-      {/* ── Travel Mode Sheet (Task 424.2) ────────────────────────────── */}
-      <AnimatePresence>
-        {travelSheetOpen && (
-          <TravelModeSheet open={travelSheetOpen} onClose={() => setTravelSheetOpen(false)} transactions={transactions} />
-        )}
-      </AnimatePresence>
     </div>
   )
 }

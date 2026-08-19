@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
@@ -12,6 +13,7 @@ import { detectPossiblyUnusedSubscriptions } from "@/lib/subscriptionUsageDetect
 import type { CancelledSubscription } from "@/lib/subscriptionSavingsTracker"
 import { buildSavingsSummary, getSavingsCopy } from "@/lib/subscriptionSavingsTracker"
 import { TIP_EMOJI } from "@/lib/vocabulary"
+import { CancelNegotiateHelper } from "./CancelNegotiateHelper"
 import { FONT_FAMILY } from "@/styles/typography"
 import {
   CONTENT_MAX_WIDTH,
@@ -132,10 +134,32 @@ export function SubscriptionAuditScreen({
     ? detectPossiblyUnusedSubscriptions(subscriptions, transactions)
     : []
 
+  // ── Inline cancel/negotiate sub-view (task 489.2) ───────────────
+  const [inlineCancelTarget, setInlineCancelTarget] = useState<DetectedSubscription | null>(null)
+
   // ── Savings tracking (task 354) ─────────────────────────────────
   const savingsSummary = cancelledSubscriptions && cancelledSubscriptions.length > 0
     ? buildSavingsSummary(cancelledSubscriptions, monthlyTotal)
     : null
+
+  // If inline cancel/negotiate helper is active, render it as a sub-view
+  if (inlineCancelTarget !== undefined && inlineCancelTarget !== null) {
+    return (
+      <div
+        style={{
+          maxWidth: CONTENT_MAX_WIDTH,
+          margin: "0 auto",
+          padding: `24px ${HORIZONTAL_PADDING}px ${DOCK_PADDING_BOTTOM - 20}px`,
+          fontFamily: FONT_FAMILY,
+        }}
+      >
+        <CancelNegotiateHelper
+          subscription={inlineCancelTarget}
+          onClose={() => setInlineCancelTarget(null)}
+        />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -409,7 +433,7 @@ export function SubscriptionAuditScreen({
               </div>
 
               {/* Action row: one-tap confirm (unconfirmed only) + cancel/negotiate + mark cancelled */}
-              {(onOpenCancelNegotiate || (onConfirm && !sub.isConfirmed) || onCancelSubscription) && (
+              {(onOpenCancelNegotiate || inlineCancelTarget === null || (onConfirm && !sub.isConfirmed) || onCancelSubscription) && (
                 <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                   {onConfirm && !sub.isConfirmed && (
                     <motion.button
@@ -433,28 +457,33 @@ export function SubscriptionAuditScreen({
                       ✓ Yes, it&apos;s recurring
                     </motion.button>
                   )}
-                  {onOpenCancelNegotiate && (
-                    <motion.button
-                      onClick={() => onOpenCancelNegotiate(sub)}
-                      whileTap={{ scale: 0.98 }}
-                      transition={springs.snappy}
-                      style={{
-                        flex: 1,
-                        padding: "10px 0",
-                        background: "rgba(129, 140, 248, 0.12)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 10,
-                        color: "var(--text)",
-                        fontSize: 13,
-                        fontWeight: 500,
-                        fontFamily: FONT_FAMILY,
-                        cursor: "pointer",
-                      }}
-                      aria-label={`Get help cancelling or negotiating ${sub.label}`}
-                    >
-                      💬 Cancel or negotiate
-                    </motion.button>
-                  )}
+                  {/* Cancel/negotiate button — renders inline helper (task 489.2) */}
+                  <motion.button
+                    onClick={() => {
+                      if (onOpenCancelNegotiate) {
+                        onOpenCancelNegotiate(sub)
+                      } else {
+                        setInlineCancelTarget(sub)
+                      }
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={springs.snappy}
+                    style={{
+                      flex: 1,
+                      padding: "10px 0",
+                      background: "rgba(129, 140, 248, 0.12)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 10,
+                      color: "var(--text)",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      fontFamily: FONT_FAMILY,
+                      cursor: "pointer",
+                    }}
+                    aria-label={`Get help cancelling or negotiating ${sub.label}`}
+                  >
+                    💬 Cancel or negotiate
+                  </motion.button>
                   {onCancelSubscription && (
                     <motion.button
                       onClick={() => onCancelSubscription(sub)}
