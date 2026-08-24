@@ -382,7 +382,7 @@ export function NaturalLogInput({
             )}
             <span
               style={{
-                marginLeft: "auto",
+                marginInlineStart:  "auto",
                 fontSize: typography.caption.fontSize,
                 color: "var(--muted)",
                 opacity: 0.7,

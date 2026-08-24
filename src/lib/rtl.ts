@@ -75,6 +75,8 @@ export const RTL_LANGUAGE_CODES: readonly string[] = [...RTL_LANGUAGES]
  * - `paddingRight` → `paddingInlineEnd`
  * - `left` (positioned) → `insetInlineStart`
  * - `right` (positioned) → `insetInlineEnd`
+ * - `borderLeft` → `borderInlineStart`
+ * - `borderRight` → `borderInlineEnd`
  * - `textAlign: 'left'` → `textAlign: 'start'`
  * - `textAlign: 'right'` → `textAlign: 'end'`
  *
@@ -88,6 +90,46 @@ export function logicalStyle(style: CSSProperties): CSSProperties {
     result.textAlign = 'start' as CSSProperties['textAlign']
   } else if (result.textAlign === 'right') {
     result.textAlign = 'end' as CSSProperties['textAlign']
+  }
+
+  // Margin inline
+  if ('marginLeft' in result && result.marginLeft !== 'auto') {
+    (result as Record<string, unknown>).marginInlineStart = result.marginLeft
+    delete result.marginLeft
+  }
+  if ('marginRight' in result && result.marginRight !== 'auto') {
+    (result as Record<string, unknown>).marginInlineEnd = result.marginRight
+    delete result.marginRight
+  }
+
+  // Padding inline
+  if ('paddingLeft' in result) {
+    (result as Record<string, unknown>).paddingInlineStart = result.paddingLeft
+    delete result.paddingLeft
+  }
+  if ('paddingRight' in result) {
+    (result as Record<string, unknown>).paddingInlineEnd = result.paddingRight
+    delete result.paddingRight
+  }
+
+  // Position inset
+  if ('left' in result) {
+    (result as Record<string, unknown>).insetInlineStart = result.left
+    delete result.left
+  }
+  if ('right' in result) {
+    (result as Record<string, unknown>).insetInlineEnd = result.right
+    delete result.right
+  }
+
+  // Border inline
+  if ('borderLeft' in result) {
+    (result as Record<string, unknown>).borderInlineStart = result.borderLeft
+    delete result.borderLeft
+  }
+  if ('borderRight' in result) {
+    (result as Record<string, unknown>).borderInlineEnd = result.borderRight
+    delete result.borderRight
   }
 
   return result

@@ -172,8 +172,8 @@ export function ContextualTipCard({
             onClick={onDismiss}
             className="absolute top-3 right-3 flex items-center justify-center rounded-full transition-colors"
             style={{
-              width: 28,
-              height: 28,
+              width: 44,
+              height: 44,
               background: "var(--raised)",
               color: "var(--muted)",
             }}

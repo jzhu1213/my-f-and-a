@@ -34,6 +34,7 @@ import {
   borderRadius,
 } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
+import { formatCurrency } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -283,7 +284,7 @@ export function SinkingFundsScreen({
           <p style={sectionHeader}>Total Monthly Reserve</p>
           <p style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
             ${dynamicTotalReserve.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 3 }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginInlineStart: 3 }}>
               /mo set aside
             </span>
           </p>
@@ -414,7 +415,7 @@ export function SinkingFundsScreen({
                   border: "1px solid var(--border)",
                   cursor: "pointer",
                   fontFamily: FONT_FAMILY,
-                  textAlign: "left",
+                  textAlign: "start",
                 }}
                 aria-label={`Add ${preset.label} sinking fund`}
               >
@@ -645,7 +646,7 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
                   ...inputStyle,
                   appearance: "none",
                   WebkitAppearance: "none",
-                  paddingRight: 32,
+                  paddingInlineEnd: 32,
                   backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
                   backgroundRepeat: "no-repeat",
                   backgroundPosition: "right 12px center",
@@ -745,21 +746,21 @@ function FundRow({ fund, now, onEdit, onDelete }: FundRowProps) {
         >
           <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, color: "var(--text)", margin: 0 }}>
             {fund.label}
-            {funded && <span style={{ marginLeft: 6, fontSize: typography['body-sm'].fontSize }}>🎉</span>}
+            {funded && <span style={{ marginInlineStart: 6, fontSize: typography['body-sm'].fontSize }}>🎉</span>}
           </p>
           <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: "2px 0 0" }}>
             {funded
               ? "Fully funded"
-              : `$${remaining.toLocaleString("en-US")} left · $${reserve}/mo`}
+              : `${formatCurrency(remaining, 'USD', { fractionDigits: 0 })} left · ${formatCurrency(reserve, 'USD', { fractionDigits: 0 })}/mo`}
             {fund.dueDate && !funded && ` · due ${fund.dueDate}`}
           </p>
         </div>
-        <div style={{ textAlign: "right" }}>
+        <div style={{ textAlign: "end" }}>
           <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
-            ${fund.savedAmount.toLocaleString("en-US")}
+            {formatCurrency(fund.savedAmount, 'USD', { fractionDigits: 0 })}
           </p>
           <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: "2px 0 0", fontVariantNumeric: "tabular-nums" }}>
-            / ${fund.targetAmount.toLocaleString("en-US")}
+            / {formatCurrency(fund.targetAmount, 'USD', { fractionDigits: 0 })}
           </p>
         </div>
         <motion.button
@@ -773,7 +774,7 @@ function FundRow({ fund, now, onEdit, onDelete }: FundRowProps) {
             cursor: "pointer",
             fontSize: typography.body.fontSize,
             color: "var(--error)",
-            marginLeft: 4,
+            marginInlineStart: 4,
           }}
           aria-label={`Delete ${fund.label}`}
         >
@@ -908,9 +909,9 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
           }}
         >
           <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0 }}>
-            ${effectiveReserve.toLocaleString("en-US")}/mo
+            {formatCurrency(effectiveReserve, 'USD', { fractionDigits: 0 })}/mo
             {form.autoReserve && (
-              <span style={{ fontSize: typography.caption.fontSize, fontWeight: fontWeights.regular, color: "var(--muted)", marginLeft: 6 }}>
+              <span style={{ fontSize: typography.caption.fontSize, fontWeight: fontWeights.regular, color: "var(--muted)", marginInlineStart: 6 }}>
                 auto-computed
               </span>
             )}

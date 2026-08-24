@@ -58,7 +58,7 @@ export function AutomationActivityLog() {
           border: "none",
           padding: `${spacingScale["12"]} 0`,
           cursor: "pointer",
-          textAlign: "left",
+          textAlign: "start",
           borderRadius: "4px",
         }}
       >

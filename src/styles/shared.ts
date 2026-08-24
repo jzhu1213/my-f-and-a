@@ -438,3 +438,80 @@ export const roundButton: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
 }
+
+// ============================================================================
+// Text resilience — defensive overflow styles (Task 517.1 / 517.2)
+// ============================================================================
+
+/**
+ * Single-line text truncation with ellipsis. Apply to labels, button text, and
+ * chip content that must not wrap or overflow their container.
+ */
+export const textTruncate: CSSProperties = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+}
+
+/**
+ * Multi-line clamp (2 lines). Use for descriptions, subtitles, and tip cards
+ * that can wrap but must not exceed a fixed height.
+ * Note: requires `display: -webkit-box` via className or wrapper.
+ */
+export const textClamp2: CSSProperties = {
+  overflow: "hidden",
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+}
+
+/**
+ * Multi-line clamp (3 lines).
+ */
+export const textClamp3: CSSProperties = {
+  overflow: "hidden",
+  display: "-webkit-box",
+  WebkitLineClamp: 3,
+  WebkitBoxOrient: "vertical",
+}
+
+/**
+ * Word-break safety for long unbroken strings (URLs, compound German words).
+ * Allows the browser to break within words only when needed.
+ */
+export const textBreakWord: CSSProperties = {
+  overflowWrap: "break-word",
+  wordBreak: "break-word",
+}
+
+/**
+ * Defensive button text style: truncates with ellipsis, protects min-width so
+ * short translations (CJK) don't collapse. Pair with flex containers that
+ * set `flex-shrink: 0` on the button.
+ */
+export const buttonTextDefensive: CSSProperties = {
+  ...textTruncate,
+  minWidth: 44,
+  textAlign: "center",
+}
+
+/**
+ * Defensive chip/label style: ensures chips don't shrink below touch-target
+ * width for short content, and truncates with ellipsis for long content.
+ */
+export const chipTextDefensive: CSSProperties = {
+  ...textTruncate,
+  minWidth: 32,
+  maxWidth: 200,
+}
+
+/**
+ * Flex row with text overflow protection. The text child uses `min-width: 0`
+ * to allow flex truncation, and the row won't overflow its container.
+ */
+export const flexRowOverflowSafe: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  minWidth: 0,
+  overflow: "hidden",
+}

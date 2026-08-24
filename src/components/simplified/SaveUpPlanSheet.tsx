@@ -242,7 +242,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                                 gap: 4,
                                 background: "none",
                                 border: "none",
-                                textAlign: "left",
+                                textAlign: "start",
                                 cursor: "pointer",
                                 padding: 0,
                                 fontFamily: FONT_FAMILY,

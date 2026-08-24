@@ -275,7 +275,7 @@ export default function SharedPoolViewPage() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0"
-                style={{ ...sharedInput, paddingLeft: 24, ...TABULAR_NUMS }}
+                style={{ ...sharedInput, paddingInlineStart: 24, ...TABULAR_NUMS }}
                 aria-label="Expense amount"
               />
             </div>

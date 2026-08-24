@@ -310,7 +310,7 @@ function AccentDot({
         background: color,
         left: "50%",
         top: "50%",
-        marginLeft: -2.5,
+        marginInlineStart: -2.5,
         marginTop: -2.5,
         x,
         y,

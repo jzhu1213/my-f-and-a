@@ -25,6 +25,7 @@ import { getTravelModeConfig, isTravelModeActive as checkTravelActive } from "@/
 import { getRate } from "@/lib/exchangeRates"
 import { getHomeCurrency } from "@/lib/currencyPreferences"
 import { formatCurrency as formatCurrencyUtil } from "@/lib/currencyUtils"
+import { useTranslation } from "@/contexts/I18nContext"
 
 interface DailyAllowanceHeroProps {
   allowanceLeft: number
@@ -174,7 +175,8 @@ function getStatusGradient(status: AllowanceStatus): { from: string; to: string 
  */
 function formatCurrency(amount: number): string {
   const rounded = Math.round(Math.abs(amount))
-  return amount < 0 ? `-$${rounded}` : `$${rounded}`
+  const formatted = formatCurrencyUtil(rounded, 'USD', { fractionDigits: 0 })
+  return amount < 0 ? `-${formatted}` : formatted
 }
 
 /**
@@ -324,7 +326,7 @@ function ShimmerParticles({ size }: { size: number }) {
             style={{
               left: x,
               top: y,
-              marginLeft: -2,
+              marginInlineStart: -2,
               marginTop: -2,
               animationDelay: `${i * 0.4}s`,
             }}
@@ -425,6 +427,7 @@ export function DailyAllowanceHero({
   const [showExplainer, setShowExplainer] = useState(false)
   const { prefersReducedMotion, listContainer, listItem } = useReducedMotion()
   const atmosphere = useTimeOfDay()
+  const t = useTranslation()
 
   // ── Task 484.3: Long-press to open affordability check ──────────────────
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -648,7 +651,7 @@ export function DailyAllowanceHero({
               key: "reserved-bills",
               icon: "breakdown:reserved" as IconName,
               label: "Set aside for bills",
-              value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
+              value: `${formatCurrency(reservedForBills)} for ${t('plural.bills', { count: upcomingBillCount })}`,
               valueColor: "var(--sub)",
               accentColor: colorRamp.blue[500],
             }]
@@ -685,7 +688,7 @@ export function DailyAllowanceHero({
               key: "reserved-bills",
               icon: "breakdown:reserved" as IconName,
               label: "Set aside for bills",
-              value: `${formatCurrency(reservedForBills)} for ${upcomingBillCount} bill${upcomingBillCount === 1 ? '' : 's'}`,
+              value: `${formatCurrency(reservedForBills)} for ${t('plural.bills', { count: upcomingBillCount })}`,
               valueColor: "var(--sub)",
               accentColor: colorRamp.blue[500],
             }]
@@ -696,7 +699,7 @@ export function DailyAllowanceHero({
               key: "reserved-scheduled",
               icon: "breakdown:scheduled" as IconName,
               label: "Scheduled",
-              value: `${formatCurrency(reservedForScheduled)} for ${scheduledCount} item${scheduledCount === 1 ? '' : 's'}`,
+              value: `${formatCurrency(reservedForScheduled)} for ${t('plural.items', { count: scheduledCount })}`,
               valueColor: "var(--sub)",
               accentColor: colorRamp.blue[400],
             }]
@@ -891,7 +894,7 @@ export function DailyAllowanceHero({
               bottom: -6,
               width: ringSize * 0.5,
               height: 18,
-              marginLeft: -(ringSize * 0.5) / 2,
+              marginInlineStart:  -(ringSize * 0.5) / 2,
               borderRadius: "50%",
               background: color,
               filter: "blur(18px)",
@@ -958,6 +961,7 @@ export function DailyAllowanceHero({
           style={{
             color: "var(--sub)",
             maxWidth: 280,
+            overflowWrap: "break-word",
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -987,7 +991,7 @@ export function DailyAllowanceHero({
               exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
               transition={timings.normal}
             >
-              ✨ {periodTransitionText}
+              <span aria-hidden="true">✨</span> {periodTransitionText}
             </motion.p>
           )}
         </AnimatePresence>
@@ -1108,7 +1112,7 @@ export function DailyAllowanceHero({
               <Icon name="breakdown:reserved" size={16} />
             </span>
             <span style={{ fontSize: pxToRem(12), color: "var(--sub)", opacity: 0.85 }}>
-              {formatCurrency(reservedForBills)} set aside for {upcomingBillCount} upcoming bill{upcomingBillCount === 1 ? '' : 's'}
+              {formatCurrency(reservedForBills)} set aside for {t('plural.bills', { count: upcomingBillCount })}
             </span>
           </motion.div>
         )}
@@ -1201,7 +1205,7 @@ export function DailyAllowanceHero({
                       color: "var(--sub)",
                     }}
                   >
-                    <span className="flex items-center" style={{ gap: 10 }}>
+                    <span className="flex items-center" style={{ gap: 10, minWidth: 0, flex: 1 }}>
                       <span
                         aria-hidden="true"
                         style={{
@@ -1218,11 +1222,11 @@ export function DailyAllowanceHero({
                       >
                         <Icon name={row.icon} size={16} />
                       </span>
-                      <span style={{ fontFamily: 'var(--font-family, Inter, sans-serif)' }}>
+                      <span style={{ fontFamily: 'var(--font-family, Inter, sans-serif)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {row.label}
                       </span>
                     </span>
-                    <span style={{ color: row.valueColor, fontVariantNumeric: 'tabular-nums', fontWeight: fontWeights.medium }}>{row.value}</span>
+                    <span style={{ color: row.valueColor, fontVariantNumeric: 'tabular-nums', fontWeight: fontWeights.medium, flexShrink: 0 }}>{row.value}</span>
                   </motion.div>
                 ))}
               </motion.div>

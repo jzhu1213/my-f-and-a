@@ -49,8 +49,8 @@ const sizeStyles: Record<ButtonSize, React.CSSProperties> = {
   sm: {
     minHeight: '44px',
     minWidth: '44px',
-    paddingLeft: spacingScale['12'],
-    paddingRight: spacingScale['12'],
+    paddingInlineStart: spacingScale['12'],
+    paddingInlineEnd: spacingScale['12'],
     paddingTop: spacingScale['6'],
     paddingBottom: spacingScale['6'],
     fontSize: typography.caption.fontSize,
@@ -61,8 +61,8 @@ const sizeStyles: Record<ButtonSize, React.CSSProperties> = {
   md: {
     minHeight: '44px',
     minWidth: '44px',
-    paddingLeft: spacingScale['16'],
-    paddingRight: spacingScale['16'],
+    paddingInlineStart: spacingScale['16'],
+    paddingInlineEnd: spacingScale['16'],
     paddingTop: spacingScale['8'],
     paddingBottom: spacingScale['8'],
     fontSize: typography.body.fontSize,
@@ -73,8 +73,8 @@ const sizeStyles: Record<ButtonSize, React.CSSProperties> = {
   lg: {
     minHeight: '48px',
     minWidth: '48px',
-    paddingLeft: spacingScale['24'],
-    paddingRight: spacingScale['24'],
+    paddingInlineStart: spacingScale['24'],
+    paddingInlineEnd: spacingScale['24'],
     paddingTop: spacingScale['12'],
     paddingBottom: spacingScale['12'],
     fontSize: typography.subhead.fontSize,

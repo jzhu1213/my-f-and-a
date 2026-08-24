@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Sheet } from '@/components/ui/primitives/Sheet'
 import { useToast } from '@/contexts/ToastContext'
+import { useTranslation } from '@/contexts/I18nContext'
 import type { Transaction } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { HORIZONTAL_PADDING } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
 
@@ -30,6 +32,7 @@ const MAX_AMOUNT = 99999
  */
 export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: RefundSheetProps) {
   const { showToast } = useToast()
+  const t = useTranslation()
   const amountRef = useRef<HTMLInputElement>(null)
 
   const [amount, setAmount] = useState('')
@@ -63,8 +66,8 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
 
     onLogRefund(transaction, parsed)
 
-    const formatted = parsed % 1 === 0 ? `$${parsed}` : `$${parsed.toFixed(2)}`
-    showToast(`Refund of ${formatted} logged ✓`, 'success')
+    const formatted = formatMoney(parsed)
+    showToast(t('refund.logged', { amount: formatted }), 'success')
     onClose()
   }, [amount, transaction, onLogRefund, onClose, showToast])
 
@@ -75,7 +78,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
   })()
 
   return (
-    <Sheet open={isOpen && !!transaction} onClose={onClose} size="half" aria-label="Log a refund">
+    <Sheet open={isOpen && !!transaction} onClose={onClose} size="half" aria-label={t('refund.title')}>
       {transaction && (
         <div style={{ padding: '0 24px 32px' }}>
           {/* ── Header ────────────────────────────────────── */}
@@ -86,7 +89,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
               fontWeight: fontWeights.semibold,
               color: 'var(--text)',
             }}>
-              Log a refund
+              {t('refund.title')}
             </p>
           </div>
 
@@ -111,7 +114,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
                 color: 'var(--sub)',
                 marginBottom: 2,
               }}>
-                Original expense
+                {t('refund.originalExpense')}
               </p>
               <p style={{
                 fontSize: typography.body.fontSize,
@@ -122,7 +125,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
               }}>
                 ${transaction.amount % 1 === 0 ? transaction.amount : transaction.amount.toFixed(2)}
                 {transaction.note && (
-                  <span style={{ fontWeight: fontWeights.regular, color: 'var(--sub)', fontSize: typography['body-sm'].fontSize, marginLeft: spacing.xs }}>
+                  <span style={{ fontWeight: fontWeights.regular, color: 'var(--sub)', fontSize: typography['body-sm'].fontSize, marginInlineStart: spacing.xs }}>
                     {transaction.note}
                   </span>
                 )}
@@ -138,7 +141,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
               marginBottom: spacing.sm,
               fontFamily: FONT_FAMILY,
             }}>
-              Refund amount
+              {t('refund.amount')}
             </p>
             <div style={{
               display: 'flex',
@@ -228,7 +231,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
               opacity: canSubmit ? 1 : 0.5,
             }}
           >
-            Log Refund
+            {t('refund.logRefund')}
           </button>
         </div>
       )}

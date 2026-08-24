@@ -15,6 +15,7 @@ import { buildSavingsSummary, getSavingsCopy } from "@/lib/subscriptionSavingsTr
 import { TIP_EMOJI } from "@/lib/vocabulary"
 import { CancelNegotiateHelper } from "./CancelNegotiateHelper"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -93,7 +94,7 @@ function confidenceBadgeStyle(level: ConfidenceBadge['level']): { bg: string; fg
 function alertCopy(alert: SubscriptionAlert): { emoji: string; text: string } {
   const { subscription, kind, daysUntil } = alert
   const when = daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`
-  const amountStr = `$${subscription.amount.toFixed(2)}`
+  const amountStr = formatMoney(subscription.amount)
 
   if (kind === 'trial_ending') {
     return {
@@ -220,7 +221,7 @@ export function SubscriptionAuditScreen({
           }}
         >
           ${monthlyTotal.toFixed(2)}
-          <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 4 }}>/mo</span>
+          <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginInlineStart: 4 }}>/mo</span>
         </p>
         <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 6 }}>
           {subscriptions.length} subscription{subscriptions.length !== 1 ? "s" : ""} detected
@@ -280,7 +281,7 @@ export function SubscriptionAuditScreen({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0 }}>
                     {item.subscription.label}
-                    <span style={{ fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 6, fontSize: typography['body-sm'].fontSize }}>
+                    <span style={{ fontWeight: fontWeights.regular, color: "var(--sub)", marginInlineStart: 6, fontSize: typography['body-sm'].fontSize }}>
                       ${item.subscription.amount.toFixed(2)}{frequencyLabel(item.subscription.frequency)}
                     </span>
                   </p>
@@ -395,7 +396,7 @@ export function SubscriptionAuditScreen({
                 </div>
 
                 {/* Amount + frequency */}
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ textAlign: "end", flexShrink: 0 }}>
                   <p
                     style={{
                       fontSize: typography.body.fontSize,

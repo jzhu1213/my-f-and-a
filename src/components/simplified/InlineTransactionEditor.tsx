@@ -313,7 +313,7 @@ export function InlineTransactionEditor({
               aria-label="Save changes"
               style={{
                 flex: 1,
-                height: 36,
+                minHeight: 44,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -337,7 +337,7 @@ export function InlineTransactionEditor({
               onClick={onClose}
               aria-label="Cancel editing"
               style={{
-                height: 36,
+                minHeight: 44,
                 padding: "0 14px",
                 display: "flex",
                 alignItems: "center",

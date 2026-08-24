@@ -10,6 +10,7 @@ import { FONT_FAMILY, pxToRem, spacing, typography, fontWeights } from '@/styles
 import { sectionHeader, HORIZONTAL_PADDING } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
 import { compareStrategies, type StrategyComparison, type StrategyResult, type StrategyName } from "@/lib/debtUtils"
+import { formatCurrency as formatCurrencyCentral } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -35,7 +36,7 @@ function formatMonths(months: number): string {
 
 function formatCurrency(amount: number): string {
   if (amount === Infinity) return "\u2014"
-  return "$" + amount.toLocaleString("en-US", { maximumFractionDigits: 0 })
+  return formatCurrencyCentral(amount, 'USD', { fractionDigits: 0 })
 }
 
 function getPayoffDate(months: number): string {
@@ -194,7 +195,7 @@ export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
         aria-expanded={showTimeline}
         aria-label="Show per-debt payoff timeline"
       >
-        <span>📋 Per-debt payoff order</span>
+        <span><span aria-hidden="true">📋</span> Per-debt payoff order</span>
         <span
           style={{
             transform: showTimeline ? "rotate(180deg)" : "rotate(0deg)",

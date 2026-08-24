@@ -159,7 +159,7 @@ export function LinkedAccountsScreen({
           }}
         >
           Linking a bank or card is a totally optional convenience. Nothing here
-          is required — you can keep logging by hand for as long as you like. 💜
+          is required — you can keep logging by hand for as long as you like.{" "}<span aria-hidden="true">💜</span>
         </p>
       </div>
 

@@ -1,7 +1,7 @@
-﻿"use client"
+"use client"
 
 /**
- * DepthSurfaceSkeleton â€” Loading placeholder for depth surface screens.
+ * DepthSurfaceSkeleton — Loading placeholder for depth surface screens.
  *
  * Displays a skeleton that matches the general layout of a depth surface:
  * - Back button area (44px height, 80px width)
@@ -20,7 +20,7 @@ import { CONTENT_MAX_WIDTH, HORIZONTAL_PADDING } from "@/styles/layout"
 import { spacing } from "@/styles/typography"
 
 // ============================================================================
-// Section skeleton â€” repeatable group of header + list rows
+// Section skeleton — repeatable group of header + list rows
 // ============================================================================
 
 function SectionGroupSkeleton({ rows = 3 }: { rows?: number }) {
@@ -74,8 +74,8 @@ export function DepthSurfaceSkeleton() {
         padding: `${spacing.lg}px ${HORIZONTAL_PADDING}px 80px`,
         maxWidth: CONTENT_MAX_WIDTH,
         width: "100%",
-        marginLeft: "auto",
-        marginRight: "auto",
+        marginInlineStart:  "auto",
+        marginInlineEnd:  "auto",
       }}
     >
       {/* Back button area */}

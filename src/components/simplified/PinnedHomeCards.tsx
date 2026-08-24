@@ -1,12 +1,12 @@
-﻿"use client"
+"use client"
 
 /**
- * PinnedHomeCards â€” Compact, glanceable card variants for the home screen.
+ * PinnedHomeCards — Compact, glanceable card variants for the home screen.
  *
  * Each card type renders in a 2-line max compact format. Tapping a card
  * navigates to the full tool screen for that feature.
  *
- * Requirement 18.6 â€” Pinnable home cards
+ * Requirement 18.6 — Pinnable home cards
  */
 
 import { motion } from "framer-motion"
@@ -73,7 +73,7 @@ function GoalProgressCard({ goals, onTap }: { goals?: Goal[]; onTap?: () => void
   return (
     <CompactCardShell type="goal_progress" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">ðŸŽ¯</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">🎯</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={cardTitleStyle}>{label}</p>
           {topGoal ? (
@@ -112,13 +112,13 @@ function TopObligationCard({
   return (
     <CompactCardShell type="top_obligation" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">ðŸ“‹</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">📋</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           {next ? (
             <>
               <p style={cardTitleStyle}>{next.label}</p>
               <p style={cardSubStyle}>
-                ${next.amount.toFixed(0)} Â· due day {next.dueDay}
+                ${next.amount.toFixed(0)} · due day {next.dueDay}
               </p>
             </>
           ) : (
@@ -143,7 +143,7 @@ function SavingsSnapshotCard({
   return (
     <CompactCardShell type="savings_snapshot" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">ðŸ·</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">🐷</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={cardTitleStyle}>Savings</p>
           <p style={cardValueStyle}>
@@ -171,7 +171,7 @@ function IncomeTrackerCard({
   return (
     <CompactCardShell type="income_tracker" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">ðŸ’µ</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">💵</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={cardTitleStyle}>Income this month</p>
           <p style={cardSubStyle}>
@@ -194,7 +194,7 @@ function SpendPaceCard({
     spendPaceStatus === 'ahead'
       ? 'Ahead of pace'
       : spendPaceStatus === 'behind'
-        ? 'Under pace â€” nice!'
+        ? 'Under pace — nice!'
         : 'On track'
   const statusColor =
     spendPaceStatus === 'ahead'
@@ -206,7 +206,7 @@ function SpendPaceCard({
   return (
     <CompactCardShell type="spend_pace" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">ðŸ“ˆ</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">📈</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={cardTitleStyle}>Spend Pace</p>
           <p style={{ ...cardSubStyle, color: statusColor }}>{statusLabel}</p>
@@ -228,12 +228,12 @@ function UpcomingBillCard({
   return (
     <CompactCardShell type="upcoming_bill" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">ðŸ””</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">🔔</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           {next ? (
             <>
               <p style={cardTitleStyle}>{next.label}</p>
-              <p style={cardSubStyle}>${next.amount.toFixed(0)} Â· day {next.dueDay}</p>
+              <p style={cardSubStyle}>${next.amount.toFixed(0)} · day {next.dueDay}</p>
             </>
           ) : (
             <>
@@ -262,7 +262,7 @@ function SharedBudgetCard({
   return (
     <CompactCardShell type="shared_budget" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">ðŸ¤</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">🤝</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={cardTitleStyle}>{name}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginTop: 2 }}>
@@ -294,13 +294,13 @@ function ConfidenceCard({
   trend?: "up" | "stable" | "down"
   onTap?: () => void
 }) {
-  const trendArrow = trend === 'up' ? 'â†‘' : trend === 'down' ? 'â†“' : 'â†’'
+  const trendArrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'
   const trendColor = trend === 'up' ? 'var(--success)' : trend === 'down' ? 'var(--warning)' : 'var(--sub)'
 
   return (
     <CompactCardShell type="confidence" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">âœ¨</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">✨</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={cardTitleStyle}>{tier ?? 'Confidence'}</p>
           <p style={{ ...cardSubStyle, color: trendColor }}>
@@ -337,7 +337,7 @@ function ProgressGardenCard({
   return (
     <CompactCardShell type="progress_garden" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">ðŸŒ±</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">🌱</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={cardTitleStyle}>Progress Garden</p>
           <p style={cardSubStyle}>
@@ -366,7 +366,7 @@ function LearningProgressCard({
   return (
     <CompactCardShell type="learning_progress" onTap={onTap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, width: '100%' }}>
-        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">ðŸ“š</span>
+        <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">📚</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={cardTitleStyle}>
             {progress?.recentLessonTitle
@@ -415,7 +415,7 @@ function CompactCardShell({
       onClick={onTap}
       whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
       transition={springs.bouncy}
-      aria-label={`${meta.label} â€” tap for details`}
+      aria-label={`${meta.label} — tap for details`}
       style={{
         ...glassSurface,
         display: 'flex',
@@ -423,7 +423,7 @@ function CompactCardShell({
         width: '100%',
         padding: '12px 14px',
         cursor: 'pointer',
-        textAlign: 'left',
+        textAlign: "start",
       }}
     >
       {children}
@@ -471,7 +471,7 @@ const cardValueStyle: React.CSSProperties = {
 // ============================================================================
 
 /**
- * PinnedHomeCards â€” renders the user's pinned compact cards in order.
+ * PinnedHomeCards — renders the user's pinned compact cards in order.
  * Empty by default (no cards until user opts in). Max 3.
  */
 export function PinnedHomeCards({

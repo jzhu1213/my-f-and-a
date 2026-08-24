@@ -11,6 +11,7 @@ import {
 } from "@/lib/spendingInsights"
 import type { MonthOverMonthTrend, CategoryComparison } from "@/lib/spendingInsights"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { formatCurrency } from "@/lib/currencyUtils"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { radius } from '@/styles/surfaces'
 
@@ -140,9 +141,9 @@ export function InsightTrendCard({ transactions }: InsightTrendCardProps) {
                     opacity: 0.7,
                   }}
                 >
-                  This month: ${Math.round(trend.currentTotal).toLocaleString("en-US")}
+                  This month: {formatCurrency(Math.round(trend.currentTotal), 'USD', { fractionDigits: 0 })}
                   {trend.priorTotal > 0 &&
-                    ` · Last month: $${Math.round(trend.priorTotal).toLocaleString("en-US")}`}
+                    ` · Last month: ${formatCurrency(Math.round(trend.priorTotal), 'USD', { fractionDigits: 0 })}`}
                 </p>
               </div>
               <button
@@ -153,6 +154,11 @@ export function InsightTrendCard({ transactions }: InsightTrendCardProps) {
                   background: "none",
                   border: "none",
                   padding: 4,
+                  minWidth: 44,
+                  minHeight: 44,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
                   fontSize: typography.body.fontSize,
                   color: "var(--sub)",

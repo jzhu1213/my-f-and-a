@@ -15,6 +15,7 @@
 
 import type { BudgetPeriodPreference, BudgetPeriodType } from '@/lib/budgetPeriod'
 import { computePeriodContext } from '@/lib/budgetPeriod'
+import { formatCurrency as formatCurrencyCentral } from '@/lib/currencyUtils'
 import type { TermSchedule } from '@/lib/termSchedule'
 
 // ============================================================================
@@ -167,8 +168,6 @@ function generatePeriodResetMessage(periodType: BudgetPeriodType, amount: number
  * Simple currency formatter for the message (no cents if whole dollar).
  */
 function formatCurrency(amount: number): string {
-  if (amount === Math.floor(amount)) {
-    return `$${amount}`
-  }
-  return `$${amount.toFixed(2)}`
+  const digits = amount === Math.floor(amount) ? 0 : 2
+  return formatCurrencyCentral(amount, 'USD', { fractionDigits: digits })
 }

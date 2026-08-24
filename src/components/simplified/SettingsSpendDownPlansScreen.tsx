@@ -18,6 +18,7 @@ import { elevations, radius } from "@/styles/surfaces"
 import { SettingsSubScreen } from "./SettingsSubScreen"
 import type { SpendDownPlan } from "@/lib/spendDown"
 import type { Disbursement } from "@/lib/disbursements"
+import { formatCurrency } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -142,7 +143,7 @@ export function SettingsSpendDownPlansScreen({
                     {plan.label}
                   </p>
                   <p style={{ ...typography.caption, color: textColors.muted, margin: 0, marginTop: 2 }}>
-                    ${plan.totalAmount.toLocaleString("en-US")} · {plan.startDate} → {plan.endDate}
+                    {formatCurrency(plan.totalAmount, 'USD', { fractionDigits: 0 })} · {plan.startDate} → {plan.endDate}
                   </p>
                 </div>
                 {onRemoveSpendDownPlan && (

@@ -27,6 +27,7 @@ import {
   DOCK_PADDING_BOTTOM,
 } from "@/styles/shared"
 import { computeTermReview } from "@/lib/termReview"
+import { formatCurrency } from "@/lib/currencyUtils"
 import type { Transaction, Budget } from "@/types"
 import type { TermSchedule } from "@/lib/termSchedule"
 import type { TermReviewData } from "@/types/folio"
@@ -54,7 +55,7 @@ export interface TermReviewScreenProps {
 
 /** Whole-dollar display string with tabular alignment in mind. */
 function money(amount: number): string {
-  return `$${Math.round(amount).toLocaleString("en-US")}`
+  return formatCurrency(Math.round(amount), 'USD', { fractionDigits: 0 })
 }
 
 // A single stat row inside the recap card.

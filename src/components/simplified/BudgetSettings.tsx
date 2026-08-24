@@ -9,6 +9,7 @@ import { computeBudgetSummary, computeDailyEquivalent } from "@/lib/budgetSummar
 import { getIncomeProjection } from "@/lib/incomePatterns"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Transaction, TransactionCategory } from "@/types"
+import { formatCurrency } from "@/lib/currencyUtils"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { segmentedControl, segmentedButtonBase, shadows, fills, colorRamp, HORIZONTAL_PADDING } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
@@ -433,7 +434,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
           }}
         >
           ${totalMonthly.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 4 }}>
+          <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginInlineStart: 4 }}>
             /mo
           </span>
         </p>
@@ -465,13 +466,18 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
               aria-label="Dismiss income projection"
               style={{
                 position: "absolute",
-                top: 10,
-                right: 12,
+                top: 6,
+                right: 6,
                 background: "none",
                 border: "none",
                 color: "var(--muted)",
                 cursor: "pointer",
                 padding: 4,
+                minWidth: 44,
+                minHeight: 44,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 lineHeight: 1,
                 fontSize: typography.body.fontSize,
               }}
@@ -485,7 +491,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                 color: "var(--muted)",
                 fontFamily: FONT_FAMILY,
                 marginBottom: 6,
-                paddingRight: 24,
+                paddingInlineEnd: 24,
               }}
             >
               {incomeProjection.confidence >= 0.7
@@ -502,8 +508,8 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                 lineHeight: 1.2,
               }}
             >
-              ${Math.round(incomeProjection.projectedMonthlyIncome).toLocaleString("en-US")}
-              <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 4 }}>
+              {formatCurrency(Math.round(incomeProjection.projectedMonthlyIncome), 'USD', { fractionDigits: 0 })}
+              <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginInlineStart: 4 }}>
                 /mo
               </span>
             </p>
@@ -519,7 +525,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                Usually between ${Math.round(incomeProjection.confidenceBand.low).toLocaleString("en-US")}–${Math.round(incomeProjection.confidenceBand.high).toLocaleString("en-US")}
+                Usually between {formatCurrency(Math.round(incomeProjection.confidenceBand.low), 'USD', { fractionDigits: 0 })}–{formatCurrency(Math.round(incomeProjection.confidenceBand.high), 'USD', { fractionDigits: 0 })}
               </p>
             )}
 
@@ -599,7 +605,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                   borderBottom: "1px solid var(--border)",
                   cursor: "pointer",
                   fontFamily: FONT_FAMILY,
-                  textAlign: "left",
+                  textAlign: "start",
                 }}
                 aria-expanded={isExpanded}
                 aria-label={limit > 0 ? `${cat.label} budget limit: $${limit} per month` : `${cat.label}: no limit set — tap to add one`}
@@ -715,7 +721,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                             }}
                           >
                             ${limit}
-                            <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 4 }}>
+                            <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginInlineStart: 4 }}>
                               {isWeekly ? "/week" : "/mo"}
                             </span>
                           </div>

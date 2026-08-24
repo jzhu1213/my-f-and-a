@@ -13,6 +13,7 @@ import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animatio
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import type { IconName } from "@/lib/icons"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { getCategoryAccent } from '@/styles/shared'
 import { radius } from '@/styles/surfaces'
 import { getTravelCurrency } from '@/lib/travelMode'
@@ -245,9 +246,7 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion, travel
     : suggestion.amount
   const amountStr = showInTravel
     ? formatCurrencyUtil(displayAmount, travelCurrency)
-    : suggestion.amount % 1 === 0
-      ? `$${suggestion.amount}`
-      : `$${suggestion.amount.toFixed(2)}`
+    : formatMoney(suggestion.amount)
 
   function clearHold() {
     if (holdTimer.current) {
@@ -400,8 +399,8 @@ function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: E
         value={editEmoji}
         onChange={(e) => setEditEmoji(e.target.value)}
         style={{
-          width: 36,
-          height: 36,
+          width: 44,
+          height: 44,
           fontSize: typography.subhead.fontSize,
           textAlign: "center",
           background: "var(--fill-06)",
@@ -420,7 +419,7 @@ function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: E
         onChange={(e) => setEditLabel(e.target.value.slice(0, 20))}
         style={{
           flex: 1,
-          height: 36,
+          height: 44,
           fontSize: typography['body-sm'].fontSize,
           fontWeight: fontWeights.medium,
           background: "var(--fill-06)",
@@ -436,7 +435,7 @@ function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: E
       <button
         type="submit"
         style={{
-          height: 36,
+          minHeight: 44,
           padding: "0 12px",
           fontSize: typography['body-sm'].fontSize,
           fontWeight: fontWeights.medium,
@@ -455,7 +454,7 @@ function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: E
         type="button"
         onClick={onCancel}
         style={{
-          height: 36,
+          minHeight: 44,
           padding: "0 10px",
           fontSize: typography['body-sm'].fontSize,
           fontWeight: fontWeights.medium,
@@ -609,7 +608,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
         style={{ fontSize: typography.body.fontSize }}
       />
       {note.length >= MAX_NOTE_LENGTH - 5 && (
-        <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", textAlign: "right" }}>
+        <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", textAlign: "end" }}>
           {note.length}/{MAX_NOTE_LENGTH}
         </p>
       )}
@@ -629,6 +628,9 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
           style={{
             alignSelf: "flex-start",
             padding: "6px 12px",
+            minHeight: 44,
+            display: "inline-flex",
+            alignItems: "center",
             fontSize: typography['body-sm'].fontSize,
             fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
@@ -940,10 +942,7 @@ export function QuickLogArea({
     onLogExpense(transaction)
     // Record category usage for frequency-based sorting (Task 339.1)
     recordCategoryUsage(selectedCategory)
-    const amountStr =
-      suggestion.amount % 1 === 0
-        ? `$${suggestion.amount}`
-        : `$${suggestion.amount.toFixed(2)}`
+    const amountStr = formatMoney(suggestion.amount)
     showToast(`Logged ${amountStr} for ${categoryLabel(selectedCategory)} ✓`, "success")
 
     // Reset to the default state (Requirement 3.7). When motion is enabled we
@@ -967,10 +966,7 @@ export function QuickLogArea({
     onLogExpense(transaction)
     // Record category usage for frequency-based sorting (Task 339.1)
     recordCategoryUsage(transaction.category)
-    const amountStr =
-      transaction.amount % 1 === 0
-        ? `$${transaction.amount}`
-        : `$${transaction.amount.toFixed(2)}`
+    const amountStr = formatMoney(transaction.amount)
     showToast(`Logged ${amountStr} for ${categoryLabel(transaction.category)} ✓`, "success")
     // Clear category and return to default state (Requirement 3.7)
     setSelectedCategory(null)
@@ -1069,6 +1065,9 @@ export function QuickLogArea({
                 border: "1px solid var(--accent-400)",
                 borderRadius: radius.full,
                 padding: "5px 12px",
+                minHeight: 44,
+                display: "inline-flex",
+                alignItems: "center",
                 cursor: "pointer",
                 fontFamily: FONT_FAMILY,
               }}
@@ -1093,6 +1092,9 @@ export function QuickLogArea({
                       borderRadius: radius.full,
                       cursor: "pointer",
                       padding: "5px 10px",
+                      minHeight: 44,
+                      display: "inline-flex",
+                      alignItems: "center",
                       fontFamily: FONT_FAMILY,
                     }}
                     whileTap={{ scale: 0.95 }}
@@ -1115,6 +1117,9 @@ export function QuickLogArea({
                         border: "none",
                         cursor: "pointer",
                         padding: "4px 0",
+                        minHeight: 44,
+                        display: "inline-flex",
+                        alignItems: "center",
                         fontFamily: FONT_FAMILY,
                       }}
                       whileTap={{ scale: 0.95 }}
@@ -1140,6 +1145,7 @@ export function QuickLogArea({
                     border: "0.5px solid var(--accent-200)",
                     cursor: "pointer",
                     padding: "5px 14px",
+                    minHeight: 44,
                     borderRadius: radius.full,
                     display: "inline-flex",
                     alignItems: "center",
@@ -1380,15 +1386,18 @@ export function QuickLogArea({
             exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
             transition={timings.fast}
             style={{
-              display: "block",
+              display: "flex",
               width: "100%",
               textAlign: "center",
+              justifyContent: "center",
+              alignItems: "center",
               fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
               color: "var(--muted)",
               background: "none",
               border: "none",
               padding: "6px 0",
+              minHeight: 44,
               cursor: "pointer",
               lineHeight: 1.4,
             }}

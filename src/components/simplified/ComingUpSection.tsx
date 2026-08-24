@@ -299,7 +299,7 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
       </span>
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
         <button
           type="button"
           onClick={() => onPreLog(item)}
@@ -308,6 +308,11 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
             background: "var(--success-100)",
             border: "none",
             padding: "2px 6px",
+            minWidth: 44,
+            minHeight: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             margin: 0,
             font: "inherit",
             cursor: "pointer",
@@ -327,6 +332,11 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
             background: "var(--fill-04)",
             border: "none",
             padding: "2px 6px",
+            minWidth: 44,
+            minHeight: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             margin: 0,
             font: "inherit",
             cursor: "pointer",

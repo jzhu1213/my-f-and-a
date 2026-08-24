@@ -13,6 +13,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+import { useTranslation } from "@/contexts/I18nContext"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { useTheme } from "@/contexts/ThemeContext"
@@ -192,6 +193,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
   const { theme } = useTheme()
   const { flags } = useFeatureFlags()
   const { prefersReducedMotion } = useReducedMotion()
+  const t = useTranslation()
 
   // ── Sub-screen navigation ────────────────────────────────────────────
   const [activeSubScreen, setActiveSubScreen] = useState<SettingsCategory | null>(null)
@@ -248,30 +250,30 @@ export function SettingsScreen(props: SettingsScreenProps) {
   const getBadge = useCallback((id: SettingsCategory): string | undefined => {
     switch (id) {
       case 'spending-style':
-        return SPENDING_MODE_LABELS[spendingMode]?.label ?? 'Guided'
+        return SPENDING_MODE_LABELS[spendingMode]?.label ?? t('settings.badge.guided')
       case 'budget-income':
         return totalMonthly > 0 ? `$${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}/mo` : undefined
       case 'hero-display':
         return HERO_MEANING_LABELS[heroMeaning] ?? undefined
       case 'look-feel': {
-        const themeLabel = theme === 'warm' ? 'Warm' : theme === 'dark' ? 'Dark' : 'System'
+        const themeLabel = theme === 'warm' ? t('settings.badge.warm') : theme === 'dark' ? t('settings.badge.dark') : t('settings.badge.system')
         return themeLabel
       }
       case 'notifications':
-        return 'On'
+        return t('settings.badge.on')
       case 'tools-features':
-        return `${enabledFeatureCount} active`
+        return t('settings.badge.active', { count: enabledFeatureCount })
       case 'education': {
         const eduPrefs = getEducationPreferences()
-        const modeLabel = eduPrefs.learningMode === 'on' ? 'On' : eduPrefs.learningMode === 'subtle' ? 'Subtle' : 'Off'
+        const modeLabel = eduPrefs.learningMode === 'on' ? t('settings.badge.on') : eduPrefs.learningMode === 'subtle' ? t('settings.badge.subtle') : t('settings.badge.off')
         return modeLabel
       }
       case 'data-export':
-        return activeShareCount > 0 ? `${activeShareCount} shared` : undefined
+        return activeShareCount > 0 ? t('settings.badge.shared', { count: activeShareCount }) : undefined
       default:
         return undefined
     }
-  }, [spendingMode, totalMonthly, heroMeaning, theme, enabledFeatureCount, activeShareCount])
+  }, [spendingMode, totalMonthly, heroMeaning, theme, enabledFeatureCount, activeShareCount, t])
 
   // ── Filtered rows ────────────────────────────────────────────────────
   const visibleRows = useMemo(() => {
@@ -410,7 +412,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
         transition={prefersReducedMotion ? timings.fast : springs.gentle}
         style={{ pointerEvents: activeSubScreen ? 'none' : 'auto' }}
       >
-        <h1 style={{ ...typography.headline, color: textColors.text, margin: 0, paddingBottom: spacingScale["8"] }}>Settings</h1>
+        <h1 style={{ ...typography.headline, color: textColors.text, margin: 0, paddingBottom: spacingScale["8"] }}>{t('settings.title')}</h1>
 
         {/* Search (370.2) */}
         <div style={{ marginTop: spacingScale["16"], marginBottom: spacingScale["20"] }}>
@@ -418,8 +420,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
             type="search"
             value={searchText}
             onChange={e => setSearchText(e.target.value)}
-            placeholder="Search settings..."
-            aria-label="Search settings"
+            placeholder={t('settings.searchPlaceholder')}
+            aria-label={t('settings.searchAriaLabel')}
             style={{
               width: "100%",
               padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
@@ -436,7 +438,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
         {/* No results */}
         {debouncedSearch && visibleRows.length === 0 && (
           <p style={{ ...typography["body-sm"], color: textColors.sub, textAlign: "center", padding: `${spacingScale["20"]} 0` }}>
-            No settings match &ldquo;{searchText.trim()}&rdquo;
+            {t('settings.noResults', { query: searchText.trim() })}
           </p>
         )}
 
@@ -465,12 +467,12 @@ export function SettingsScreen(props: SettingsScreenProps) {
               ...typography["body-sm"],
               color: textColors.muted,
               fontWeight: fontWeights.medium,
-              paddingLeft: spacingScale["4"],
+              paddingInlineStart: spacingScale["4"],
               paddingBottom: 0,
               marginBottom: spacingScale["12"],
             }}
           >
-            Help & Info
+            {t('settings.helpInfo')}
           </SectionHeader>
           <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
             {/* What's New (495.1) */}
@@ -480,7 +482,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 onPress={() => {
                   setShowWhatsNew(v => !v)
                 }}
-                aria-label="What's New"
+                aria-label={t('settings.whatsNew')}
                 aria-expanded={showWhatsNew}
                 style={{
                   minHeight: '44px',
@@ -492,8 +494,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1, width: '28px', textAlign: 'center', flexShrink: 0 }}>
                   ✨
                 </span>
-                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium }}>
-                  What&apos;s New
+                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t('settings.whatsNew')}
                 </span>
                 <span aria-hidden="true" style={{ color: textColors.muted }}>{showWhatsNew ? '▾' : '›'}</span>
               </ListRow>
@@ -530,7 +532,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <ListRow
                 variant="dense"
                 onPress={props.onOpenBackfill}
-                aria-label="Catch up on missed days"
+                aria-label={t('settings.catchUpMissedDays')}
                 style={{
                   minHeight: '44px',
                   background: elevations.sunken.fill,
@@ -541,8 +543,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1, width: '28px', textAlign: 'center', flexShrink: 0 }}>
                   📅
                 </span>
-                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium }}>
-                  Catch up on missed days
+                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t('settings.catchUpMissedDays')}
                 </span>
                 <span aria-hidden="true" style={{ color: textColors.muted }}>›</span>
               </ListRow>
@@ -553,7 +555,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <ListRow
                 variant="dense"
                 onPress={props.onOpenTravelMode}
-                aria-label="Travel mode"
+                aria-label={t('settings.travelMode')}
                 style={{
                   minHeight: '44px',
                   background: elevations.sunken.fill,
@@ -564,8 +566,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1, width: '28px', textAlign: 'center', flexShrink: 0 }}>
                   ✈️
                 </span>
-                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium }}>
-                  Travel mode
+                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t('settings.travelMode')}
                 </span>
                 <span aria-hidden="true" style={{ color: textColors.muted }}>›</span>
               </ListRow>
@@ -576,7 +578,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <ListRow
                 variant="dense"
                 onPress={props.onResumeChecklist}
-                aria-label="Resume setup checklist"
+                aria-label={t('settings.resumeSetup')}
                 style={{
                   minHeight: '44px',
                   background: elevations.sunken.fill,
@@ -587,8 +589,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1, width: '28px', textAlign: 'center', flexShrink: 0 }}>
                   🔄
                 </span>
-                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium }}>
-                  Resume setup
+                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t('settings.resumeSetup')}
                 </span>
                 <span aria-hidden="true" style={{ color: textColors.muted }}>›</span>
               </ListRow>

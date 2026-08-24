@@ -9,6 +9,7 @@ import { radius } from '@/styles/surfaces'
 import { computeSourceBalances } from "@/lib/sourceBalances"
 import type { FundingSource } from "@/lib/fundingSources"
 import type { Transaction } from "@/types"
+import { formatCurrency } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -145,12 +146,7 @@ export function SourceBalancesView({
 function formatCompactCurrency(amount: number): string {
   const absAmount = Math.abs(amount)
   const sign = amount < 0 ? "-" : ""
-  const formatted =
-    absAmount % 1 === 0
-      ? absAmount.toLocaleString("en-US")
-      : absAmount.toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })
-  return `${sign}$${formatted}`
+  const digits = absAmount % 1 === 0 ? 0 : 2
+  const formatted = formatCurrency(absAmount, 'USD', { fractionDigits: digits })
+  return amount < 0 ? `-${formatted}` : formatted
 }

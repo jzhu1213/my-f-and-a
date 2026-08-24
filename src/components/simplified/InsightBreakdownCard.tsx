@@ -11,6 +11,7 @@ import {
 } from "@/lib/spendingInsights"
 import type { LargestExpense, CategoryBreakdownRow } from "@/lib/spendingInsights"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { formatCurrency } from "@/lib/currencyUtils"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { radius } from '@/styles/surfaces'
 
@@ -149,7 +150,7 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          ${Math.round(exp.amount).toLocaleString("en-US")}
+                          {formatCurrency(Math.round(exp.amount), 'USD', { fractionDigits: 0 })}
                         </span>
                       </div>
                     ))}
@@ -178,8 +179,7 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
                           opacity: 0.85,
                         }}
                       >
-                        {row.emoji} {row.label} — {row.percent}% ($
-                        {Math.round(row.amount).toLocaleString("en-US")})
+                        {row.emoji} {row.label} — {row.percent}% ({formatCurrency(Math.round(row.amount), 'USD', { fractionDigits: 0 })})
                       </p>
                     ))}
                   </div>
@@ -193,6 +193,11 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
                   background: "none",
                   border: "none",
                   padding: 4,
+                  minWidth: 44,
+                  minHeight: 44,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
                   fontSize: typography.body.fontSize,
                   color: "var(--sub)",

@@ -10,6 +10,7 @@
  */
 
 import type { DailyAllowance, AllowanceStatus } from '@/types/folio'
+import { formatCurrency as formatCurrencyCentral } from '@/lib/currencyUtils'
 
 /**
  * Maps the internal AllowanceStatus to an Adaptive Card color token.
@@ -33,7 +34,7 @@ function statusToAdaptiveCardColor(status: AllowanceStatus): string {
  * Format a number as a dollar amount for widget display.
  */
 function formatCurrency(amount: number): string {
-  return `$${Math.round(amount)}`
+  return formatCurrencyCentral(Math.round(amount), 'USD', { fractionDigits: 0 })
 }
 
 /**

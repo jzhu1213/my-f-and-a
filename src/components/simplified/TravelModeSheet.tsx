@@ -64,6 +64,19 @@ export function TravelModeSheet({ open, onClose, transactions = [] }: TravelMode
   const [dailyBudget, setDailyBudget] = useState<string>("")
   const [destinationLabel, setDestinationLabel] = useState<string>("")
 
+  // Escape key dismissal (task 511.3)
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        onClose()
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [open, onClose])
+
   // Load current state on open
   useEffect(() => {
     if (open) {

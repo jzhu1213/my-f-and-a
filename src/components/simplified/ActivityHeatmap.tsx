@@ -18,6 +18,7 @@ import type { CSSProperties } from "react"
 import type { Transaction, TransactionCategory } from "@/types"
 import { formatDateLocal, subtractDaysLocal } from "@/lib/dateUtils"
 import { FONT_FAMILY, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { colorRamp, getCategoryAccent } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
 import { spacing } from "@/styles/typography"
@@ -301,7 +302,7 @@ export function ActivityHeatmap({
                   weekTotal += categoryMap.get(`${category}::${dateStr}`) ?? 0
                 }
                 const isFuture = week[0] > todayStr
-                const cellLabel = isFuture ? undefined : `${category} week of ${week[0]}: $${weekTotal.toFixed(0)}`
+                const cellLabel = isFuture ? undefined : `${category} week of ${week[0]}: ${formatMoney(weekTotal)}`
                 return (
                   <div
                     key={wIdx}
@@ -432,7 +433,7 @@ export function ActivityHeatmap({
               style={{
                 display: "flex",
                 flexDirection: "row",
-                paddingLeft: DAY_LABEL_WIDTH,
+                paddingInlineStart: DAY_LABEL_WIDTH,
                 gap: CELL_GAP,
                 height: MONTH_LABEL_HEIGHT,
                 alignItems: "flex-end",
@@ -497,7 +498,7 @@ export function ActivityHeatmap({
               style={{
                 display: "flex",
                 flexDirection: "row",
-                paddingLeft: 64 + CELL_GAP,
+                paddingInlineStart: 64 + CELL_GAP,
                 gap: CELL_GAP,
                 height: MONTH_LABEL_HEIGHT,
                 alignItems: "flex-end",

@@ -218,7 +218,7 @@ export function ProgressiveChecklistCard({
                     borderRadius: radius.control,
                     cursor: 'pointer',
                     width: '100%',
-                    textAlign: 'left',
+                    textAlign: "start",
                   }}
                   aria-label={`${step.label}: ${step.description}`}
                 >
@@ -453,7 +453,7 @@ export function SetupChecklistCard({
                   borderRadius: radius.control,
                   cursor: 'pointer',
                   width: '100%',
-                  textAlign: 'left',
+                  textAlign: "start",
                 }}
                 aria-label={`Resume: ${item.label}`}
               >

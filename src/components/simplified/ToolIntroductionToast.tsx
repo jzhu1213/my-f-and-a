@@ -106,7 +106,7 @@ export function ToolIntroductionToast({
               border: `1px solid ${colorRamp.accent[300]}`,
               borderRadius: radius.card,
               cursor: 'pointer',
-              textAlign: 'left',
+              textAlign: "start",
               boxShadow: 'var(--shadow-lg)',
             }}
           >

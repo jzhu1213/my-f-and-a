@@ -8,6 +8,7 @@ import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { TransactionCategory } from '@/types'
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { radius } from '@/styles/surfaces'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 
@@ -138,9 +139,7 @@ export function BulkRepeatSheet({
     
     onSubmit(transactions)
     
-    const amountStr = transaction.amount % 1 === 0 
-      ? `$${transaction.amount}` 
-      : `$${transaction.amount.toFixed(2)}`
+    const amountStr = formatMoney(transaction.amount)
     
     showToast(
       `Logged ${amountStr} × ${selectedDates.size} days ✓`,
@@ -153,9 +152,7 @@ export function BulkRepeatSheet({
   const canSubmit = selectedDates.size > 0
   
   const categoryEmoji = getCategoryEmoji(transaction.category)
-  const amountStr = transaction.amount % 1 === 0 
-    ? `$${transaction.amount}` 
-    : `$${transaction.amount.toFixed(2)}`
+  const amountStr = formatMoney(transaction.amount)
   
   return (
     <BottomSheet 
@@ -182,7 +179,7 @@ export function BulkRepeatSheet({
             borderRadius: radius.control,
           }}>
             <span style={{ fontSize: typography.headline.fontSize }} aria-hidden="true">{categoryEmoji}</span>
-            <div style={{ textAlign: 'left' }}>
+            <div style={{ textAlign: "start" }}>
               <div style={{
                 fontSize: typography.subhead.fontSize,
                 fontFamily: FONT_FAMILY,
@@ -325,7 +322,7 @@ export function BulkRepeatSheet({
                       : '1px solid var(--fill-10)',
                     borderRadius: radius.control,
                     cursor: 'pointer',
-                    textAlign: 'left',
+                    textAlign: "start",
                   }}
                 >
                   <div style={{
@@ -407,7 +404,7 @@ export function BulkRepeatSheet({
                 fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--muted)',
-                marginLeft: spacing.xs,
+                marginInlineStart: spacing.xs,
               }}>
                 · Total: ${(transaction.amount * selectedDates.size).toFixed(2)}
               </span>

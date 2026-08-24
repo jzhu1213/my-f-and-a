@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { springs } from "@/lib/animations"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { fills } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
 import { BUDGET_CATEGORIES } from "@/types"
@@ -120,6 +121,11 @@ export function BillReminderCard({
               background: "none",
               border: "none",
               padding: "4px 6px",
+              minWidth: 44,
+              minHeight: 44,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               cursor: "pointer",
               fontSize: typography.body.fontSize,
               color: "var(--muted)",
@@ -301,8 +307,5 @@ export function BillConfirmationCard({
 // ============================================================================
 
 function formatAmount(amount: number): string {
-  if (amount === Math.round(amount)) {
-    return `$${amount}`
-  }
-  return `$${amount.toFixed(2)}`
+  return formatMoney(amount)
 }

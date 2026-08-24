@@ -17,6 +17,7 @@ import { saveHistoryScrollPosition } from '@/lib/useScrollVirtualization'
 import { shadows, getCategoryAccent } from '@/styles/shared'
 import { radius } from '@/styles/surfaces'
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 
 // â”€â”€ Session storage key â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SESSION_FILTERS_KEY = 'folio-history-filters'
@@ -72,7 +73,7 @@ function CategorySpendingBar({
             key={seg.category}
             role="button"
             tabIndex={0}
-            aria-label={`${TRANSACTION_CATEGORIES.find(c => c.category === seg.category)?.label || seg.category}: $${seg.amount.toFixed(0)} (${seg.pct.toFixed(0)}%)`}
+            aria-label={`${TRANSACTION_CATEGORIES.find(c => c.category === seg.category)?.label || seg.category}: ${formatMoney(seg.amount)} (${seg.pct.toFixed(0)}%)`}
             onClick={(e) => { e.stopPropagation(); onCategoryTap(seg.category) }}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCategoryTap(seg.category) } }}
             style={{
@@ -83,7 +84,7 @@ function CategorySpendingBar({
               cursor: 'pointer',
               transition: 'opacity 0.15s',
             }}
-            title={`${TRANSACTION_CATEGORIES.find(c => c.category === seg.category)?.label || seg.category}: $${seg.amount.toFixed(2)}`}
+            title={`${TRANSACTION_CATEGORIES.find(c => c.category === seg.category)?.label || seg.category}: ${formatMoney(seg.amount)}`}
           />
         ))}
       </div>
@@ -1122,7 +1123,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     fontVariantNumeric: 'tabular-nums',
                   }}>
                     ${weeklyTotals[weekKey].toFixed(2)} spent
-                    <span style={{ fontWeight: fontWeights.regular, color: 'var(--muted)', fontSize: typography.caption.fontSize, marginLeft: 4 }}>
+                    <span style={{ fontWeight: fontWeights.regular, color: 'var(--muted)', fontSize: typography.caption.fontSize, marginInlineStart: 4 }}>
                       across {weeklyTxCounts[weekKey] || 0} txns
                     </span>
                   </p>
@@ -1231,8 +1232,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   <motion.div
                     className="flex items-center justify-between gap-4 py-3 cursor-pointer transition-colors hover:bg-white/[0.03]"
                     style={{
-                      paddingLeft: 36,
-                      paddingRight: 16,
+                      paddingInlineStart: 36,
+                      paddingInlineEnd: 16,
                       borderBottom: (expanded || isLast) ? 'none' : '1px solid var(--fill-04)',
                       background: isSelected ? 'var(--accent-100)' : undefined,
                     }}
@@ -1243,6 +1244,28 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         setExpandedId(expanded ? null : tx.id)
                       }
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        if (isMultiSelectMode) {
+                          toggleSelection(tx.id)
+                        } else {
+                          setExpandedId(expanded ? null : tx.id)
+                        }
+                      } else if (e.key === 'ArrowDown') {
+                        e.preventDefault()
+                        const next = e.currentTarget.parentElement?.nextElementSibling?.querySelector<HTMLElement>('[role="button"]')
+                        next?.focus()
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault()
+                        const prev = e.currentTarget.parentElement?.previousElementSibling?.querySelector<HTMLElement>('[role="button"]')
+                        prev?.focus()
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${tx.note || getLabel(tx.category)}: ${isIncome ? '+' : '-'}${formatMoney(tx.amount)}${expanded ? ', expanded' : ''}`}
+                    aria-expanded={expanded}
                     whileTap={{ scale: 0.98 }}
                     transition={springs.snappy}
                   >
@@ -1404,7 +1427,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         if (isForeign) {
                           const formatted = formatTransactionAmount(tx, homeCurrency)
                           return (
-                            <div style={{ textAlign: 'right' }}>
+                            <div style={{ textAlign: "end" }}>
                               <span style={{
                                 fontFamily: FONT_FAMILY,
                                 fontSize: typography.body.fontSize,
@@ -1590,7 +1613,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             aria-label="Bulk actions"
             role="toolbar"
           >
-            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', marginRight: 4 }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', marginInlineEnd: 4 }}>
               {selectedIds.size}
             </span>
 
@@ -1763,7 +1786,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                       border: '1px solid var(--fill-08)',
                       borderRadius: radius.control,
                       cursor: 'pointer',
-                      textAlign: 'left',
+                      textAlign: "start",
                     }}
                   >
                     {cat.emoji} {cat.label}

@@ -137,7 +137,7 @@ export function RegionSettings() {
                       border: "none",
                       borderRadius: radius.control,
                       cursor: "pointer",
-                      textAlign: "left",
+                      textAlign: "start",
                       fontFamily: FONT_FAMILY,
                     }}
                     aria-label={`Set region to ${r.name}`}

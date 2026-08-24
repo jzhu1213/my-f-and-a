@@ -164,8 +164,8 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
                 onClick={onClose}
                 aria-label="Close keyboard shortcuts help"
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 44,
+                  height: 44,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

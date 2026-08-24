@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { fills } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
 import { BUDGET_CATEGORIES } from "@/types"
@@ -79,7 +80,7 @@ const amountStyle: React.CSSProperties = {
   color: "var(--text)",
   fontFamily: FONT_FAMILY,
   fontVariantNumeric: "tabular-nums",
-  marginRight: spacing.xs,
+  marginInlineEnd: spacing.xs,
 }
 
 const actionsStyle: React.CSSProperties = {
@@ -197,7 +198,7 @@ export function SuggestedTransactionRow({
           }}
           role="listitem"
           aria-roledescription="suggested transaction"
-          aria-label={`Suggested: ${entry.label}, $${entry.amount.toFixed(2)}. Confirm, dismiss, or edit.`}
+          aria-label={`Suggested: ${entry.label}, ${formatMoney(entry.amount)}. Confirm, dismiss, or edit.`}
         >
           {/* Category emoji */}
           <span style={{ fontSize: typography.subhead.fontSize, flexShrink: 0 }} aria-hidden>

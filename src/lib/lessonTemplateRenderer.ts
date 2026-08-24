@@ -16,6 +16,7 @@
 import type { Transaction, TransactionCategory, Budget, Goal } from '@/types'
 import type { Debt, SavingsAccount } from '@/types/folio'
 import type { ContextualLesson } from '@/lib/contextualLessonContent'
+import { formatCurrency as formatCurrencyCentral } from '@/lib/currencyUtils'
 
 // ============================================================================
 // Types
@@ -279,14 +280,13 @@ function formatCurrency(amount: number): string {
   if (amount === 0) return '$0'
   // For amounts under $1, show cents
   if (amount < 1 && amount > 0) {
-    return `$${amount.toFixed(2)}`
+    return formatCurrencyCentral(amount, 'USD', { fractionDigits: 2 })
   }
   // For amounts under $10, show one decimal
   if (amount < 10) {
-    const formatted = amount.toFixed(2)
-    // Remove trailing zero cents
-    return `$${formatted.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}`
+    const digits = amount % 1 === 0 ? 0 : (Math.round(amount * 10) % 10 === 0 ? 1 : 2)
+    return formatCurrencyCentral(amount, 'USD', { fractionDigits: digits })
   }
   // For larger amounts, round to nearest dollar
-  return `$${Math.round(amount).toLocaleString('en-US')}`
+  return formatCurrencyCentral(Math.round(amount), 'USD', { fractionDigits: 0 })
 }

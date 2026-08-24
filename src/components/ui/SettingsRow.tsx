@@ -49,7 +49,7 @@ export function SettingsRow({
         ...style,
       }}
     >
-      <div style={{ flex: 1, marginRight: action ? 12 : 0 }}>
+      <div style={{ flex: 1, marginInlineEnd: action ? 12 : 0 }}>
         {typeof label === "string" ? (
           <span
             style={{

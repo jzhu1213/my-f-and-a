@@ -362,7 +362,7 @@ export function LessonsScreen({
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                textAlign: 'left',
+                textAlign: "start",
               }}
             >
               <span style={{ fontSize: typography.headline.fontSize, flexShrink: 0 }}>{mostRecentLesson.emoji}</span>
@@ -388,7 +388,7 @@ export function LessonsScreen({
       <div style={{ marginTop: spacing.xl }}>
         <p style={{ ...sectionHeader, marginBottom: HORIZONTAL_PADDING }}>Learning path</p>
 
-        <div style={{ position: 'relative', paddingLeft: 28 }}>
+        <div style={{ position: 'relative', paddingInlineStart: 28 }}>
           {/* Vertical connector line */}
           <div style={{
             position: 'absolute',
@@ -450,7 +450,7 @@ export function LessonsScreen({
                         <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                           {group.label}
                         </span>
-                        <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginLeft: 'auto' }}>
+                        <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginInlineStart:  'auto' }}>
                           {group.unlockedCount}/{group.totalCount}
                         </span>
                       </div>
@@ -495,7 +495,7 @@ export function LessonsScreen({
                               border: 'none',
                               borderTop: '1px solid var(--fill-06)',
                               cursor: isUnlocked ? 'pointer' : 'default',
-                              textAlign: 'left',
+                              textAlign: "start",
                               opacity: isUnlocked ? 1 : 0.5,
                             }}
                           >
@@ -595,7 +595,7 @@ export function LessonsScreen({
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  textAlign: 'left',
+                  textAlign: "start",
                 }}
               >
                 <span style={{ fontSize: typography.subhead.fontSize }}>{tool.emoji}</span>
@@ -627,7 +627,7 @@ export function LessonsScreen({
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                textAlign: 'left',
+                textAlign: "start",
               }}
             >
               <span style={{ fontSize: typography.subhead.fontSize }}>📊</span>

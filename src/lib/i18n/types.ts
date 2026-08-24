@@ -65,6 +65,9 @@ export type PartialTranslationResource = Partial<Record<TranslationKey, string>>
  * Values interpolated into a translated string. Placeholders in the copy use
  * `{name}` syntax, e.g. "Nice! You've got {amount} left today." Values are
  * coerced to strings at substitution time.
+ *
+ * For plural support, use `{count, plural, one {# item} other {# items}}`
+ * syntax in translation strings. The `count` value must be a number.
  */
 export type TranslationValues = Record<string, string | number>
 

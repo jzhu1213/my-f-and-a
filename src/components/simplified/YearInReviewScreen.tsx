@@ -30,6 +30,7 @@ import {
 } from "@/styles/shared"
 import { computeYearInReview } from "@/lib/yearInReview"
 import { renderYearInReviewImage } from "@/lib/yearInReviewImage"
+import { formatCurrency } from "@/lib/currencyUtils"
 import type { Transaction, Budget } from "@/types"
 import type { YearInReviewData } from "@/types/folio"
 
@@ -53,7 +54,7 @@ export interface YearInReviewScreenProps {
 
 /** Whole-dollar display string with tabular alignment in mind. */
 function money(amount: number): string {
-  return `$${Math.round(amount).toLocaleString("en-US")}`
+  return formatCurrency(Math.round(amount), 'USD', { fractionDigits: 0 })
 }
 
 // A single stat row inside the recap card.

@@ -331,8 +331,8 @@ export const HistoryScreen = memo(function HistoryScreen({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               borderRadius: radius.control,
               border: "1px solid var(--border)",
               background: "var(--surface)",
@@ -341,7 +341,7 @@ export const HistoryScreen = memo(function HistoryScreen({
               flexShrink: 0,
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
@@ -479,6 +479,8 @@ export const HistoryScreen = memo(function HistoryScreen({
         >
           {isLoadingMore && (
             <div
+              aria-label="Loading more transactions"
+              role="status"
               style={{
                 width: 24,
                 height: 24,

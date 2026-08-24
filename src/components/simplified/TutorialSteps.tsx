@@ -507,7 +507,7 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
           display: 'flex',
           alignItems: 'center',
           gap: 14,
-          textAlign: 'left',
+          textAlign: "start",
         }}
       >
         <span style={{ fontSize: 28 }}>🍕</span>
@@ -1935,7 +1935,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
               fontSize: typography.subhead.fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--sub)',
-              marginRight: 4,
+              marginInlineEnd: 4,
             }}
           >
             $
@@ -2105,7 +2105,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
             fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
-            textAlign: 'left',
+            textAlign: "start",
           }}
         >
           Category
@@ -2153,7 +2153,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
             fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
-            textAlign: 'left',
+            textAlign: "start",
           }}
         >
           Amount
@@ -2173,7 +2173,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
               fontSize: typography.subhead.fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--sub)',
-              marginRight: 4,
+              marginInlineEnd: 4,
             }}
           >
             $
@@ -2210,7 +2210,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
             fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
-            textAlign: 'left',
+            textAlign: "start",
           }}
         >
           When?
@@ -2257,7 +2257,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
             fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
-            textAlign: 'left',
+            textAlign: "start",
           }}
         >
           Note (optional)
@@ -3192,7 +3192,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
       {!isIrregular && (
         <div className="w-full mb-4">
           <label
-            style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
+            style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: "start" }}
           >
             Your most recent payday
           </label>
@@ -3228,7 +3228,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
       {/* Expected paycheck amount */}
       <div className="w-full">
         <label
-          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
+          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: "start" }}
         >
           {isIrregular ? 'Typical paycheck (rough estimate)' : 'Expected paycheck amount'}
         </label>
@@ -3742,7 +3742,7 @@ function SimpleSplitStep({
       {/* Paycheck amount input */}
       <div className="w-full mb-5">
         <label
-          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
+          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: "start" }}
         >
           Paycheck amount
         </label>
@@ -3771,7 +3771,7 @@ function SimpleSplitStep({
       {/* Cadence assumption (task 217.2) */}
       <div className="w-full mb-5">
         <label
-          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
+          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: "start" }}
         >
           How often do you get paid?
         </label>

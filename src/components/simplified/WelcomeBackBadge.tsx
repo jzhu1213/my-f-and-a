@@ -126,7 +126,7 @@ export function WelcomeBackBadge({ allowanceAmount, onCatchMeUp }: WelcomeBackBa
             background: "var(--accent-100)",
             border: "1px solid var(--accent-200)",
             borderRadius: radius.control,
-            textAlign: "left",
+            textAlign: "start",
           }}
         >
           <span style={{ fontSize: typography.subhead.fontSize, flexShrink: 0 }} aria-hidden="true">

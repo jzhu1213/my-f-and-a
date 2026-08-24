@@ -10,6 +10,7 @@ import {
 import type { SavingsAccount } from "@/types/folio"
 import { HORIZONTAL_PADDING } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
+import { formatCurrency as formatCurrencyCentral } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -30,11 +31,11 @@ function formatCurrency(amount: number): string {
   if (amount >= 10_000) {
     return `$${Math.round(amount / 1000)}k`
   }
-  return `$${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+  return formatCurrencyCentral(amount, 'USD', { fractionDigits: 0 })
 }
 
 function formatFull(amount: number): string {
-  return `$${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+  return formatCurrencyCentral(amount, 'USD', { fractionDigits: 0 })
 }
 
 // ============================================================================

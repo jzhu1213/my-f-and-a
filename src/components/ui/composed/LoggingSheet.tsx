@@ -506,7 +506,7 @@ const errorStyle: React.CSSProperties = {
   lineHeight: typography.caption.lineHeight,
   color: colorRamp.error[500],
   margin: 0,
-  paddingLeft: spacingScale["4"],
+  paddingInlineStart: spacingScale["4"],
 }
 
 /**

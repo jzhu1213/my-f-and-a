@@ -546,7 +546,7 @@ function ImportRow({
             border: 'none',
             padding: 0,
             cursor: 'pointer',
-            textAlign: 'left',
+            textAlign: "start",
           }}
           aria-expanded={expanded}
           aria-label={`${candidate.description}, tap to ${expanded ? 'collapse' : 'expand'}`}
@@ -567,7 +567,7 @@ function ImportRow({
               <p style={{ ...typography.caption, color: 'var(--muted)', margin: '2px 0 0' }}>
                 {candidate.date} · {candidate.category}
                 {candidate.isDuplicate && (
-                  <span style={{ color: 'var(--warning)', marginLeft: 6 }}>
+                  <span style={{ color: 'var(--warning)', marginInlineStart: 6 }}>
                     ⚠ possible duplicate
                   </span>
                 )}
@@ -579,7 +579,7 @@ function ImportRow({
               fontVariantNumeric: 'tabular-nums',
               color: candidate.type === 'income' ? 'var(--success, #4ade80)' : 'var(--text)',
               flexShrink: 0,
-              marginLeft: spacing.xs,
+              marginInlineStart: spacing.xs,
             }}>
               {candidate.type === 'income' ? '+' : '−'}${candidate.amount.toFixed(2)}
             </span>
@@ -597,7 +597,7 @@ function ImportRow({
             transition={{ duration: 0.2 }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ marginTop: 10, paddingLeft: 28, display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
+            <div style={{ marginTop: 10, paddingInlineStart: 28, display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
               {/* Category select */}
               <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
                 <label

@@ -366,7 +366,7 @@ export function ConfidenceScreen({ onBack }: ConfidenceScreenProps) {
             <p style={{ ...typography.subhead, color: TIER_COLORS[lastScore.tier], margin: 0 }}>
               {lastScore.tier}
             </p>
-            <p style={{ ...typography["body-sm"], color: textColors.sub, marginTop: spacing.xs, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>
+            <p style={{ ...typography["body-sm"], color: textColors.sub, marginTop: spacing.xs, maxWidth: 280, marginInlineStart:  "auto", marginInlineEnd:  "auto" }}>
               {TIER_COPY[lastScore.tier]}
             </p>
           </div>

@@ -8,6 +8,7 @@ import {
   AppShell,
 } from '@/components'
 import { DepthSurfaceTransition } from '@/components/ui/DepthSurfaceTransition'
+import { FocusTrapContainer } from '@/components/ui/FocusTrapContainer'
 import { DepthSurfaceLoadGuard } from '@/components/ui/DepthSurfaceLoadGuard'
 import type { AppNavKey } from '@/components/ui/AppShell'
 import { HomeScreen } from '@/components/simplified/HomeScreen'
@@ -234,6 +235,7 @@ import type { TransactionRepeat } from '@/lib/transactionUtils'
 import { applyRoundUp, getRoundUpTargetGoal } from '@/lib/roundUpSavings'
 import { createRefundTransaction } from '@/lib/refundUtils'
 import { saveTagsForTransaction } from '@/lib/tagUtils'
+import { formatMoney } from '@/lib/localeFormat'
 import { useUndo } from '@/hooks/useUndo'
 import { useRecurringBills } from '@/hooks/useRecurringBills'
 import { useSuggestedEntries } from '@/hooks/useSuggestedEntries'
@@ -1308,7 +1310,7 @@ export default function FolioApp() {
             linkedTransactionId: result.id,
           })
           if (iouResult) {
-            showToast(`IOU tracked — you owe ${personName} $${data.amount.toFixed(2)}`, 'success')
+            showToast(`IOU tracked — you owe ${personName} ${formatMoney(data.amount)}`, 'success')
           }
         }
       }
@@ -1341,7 +1343,7 @@ export default function FolioApp() {
           linkedTransactionId: result.id,
         })
         if (iouResult) {
-          showToast(`${data.splitWith} owes you $${data.splitOwedAmount.toFixed(2)}`, 'success')
+          showToast(`${data.splitWith} owes you ${formatMoney(data.splitOwedAmount)}`, 'success')
         }
       }
 
@@ -1353,7 +1355,7 @@ export default function FolioApp() {
           const goalResult = await contributeToGoal(targetGoalId, savingsAmount)
           if (goalResult) {
             const goalName = goals.find(g => g.id === targetGoalId)?.name ?? 'goal'
-            showToast(`$${savingsAmount.toFixed(2)} rounded up → ${goalName}`, 'success')
+            showToast(`${formatMoney(savingsAmount)} rounded up → ${goalName}`, 'success')
           }
         }
       }
@@ -1395,7 +1397,7 @@ export default function FolioApp() {
     overlay.openSheet('expense', { defaultCategory: undefined, splitPreEnabled: false })
     if (partial?.amount || partial?.note) {
       const bits = [
-        partial.amount ? `$${partial.amount}` : null,
+        partial.amount ? formatMoney(partial.amount) : null,
         partial.note || null,
       ].filter(Boolean).join(' · ')
       setPerTxAlertMessage(`From your capture: ${bits}`)
@@ -1775,7 +1777,7 @@ export default function FolioApp() {
 
   const handleContributeToGoal = async (goalId: string, amount: number) => {
     const result = await contributeToGoal(goalId, amount)
-    if (result) showToast(`$${amount} added`)
+    if (result) showToast(`${formatMoney(amount)} added`)
     else showToast('Failed to update goal', 'error')
     return result
   }
@@ -2255,21 +2257,21 @@ export default function FolioApp() {
   // ── Budget Settings (full-screen overlay) ─────────────────────
   if (overlay.activeOverlay === 'budgetSettings') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Budget Settings" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <BudgetSettings
           budgets={budgets}
           onUpdateBudget={handleUpdateBudget}
           onBack={() => overlay.closeOverlay()}
           paySchedule={paySchedule}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
   // ── Goals (full-screen overlay) ───────────────────────────────
   if (flags.goals && overlay.activeOverlay === 'goals') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Goals" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <GoalsScreen
           goals={goals}
           monthlyIncome={monthlyIncome}
@@ -2282,14 +2284,14 @@ export default function FolioApp() {
           userId={user?.id ?? null}
           onGoalUpdated={refresh}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
   // ── Sinking Funds (full-screen overlay) ────────────────────────
   if (flags.sinkingFunds && overlay.activeOverlay === 'sinkingFunds') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Sinking Funds" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <SinkingFundsScreen
           funds={sinkingFunds}
           onAddFund={async (data) => { await addSinkingFund(data) }}
@@ -2301,14 +2303,14 @@ export default function FolioApp() {
           onAddDisbursement={(data) => addDisbursement(data)}
           onRemoveDisbursement={(id) => removeDisbursement(id)}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
   // ── Subscription Audit (full-screen overlay) ───────────────────
   if (flags.subscriptionAudit && overlay.activeOverlay === 'subscriptionAudit') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Subscription Audit" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <SubscriptionAuditScreen
           subscriptions={detectedSubscriptions}
           onDismiss={handleDismissSubscription}
@@ -2320,7 +2322,7 @@ export default function FolioApp() {
           cancelledSubscriptions={cancelledSubscriptions}
           onCancelSubscription={handleCancelSubscription}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
@@ -2328,12 +2330,12 @@ export default function FolioApp() {
   if (overlay.activeOverlay === 'cancelNegotiate') {
     const cancelPayload = overlay.getOverlayPayload('cancelNegotiate')
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Cancel or Negotiate Subscription" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <CancelNegotiateHelper
           subscription={cancelPayload?.target ?? null}
           onClose={() => overlay.closeOverlay()}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
@@ -2389,7 +2391,7 @@ export default function FolioApp() {
   // ── Funding Sources (full-screen overlay) ────────────────────────
   if (overlay.activeOverlay === 'fundingSources') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Funding Sources" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <FundingSourcesScreen
           fundingSources={fundingSources}
           onAdd={addFundingSource}
@@ -2397,45 +2399,45 @@ export default function FolioApp() {
           onRemove={deleteFundingSource}
           onBack={() => overlay.closeOverlay()}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
   // ── Linked Accounts (optional bank/card linking — full-screen overlay) ──
   if (overlay.activeOverlay === 'linkedAccounts') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Linked Accounts" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <LinkedAccountsScreen
           onBack={() => overlay.closeOverlay()}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
   // ── Term / Month in Review (full-screen overlay, task 184.1) ───
   if (overlay.activeOverlay === 'termReview') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Term Review" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <TermReviewScreen
           transactions={transactions}
           budgets={budgets}
           termSchedule={termSchedule}
           onBack={() => overlay.closeOverlay()}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
   // ── Year in Review (full-screen overlay, task 183.1) ───────────
   if (overlay.activeOverlay === 'yearInReview') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Year in Review" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <YearInReviewScreen
           transactions={transactions}
           budgets={budgets}
           onBack={() => overlay.closeOverlay()}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
@@ -2444,19 +2446,19 @@ export default function FolioApp() {
   // Settings; never surfaced on the home screen.
   if (overlay.activeOverlay === 'peerContext') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Peer Context" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <PeerContextScreen
           transactions={transactions}
           onBack={() => overlay.closeOverlay()}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
   // ── Exportable Reports (full-screen overlay, task 185.1) ───────
   if (overlay.activeOverlay === 'reports') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Reports" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <ReportsScreen
           transactions={transactions}
           onBack={() => overlay.closeOverlay()}
@@ -2464,14 +2466,14 @@ export default function FolioApp() {
           goals={goals}
           budgets={budgets}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
   // ── Privacy & Data dashboard (full-screen overlay, task 191.1) ──
   if (overlay.activeOverlay === 'privacyData') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Privacy and Data" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <PrivacyDataScreen
           userEmail={user?.email}
           categories={privacyCategories}
@@ -2482,7 +2484,7 @@ export default function FolioApp() {
           onDeleteEverything={handleDeleteEverything}
           onNotify={showToast}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
@@ -2688,7 +2690,7 @@ export default function FolioApp() {
   // ── Debt Tracking (full-screen overlay) ────────────────────────
   if (flags.debtTracking && overlay.activeOverlay === 'debt') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Debt Tracking" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <DebtScreen
           debts={debts}
           onAddDebt={handleAddDebt}
@@ -2696,19 +2698,19 @@ export default function FolioApp() {
           onDeleteDebt={handleDeleteDebt}
           onClose={() => overlay.closeOverlay()}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
   // ── IOUs & Reimbursements (full-screen overlay) ────────────────
   if (flags.reimbursements && overlay.activeOverlay === 'reimbursements' && user?.id) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="IOUs and Reimbursements" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <ReimbursementLedger
           userId={user.id}
           onBack={() => overlay.closeOverlay()}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 
@@ -2716,7 +2718,7 @@ export default function FolioApp() {
   if (flags.lessons && overlay.activeOverlay === 'learn') {
     const learnPayload = overlay.getOverlayPayload('learn')
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
+      <FocusTrapContainer aria-label="Learn" className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
         <div style={{ padding: '0 16px' }}>
           <button
             onClick={() => overlay.closeOverlay()}
@@ -2745,7 +2747,7 @@ export default function FolioApp() {
           debts={debts}
           dailyBudget={allowance?.amount ?? 0}
         />
-      </div>
+      </FocusTrapContainer>
     )
   }
 

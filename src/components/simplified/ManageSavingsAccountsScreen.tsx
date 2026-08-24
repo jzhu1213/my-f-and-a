@@ -252,12 +252,12 @@ export function ManageSavingsAccountsScreen({
             cursor: "pointer",
             fontSize: typography.body.fontSize,
             color: isBalanceUpdateOpen ? "var(--text)" : "var(--sub)",
-            marginLeft: 4,
+            marginInlineStart: 4,
           }}
           aria-label={`Update balance for ${account.name}`}
           aria-expanded={isBalanceUpdateOpen}
         >
-          💰
+          <span aria-hidden="true">💰</span>
         </motion.button>
         {/* History toggle — expands the per-account contribution history */}
         <motion.button
@@ -277,7 +277,7 @@ export function ManageSavingsAccountsScreen({
             cursor: "pointer",
             fontSize: typography.body.fontSize,
             color: isHistoryOpen ? "var(--text)" : "var(--sub)",
-            marginLeft: 4,
+            marginInlineStart: 4,
           }}
           aria-label={`${isHistoryOpen ? "Hide" : "Show"} contribution history for ${account.name}`}
           aria-expanded={isHistoryOpen}
@@ -285,7 +285,7 @@ export function ManageSavingsAccountsScreen({
           🕘
         </motion.button>
         {isConfirmingDelete ? (
-          <div style={{ display: "flex", gap: 4, marginLeft: spacing.xs }}>
+          <div style={{ display: "flex", gap: 4, marginInlineStart: spacing.xs }}>
             <motion.button
               onClick={confirmDelete}
               whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
@@ -334,7 +334,7 @@ export function ManageSavingsAccountsScreen({
               cursor: "pointer",
               fontSize: typography.body.fontSize,
               color: "var(--error)",
-              marginLeft: spacing.xs,
+              marginInlineStart: spacing.xs,
             }}
             aria-label={`Delete ${account.name}`}
           >

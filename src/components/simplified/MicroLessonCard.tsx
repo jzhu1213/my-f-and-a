@@ -99,6 +99,7 @@ export function MicroLessonCard({ lesson, onLearnMore, onDismiss }: MicroLessonC
                 color: "var(--muted)",
                 fontFamily: FONT_FAMILY,
                 padding: "4px 10px",
+                minHeight: 44,
               }}
               aria-label={`Dismiss tip: ${lesson.title}`}
             >

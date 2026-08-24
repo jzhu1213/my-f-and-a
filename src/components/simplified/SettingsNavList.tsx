@@ -44,8 +44,8 @@ export function SettingsNavList({ rows, getBadge, onRowPress, rowRefs }: Setting
           aria-label={`Open ${row.label} settings`}
           style={{
             minHeight: '52px',
-            paddingLeft: spacingScale["20"],
-            paddingRight: spacingScale["16"],
+            paddingInlineStart: spacingScale["20"],
+            paddingInlineEnd: spacingScale["16"],
             background: 'transparent',
             border: 'none',
             borderRadius: 0,
@@ -66,8 +66,8 @@ export function SettingsNavList({ rows, getBadge, onRowPress, rowRefs }: Setting
           </span>
 
           {/* Label */}
-          <span style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-            <span style={{ ...typography.body, color: textColors.text }}>
+          <span style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
+            <span style={{ ...typography.body, color: textColors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {row.label}
             </span>
           </span>

@@ -15,6 +15,7 @@ import {
 } from "@/lib/autoEarmarkSavings"
 import type { SweepFrequency } from "@/lib/autoEarmarkSavings"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { sectionHeader, shadows } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
 import type { Transaction, Goal, Budget } from "@/types"
@@ -155,7 +156,7 @@ export function AutoSaveSetting({
 
   // Format last swept date for display
   const lastSweptLabel = lastSweptInfo
-    ? `Last swept: $${lastSweptInfo.amount.toFixed(2)} on ${formatShortDate(lastSweptInfo.date)}`
+    ? `Last swept: ${formatMoney(lastSweptInfo.amount)} on ${formatShortDate(lastSweptInfo.date)}`
     : null
 
   // Suppress unused variable warning — available for future manual-sweep button

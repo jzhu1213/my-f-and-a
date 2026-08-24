@@ -33,6 +33,7 @@ import { getPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, STAGGER_STEP, layoutTransition, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import type { SpendingMode } from "@/lib/spendingModes"
 import {
   CONTENT_MAX_WIDTH,
@@ -67,6 +68,7 @@ import { getComingUpEnabled } from "@/lib/comingUpPreferences"
 import { computeStreakData, markZeroSpendDay, getStreakData, saveStreakData, getGraceDayMessage } from "@/lib/streaks"
 import { isStreakCounterActive } from "@/lib/gamificationPreferences"
 import { StreakDetailView } from "./StreakDetailView"
+import { useRovingTabindex } from "@/hooks/useRovingTabindex"
 import { SetupChecklistCard, ProgressiveChecklistCard } from "./SetupChecklistCard"
 import type { ChecklistStep } from '@/lib/setupChecklist'
 import { HeroContextRow } from "./HeroContextRow"
@@ -438,6 +440,20 @@ export const HomeScreen = memo(function HomeScreen({
     // Also call parent dismiss if available
     onDismissChecklist?.()
   }, [onDismissChecklist])
+
+  // Escape key dismissal for checklist sheet (task 511.3)
+  useEffect(() => {
+    if (!showChecklistSheet) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        handleDismissChecklistSheet()
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [showChecklistSheet, handleDismissChecklistSheet])
+
   const { prefersReducedMotion, homeContainer, homeSection } = useAppReducedMotion()
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -532,6 +548,13 @@ export const HomeScreen = memo(function HomeScreen({
       return b.weeklySpent - a.weeklySpent
     })
   }, [budgets, transactions, currentMonth])
+
+  // Arrow key navigation for category budget grid (task 511.4)
+  const categoryGridRoving = useRovingTabindex({
+    itemCount: Math.min(categoryRows.length, 4),
+    orientation: "both",
+    columns: 2,
+  })
 
   // Memoize recent repeats for "Log Again" section
   const repeats = useMemo(
@@ -808,6 +831,27 @@ export const HomeScreen = memo(function HomeScreen({
         whiteSpace: "nowrap",
         borderWidth: 0,
       }}>{t('nav.home')}</h1>
+      {/* Live region for screen readers: announces allowance changes after logging (Req 31.1) */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          borderWidth: 0,
+        }}
+      >
+        {allowance && !isLoading
+          ? `Daily allowance: $${Math.round(allowance.amount)}. Spent today: $${Math.round(allowance.spentToday)}.`
+          : ""}
+      </div>
       <motion.div
         className="home-screen__content"
         variants={homeContainer}
@@ -997,7 +1041,7 @@ export const HomeScreen = memo(function HomeScreen({
                   fontFamily: FONT_FAMILY,
                 }}
               >
-                syncing…
+                {t('home.syncing')}
               </span>
             </div>
           )}
@@ -1048,7 +1092,7 @@ export const HomeScreen = memo(function HomeScreen({
             comingUpItems={comingUpItems}
             overBudgetMessage={
               !isLoading && spendingMode !== 'tracker' && allowance?.status === 'over'
-                ? "A little over — tomorrow resets"
+                ? t('home.overBudgetShort')
                 : undefined
             }
             noTransactionsToday={!hasTodayTransactions}
@@ -1314,8 +1358,8 @@ export const HomeScreen = memo(function HomeScreen({
               </GlassCard>
             </motion.div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacing.sm }}>
-              {categoryRows.slice(0, 4).map((row) => {
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacing.sm }} role="grid" aria-label="Category budgets">
+              {categoryRows.slice(0, 4).map((row, gridIdx) => {
                 const barColor = row.overWeekly
                   ? "var(--error)"
                   : row.nearLimit
@@ -1328,11 +1372,16 @@ export const HomeScreen = memo(function HomeScreen({
                     : `${row.label}: $${Math.max(0, Math.round(row.weeklyLeft))} left this week`
                   : `${row.label}: no limit set${row.weeklySpent > 0 ? `, $${Math.round(row.weeklySpent)} spent` : ""}`
 
+                const rovingProps = categoryGridRoving.getItemProps(gridIdx)
+
                 return (
                   <motion.button
                     key={row.category}
+                    ref={rovingProps.ref as React.Ref<HTMLButtonElement>}
                     type="button"
                     onClick={() => setSelectedRow(row)}
+                    onKeyDown={rovingProps.onKeyDown as unknown as React.KeyboardEventHandler<HTMLButtonElement>}
+                    tabIndex={rovingProps.tabIndex}
                     whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
                     transition={springs.bouncy}
                     aria-label={budgetLabel}
@@ -1381,6 +1430,11 @@ export const HomeScreen = memo(function HomeScreen({
                               ...progressTrack,
                               marginTop: 2,
                             }}
+                            role="progressbar"
+                            aria-valuenow={Math.min(row.weekPct, 100)}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-label={`${row.label} budget usage: ${Math.round(Math.min(row.weekPct, 100))}%`}
                           >
                             <motion.div
                               animate={{ scaleX: Math.min(row.weekPct, 100) / 100 }}
@@ -1403,8 +1457,8 @@ export const HomeScreen = memo(function HomeScreen({
                             }}
                           >
                             {row.overWeekly
-                              ? `$${Math.abs(Math.round(row.weeklyLeft))} over this week`
-                              : `$${Math.max(0, Math.round(row.weeklyLeft))} left`}
+                              ? t('home.overThisWeek', { amount: Math.abs(Math.round(row.weeklyLeft)) })
+                              : t('home.leftThisWeek', { amount: Math.max(0, Math.round(row.weeklyLeft)) })}
                           </span>
                         </>
                       ) : (
@@ -1418,7 +1472,7 @@ export const HomeScreen = memo(function HomeScreen({
                               marginTop: 2,
                             }}
                           >
-                            no limit
+                            {t('home.noLimit')}
                           </span>
                           {row.weeklySpent > 0 && (
                             <span
@@ -1428,7 +1482,7 @@ export const HomeScreen = memo(function HomeScreen({
                                 fontFamily: FONT_FAMILY,
                               }}
                             >
-                              ${Math.round(row.weeklySpent)} spent
+                              {t('home.spentAmount', { amount: Math.round(row.weeklySpent) })}
                             </span>
                           )}
                         </>
@@ -1585,7 +1639,7 @@ export const HomeScreen = memo(function HomeScreen({
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          ${dayExpenseTotal.toFixed(2)} spent
+                          {t('home.daySpent', { amount: dayExpenseTotal.toFixed(2) })}
                         </p>
                       )}
                     </div>
@@ -1594,7 +1648,7 @@ export const HomeScreen = memo(function HomeScreen({
                     <div
                       style={{
                         position: "relative",
-                        paddingLeft: spacing.md,
+                        paddingInlineStart: spacing.md,
                       }}
                     >
                       {/* Vertical timeline accent line */}
@@ -1602,7 +1656,7 @@ export const HomeScreen = memo(function HomeScreen({
                         aria-hidden
                         style={{
                           position: "absolute",
-                          left: 28,
+                          insetInlineStart: 28,
                           top: 8,
                           bottom: 8,
                           width: 1.5,
@@ -1624,7 +1678,7 @@ export const HomeScreen = memo(function HomeScreen({
 
                         // Build descriptive aria-label: category, amount, note, date + actions (Task 449.3)
                         const categoryLabel = catInfo?.label || tx.category
-                        const amountLabel = `${tx.type === "income" ? "+" : ""}$${tx.amount.toFixed(2)}`
+                        const amountLabel = `${tx.type === "income" ? "+" : ""}${formatMoney(tx.amount)}`
                         const noteLabel = tx.note ? `, ${tx.note}` : ""
                         const dateLabel = tx.date
                         const actionsLabel = onEditTransaction
@@ -1655,7 +1709,8 @@ export const HomeScreen = memo(function HomeScreen({
                                   justifyContent: "space-between",
                                   width: "100%",
                                   padding: "10px 16px 10px 20px",
-                                  textAlign: "left",
+                                  minHeight: 44,
+                                  textAlign: "start",
                                   position: "relative",
                                 }}
                               >
@@ -1698,10 +1753,10 @@ export const HomeScreen = memo(function HomeScreen({
                                       style={{
                                         fontSize: typography.caption.fontSize,
                                         opacity: 0.6,
-                                        marginLeft: 2,
+                                        marginInlineStart: 2,
                                         flexShrink: 0,
                                       }}
-                                      aria-label="Split expense"
+                                      aria-hidden="true"
                                       title="Split"
                                     >
                                       ✂️

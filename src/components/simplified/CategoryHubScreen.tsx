@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
@@ -222,6 +222,18 @@ export function CategoryHubScreen({
   const [newEmoji, setNewEmoji] = useState("ðŸ“¦")
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
+  // Escape key dismissal (task 511.3)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        onClose()
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [onClose])
+
   // Rebuild when custom categories change externally
   const itemIds = useMemo(() => items.map(i => i.id).join(","), [items])
 
@@ -370,7 +382,7 @@ export function CategoryHubScreen({
             color: "var(--text)",
             cursor: "pointer",
             padding: "4px 8px",
-            marginRight: spacing.sm,
+            marginInlineEnd: spacing.sm,
           }}
           aria-label="Go back"
         >
@@ -574,13 +586,13 @@ export function CategoryHubScreen({
                           color: "var(--text)",
                           cursor: "pointer",
                           fontFamily: FONT_FAMILY,
-                          textAlign: "left",
+                          textAlign: "start",
                         }}
                         aria-label={`Rename ${item.label}`}
                       >
                         {item.label}
                         {item.isCustom && (
-                          <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginLeft: 6 }}>custom</span>
+                          <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginInlineStart: 6 }}>custom</span>
                         )}
                       </button>
                     )}
@@ -688,7 +700,7 @@ export function CategoryHubScreen({
                     <span style={{ flex: 1, fontSize: typography.body.fontSize, color: "var(--sub)", fontFamily: FONT_FAMILY }}>
                       {item.label}
                       {item.isCustom && (
-                        <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginLeft: 6 }}>custom</span>
+                        <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginInlineStart: 6 }}>custom</span>
                       )}
                     </span>
                     <motion.button

@@ -88,7 +88,7 @@ export function OfflineBanner({ visible }: OfflineBannerProps) {
             <button
               onClick={() => setDismissed(true)}
               className="flex-shrink-0 transition-colors duration-150"
-              style={{ color: 'var(--sub)', padding: '2px' }}
+              style={{ color: 'var(--sub)', padding: '2px', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
               onMouseLeave={e => (e.currentTarget.style.color = 'var(--sub)')}
               aria-label="Dismiss offline notice"

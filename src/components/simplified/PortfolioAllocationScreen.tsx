@@ -20,6 +20,7 @@ import {
   computeGrowthVsContribution,
 } from "@/lib/portfolioAllocationUtils"
 import { getAccountTypeMetadata } from "@/lib/savingsAccountUtils"
+import { formatCurrency } from "@/lib/currencyUtils"
 import type { SavingsAccount } from "@/types/folio"
 
 // ============================================================================
@@ -36,7 +37,7 @@ export interface PortfolioAllocationScreenProps {
 // ============================================================================
 
 function formatDollars(amount: number): string {
-  return "$" + Math.round(Math.abs(amount)).toLocaleString("en-US")
+  return formatCurrency(Math.round(Math.abs(amount)), 'USD', { fractionDigits: 0 })
 }
 
 /** Soft, distinct colors for each allocation bar segment. */
@@ -316,7 +317,7 @@ export function PortfolioAllocationScreen({
                         fontWeight: fontWeights.medium,
                         color: "var(--muted)",
                         minWidth: 40,
-                        textAlign: "right",
+                        textAlign: "end",
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >

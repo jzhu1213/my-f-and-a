@@ -129,7 +129,7 @@ export function MilestoneGallery({
                 marginBottom: spacingScale['12'],
               }}
             >
-              {CATEGORY_EMOJIS[category]} {getCategoryLabel(category)}
+              <span aria-hidden="true">{CATEGORY_EMOJIS[category]}</span> {getCategoryLabel(category)}
             </p>
 
             <div

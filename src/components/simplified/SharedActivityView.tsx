@@ -19,6 +19,7 @@ import { useReducedMotion } from "@/lib/animations"
 import { SectionHeader, Card } from "@/components/ui"
 import { spacingScale } from "@/styles/layout"
 import { typography } from "@/styles/typography"
+import { formatMoney } from '@/lib/localeFormat'
 import { textColors, colorRamp } from "@/styles/colors"
 import { radius } from "@/styles/surfaces"
 import {
@@ -81,7 +82,7 @@ function getEventDescription(notification: SocialNotification): string {
     case "split_added": {
       const amount = payload?.amount as number | undefined
       if (amount) {
-        return `${name} added a split for $${amount.toFixed(2)}`
+        return `${name} added a split for ${formatMoney(amount)}`
       }
       return `${name} added a new split`
     }

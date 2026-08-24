@@ -334,8 +334,8 @@ export function HomeSurface({
         style={{
           width: "100%",
           maxWidth: `${CONTENT_MAX_WIDTH}px`,
-          marginLeft: "auto",
-          marginRight: "auto",
+          marginInlineStart:  "auto",
+          marginInlineEnd:  "auto",
           padding: `0 ${HORIZONTAL_PADDING}px`,
         }}
       >
@@ -352,8 +352,8 @@ export function HomeSurface({
       style={{
         width: "100%",
         maxWidth: `${CONTENT_MAX_WIDTH}px`,
-        marginLeft: "auto",
-        marginRight: "auto",
+        marginInlineStart:  "auto",
+        marginInlineEnd:  "auto",
         padding: `0 ${HORIZONTAL_PADDING}px`,
       }}
     >

@@ -199,6 +199,11 @@ export function ReceiptAttachment({
             fontSize: typography.body.fontSize,
             color: "var(--muted)",
             padding: "4px",
+            minWidth: 44,
+            minHeight: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             lineHeight: 1,
           }}
         >
@@ -252,8 +257,8 @@ export function ReceiptAttachment({
                 background: "var(--fill-10)",
                 border: "none",
                 borderRadius: "50%",
-                width: 36,
-                height: 36,
+                width: 44,
+                height: 44,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

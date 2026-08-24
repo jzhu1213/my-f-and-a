@@ -235,6 +235,7 @@ export function AppShell({
       {!hideTopBar && (
         <motion.header
           className="app-topbar"
+          aria-label="App header"
           style={
             prefersReducedMotion
               ? undefined

@@ -81,7 +81,7 @@ function ToggleRow({ label, description, checked, onChange, ariaLabel }: ToggleR
         padding: `${spacingScale["12"]} 0`,
       }}
     >
-      <div style={{ flex: 1, marginRight: spacingScale["12"] }}>
+      <div style={{ flex: 1, marginInlineEnd: spacingScale["12"] }}>
         <span style={{ ...typography.body, color: textColors.text }}>{label}</span>
         {description && (
           <p style={{ ...typography["body-sm"], color: textColors.sub, margin: 0, marginTop: spacingScale["4"] }}>

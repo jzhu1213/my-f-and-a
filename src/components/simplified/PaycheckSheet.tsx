@@ -289,7 +289,7 @@ export function PaycheckSheet({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm }}>
-                    <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3 }}>💡</span>
+                    <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3 }} aria-hidden="true">💡</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p
                         style={{
@@ -335,6 +335,11 @@ export function PaycheckSheet({
                         fontSize: typography.body.fontSize,
                         cursor: 'pointer',
                         padding: 4,
+                        minWidth: 44,
+                        minHeight: 44,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         lineHeight: 1,
                       }}
                     >
@@ -356,7 +361,7 @@ export function PaycheckSheet({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm }}>
-                    <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3 }}>🎯</span>
+                    <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3 }} aria-hidden="true">🎯</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p
                         style={{
@@ -642,7 +647,7 @@ export function PaycheckSheet({
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        <span style={{ display: 'block', fontSize: typography.body.fontSize, marginBottom: 2 }}>✏️</span>
+                        <span style={{ display: 'block', fontSize: typography.body.fontSize, marginBottom: 2 }} aria-hidden="true">✏️</span>
                         Custom
                       </button>
                     </div>
@@ -699,7 +704,7 @@ export function PaycheckSheet({
                                     fontWeight: fontWeights.medium,
                                     color: 'var(--muted)',
                                     minWidth: 32,
-                                    textAlign: 'right',
+                                    textAlign: "end",
                                   }}
                                 >
                                   {percentages[idx]}%

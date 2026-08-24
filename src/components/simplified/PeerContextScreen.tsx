@@ -27,6 +27,7 @@ import {
   DOCK_PADDING_BOTTOM,
 } from "@/styles/shared"
 import { computePeerContext } from "@/lib/peerContextUtils"
+import { formatCurrency } from "@/lib/currencyUtils"
 import type { Transaction } from "@/types"
 import type { PeerBand, PeerContextData } from "@/types/folio"
 
@@ -50,7 +51,7 @@ export interface PeerContextScreenProps {
 
 /** Whole-dollar display string with tabular alignment in mind. */
 function money(amount: number): string {
-  return `$${Math.round(amount).toLocaleString("en-US")}`
+  return formatCurrency(Math.round(amount), 'USD', { fractionDigits: 0 })
 }
 
 /** A soft, non-judgmental descriptor + accent color for each band. */

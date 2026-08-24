@@ -149,7 +149,7 @@ export function RecurringBillsScreen({
           <p style={sectionHeader}>Monthly Fixed Costs</p>
           <p style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
             ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 3 }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginInlineStart: 3 }}>
               /mo
             </span>
           </p>
@@ -163,7 +163,7 @@ export function RecurringBillsScreen({
         {billHeavyWarning && (
           <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: spacing.md, border: `1px solid ${colorRamp.warning[300]}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
-              <span style={{ fontSize: typography.body.fontSize }}>📅</span>
+              <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">📅</span>
               <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", margin: 0, fontFamily: FONT_FAMILY, lineHeight: 1.4 }}>
                 {billHeavyWarning.message}
               </p>
@@ -252,7 +252,7 @@ export function RecurringBillsScreen({
           </span>
         </div>
         {isConfirmingDelete ? (
-          <div style={{ display: "flex", gap: 4, marginLeft: spacing.xs }}>
+          <div style={{ display: "flex", gap: 4, marginInlineStart: spacing.xs }}>
             <motion.button
               onClick={confirmDelete}
               whileTap={{ scale: 0.95 }}
@@ -300,7 +300,7 @@ export function RecurringBillsScreen({
               cursor: "pointer",
               fontSize: typography.body.fontSize,
               color: "var(--error)",
-              marginLeft: spacing.xs,
+              marginInlineStart: spacing.xs,
             }}
             aria-label={`Delete ${bill.label}`}
           >
@@ -475,7 +475,7 @@ function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCa
               >
                 {startLabel} – {endLabel}
                 {week.isCurrent && (
-                  <span style={{ fontSize: typography.caption.fontSize, color: "var(--accent)", marginLeft: 6 }}>
+                  <span style={{ fontSize: typography.caption.fontSize, color: "var(--accent)", marginInlineStart: 6 }}>
                     this week
                   </span>
                 )}

@@ -252,7 +252,7 @@ export default function SharedGoalViewPage() {
               <span style={{ ...typography.body, color: textColors.text }}>
                 {p.name}
                 {p.id === myParticipantId && (
-                  <span style={{ ...typography.caption, color: colorRamp.accent[500], marginLeft: 6 }}>
+                  <span style={{ ...typography.caption, color: colorRamp.accent[500], marginInlineStart: 6 }}>
                     (you)
                   </span>
                 )}
@@ -339,7 +339,7 @@ export default function SharedGoalViewPage() {
                 style={{
                   ...sharedInput,
                   width: "100%",
-                  paddingLeft: 24,
+                  paddingInlineStart: 24,
                   ...TABULAR_NUMS,
                 }}
                 aria-label="Contribution amount"

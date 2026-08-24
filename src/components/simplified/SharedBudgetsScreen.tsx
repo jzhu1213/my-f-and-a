@@ -469,7 +469,7 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
                           border: isSelected ? `2px solid ${colorRamp.accent[500]}` : "1px solid var(--border, #333)",
                           background: isSelected ? colorRamp.accent[50] : "transparent",
                           cursor: "pointer",
-                          textAlign: "left",
+                          textAlign: "start",
                           fontFamily: "inherit",
                           width: "100%",
                         }}

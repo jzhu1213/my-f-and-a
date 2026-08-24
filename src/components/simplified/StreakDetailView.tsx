@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { colorRamp } from "@/styles/shared"
@@ -203,6 +203,19 @@ export function StreakDetailView({
   graceDayMessage,
 }: StreakDetailViewProps) {
   const { prefersReducedMotion } = useAppReducedMotion()
+
+  // Escape key dismissal (task 511.3)
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        onClose()
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, onClose])
 
   const calendarDays = useMemo(
     () => buildLast30Days(streakData, transactions, new Date()),

@@ -6,6 +6,7 @@ import { springs, timings } from '@/lib/animations'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { Icon } from '@/components/ui/Icon'
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { chipButton, HORIZONTAL_PADDING } from '@/styles/shared'
 import { radius } from '@/styles/surfaces'
 import type { TransactionCategory } from '@/types'
@@ -220,7 +221,7 @@ export function BackfillSheet({
       setLastExpense({
         amount,
         category: selectedCategory,
-        label: `${catItem?.emoji ?? ''} $${amount.toFixed(0)}`,
+        label: `${catItem?.emoji ?? ''} ${formatMoney(amount)}`,
       })
       // Clear for next entry
       setExpenseAmount('')
@@ -735,7 +736,7 @@ export function BackfillSheet({
                 lineHeight: 1.5,
               }}>
                 {expenseCount > 0
-                  ? `You logged ${expenseCount} expense${expenseCount === 1 ? '' : 's'} totaling $${totalSpent.toFixed(0)}.`
+                  ? `You logged ${expenseCount} expense${expenseCount === 1 ? '' : 's'} totaling ${formatMoney(totalSpent)}.`
                   : 'You\'re starting fresh — your daily budget is ready.'}
               </p>
               <p style={{

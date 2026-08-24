@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon"
 import type { DetectedSubscription } from "@/lib/subscriptionDetector"
 import { emojiForCategory } from "@/lib/subscriptionDetector"
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -50,7 +51,7 @@ function serviceName(subscription: DetectedSubscription | null): string {
 /** Formats an amount like "$9.99", or empty string when unknown. */
 function amountText(subscription: DetectedSubscription | null): string {
   if (!subscription || subscription.amount <= 0) return ""
-  return `$${subscription.amount.toFixed(2)}`
+  return formatMoney(subscription.amount)
 }
 
 /**
@@ -237,7 +238,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
               <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0 }}>{name}</p>
               {price && (
                 <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 2 }}>
-                  {price}<span style={{ marginLeft: 2 }}>/mo</span>
+                  {price}<span style={{ marginInlineStart: 2 }}>/mo</span>
                 </p>
               )}
             </div>

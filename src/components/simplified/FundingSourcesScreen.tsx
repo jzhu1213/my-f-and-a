@@ -580,7 +580,7 @@ export function FundingSourcesScreen({
                         justifyContent: "center",
                       }}
                     >
-                      ✏️
+                      <span aria-hidden="true">✏️</span>
                     </button>
                     <button
                       onClick={() => handleDelete(source.id)}
@@ -609,7 +609,7 @@ export function FundingSourcesScreen({
                         justifyContent: "center",
                       }}
                     >
-                      🗑️
+                      <span aria-hidden="true">🗑️</span>
                     </button>
                   </div>
                 </div>

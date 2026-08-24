@@ -174,7 +174,7 @@ export function RoommateInviteScreen({
               fontFamily: FONT_FAMILY,
               cursor: "pointer",
               padding: "4px 0",
-              marginRight: spacing.sm,
+              marginInlineEnd: spacing.sm,
             }}
             aria-label={step === "intro" ? "Close" : "Back"}
           >

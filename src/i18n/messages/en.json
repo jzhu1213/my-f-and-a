@@ -1,0 +1,98 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "done": "Done",
+    "edit": "Edit",
+    "delete": "Delete",
+    "undo": "Undo",
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "gotIt": "Got it",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "nav": {
+    "home": "Home",
+    "history": "History",
+    "tools": "Tools",
+    "settings": "Settings"
+  },
+  "home": {
+    "hero": {
+      "leftToday": "left to spend today",
+      "spentToday": "spent today",
+      "syncing": "syncing\u2026",
+      "overBudgetGentle": "A little over \u2014 tomorrow resets"
+    },
+    "actions": {
+      "logExpense": "Log expense",
+      "logIncome": "Log income",
+      "logFirstExpense": "Log your first expense"
+    },
+    "sections": {
+      "recent": "Recent",
+      "categories": "Categories",
+      "seeAll": "See all \u2192"
+    },
+    "empty": {
+      "title": "Ready when you are",
+      "subtitle": "Log your first expense and Folio starts learning your habits",
+      "action": "Log expense \u2192",
+      "firstRunTitle": "Your spending will show up here.",
+      "firstRunSubtitle": "Log your first expense and watch your day take shape."
+    },
+    "category": {
+      "noLimit": "no limit",
+      "overThisWeek": "${amount} over this week",
+      "leftThisWeek": "${amount} left",
+      "spent": "${amount} spent",
+      "emptyTitle": "You\u2019re all set to start \u2014 limits are optional",
+      "emptySubtitle": "Add category limits anytime for a more accurate daily number",
+      "emptyAction": "Set up limits \u2192"
+    }
+  },
+  "tools": {
+    "title": "Tools",
+    "subtitle": "Advanced features, calculators, and tracking tools.",
+    "recentlyUsed": "Recently Used",
+    "startHere": "Start Here",
+    "startHereDescription": "These three tools will help you get started with budgeting.",
+    "seeAllTools": "See all tools \u2192",
+    "sections": {
+      "moneyMap": "Money Map",
+      "billsSubscriptions": "Bills & Subscriptions",
+      "savingPlanning": "Saving & Planning",
+      "peopleSplits": "People & Splits",
+      "debt": "Debt",
+      "insightsReviews": "Insights & Reviews",
+      "learnGrow": "Learn & Grow",
+      "calculators": "Calculators"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "searchPlaceholder": "Search settings...",
+    "helpInfo": "Help & Info",
+    "whatsNew": "What\u2019s New",
+    "catchUpMissedDays": "Catch up on missed days",
+    "travelMode": "Travel mode",
+    "resumeSetup": "Resume setup"
+  },
+  "expense": {
+    "logExpense": "Log expense",
+    "addNote": "+ Note",
+    "splitWith": "Split with",
+    "logged": "Logged {amount} for {category} \u2713"
+  },
+  "income": {
+    "logIncome": "Log income",
+    "incomeLogged": "Income logged \u2713"
+  },
+  "editTransaction": {
+    "title": "Edit transaction",
+    "save": "Save",
+    "refund": "\u21a9 Refund this"
+  }
+}

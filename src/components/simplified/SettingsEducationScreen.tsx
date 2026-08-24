@@ -81,7 +81,7 @@ function OptionCard({ label, description, isSelected, onSelect, disabled, ariaLa
       aria-label={ariaLabel}
       style={{
         width: "100%",
-        textAlign: "left",
+        textAlign: "start",
         padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
         background: isSelected ? colorRamp.accent[50] : elevations.resting.fill,
         border: `1px solid ${isSelected ? colorRamp.accent[300] : elevations.resting.border}`,

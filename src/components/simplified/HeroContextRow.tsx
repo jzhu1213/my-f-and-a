@@ -448,7 +448,7 @@ function IndicatorRow({ item }: { item: IndicatorItem }) {
           border: "none",
           cursor: "pointer",
           fontFamily: FONT_FAMILY,
-          textAlign: "left",
+          textAlign: "start",
           width: "100%",
         }}
       >

@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Sheet } from '@/components/ui/primitives/Sheet'
 import { useToast } from '@/contexts/ToastContext'
+import { useTranslation } from '@/contexts/I18nContext'
 import { FONT_FAMILY, spacing, pxToRem, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { shadows, fills, colorRamp, roundButton, HORIZONTAL_PADDING } from '@/styles/shared'
 import { radius } from '@/styles/surfaces'
 import type { FundingSource } from '@/lib/fundingSources'
@@ -123,6 +125,7 @@ const MAX_AMOUNT = 99999
 export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo, fundingSources = [], transactions = [], onCreateDisbursement, savingsAccounts = [], onContributeToSavings, recentSplitPartners = [], onOpenSettleUp }: IncomeSheetProps) {
   const { showToast } = useToast()
   const { prefersReducedMotion } = useReducedMotion()
+  const t = useTranslation()
   const amountRef = useRef<HTMLInputElement>(null)
 
   const [amount, setAmount] = useState('')
@@ -329,12 +332,12 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
     }
 
     // Show success toast with undo action
-    const formatted = parsed % 1 === 0 ? `$${parsed}` : `$${parsed.toFixed(2)}`
-    const suffix = isFinancialAid ? ` (spread over ${spreadMonths}mo)` : ''
+    const formatted = formatMoney(parsed)
+    const suffix = isFinancialAid ? t('income.spreadSuffix', { months: spreadMonths }) : ''
     showToast(
-      `Logged +${formatted} income${suffix} ✓`,
+      t('income.loggedSuccess', { amount: formatted, suffix }),
       'success',
-      onUndo ? { label: 'Undo', onClick: onUndo } : undefined
+      onUndo ? { label: t('common.undo'), onClick: onUndo } : undefined
     )
 
     // Quick-contribute chip for recurring savers (task 157.2).
@@ -373,8 +376,8 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
     triggerHaptic('light')
     onContributeToSavings?.(account.id, account.monthlyContribution)
     const amt = account.monthlyContribution
-    const formatted = amt % 1 === 0 ? `$${amt}` : `$${amt.toFixed(2)}`
-    showToast(`Nice — ${formatted} on its way to ${account.name} 🌱`, 'success')
+    const formatted = formatMoney(amt)
+    showToast(t('income.contributed', { amount: formatted, name: account.name }), 'success')
     const pending = contributePrompt
     setContributePrompt(null)
     if (pending) finalizeSubmit(pending.amount, pending.isGigIncome)
@@ -406,10 +409,10 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
           >
             <div style={{ fontSize: 40, marginBottom: spacing.xs }} aria-hidden="true">🌱</div>
             <h2 style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.semibold, fontFamily: FONT_FAMILY, color: 'var(--text)', margin: '0 0 6px' }}>
-              Income logged ✓
+              {t('income.incomeLogged')}
             </h2>
             <p style={{ fontSize: typography.body.fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, margin: '0 0 20px' }}>
-              Want to move a little toward future you?
+              {t('income.contributePrompt')}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
@@ -420,7 +423,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                 .map((account) => {
                   const meta = getAccountTypeMetadata(account.type)
                   const amt = account.monthlyContribution
-                  const formatted = amt % 1 === 0 ? `$${amt.toLocaleString('en-US')}` : `$${amt.toFixed(2)}`
+                  const formatted = formatMoney(amt)
                   return (
                     <button
                       key={account.id}
@@ -438,16 +441,16 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                         borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
                         fontFamily: FONT_FAMILY,
-                        textAlign: 'left',
+                        textAlign: "start",
                       }}
                     >
                       <span style={{ fontSize: typography.headline.fontSize }} aria-hidden="true">{meta.emoji}</span>
                       <span style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
                         <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: 'var(--text)' }}>
-                          Contribute {formatted} to {account.name}?
+                          {t('income.contributeButton', { amount: formatted, name: account.name })}
                         </span>
                         <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)' }}>
-                          Your usual monthly contribution
+                          {t('income.contributeSubtitle')}
                         </span>
                       </span>
                       <span style={{ fontSize: typography.subhead.fontSize, color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }} aria-hidden="true">→</span>
@@ -459,7 +462,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
             <button
               type="button"
               onClick={handleDismissContribute}
-              aria-label="Not now"
+              aria-label={t('income.notNow')}
               style={{
                 marginTop: spacing.md,
                 background: 'transparent',
@@ -472,7 +475,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                 padding: '10px 16px',
               }}
             >
-              Not now
+              {t('income.notNow')}
             </button>
           </motion.div>
         </div>
@@ -576,7 +579,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                     fontFamily: FONT_FAMILY,
                   }}
                 >
-                  How much did you earn?
+                  {t('income.howMuchEarn')}
                 </p>
 
                 {/* ── Currency Selector (task 422.1) — only shown when travel mode is active ── */}
@@ -602,8 +605,8 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                       }}
                       aria-label={
                         selectedSourceId
-                          ? `Payment method: ${fundingSources.find(s => s.id === selectedSourceId)?.label ?? 'Unknown'}`
-                          : 'Select payment method'
+                          ? `${t('income.paymentMethod')}: ${fundingSources.find(s => s.id === selectedSourceId)?.label ?? 'Unknown'}`
+                          : t('income.paymentMethod')
                       }
                       style={{
                         display: 'inline-flex',
@@ -627,8 +630,8 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                       </span>
                       <span>
                         {selectedSourceId
-                          ? fundingSources.find(s => s.id === selectedSourceId)?.label ?? 'Payment method'
-                          : 'Payment method'}
+                          ? fundingSources.find(s => s.id === selectedSourceId)?.label ?? t('income.paymentMethod')
+                          : t('income.paymentMethod')}
                       </span>
                     </button>
 
@@ -1227,7 +1230,7 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                                     triggerHaptic('light')
                                   }}
                                   aria-label={`Remove ${p.name}`}
-                                  style={{ background: 'none', border: 'none', padding: '0 2px', cursor: 'pointer', color: 'var(--muted)', fontSize: typography.body.fontSize, lineHeight: 1 }}
+                                  style={{ background: 'none', border: 'none', padding: '0 2px', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', fontSize: typography.body.fontSize, lineHeight: 1 }}
                                 >
                                   ×
                                 </button>
@@ -1438,9 +1441,9 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                             <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: 6 }}>
                               <span style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--text)', minWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <button type="button" onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.max(1, (next[i] ?? 1) - 1); return next })} disabled={(shareInputs[i] ?? 1) <= 1} aria-label={`Decrease ${p.name}'s shares`} style={{ ...roundButton, width: 26, height: 26, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) <= 1 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) <= 1 ? 'not-allowed' : 'pointer' }}>−</button>
+                                <button type="button" onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.max(1, (next[i] ?? 1) - 1); return next })} disabled={(shareInputs[i] ?? 1) <= 1} aria-label={`Decrease ${p.name}'s shares`} style={{ ...roundButton, width: 44, height: 44, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) <= 1 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) <= 1 ? 'not-allowed' : 'pointer' }}>−</button>
                                 <span style={{ fontFamily: FONT_FAMILY, fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: 'var(--text)', minWidth: 24, textAlign: 'center' }}>{shareInputs[i] ?? 1}</span>
-                                <button type="button" onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.min(10, (next[i] ?? 1) + 1); return next })} disabled={(shareInputs[i] ?? 1) >= 10} aria-label={`Increase ${p.name}'s shares`} style={{ ...roundButton, width: 26, height: 26, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) >= 10 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) >= 10 ? 'not-allowed' : 'pointer' }}>+</button>
+                                <button type="button" onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.min(10, (next[i] ?? 1) + 1); return next })} disabled={(shareInputs[i] ?? 1) >= 10} aria-label={`Increase ${p.name}'s shares`} style={{ ...roundButton, width: 44, height: 44, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) >= 10 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) >= 10 ? 'not-allowed' : 'pointer' }}>+</button>
                               </div>
                             </div>
                           ))}
@@ -1476,8 +1479,8 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                           perFriendBreakdown = friends.length > 0 ? computePerFriendOwed(parsed, friends, splitCount) : []
                         }
 
-                        const shareStr = userShare % 1 === 0 ? `$${userShare}` : `$${userShare.toFixed(2)}`
-                        const totalStr = parsed % 1 === 0 ? `$${parsed}` : `$${parsed.toFixed(2)}`
+                        const shareStr = formatMoney(userShare)
+                        const totalStr = formatMoney(parsed)
 
                         return (
                           <div style={{ padding: '14px 4px 4px', display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
@@ -1488,10 +1491,10 @@ export function IncomeSheet({ isOpen, onClose, onSubmit, onShowPaycheck, onUndo,
                             {perFriendBreakdown.length > 0 && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
                                 {perFriendBreakdown.map(({ name, owes }) => {
-                                  const owesStr = owes % 1 === 0 ? `$${owes}` : `$${owes.toFixed(2)}`
+                                  const owesStr = formatMoney(owes)
                                   return (
                                     <span key={name} style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--success)', opacity: 0.9 }} aria-live="polite">
-                                      {name} gets {owesStr} 💸
+                                      {name} gets {owesStr} <span aria-hidden="true">💸</span>
                                     </span>
                                   )
                                 })}

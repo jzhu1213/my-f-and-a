@@ -50,7 +50,14 @@ export function SheetFooterInsight({ insight, emoji = '💡', onLearnMore }: She
         cursor: onLearnMore ? 'pointer' : 'default',
       }}
       onClick={onLearnMore}
+      onKeyDown={onLearnMore ? (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onLearnMore()
+        }
+      } : undefined}
       role={onLearnMore ? 'button' : undefined}
+      tabIndex={onLearnMore ? 0 : undefined}
       aria-label={onLearnMore ? `Learn more: ${insight}` : undefined}
     >
       <span style={{ fontSize: typography.body.fontSize, flexShrink: 0 }} aria-hidden="true">

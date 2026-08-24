@@ -187,6 +187,11 @@ export function ProfileSheet({
             style={{
               color: 'var(--muted)',
               padding: spacing.xxs,
+              minWidth: 44,
+              minHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               cursor: 'pointer',
               background: 'transparent',
               border: 'none',
@@ -328,7 +333,7 @@ export function ProfileSheet({
                   className="focus-ring"
                   style={{
                     ...inputStyle,
-                    paddingLeft: 28,
+                    paddingInlineStart: 28,
                     borderColor: handleError ? 'var(--error-400)' : 'var(--fill-10)',
                   }}
                 />

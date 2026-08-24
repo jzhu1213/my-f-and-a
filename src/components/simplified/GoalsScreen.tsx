@@ -189,7 +189,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {complete ? "Reached 🎉" : `${Math.round(pct)}%`}
+          {complete ? <>Reached <span aria-hidden="true">🎉</span></> : `${Math.round(pct)}%`}
         </span>
       </div>
 
@@ -263,7 +263,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
                 display: "inline-flex",
                 alignItems: "center",
                 gap: spacing.xxs,
-                marginLeft: 6,
+                marginInlineStart: 6,
                 fontSize: typography.caption.fontSize,
                 color: "var(--accent)",
                 background: "var(--accent-muted)",
@@ -272,7 +272,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
                 verticalAlign: "middle",
               }}
             >
-              📊 {linkedAccount.name}
+              <span aria-hidden="true">📊</span> {linkedAccount.name}
             </span>
           )}
         </span>
@@ -743,7 +743,7 @@ export function GoalsScreen({
         }}
         aria-label="Plan a big purchase"
       >
-        🎯 Plan a big purchase
+        <span aria-hidden="true">🎯</span> Plan a big purchase
       </motion.button>
 
       {/* ── Auto-Contribute Settings ──────────────────────────────────── */}
@@ -845,7 +845,7 @@ export function GoalsScreen({
                             padding: "2px 4px",
                           }}
                         >
-                          ✏️
+                          <span aria-hidden="true">✏️</span>
                         </button>
                         <button
                           onClick={() => handleRemoveAutoRule(goal.id)}
@@ -857,6 +857,11 @@ export function GoalsScreen({
                             fontSize: typography['body-sm'].fontSize,
                             cursor: "pointer",
                             padding: "2px 4px",
+                            minWidth: 44,
+                            minHeight: 44,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
                         >
                           ×

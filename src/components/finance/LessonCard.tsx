@@ -211,7 +211,7 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
                 alignItems: 'center',
                 gap: spacing.md,
                 padding: '14px 12px',
-                textAlign: 'left',
+                textAlign: "start",
                 fontSize: typography.body.fontSize,
                 color: 'var(--text)',
                 fontFamily: FONT_FAMILY,

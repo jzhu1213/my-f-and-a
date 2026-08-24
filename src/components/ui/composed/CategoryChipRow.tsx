@@ -157,8 +157,8 @@ function CategoryChipButton({ item, isSelected, onSelect }: CategoryChipButtonPr
     gap: spacingScale["6"],
     minHeight: "44px",
     minWidth: "44px",
-    paddingLeft: spacingScale["12"],
-    paddingRight: spacingScale["12"],
+    paddingInlineStart: spacingScale["12"],
+    paddingInlineEnd: spacingScale["12"],
     paddingTop: spacingScale["6"],
     paddingBottom: spacingScale["6"],
     borderRadius: radius.full,
@@ -233,8 +233,8 @@ function SuggestionChip({ suggestion, accent, onSelect }: SuggestionChipProps) {
     alignItems: "center",
     gap: spacingScale["4"],
     minHeight: "36px",
-    paddingLeft: spacingScale["12"],
-    paddingRight: spacingScale["12"],
+    paddingInlineStart: spacingScale["12"],
+    paddingInlineEnd: spacingScale["12"],
     paddingTop: spacingScale["4"],
     paddingBottom: spacingScale["4"],
     borderRadius: radius.full,
@@ -305,8 +305,8 @@ export function CategoryChipRow({
     WebkitOverflowScrolling: "touch",
     paddingTop: spacingScale["4"],
     paddingBottom: spacingScale["4"],
-    paddingLeft: spacingScale["4"],
-    paddingRight: spacingScale["4"],
+    paddingInlineStart: spacingScale["4"],
+    paddingInlineEnd: spacingScale["4"],
     msOverflowStyle: "none",
   }
 
@@ -319,8 +319,8 @@ export function CategoryChipRow({
     WebkitOverflowScrolling: "touch",
     paddingTop: spacingScale["8"],
     paddingBottom: spacingScale["4"],
-    paddingLeft: spacingScale["4"],
-    paddingRight: spacingScale["4"],
+    paddingInlineStart: spacingScale["4"],
+    paddingInlineEnd: spacingScale["4"],
     msOverflowStyle: "none",
   }
 

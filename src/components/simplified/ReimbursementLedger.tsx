@@ -70,6 +70,20 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
   const [showSourcePicker, setShowSourcePicker] = useState(false)
   const [settling, setSettling] = useState(false)
 
+  // Escape key dismissal for source picker modal (task 511.3)
+  useEffect(() => {
+    if (!showSourcePicker) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        setShowSourcePicker(false)
+        setSettlingPerson(null)
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [showSourcePicker])
+
   // Clipboard feedback
   const [copiedPerson, setCopiedPerson] = useState<string | null>(null)
 
@@ -425,7 +439,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                       border: "1px solid var(--border)",
                       borderRadius: radius.control,
                       cursor: settling ? "not-allowed" : "pointer",
-                      textAlign: "left",
+                      textAlign: "start",
                       opacity: settling ? 0.6 : 1,
                     }}
                   >
@@ -452,7 +466,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                         border: "1px solid var(--border)",
                         borderRadius: radius.control,
                         cursor: settling ? "not-allowed" : "pointer",
-                        textAlign: "left",
+                        textAlign: "start",
                         display: "flex",
                         alignItems: "center",
                         gap: spacing.sm,
@@ -778,7 +792,7 @@ function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowPro
           fontWeight: fontWeights.semibold,
           fontVariantNumeric: "tabular-nums",
           color: entry.direction === 'they_owe' ? "var(--success)" : "var(--error)",
-          marginRight: 6,
+          marginInlineEnd: 6,
         }}
       >
         {formatCurrency(absAmount, getHomeCurrency())}
@@ -889,7 +903,7 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
       </div>
 
       {/* Amount — task 426.2: show both currencies when foreign */}
-      <div style={{ textAlign: "right", minWidth: 0 }}>
+      <div style={{ textAlign: "end", minWidth: 0 }}>
         {hasForeignCurrency ? (
           <>
             {/* Original foreign amount (prominent) */}

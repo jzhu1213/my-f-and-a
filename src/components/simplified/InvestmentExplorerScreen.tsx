@@ -90,7 +90,7 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
   }, [projection])
 
   return (
-    <div style={{ paddingBottom: 80, paddingLeft: 20, paddingRight: 20, paddingTop: 40 }}>
+    <div style={{ paddingBottom: 80, paddingInlineStart: 20, paddingInlineEnd: 20, paddingTop: 40 }}>
       {/* Back button */}
       <button
         onClick={onBack}
@@ -355,7 +355,7 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--sub)', width: 80, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--sub)', width: 80, textAlign: "end", fontVariantNumeric: 'tabular-nums' }}>
                     ${row.balance.toLocaleString()}
                   </span>
                 </div>

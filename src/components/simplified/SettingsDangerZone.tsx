@@ -28,8 +28,8 @@ export function SettingsDangerZone({ onDeleteAccount }: SettingsDangerZoneProps)
     }}>
       <div
         style={{
-          paddingLeft: spacingScale["20"],
-          paddingRight: spacingScale["16"],
+          paddingInlineStart: spacingScale["20"],
+          paddingInlineEnd: spacingScale["16"],
         }}
       >
         {!showDeleteConfirm ? (

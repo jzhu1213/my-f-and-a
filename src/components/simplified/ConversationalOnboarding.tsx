@@ -519,7 +519,7 @@ function SpendingModeStep({
                 padding: '14px 16px',
                 borderRadius: radius.control,
                 cursor: 'pointer',
-                textAlign: 'left',
+                textAlign: "start",
                 background: selected
                   ? 'var(--accent-100)'
                   : 'var(--fill-03)',

@@ -58,6 +58,19 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
   const [isShared, setIsShared] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  // Escape key dismissal (task 511.3)
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        onClose()
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, onClose])
+
   // Refresh state when sheet opens
   useEffect(() => {
     if (!isOpen || !goal) return
@@ -522,7 +535,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                                 color: "var(--sub)",
                                 fontVariantNumeric: "tabular-nums",
                                 minWidth: 40,
-                                textAlign: "right",
+                                textAlign: "end",
                               }}
                             >
                               ${p.contributedAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}

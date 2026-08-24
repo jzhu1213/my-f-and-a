@@ -344,7 +344,7 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
                       }}
                     />
                   </div>
-                  <span style={{ ...chartValueLabel, width: 80, textAlign: 'right' }}>
+                  <span style={{ ...chartValueLabel, width: 80, textAlign: "end" }}>
                     ${row.balance.toLocaleString()}
                   </span>
                 </div>

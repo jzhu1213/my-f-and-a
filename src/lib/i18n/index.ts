@@ -70,13 +70,56 @@ export function getActiveLanguage(): Language {
 // ============================================================================
 
 /**
- * Substitute `{name}` placeholders in `template` with `values`. Missing values
- * leave the placeholder untouched so gaps are visible rather than silently
- * blank. Values are coerced to strings.
+ * Resolve a simplified ICU plural expression.
+ *
+ * Syntax: `{name, plural, one {# item} other {# items}}`
+ *
+ * Supported plural categories: `zero`, `one`, `two`, `few`, `many`, `other`.
+ * English uses only `one` and `other`; other languages can use the full set.
+ * The `#` token inside a plural branch is replaced with the numeric value.
+ *
+ * Falls back to `other` if the matching category is not defined, then to the
+ * raw match string so nothing ever renders blank.
+ */
+function resolvePlural(count: number, branches: string): string {
+  // Parse branches: "one {# day} other {# days}"
+  const branchRegex = /(\w+)\s*\{([^}]*)\}/g
+  const parsed: Record<string, string> = {}
+  let match: RegExpExecArray | null
+  while ((match = branchRegex.exec(branches)) !== null) {
+    parsed[match[1]] = match[2]
+  }
+
+  // Determine plural category (English rules; extensible per-language later)
+  const category = count === 0 ? 'zero' : count === 1 ? 'one' : 'other'
+
+  // Resolve: try exact category → fallback to 'other' → raw
+  const template = parsed[category] ?? parsed['other'] ?? `${count}`
+  return template.replace(/#/g, String(count))
+}
+
+/**
+ * Substitute `{name}` placeholders and `{name, plural, ...}` expressions in
+ * `template` with `values`. Missing values leave the placeholder untouched so
+ * gaps are visible rather than silently blank. Values are coerced to strings.
  */
 function interpolate(template: string, values?: TranslationValues): string {
   if (!values) return template
-  return template.replace(/\{(\w+)\}/g, (match, name: string) => {
+
+  // First pass: resolve plural expressions {name, plural, one {...} other {...}}
+  const withPlurals = template.replace(
+    /\{(\w+),\s*plural,\s*([^}]+(?:\{[^}]*\}[^}]*)*)\}/g,
+    (_match, name: string, branches: string) => {
+      const value = values[name]
+      if (value === undefined || value === null) return _match
+      const count = typeof value === 'number' ? value : Number(value)
+      if (Number.isNaN(count)) return _match
+      return resolvePlural(count, branches)
+    }
+  )
+
+  // Second pass: simple {name} placeholders
+  return withPlurals.replace(/\{(\w+)\}/g, (match, name: string) => {
     const value = values[name]
     return value === undefined || value === null ? match : String(value)
   })

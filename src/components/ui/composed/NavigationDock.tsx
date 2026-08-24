@@ -184,6 +184,10 @@ export function NavigationDock({ active, onNavigate, hidden = false }: Navigatio
                 fontWeight: isActive ? 600 : 500,
                 lineHeight: 1,
                 letterSpacing: typography.caption.letterSpacing,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: "100%",
               }}
             >
               {item.label}

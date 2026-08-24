@@ -6,6 +6,7 @@ import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typograp
 import { sectionHeader } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
 import type { NetObligations } from "@/lib/obligationsUtils"
+import { formatCurrency } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -98,7 +99,7 @@ export function ObligationsSummary({ obligations }: ObligationsSummaryProps) {
                     fontFamily: FONT_FAMILY,
                   }}
                 >
-                  ${Math.round(youOwe).toLocaleString("en-US")}
+                  {formatCurrency(Math.round(youOwe), 'USD', { fractionDigits: 0 })}
                 </p>
               </div>
             </div>
@@ -121,7 +122,7 @@ export function ObligationsSummary({ obligations }: ObligationsSummaryProps) {
                     fontFamily: FONT_FAMILY,
                   }}
                 >
-                  ${Math.round(youreOwed).toLocaleString("en-US")}
+                  {formatCurrency(Math.round(youreOwed), 'USD', { fractionDigits: 0 })}
                 </p>
               </div>
             </div>

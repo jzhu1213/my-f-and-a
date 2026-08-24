@@ -88,6 +88,19 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Escape key dismissal (task 511.3)
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        onDismiss()
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [open, onDismiss])
+
   const handleShare = useCallback(async () => {
     if (!blobRef.current) return
 

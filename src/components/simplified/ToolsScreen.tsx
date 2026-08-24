@@ -14,6 +14,7 @@
  */
 
 import { useMemo, useState, useEffect, useCallback } from "react"
+import { useTranslation } from "@/contexts/I18nContext"
 import { motion, AnimatePresence } from "framer-motion"
 import { layoutTransition, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
 import { getPeerContextEnabled, setPeerContextEnabled } from "@/lib/uiPreferences"
@@ -39,6 +40,7 @@ import type { FundingSource } from "@/lib/fundingSources"
 import type { Transaction, Goal, Budget } from "@/types"
 import type { Debt, SavingsAccount } from "@/types/folio"
 import type { Reimbursement } from "@/lib/reimbursements"
+import { formatCurrency } from "@/lib/currencyUtils"
 import {
   isChallengesActive,
 } from "@/lib/gamificationPreferences"
@@ -196,6 +198,7 @@ function ToolSectionList({ tools, listContainer, listItem, prefersReducedMotion 
       initial="hidden"
       animate="visible"
       role="group"
+      aria-label={`${tools.length} tools`}
       style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}
     >
       {tools.map((tool, toolIdx) => {
@@ -234,10 +237,10 @@ function ToolSectionList({ tools, listContainer, listItem, prefersReducedMotion 
                 <Icon name={tool.iconName} size={20} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["2"] }}>
+                <p style={{ ...typography.body, color: textColors.text, marginBottom: spacingScale["2"], overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {tool.title}
                 </p>
-                <p style={{ ...typography["body-sm"], color: textColors.sub }}>
+                <p style={{ ...typography["body-sm"], color: textColors.sub, overflowWrap: 'break-word' }}>
                   {tool.description}
                 </p>
               </div>
@@ -297,6 +300,19 @@ export function ToolsScreen({
 }: ToolsScreenProps) {
   const { flags } = useFeatureFlags()
   const { listContainer, listItem, prefersReducedMotion } = useReducedMotion()
+  const t = useTranslation()
+
+  // Map section IDs to translated labels
+  const sectionLabels: Record<string, string> = useMemo(() => ({
+    "money-map": t('tools.sectionMoneyMap'),
+    "bills-subscriptions": t('tools.sectionBillsSubscriptions'),
+    "saving-planning": t('tools.sectionSavingPlanning'),
+    "people-splits": t('tools.sectionPeopleSplits'),
+    "debt": t('tools.sectionDebt'),
+    "insights-reviews": t('tools.sectionInsightsReviews'),
+    "learn-grow": t('tools.sectionLearnGrow'),
+    "calculators": t('tools.sectionCalculators'),
+  }), [t])
 
   // Peer context is opt-in and OFF by default
   const [peerContextEnabled, setPeerContextEnabledState] = useState(false)
@@ -364,32 +380,32 @@ export function ToolsScreen({
   )
 
   const allTools: ToolItem[] = [
-    { id: "trajectory", iconName: "tool:trajectory", title: "Financial Trajectory", description: "See how your money habits are trending.", onOpen: onOpenTrajectory },
-    { id: "debt", iconName: "tool:debt", title: "Debt Tracking", description: "Track balances, APRs, and payoff timelines.", onOpen: onOpenDebt },
+    { id: "trajectory", iconName: "tool:trajectory", title: t('tools.toolTrajectory'), description: t('tools.toolTrajectoryDesc'), onOpen: onOpenTrajectory },
+    { id: "debt", iconName: "tool:debt", title: t('tools.toolDebt'), description: t('tools.toolDebtDesc'), onOpen: onOpenDebt },
     // Merged: Recurring (task 489.1) — replaces individual recurring-bills + recurrence-management
-    { id: "recurring", iconName: "tool:recurring-bills", title: "Recurring", description: "Bills and auto-detected patterns in one place.", onOpen: onOpenRecurring },
-    { id: "reimbursements", iconName: "tool:reimbursements", title: "IOUs & Reimbursements", description: "Track money friends owe you — or that you owe them.", onOpen: onOpenReimbursements },
-    { id: "sinking-funds", iconName: "tool:sinking-funds", title: "Sinking Funds", description: "Save gradually for predictable large expenses.", onOpen: onOpenSinkingFunds },
-    { id: "subscriptions", iconName: "tool:subscriptions", title: "Subscriptions", description: "Review and manage recurring charges.", onOpen: onOpenSubscriptions },
+    { id: "recurring", iconName: "tool:recurring-bills", title: t('tools.toolRecurring'), description: t('tools.toolRecurringDesc'), onOpen: onOpenRecurring },
+    { id: "reimbursements", iconName: "tool:reimbursements", title: t('tools.toolReimbursements'), description: t('tools.toolReimbursementsDesc'), onOpen: onOpenReimbursements },
+    { id: "sinking-funds", iconName: "tool:sinking-funds", title: t('tools.toolSinkingFunds'), description: t('tools.toolSinkingFundsDesc'), onOpen: onOpenSinkingFunds },
+    { id: "subscriptions", iconName: "tool:subscriptions", title: t('tools.toolSubscriptions'), description: t('tools.toolSubscriptionsDesc'), onOpen: onOpenSubscriptions },
     // Merged: Shared (task 489.4) — replaces individual household-pool + invite-roommate + shared-budgets
-    { id: "shared", iconName: "tool:household-pool", title: "Shared", description: "Pools, budgets, and invites — all shared money.", onOpen: onOpenShared },
+    { id: "shared", iconName: "tool:household-pool", title: t('tools.toolShared'), description: t('tools.toolSharedDesc'), onOpen: onOpenShared },
     // Merged: Savings (task 489.3) — replaces individual savings-projections + manage-savings + portfolio-allocation
-    { id: "savings", iconName: "tool:savings-projections", title: "Savings", description: "Projections, accounts, and allocation in one view.", onOpen: onOpenSavings },
-    { id: "wish-list", iconName: "tool:wish-list", title: "Wish List", description: "Track what you want and see when you can afford it.", onOpen: onOpenWishList },
-    { id: "cash-flow-forecast", iconName: "tool:cash-flow-forecast", title: "Cash Flow Forecast", description: "See projected balance through next payday.", onOpen: onOpenCashFlowForecast },
-    { id: "compound-growth", iconName: "tool:compound-growth", title: "Compound Growth", description: "See how savings grow with compound interest.", onOpen: onOpenCompoundGrowth },
-    { id: "credit-payoff", iconName: "tool:credit-payoff", title: "Credit Payoff", description: "Plan how to pay off credit card debt faster.", onOpen: onOpenCreditPayoff },
-    { id: "term-review", iconName: "tool:term-review", title: "Term / Year in Review", description: "A warm recap of your wins — by term or year.", onOpen: onOpenTermReview },
-    { id: "year-in-review", iconName: "tool:year-in-review", title: "Year in Review", description: "A once-a-year look back at your streaks and savings.", onOpen: onOpenYearInReview },
-    { id: "peer-context", iconName: "tool:peer-context", title: "How You Compare", description: "Optional anonymized context against student ranges.", onOpen: onOpenPeerContext },
-    { id: "learn", iconName: "tool:learn", title: "Lessons", description: "Short lessons on budgeting, saving, and investing.", onOpen: onOpenLearn },
-    { id: "income-trends", iconName: "tool:income-trends", title: "Income Trends", description: "See how your earnings grow over time.", onOpen: onOpenIncomeTrends },
-    { id: "statement-import", iconName: "tool:income-trends", title: "Import Statement", description: "Import transactions from a bank CSV.", onOpen: onOpenStatementImport },
-    { id: "confidence", iconName: "tool:confidence", title: "Money Confidence", description: "A gentle journal of your financial habits.", onOpen: onOpenConfidence },
-    { id: "weekly-insights", iconName: "tool:income-trends", title: "Weekly Insights", description: "Bite-sized spending patterns and tips each week.", onOpen: onOpenWeeklyInsights },
+    { id: "savings", iconName: "tool:savings-projections", title: t('tools.toolSavings'), description: t('tools.toolSavingsDesc'), onOpen: onOpenSavings },
+    { id: "wish-list", iconName: "tool:wish-list", title: t('tools.toolWishList'), description: t('tools.toolWishListDesc'), onOpen: onOpenWishList },
+    { id: "cash-flow-forecast", iconName: "tool:cash-flow-forecast", title: t('tools.toolCashFlowForecast'), description: t('tools.toolCashFlowForecastDesc'), onOpen: onOpenCashFlowForecast },
+    { id: "compound-growth", iconName: "tool:compound-growth", title: t('tools.toolCompoundGrowth'), description: t('tools.toolCompoundGrowthDesc'), onOpen: onOpenCompoundGrowth },
+    { id: "credit-payoff", iconName: "tool:credit-payoff", title: t('tools.toolCreditPayoff'), description: t('tools.toolCreditPayoffDesc'), onOpen: onOpenCreditPayoff },
+    { id: "term-review", iconName: "tool:term-review", title: t('tools.toolTermReview'), description: t('tools.toolTermReviewDesc'), onOpen: onOpenTermReview },
+    { id: "year-in-review", iconName: "tool:year-in-review", title: t('tools.toolYearInReview'), description: t('tools.toolYearInReviewDesc'), onOpen: onOpenYearInReview },
+    { id: "peer-context", iconName: "tool:peer-context", title: t('tools.toolPeerContext'), description: t('tools.toolPeerContextDesc'), onOpen: onOpenPeerContext },
+    { id: "learn", iconName: "tool:learn", title: t('tools.toolLearn'), description: t('tools.toolLearnDesc'), onOpen: onOpenLearn },
+    { id: "income-trends", iconName: "tool:income-trends", title: t('tools.toolIncomeTrends'), description: t('tools.toolIncomeTrendsDesc'), onOpen: onOpenIncomeTrends },
+    { id: "statement-import", iconName: "tool:income-trends", title: t('tools.toolStatementImport'), description: t('tools.toolStatementImportDesc'), onOpen: onOpenStatementImport },
+    { id: "confidence", iconName: "tool:confidence", title: t('tools.toolConfidence'), description: t('tools.toolConfidenceDesc'), onOpen: onOpenConfidence },
+    { id: "weekly-insights", iconName: "tool:income-trends", title: t('tools.toolWeeklyInsights'), description: t('tools.toolWeeklyInsightsDesc'), onOpen: onOpenWeeklyInsights },
     // Merged: Progress & Milestones (task 489.5) — replaces individual milestones + activity-heatmap + progress-garden
-    { id: "progress-milestones", iconName: "tip:goal", title: "Progress & Milestones", description: "Achievements, heatmap, and garden in one view.", onOpen: onOpenProgressMilestones },
-    { id: "challenges", iconName: "tip:goal", title: "Challenges", description: "Fun weekly challenges to build better habits.", onOpen: onOpenChallenges },
+    { id: "progress-milestones", iconName: "tip:goal", title: t('tools.toolProgressMilestones'), description: t('tools.toolProgressMilestonesDesc'), onOpen: onOpenProgressMilestones },
+    { id: "challenges", iconName: "tip:goal", title: t('tools.toolChallenges'), description: t('tools.toolChallengesDesc'), onOpen: onOpenChallenges },
   ]
 
   const isToolVisible = (toolId: string): boolean => {
@@ -489,9 +505,9 @@ export function ToolsScreen({
       }}
     >
       {/* ── Screen Title ─────────────────────────────────────────────── */}
-      <h1 style={{ ...typography.headline, color: textColors.text, margin: 0, paddingBottom: spacingScale["8"] }}>Tools</h1>
+      <h1 style={{ ...typography.headline, color: textColors.text, margin: 0, paddingBottom: spacingScale["8"] }}>{t('tools.title')}</h1>
       <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["32"] }}>
-        Advanced features, calculators, and tracking tools.
+        {t('tools.subtitle')}
       </p>
 
       {/* ── Stat cards removed (task 491.3): savings rate is in HeroContextRow,
@@ -500,7 +516,7 @@ export function ToolsScreen({
       {/* ── Recently Used (Task 488.3) ────────────────────────────── */}
       {!showCuratedView && recentTools.length > 0 && (
         <div style={{ marginBottom: spacingScale["32"] }}>
-          <SectionHeader>Recently Used</SectionHeader>
+          <SectionHeader>{t('tools.recentlyUsed')}</SectionHeader>
           <div
             style={{
               display: "grid",
@@ -545,9 +561,9 @@ export function ToolsScreen({
       {/* ── Task 490.1: Start Here curated view for new users ──────── */}
       {showCuratedView && (
         <div style={{ marginBottom: spacingScale["32"] }}>
-          <SectionHeader>Start Here</SectionHeader>
+          <SectionHeader>{t('tools.startHere')}</SectionHeader>
           <p style={{ ...typography["body-sm"], color: textColors.sub, marginBottom: spacingScale["16"] }}>
-            These three tools will help you get started with budgeting.
+            {t('tools.startHereDescription')}
           </p>
           <ToolSectionList
             tools={allTools
@@ -560,6 +576,7 @@ export function ToolsScreen({
           <button
             type="button"
             onClick={handleToggleShowAll}
+            aria-label={t('tools.seeAllTools')}
             style={{
               ...typography.body,
               color: colorRamp.accent[400],
@@ -570,7 +587,7 @@ export function ToolsScreen({
               marginTop: spacingScale["16"],
             }}
           >
-            See all tools →
+            {t('tools.seeAllTools')}
           </button>
         </div>
       )}
@@ -608,13 +625,13 @@ export function ToolsScreen({
                 }}
               >
                 <SectionHeader style={{ flex: 1, marginBottom: 0 }}>
-                  {section.label}
+                  {sectionLabels[section.id] || section.label}
                   {!isExpanded && (
                     <span
                       style={{
                         ...typography.caption,
                         color: textColors.muted,
-                        marginLeft: spacingScale["6"],
+                        marginInlineStart: spacingScale["6"],
                         fontWeight: fontWeights.regular,
                         textTransform: "none",
                         letterSpacing: "normal",
@@ -631,6 +648,7 @@ export function ToolsScreen({
                     transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
                     transition: "transform 200ms ease",
                   }}
+                  aria-hidden="true"
                 >
                   <Icon name="action:forward" size={14} />
                 </span>
@@ -680,10 +698,10 @@ export function ToolsScreen({
                         }}
                       >
                         <p style={{ ...typography["body-sm"], color: textColors.sub, margin: 0 }}>
-                          Set aside this month
+                          {t('tools.setAsideThisMonth')}
                         </p>
                         <p style={{ ...typography.subhead, color: textColors.text, margin: 0, fontVariantNumeric: "tabular-nums" }}>
-                          ${Math.round(totalSetAside ?? 0).toLocaleString("en-US")}
+                          {formatCurrency(Math.round(totalSetAside ?? 0), 'USD', { fractionDigits: 0 })}
                         </p>
                       </div>
                     )}
@@ -701,10 +719,10 @@ export function ToolsScreen({
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ ...typography["body-sm"], color: textColors.text, margin: 0 }}>
-                            Show &ldquo;How You Compare&rdquo;
+                            {t('tools.showHowYouCompare')}
                           </p>
                           <p style={{ ...typography.caption, color: textColors.muted, margin: 0 }}>
-                            Encouraging, anonymized peer context
+                            {t('tools.peerContextDescription')}
                           </p>
                         </div>
                         <label
@@ -712,9 +730,10 @@ export function ToolsScreen({
                         >
                           <input
                             type="checkbox"
+                            role="switch"
                             checked={peerContextEnabled}
                             onChange={handlePeerContextToggle}
-                            aria-label="Enable peer context comparisons"
+                            aria-label={t('tools.peerContextAriaLabel')}
                             style={{
                               width: 40,
                               height: 22,
@@ -779,7 +798,7 @@ export function ToolsScreen({
 
       {/* ── Savings Automation ─────────────────────────────────────────── */}
       <div style={{ marginTop: spacingScale["32"] }}>
-        <SectionHeader>Savings Automation</SectionHeader>
+        <SectionHeader>{t('tools.savingsAutomation')}</SectionHeader>
         <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["12"] }}>
           <RoundUpSetting transactions={transactions} goals={goals} />
           <AutoSaveSetting

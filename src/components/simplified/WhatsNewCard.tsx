@@ -78,7 +78,7 @@ export function WhatsNewCard({ onNavigate }: WhatsNewCardProps) {
             background: "var(--blue-100)",
             border: "1px solid var(--blue-200)",
             borderRadius: radius.control,
-            textAlign: "left",
+            textAlign: "start",
           }}
         >
           {/* Emoji */}

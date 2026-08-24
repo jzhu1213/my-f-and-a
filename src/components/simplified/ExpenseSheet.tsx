@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { Sheet } from '@/components/ui/primitives/Sheet'
+import { useTranslation } from '@/contexts/I18nContext'
 import { generateSmartSuggestions } from '@/lib/suggestionUtils'
 import { computeSplitAmount, computeOwedAmount, computePerFriendOwed, computePerFriendOwedCustom, computeShareSplit } from '@/lib/splitUtils'
 import { autoCategorizeWithRules } from '@/lib/autoCategorize'
@@ -27,6 +28,7 @@ import { getCategoryEmoji } from '@/lib/vocabulary'
 import { Icon } from '@/components/ui/Icon'
 import { CUSTOM_CATEGORY_ICON_CHOICES, type IconName } from '@/lib/icons'
 import { FONT_FAMILY, spacing, pxToRem, typography, fontWeights } from '@/styles/typography'
+import { formatMoney } from '@/lib/localeFormat'
 import { roundButton, shadows, fills, colorRamp, HORIZONTAL_PADDING } from '@/styles/shared'
 import { radius } from '@/styles/surfaces'
 import { TagInput } from './TagInput'
@@ -201,6 +203,7 @@ export function ExpenseSheet({
 }: ExpenseSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
+  const t = useTranslation()
   const amountRef = useRef<HTMLInputElement>(null)
   const splitWithRef = useRef<HTMLInputElement>(null)
 
@@ -610,24 +613,24 @@ export function ExpenseSheet({
     })
     // Show success toast with split-aware copy (task 123.1 — Splitwise-level ease)
     const categoryLabel = displayCategories.find(c => c.categoryValue === effectiveCategory)?.label ?? effectiveCategory
-    const amountStr = submittedAmount % 1 === 0 ? `$${submittedAmount}` : `$${submittedAmount.toFixed(2)}`
+    const amountStr = formatMoney(submittedAmount)
     let toastMessage: string
     if (splitEnabled && allFriends && totalOwed > 0) {
-      const owedStr = totalOwed % 1 === 0 ? `$${totalOwed}` : `$${totalOwed.toFixed(2)}`
+      const owedStr = formatMoney(totalOwed)
       // Show who owes what: single friend gets named, multiple shows "friends"
       const friendNames = splitFriends.length > 0 ? splitFriends : (splitWith.trim() ? [splitWith.trim()] : [])
       if (friendNames.length === 1) {
-        toastMessage = `Logged ${amountStr} (your share) — ${friendNames[0]} owes you ${owedStr} 💸`
+        toastMessage = t('expense.loggedSplitSingle', { amount: amountStr, name: friendNames[0], owed: owedStr })
       } else {
-        toastMessage = `Logged ${amountStr} (your share) — friends owe you ${owedStr} 💸`
+        toastMessage = t('expense.loggedSplitMultiple', { amount: amountStr, owed: owedStr })
       }
     } else {
-      toastMessage = `Logged ${amountStr} for ${categoryLabel} ✓`
+      toastMessage = t('expense.logged', { amount: amountStr, category: categoryLabel })
     }
     showToast(
       toastMessage,
       'success',
-      onUndo ? { label: 'Undo', onClick: onUndo } : undefined
+      onUndo ? { label: t('common.undo'), onClick: onUndo } : undefined
     )
 
     // Check per-transaction alert threshold (task 102.2)
@@ -773,12 +776,12 @@ export function ExpenseSheet({
                           note: chip.note,
                           date: selectedDate,
                         })
-                        const amountStr = chip.amount % 1 === 0 ? `$${chip.amount}` : `$${chip.amount.toFixed(2)}`
+                        const amountStr = formatMoney(chip.amount)
                         const categoryLabel = displayCategories.find(c => c.categoryValue === chip.category)?.label ?? chip.category
                         showToast(
-                          `Logged ${amountStr} for ${categoryLabel} ✓`,
+                          t('expense.logged', { amount: amountStr, category: categoryLabel }),
                           'success',
-                          onUndo ? { label: 'Undo', onClick: onUndo } : undefined
+                          onUndo ? { label: t('common.undo'), onClick: onUndo } : undefined
                         )
                         onClose()
                       }}
@@ -852,7 +855,7 @@ export function ExpenseSheet({
                     aria-label="Suggested amounts"
                   >
                     {suggestions.slice(0, 4).map((s) => {
-                      const amountStr = s.amount % 1 === 0 ? `$${s.amount}` : `$${s.amount.toFixed(2)}`
+                      const amountStr = formatMoney(s.amount)
                       return (
                         <button
                           key={s.id}
@@ -867,9 +870,9 @@ export function ExpenseSheet({
                             })
                             const categoryLabel = displayCategories.find(c => c.categoryValue === category)?.label ?? category
                             showToast(
-                              `Logged ${amountStr} for ${categoryLabel} ✓`,
+                              t('expense.logged', { amount: amountStr, category: categoryLabel }),
                               'success',
-                              onUndo ? { label: 'Undo', onClick: onUndo } : undefined
+                              onUndo ? { label: t('common.undo'), onClick: onUndo } : undefined
                             )
                             onClose()
                           }}
@@ -919,7 +922,7 @@ export function ExpenseSheet({
                         }}
                       >
                         <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, fontFamily: FONT_FAMILY, color: colorRamp.success[400] }}>
-                          {merchantAvg.amount % 1 === 0 ? `$${merchantAvg.amount}` : `$${merchantAvg.amount.toFixed(2)}`}
+                          {formatMoney(merchantAvg.amount)}
                         </span>
                         <span style={{ fontSize: typography.caption.fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, whiteSpace: 'nowrap' }}>
                           avg
@@ -2149,6 +2152,11 @@ export function ExpenseSheet({
                                     background: 'none',
                                     border: 'none',
                                     padding: '0 2px',
+                                    minWidth: 44,
+                                    minHeight: 44,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                     cursor: 'pointer',
                                     color: 'var(--muted)',
                                     fontSize: typography.body.fontSize,
@@ -2716,7 +2724,7 @@ export function ExpenseSheet({
                                   onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.max(1, (next[i] ?? 1) - 1); return next })}
                                   disabled={(shareInputs[i] ?? 1) <= 1}
                                   aria-label={`Decrease ${p.name}'s shares`}
-                                  style={{ ...roundButton, width: 26, height: 26, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) <= 1 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) <= 1 ? 'not-allowed' : 'pointer' }}
+                                  style={{ ...roundButton, width: 44, height: 44, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) <= 1 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) <= 1 ? 'not-allowed' : 'pointer' }}
                                 >−</button>
                                 <span style={{ fontFamily: FONT_FAMILY, fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: 'var(--text)', minWidth: 24, textAlign: 'center' }}>{shareInputs[i] ?? 1}</span>
                                 <button
@@ -2724,7 +2732,7 @@ export function ExpenseSheet({
                                   onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.min(10, (next[i] ?? 1) + 1); return next })}
                                   disabled={(shareInputs[i] ?? 1) >= 10}
                                   aria-label={`Increase ${p.name}'s shares`}
-                                  style={{ ...roundButton, width: 26, height: 26, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) >= 10 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) >= 10 ? 'not-allowed' : 'pointer' }}
+                                  style={{ ...roundButton, width: 44, height: 44, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) >= 10 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) >= 10 ? 'not-allowed' : 'pointer' }}
                                 >+</button>
                               </div>
                             </div>
@@ -2772,8 +2780,8 @@ export function ExpenseSheet({
                             : []
                         }
 
-                        const shareStr = userShare % 1 === 0 ? `$${userShare}` : `$${userShare.toFixed(2)}`
-                        const totalStr = parsed % 1 === 0 ? `$${parsed}` : `$${parsed.toFixed(2)}`
+                        const shareStr = formatMoney(userShare)
+                        const totalStr = formatMoney(parsed)
 
                         return (
                           <div
@@ -2827,7 +2835,7 @@ export function ExpenseSheet({
                                 }}
                               >
                                 {perFriendBreakdown.map(({ name, owes }) => {
-                                  const owesStr = owes % 1 === 0 ? `$${owes}` : `$${owes.toFixed(2)}`
+                                  const owesStr = formatMoney(owes)
                                   return (
                                     <span
                                       key={name}
@@ -2840,7 +2848,7 @@ export function ExpenseSheet({
                                       }}
                                       aria-live="polite"
                                     >
-                                      {name} owes you {owesStr} 💸
+                                      {name} owes you {owesStr} <span aria-hidden="true">💸</span>
                                     </span>
                                   )
                                 })}
@@ -3043,7 +3051,7 @@ export function ExpenseSheet({
                   transition: 'opacity 0.2s ease, background 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
-                Log
+                {t('expense.logButton')}
               </motion.button>
             </div>
     </Sheet>

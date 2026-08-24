@@ -78,7 +78,7 @@ function ToggleRow({ label, description, checked, onChange, ariaLabel, disabled 
         transition: "opacity 0.2s ease",
       }}
     >
-      <div style={{ flex: 1, marginRight: spacingScale["12"] }}>
+      <div style={{ flex: 1, marginInlineEnd: spacingScale["12"] }}>
         <span style={{ ...typography.body, color: textColors.text }}>{label}</span>
         {description && (
           <p style={{ ...typography["body-sm"], color: textColors.sub, margin: 0, marginTop: spacingScale["4"] }}>
@@ -135,7 +135,7 @@ function OptionCard({ label, description, isSelected, onSelect, disabled }: Opti
       aria-label={`Celebration style: ${label}${isSelected ? " (selected)" : ""}`}
       style={{
         width: "100%",
-        textAlign: "left",
+        textAlign: "start",
         padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
         background: isSelected ? colorRamp.accent[50] : elevations.resting.fill,
         border: `1px solid ${isSelected ? colorRamp.accent[300] : elevations.resting.border}`,

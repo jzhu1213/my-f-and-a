@@ -153,7 +153,7 @@ export function CategorizationRulesScreen({
           </div>
         </div>
         {isConfirmingDelete ? (
-          <div style={{ display: "flex", gap: 4, marginLeft: spacing.xs }}>
+          <div style={{ display: "flex", gap: 4, marginInlineStart: spacing.xs }}>
             <motion.button
               onClick={confirmDelete}
               whileTap={{ scale: 0.95 }}
@@ -201,7 +201,7 @@ export function CategorizationRulesScreen({
               cursor: "pointer",
               fontSize: typography.body.fontSize,
               color: "var(--error)",
-              marginLeft: spacing.xs,
+              marginInlineStart: spacing.xs,
             }}
             aria-label={`Delete rule for "${rule.keyword}"`}
           >

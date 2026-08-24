@@ -21,6 +21,9 @@ import { SettingsSubScreen } from "./SettingsSubScreen"
 import { SettingsTermScheduleScreen } from "./SettingsTermScheduleScreen"
 import { SettingsSpendDownPlansScreen } from "./SettingsSpendDownPlansScreen"
 import { computeBudgetSummary } from "@/lib/budgetSummary"
+import { formatMoney } from "@/lib/localeFormat"
+import { CURRENCIES } from "@/lib/currencyUtils"
+import { getHomeCurrency, setHomeCurrency } from "@/lib/currencyPreferences"
 import type { Budget } from "@/types"
 import type { IncomeSmoothing } from "@/types/folio"
 import type { TermSchedule } from "@/lib/termSchedule"
@@ -122,6 +125,96 @@ function LinkRow({ label, badge, onPress }: LinkRowProps) {
 }
 
 // ============================================================================
+// Currency preference picker
+// ============================================================================
+
+function CurrencyPreferenceSection() {
+  const [currency, setCurrency] = useState(() => getHomeCurrency())
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleSelect = (code: string) => {
+    setHomeCurrency(code)
+    setCurrency(code)
+    setIsOpen(false)
+  }
+
+  const currentMeta = CURRENCIES.find(c => c.code === currency)
+
+  return (
+    <section style={{ marginTop: spacingScale["32"] }}>
+      <SectionHeading>Currency</SectionHeading>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-label={`Currency: ${currency}. Tap to change.`}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+          background: elevations.resting.fill,
+          border: `1px solid ${elevations.resting.border}`,
+          borderRadius: radius.control,
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ ...typography.body, color: textColors.text }}>
+          {currentMeta ? `${currentMeta.symbol} ${currentMeta.name}` : currency}
+        </span>
+        <span style={{ ...typography["body-sm"], color: textColors.muted }}>
+          {currency} {isOpen ? '▲' : '▼'}
+        </span>
+      </button>
+      {isOpen && (
+        <div
+          role="listbox"
+          aria-label="Select currency"
+          style={{
+            marginTop: spacingScale["8"],
+            background: elevations.resting.fill,
+            border: `1px solid ${elevations.resting.border}`,
+            borderRadius: radius.control,
+            maxHeight: 240,
+            overflowY: "auto",
+          }}
+        >
+          {CURRENCIES.map((c) => (
+            <button
+              key={c.code}
+              type="button"
+              role="option"
+              aria-selected={c.code === currency}
+              onClick={() => handleSelect(c.code)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                width: "100%",
+                padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+                background: c.code === currency ? colorRamp.accent[50] : "transparent",
+                border: "none",
+                borderBottom: `1px solid ${elevations.resting.border}`,
+                cursor: "pointer",
+                textAlign: "start",
+              }}
+            >
+              <span style={{ ...typography.body, color: textColors.text }}>
+                {c.symbol} {c.name}
+              </span>
+              <span style={{ ...typography["body-sm"], color: textColors.muted }}>
+                {c.code}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -189,14 +282,14 @@ export function SettingsBudgetIncomeScreen({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
             <div>
               <span style={{ ...typography.subhead, color: textColors.text, fontVariantNumeric: "tabular-nums" }}>
-                ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                {formatMoney(totalMonthly)}
               </span>
-              <span style={{ ...typography["body-sm"], color: textColors.muted, marginLeft: spacingScale["4"] }}>
+              <span style={{ ...typography["body-sm"], color: textColors.muted, marginInlineStart: spacingScale["4"] }}>
                 /mo
               </span>
             </div>
             <span style={{ ...typography["body-sm"], color: textColors.sub, fontVariantNumeric: "tabular-nums" }}>
-              ≈ ${dailyBudget.toFixed(0)}/day
+              ≈ {formatMoney(dailyBudget)}/day
             </span>
           </div>
         </div>
@@ -285,6 +378,9 @@ export function SettingsBudgetIncomeScreen({
         </div>
       </section>
 
+      {/* Currency preference */}
+      <CurrencyPreferenceSection />
+
       {/* Count credit toggle */}
       {onUpdateCountCreditImmediately !== undefined && (
         <section style={{ marginTop: spacingScale["32"] }}>
@@ -308,7 +404,7 @@ export function SettingsBudgetIncomeScreen({
               type="checkbox"
               checked={countCreditImmediately ?? false}
               onChange={(e) => onUpdateCountCreditImmediately(e.target.checked)}
-              style={{ width: 20, height: 20, accentColor: colorRamp.accent[400] }}
+              style={{ width: 44, height: 44, accentColor: colorRamp.accent[400], cursor: "pointer" }}
             />
           </label>
         </section>

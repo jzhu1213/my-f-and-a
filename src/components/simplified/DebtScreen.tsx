@@ -248,7 +248,7 @@ export function DebtScreen({
         </p>
         <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
           ${totalMinimum.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-          <span style={{ marginLeft: 3 }}>/mo minimum</span>
+          <span style={{ marginInlineStart: 3 }}>/mo minimum</span>
         </p>
       </Card>
 
@@ -464,7 +464,7 @@ export function DebtScreen({
                       fontSize: confirmDeleteId === debt.id ? 12 : 16,
                       fontWeight: confirmDeleteId === debt.id ? 600 : undefined,
                       color: "var(--error)",
-                      marginLeft: spacing.xs,
+                      marginInlineStart: spacing.xs,
                       borderRadius: radius.min,
                     }}
                     aria-label={confirmDeleteId === debt.id ? `Confirm delete ${debt.name}` : `Delete ${debt.name}`}

@@ -38,6 +38,7 @@ import {
 import { createWishCompleteCelebration } from "@/lib/celebrationEngine"
 import type { Transaction, Budget } from "@/types"
 import type { CelebrationEvent } from "@/types/folio"
+import { formatCurrency } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -453,7 +454,7 @@ export function WishListScreen({
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: spacingScale["8"], marginTop: spacingScale["2"] }}>
                       <span style={{ ...typography["body-sm"], color: textColors.sub, fontVariantNumeric: "tabular-nums" }}>
-                        ${item.amount.toLocaleString("en-US")}
+                        {formatCurrency(item.amount, 'USD', { fractionDigits: 0 })}
                       </span>
                       {projection && projection.hasEnoughData && projection.daysToAfford > 0 && projection.daysToAfford !== Infinity && (
                         <span style={{ ...typography.caption, color: textColors.muted }}>

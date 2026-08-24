@@ -106,7 +106,7 @@ function ActiveChallengeCard({ challenge }: { challenge: Challenge }) {
       aria-label={`Challenge: ${challenge.title}, ${percent}% complete, ${daysLeft === 0 ? "last day" : `${daysLeft} days left`}`}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: spacingScale["8"] }}>
-        <p style={{ ...typography.body, color: textColors.text, flex: 1, marginRight: spacingScale["8"] }}>
+        <p style={{ ...typography.body, color: textColors.text, flex: 1, marginInlineEnd: spacingScale["8"] }}>
           {challenge.title}
         </p>
         <span style={{ ...typography.caption, color: textColors.muted, whiteSpace: "nowrap" }}>

@@ -147,7 +147,7 @@ function NotificationItem({
 
       {/* Emoji */}
       <span
-        style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3, marginLeft: notification.read ? 0 : 8 }}
+        style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3, marginInlineStart: notification.read ? 0 : 8 }}
         aria-hidden="true"
       >
         {meta.emoji}
@@ -174,8 +174,8 @@ function NotificationItem({
             fontFamily: FONT_FAMILY,
             marginTop: 2,
             marginBottom: 0,
-            marginLeft: 0,
-            marginRight: 0,
+            marginInlineStart: 0,
+            marginInlineEnd: 0,
           }}
         >
           {formatRelativeTime(notification.createdAt)}

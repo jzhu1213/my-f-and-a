@@ -425,7 +425,7 @@ export function HistorySearchBar({
                         border: 'none',
                         borderRadius: radius.control,
                         cursor: 'pointer',
-                        textAlign: 'left',
+                        textAlign: "start",
                         width: '100%',
                         transition: 'background 0.1s',
                       }}

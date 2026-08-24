@@ -22,6 +22,7 @@ import {
   borderRadius,
 } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
+import { formatCurrency } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -222,6 +223,11 @@ export function RecurrenceManagementScreen({
             color: "var(--sub)",
             cursor: "pointer",
             padding: "4px 8px",
+            minWidth: 44,
+            minHeight: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
           aria-label="Close"
         >
@@ -240,8 +246,8 @@ export function RecurrenceManagementScreen({
             margin: 0,
             fontVariantNumeric: "tabular-nums",
           }}>
-            ${Math.round(monthlyTotal).toLocaleString("en-US")}
-            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 3 }}>
+            {formatCurrency(Math.round(monthlyTotal), 'USD', { fractionDigits: 0 })}
+            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginInlineStart: 3 }}>
               /mo
             </span>
           </p>
@@ -361,7 +367,7 @@ function RecurrenceCard({
             {frequencyLabel(recurrence.frequency)} · Next: {formatDateShort(recurrence.nextOccurrence)}
           </p>
         </div>
-        <div style={{ textAlign: "right" }}>
+        <div style={{ textAlign: "end" }}>
           <p style={{
             fontSize: typography.body.fontSize,
             fontWeight: fontWeights.semibold,

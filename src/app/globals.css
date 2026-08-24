@@ -234,9 +234,9 @@
   --border-strong:  1px solid rgba(255, 255, 255, 0.10);
   --border-accent:  1px solid rgba(255, 255, 255, 0.12);
 
-  /* ── FOCUS RING TOKEN (Req 18.4: ≥2px thick, ≥3:1 contrast) ──────── */
+  /* ── FOCUS RING TOKEN (Req 18.4, 31.2: ≥2px thick, ≥3:1 contrast) ── */
   /* accent-500 (#818cf8) on darkest surface (#0e0e1a) = 5.7:1 contrast ✓ */
-  --focus-ring-color: #818cf8;
+  --focus-ring-color: var(--accent, #818cf8);
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
 

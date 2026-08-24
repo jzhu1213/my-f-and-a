@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -26,12 +26,12 @@ export interface MonthlyDigestCardProps {
 // ============================================================================
 
 /**
- * MonthlyDigestCard â€” A compact, celebratory "Your month in review" card
+ * MonthlyDigestCard — A compact, celebratory "Your month in review" card
  * shown at the end of each budget period.
  *
  * Features:
- * - Title: "Your month in review âœ¨"
- * - Shows 3â€“5 bullet highlights (wins first, trends second)
+ * - Title: "Your month in review ✨"
+ * - Shows 3–5 bullet highlights (wins first, trends second)
  * - Ends with a single actionable tip
  * - Warm, celebratory tone (GlassCard with celebration glow)
  * - Dismissible, persisted with month key (shows once per period)
@@ -65,7 +65,7 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
             {/* Header row */}
             <div style={{ display: "flex", alignItems: "flex-start", gap: spacing.sm, marginBottom: spacingScale["12"] }}>
               <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3 }} aria-hidden="true">
-                ðŸŽ‰
+                🎉
               </span>
               <p
                 style={{
@@ -85,6 +85,11 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
                   background: "none",
                   border: "none",
                   padding: 4,
+                  minWidth: 44,
+                  minHeight: 44,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
                   fontSize: typography.body.fontSize,
                   color: "var(--sub)",
@@ -93,7 +98,7 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
                   flexShrink: 0,
                 }}
               >
-                âœ•
+                ✕
               </button>
             </div>
 
@@ -103,7 +108,7 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
                 display: "flex",
                 flexDirection: "column",
                 gap: spacingScale["6"],
-                paddingLeft: 30, // align with text after emoji
+                paddingInlineStart: 30, // align with text after emoji
               }}
             >
               {digest.highlights.map((highlight, idx) => (
@@ -131,7 +136,7 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
                 </div>
               ))}
 
-              {/* Actionable tip â€” visually distinct */}
+              {/* Actionable tip — visually distinct */}
               <div
                 style={{
                   display: "flex",
@@ -143,7 +148,7 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
                 }}
               >
                 <span style={{ fontSize: typography['body-sm'].fontSize, lineHeight: 1.5, flexShrink: 0 }} aria-hidden="true">
-                  ðŸ’¡
+                  💡
                 </span>
                 <p
                   style={{

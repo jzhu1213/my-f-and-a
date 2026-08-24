@@ -11,7 +11,7 @@
  * Requirements: 24.4
  */
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { useReducedMotion } from "@/lib/animations"
@@ -75,6 +75,19 @@ export function PreTripPlannerSheet({ open, onClose, onStartTrip }: PreTripPlann
   const [dailyBudget, setDailyBudget] = useState<string>("")
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [categories, setCategories] = useState<CategoryBreakdown>(DEFAULT_CATEGORIES)
+
+  // Escape key dismissal (task 511.3)
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        onClose()
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [open, onClose])
 
   const homeCurrency = typeof window !== "undefined" ? getHomeCurrency() : "USD"
   const currencySymbol = getCurrencySymbol(homeCurrency)
@@ -270,7 +283,7 @@ export function PreTripPlannerSheet({ open, onClose, onStartTrip }: PreTripPlann
               cursor: "pointer",
               ...typography["body-sm"],
               color: colorRamp.accent[500],
-              textAlign: "left",
+              textAlign: "start",
             }}
           >
             {showBreakdown ? "▾ Hide category breakdown" : "▸ Add category breakdown"}
@@ -310,7 +323,7 @@ export function PreTripPlannerSheet({ open, onClose, onStartTrip }: PreTripPlann
                   />
                   <span style={{ ...typography["body-sm"], color: textColors.muted }}>%</span>
                   {categoryAmounts && (
-                    <span style={{ ...typography["body-sm"], color: textColors.sub, marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>
+                    <span style={{ ...typography["body-sm"], color: textColors.sub, marginInlineStart:  "auto", fontVariantNumeric: "tabular-nums" }}>
                       {currencySymbol}{categoryAmounts[key].toFixed(0)}/day
                     </span>
                   )}

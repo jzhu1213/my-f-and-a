@@ -232,7 +232,7 @@ export function SettingsProfileScreen({
                   color: textColors.muted,
                   cursor: "pointer",
                   padding: `${spacingScale["8"]} 0`,
-                  textAlign: "left",
+                  textAlign: "start",
                 }}
               >
                 Replay walkthrough
@@ -250,7 +250,7 @@ export function SettingsProfileScreen({
                   color: textColors.muted,
                   cursor: "pointer",
                   padding: `${spacingScale["8"]} 0`,
-                  textAlign: "left",
+                  textAlign: "start",
                 }}
               >
                 Replay feature demos
@@ -268,7 +268,7 @@ export function SettingsProfileScreen({
                   color: textColors.muted,
                   cursor: "pointer",
                   padding: `${spacingScale["8"]} 0`,
-                  textAlign: "left",
+                  textAlign: "start",
                 }}
               >
                 Catch up on past spending

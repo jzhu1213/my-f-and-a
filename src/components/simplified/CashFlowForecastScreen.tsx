@@ -28,6 +28,7 @@ import type { PaySchedule } from "@/lib/paySchedule"
 import type { FixedExpense } from "@/lib/fixedExpenses"
 import type { SinkingFund } from "@/lib/sinkingFunds"
 import type { Disbursement } from "@/lib/disbursements"
+import { formatCurrency } from "@/lib/currencyUtils"
 
 // ============================================================================
 // Types
@@ -337,7 +338,7 @@ export function CashFlowForecastScreen({
             {/* Start/end balance labels */}
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: spacing.xs }}>
               <span style={{ ...chartValueLabel, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
-                ${Math.round(currentBalance).toLocaleString("en-US")}
+                {formatCurrency(Math.round(currentBalance), 'USD', { fractionDigits: 0 })}
               </span>
               <span
                 style={{
@@ -350,7 +351,7 @@ export function CashFlowForecastScreen({
                     : "var(--text)",
                 }}
               >
-                ${Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0).toLocaleString("en-US")}
+                {formatCurrency(Math.round(forecast.days[forecast.days.length - 1]?.projectedBalance ?? 0), 'USD', { fractionDigits: 0 })}
               </span>
             </div>
           </div>
@@ -394,7 +395,7 @@ export function CashFlowForecastScreen({
                       flexShrink: 0,
                     }}
                   >
-                    {event.amount >= 0 ? "+" : "\u2212"}${Math.abs(Math.round(event.amount)).toLocaleString("en-US")}
+                    {event.amount >= 0 ? "+" : "\u2212"}{formatCurrency(Math.abs(Math.round(event.amount)), 'USD', { fractionDigits: 0 })}
                   </span>
                 </div>
               ))}

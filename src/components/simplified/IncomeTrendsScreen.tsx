@@ -32,6 +32,7 @@ import {
   CHART_GRADIENT_PREFIX,
 } from "@/styles/chartTokens"
 import { computeMonthlyIncomeTotals, computeIncomeGrowthMetrics } from "@/lib/incomeTrends"
+import { formatCurrency } from "@/lib/currencyUtils"
 import type { MonthlyIncomeTotal } from "@/lib/incomeTrends"
 import type { Transaction } from "@/types"
 
@@ -60,7 +61,7 @@ function formatAmount(amount: number): string {
   if (amount >= 1000) {
     return `$${(amount / 1000).toFixed(1).replace(/\.0$/, "")}k`
   }
-  return `$${Math.round(amount).toLocaleString("en-US")}`
+  return formatCurrency(Math.round(amount), 'USD', { fractionDigits: 0 })
 }
 
 /** Format a YYYY-MM string to a readable month+year */

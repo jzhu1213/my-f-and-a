@@ -6,6 +6,7 @@ import { springs, useReducedMotion } from '@/lib/animations'
 import { Sheet } from '@/components/ui/primitives/Sheet'
 import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
+import { useTranslation } from '@/contexts/I18nContext'
 import type { Transaction, TransactionCategory } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 import { FONT_FAMILY, spacing, pxToRem, typography, fontWeights } from '@/styles/typography'
@@ -56,6 +57,7 @@ export function EditTransactionSheet({
 }: EditTransactionSheetProps) {
   const { prefersReducedMotion } = useReducedMotion()
   const { showToast } = useToast()
+  const t = useTranslation()
   const amountRef = useRef<HTMLInputElement>(null)
 
   const [amount, setAmount] = useState('')
@@ -109,11 +111,11 @@ export function EditTransactionSheet({
     if (!transaction || isSaving) return
     const parsed = parseFloat(amount)
     if (!parsed || parsed <= 0) {
-      setError('Amount must be more than $0')
+      setError(t('editTransaction.errorPositive'))
       return
     }
     if (parsed > MAX_AMOUNT) {
-      setError("Amount can't exceed $99,999")
+      setError(t('editTransaction.errorMax'))
       return
     }
 
@@ -136,8 +138,8 @@ export function EditTransactionSheet({
     setIsSaving(false)
 
     if (result) {
-      showToast('Transaction updated ✓', 'success', {
-        label: 'Undo',
+      showToast(t('editTransaction.updated'), 'success', {
+        label: t('editTransaction.undoLabel'),
         onClick: () => {
           // Revert to original values
           onSave(transaction.id, {
@@ -146,12 +148,12 @@ export function EditTransactionSheet({
             note: oldNote,
             date: oldDate,
           })
-          showToast('Change reverted')
+          showToast(t('editTransaction.reverted'))
         },
       })
       onClose()
     } else {
-      showToast('Failed to save — try again', 'error')
+      showToast(t('editTransaction.failed'), 'error')
     }
   }, [transaction, amount, category, note, date, isSaving, onSave, onClose, showToast])
 
@@ -181,7 +183,7 @@ export function EditTransactionSheet({
   })()
 
   return (
-    <Sheet open={isOpen && !!transaction} onClose={onClose} size="half" aria-label="Edit transaction">
+    <Sheet open={isOpen && !!transaction} onClose={onClose} size="half" aria-label={t('editTransaction.title')}>
       {transaction && (
         <div style={{ padding: `0 ${spacing.lg}px ${spacing.xl}px` }}>
               {/* ── Header ────────────────────────────────────── */}
@@ -192,7 +194,7 @@ export function EditTransactionSheet({
                   fontWeight: fontWeights.bold,
                   color: 'var(--text)',
                 }}>
-                  Edit transaction
+                  {t('editTransaction.title')}
                 </p>
                 <p style={{
                   fontSize: pxToRem(12),
@@ -346,7 +348,7 @@ export function EditTransactionSheet({
                   <button
                     type="button"
                     onClick={() => setShowNoteField(true)}
-                    aria-label="Add a note"
+                    aria-label={t('editTransaction.addNote')}
                     style={{
                       background: 'var(--fill-04)',
                       border: '1px solid var(--fill-08)',
@@ -363,7 +365,7 @@ export function EditTransactionSheet({
                       gap: 6,
                     }}
                   >
-                    <span style={{ fontSize: typography.body.fontSize }}>+</span> Add a note
+                    <span style={{ fontSize: typography.body.fontSize }}>+</span> {t('editTransaction.addNote')}
                   </button>
                 </div>
               ) : (
@@ -371,7 +373,7 @@ export function EditTransactionSheet({
                   <div style={{ position: 'relative' }}>
                     <input
                       type="text"
-                      placeholder="What's this for?"
+                      placeholder={t('editTransaction.notePlaceholder')}
                       value={note}
                       onChange={handleNoteChange}
                       maxLength={60}
@@ -435,7 +437,7 @@ export function EditTransactionSheet({
                   transition: 'opacity 0.2s ease, background 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? t('editTransaction.saving') : t('editTransaction.save')}
               </button>
 
               {/* ── Refund Link (only for expenses) ───────────── */}
@@ -458,7 +460,7 @@ export function EditTransactionSheet({
                       opacity: 0.9,
                     }}
                   >
-                    ↩ Refund this
+                    {t('editTransaction.refund')}
                   </button>
                 </div>
               )}

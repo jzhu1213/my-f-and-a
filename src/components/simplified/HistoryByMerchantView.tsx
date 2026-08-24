@@ -10,6 +10,7 @@ import { springs, useReducedMotion } from "@/lib/animations"
 import { fills } from "@/styles/shared"
 import { radius } from '@/styles/surfaces'
 import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { formatMoney, formatDate as formatLocalDate } from '@/lib/localeFormat'
 
 // ============================================================================
 // Types
@@ -45,12 +46,11 @@ function getMerchantDisplay(tx: Transaction): string {
 }
 
 function formatAmount(amount: number): string {
-  return `$${amount.toFixed(2)}`
+  return formatMoney(amount)
 }
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00")
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  return formatLocalDate(dateStr, { month: "short", day: "numeric" })
 }
 
 function getCategoryEmoji(category: string): string {
@@ -167,7 +167,7 @@ export function HistoryByMerchantView({
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  textAlign: "left",
+                  textAlign: "start",
                 }}
               >
                 {/* Category emoji as a visual cue */}
@@ -238,7 +238,7 @@ export function HistoryByMerchantView({
                     fontSize: typography['body-sm'].fontSize,
                     color: "var(--muted)",
                     flexShrink: 0,
-                    marginLeft: 4,
+                    marginInlineStart: 4,
                   }}
                 >
                   ▼
@@ -317,7 +317,7 @@ export function HistoryByMerchantView({
                               fontFamily: FONT_FAMILY,
                               fontVariantNumeric: "tabular-nums",
                               flexShrink: 0,
-                              marginLeft: spacing.sm,
+                              marginInlineStart: spacing.sm,
                             }}
                           >
                             {tx.type === "income" ? "+" : "-"}

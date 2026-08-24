@@ -158,7 +158,7 @@ function ModeOption({
           : `1px solid ${semanticColors.borderSubtle}`,
         background: isSelected ? colorRamp.accent[50] : "transparent",
         cursor: "pointer",
-        textAlign: "left",
+        textAlign: "start",
       }}
     >
       <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">{icon}</span>

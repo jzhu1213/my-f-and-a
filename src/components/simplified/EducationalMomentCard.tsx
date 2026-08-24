@@ -87,6 +87,7 @@ export function EducationalMomentCard({
                 color: 'var(--muted)',
                 fontFamily: FONT_FAMILY,
                 padding: '4px 10px',
+                minHeight: 44,
                 flexShrink: 0,
               }}
               aria-label={`Dismiss: ${lesson.title}`}

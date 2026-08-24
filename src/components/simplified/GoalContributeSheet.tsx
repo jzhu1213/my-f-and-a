@@ -171,8 +171,8 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    width: 32,
-                    height: 32,
+                    width: 44,
+                    height: 44,
                     flexShrink: 0,
                     borderRadius: radius.full,
                     background: "var(--fill-04)",
@@ -211,7 +211,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                 />
               </div>
               <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginBottom: spacing.lg, fontVariantNumeric: "tabular-nums" }}>
-                {remaining > 0 ? `$${formatAmount(remaining)} to go` : "Goal reached 🎉"}
+                {remaining > 0 ? `$${formatAmount(remaining)} to go` : <><span>Goal reached</span>{" "}<span aria-hidden="true">🎉</span></>}
               </p>
 
               {/* ── Quick-add chips ────────────────────────────────── */}

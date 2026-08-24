@@ -89,7 +89,7 @@ export function CategoryDetailSheet({
                 />
               </div>
               {row.monthlyLimit > 0 && (
-                <p style={{ fontFamily: FONT_FAMILY, fontSize: typography.caption.fontSize, color: 'var(--muted)', marginTop: '8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                <p style={{ fontFamily: FONT_FAMILY, fontSize: typography.caption.fontSize, color: 'var(--muted)', marginTop: '8px', textAlign: "end", fontVariantNumeric: 'tabular-nums' }}>
                   ${row.monthlySpent.toFixed(0)} / ${row.monthlyLimit.toFixed(0)} this month
                 </p>
               )}

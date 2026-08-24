@@ -195,7 +195,7 @@ export function CurrencySelector({
                   aria-label={`${currency.name} (${currency.code})${isHome ? ' — home' : ''}${isTravel ? ' — travel' : ''}`}
                   style={{
                     padding: '6px 10px',
-                    minHeight: 32,
+                    minHeight: 44,
                     background: isSelected
                       ? colorRamp.accent[200]
                       : 'transparent',
