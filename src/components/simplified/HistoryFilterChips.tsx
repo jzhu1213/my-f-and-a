@@ -19,7 +19,8 @@ import { useState, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { TRANSACTION_CATEGORIES } from "@/types"
 import type { TransactionCategory, Transaction } from "@/types"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import { springs } from "@/lib/animations"
 import { getHomeCurrency } from "@/lib/currencyPreferences"
 import { getCurrencySymbol, normalizeCode } from "@/lib/currencyUtils"
@@ -192,13 +193,13 @@ function chipStyle(active: boolean): React.CSSProperties {
     minHeight: 44,
     boxSizing: "border-box",
     fontFamily: FONT_FAMILY,
-    fontSize: "13px",
-    fontWeight: 500,
-    borderRadius: 99,
+    fontSize: typography['body-sm'].fontSize,
+    fontWeight: fontWeights.medium,
+    borderRadius: radius.full,
     border: "1px solid",
-    borderColor: active ? "rgba(129, 140, 248, 0.4)" : "rgba(255, 255, 255, 0.1)",
+    borderColor: active ? "var(--accent-400)" : "var(--fill-10)",
     color: active ? "var(--text)" : "var(--sub)",
-    background: active ? "rgba(129, 140, 248, 0.12)" : "rgba(255, 255, 255, 0.04)",
+    background: active ? "var(--accent-200)" : "var(--fill-04)",
     transition: "all 0.15s",
     whiteSpace: "nowrap",
     cursor: "pointer",
@@ -210,7 +211,7 @@ function chipStyle(active: boolean): React.CSSProperties {
 
 const scrollRowStyle: React.CSSProperties = {
   display: "flex",
-  gap: 8,
+  gap: spacing.xs,
   overflowX: "auto",
   scrollbarWidth: "none",
   padding: "0 2px",
@@ -220,13 +221,13 @@ const scrollRowStyle: React.CSSProperties = {
 const sectionStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 8,
+  gap: spacing.xs,
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: typography.caption.fontSize,
   fontFamily: FONT_FAMILY,
-  fontWeight: 600,
+  fontWeight: fontWeights.semibold,
   color: "var(--muted)",
   textTransform: "uppercase",
   letterSpacing: "0.08em",
@@ -458,7 +459,7 @@ export function HistoryFilterChips({
 
   return (
     <div
-      style={{ display: "flex", flexDirection: "column", gap: 12 }}
+      style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}
       role="region"
       aria-label="Transaction filters"
     >
@@ -542,7 +543,7 @@ export function HistoryFilterChips({
               <div
                 style={{
                   display: "flex",
-                  gap: 8,
+                  gap: spacing.xs,
                   alignItems: "center",
                   padding: "8px 0",
                 }}
@@ -554,7 +555,7 @@ export function HistoryFilterChips({
                   aria-label="Start date"
                   style={dateInputStyle}
                 />
-                <span style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY }}>to</span>
+                <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", fontFamily: FONT_FAMILY }}>to</span>
                 <input
                   type="date"
                   value={customDateEnd}
@@ -570,7 +571,7 @@ export function HistoryFilterChips({
                   style={{
                     ...chipStyle(true),
                     padding: "6px 12px",
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                   }}
                   aria-label="Apply custom date range"
                 >
@@ -624,7 +625,7 @@ export function HistoryFilterChips({
               <div
                 style={{
                   display: "flex",
-                  gap: 8,
+                  gap: spacing.xs,
                   alignItems: "center",
                   padding: "8px 0",
                 }}
@@ -639,7 +640,7 @@ export function HistoryFilterChips({
                   aria-label="Minimum amount"
                   style={amountInputStyle}
                 />
-                <span style={{ fontSize: 12, color: "var(--sub)", fontFamily: FONT_FAMILY }}>to</span>
+                <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", fontFamily: FONT_FAMILY }}>to</span>
                 <input
                   type="number"
                   placeholder="Max"
@@ -658,7 +659,7 @@ export function HistoryFilterChips({
                   style={{
                     ...chipStyle(true),
                     padding: "6px 12px",
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                   }}
                   aria-label="Apply custom amount range"
                 >
@@ -751,11 +752,11 @@ export function HistoryFilterChips({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 12,
+              gap: spacing.sm,
               padding: "10px 14px",
-              background: "rgba(129, 140, 248, 0.08)",
-              border: "1px solid rgba(129, 140, 248, 0.2)",
-              borderRadius: 12,
+              background: "var(--accent-100)",
+              border: "1px solid var(--accent-200)",
+              borderRadius: radius.control,
             }}
             role="status"
             aria-live="polite"
@@ -763,9 +764,9 @@ export function HistoryFilterChips({
           >
             <span
               style={{
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: "var(--text)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -786,13 +787,13 @@ export function HistoryFilterChips({
               style={{
                 flexShrink: 0,
                 padding: "5px 12px",
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: "var(--accent)",
-                background: "rgba(129, 140, 248, 0.12)",
-                border: "1px solid rgba(129, 140, 248, 0.3)",
-                borderRadius: 99,
+                background: "var(--accent-200)",
+                border: "1px solid var(--accent-300)",
+                borderRadius: radius.full,
                 cursor: "pointer",
               }}
               aria-label="Clear all filters"
@@ -813,12 +814,12 @@ export function HistoryFilterChips({
 const dateInputStyle: React.CSSProperties = {
   flex: 1,
   padding: "8px 10px",
-  fontSize: 13,
+  fontSize: typography['body-sm'].fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
-  background: "rgba(255, 255, 255, 0.04)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  borderRadius: 8,
+  background: "var(--fill-04)",
+  border: "1px solid var(--fill-10)",
+  borderRadius: radius.control,
   outline: "none",
   colorScheme: "dark",
 }
@@ -826,11 +827,11 @@ const dateInputStyle: React.CSSProperties = {
 const amountInputStyle: React.CSSProperties = {
   width: 80,
   padding: "8px 10px",
-  fontSize: 13,
+  fontSize: typography['body-sm'].fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
-  background: "rgba(255, 255, 255, 0.04)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  borderRadius: 8,
+  background: "var(--fill-04)",
+  border: "1px solid var(--fill-10)",
+  borderRadius: radius.control,
   outline: "none",
 }

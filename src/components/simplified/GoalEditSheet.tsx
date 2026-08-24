@@ -7,8 +7,9 @@ import { BottomSheet } from "@/components/ui/BottomSheet"
 import type { Goal } from "@/types"
 import type { SavingsAccount } from "@/types/folio"
 import type { GoalFormData } from "./GoalsScreen"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, shadows, fills, colorRamp } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { shadows, fills, colorRamp, HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from "@/styles/surfaces"
 
 // ============================================================================
 // Config
@@ -176,7 +177,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
             marginBottom: 22,
           }}
         >
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>
+          <h2 style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, color: "var(--text)" }}>
             {sheetMode === "edit" ? "Edit goal" : "New goal"}
           </h2>
           <button
@@ -190,8 +191,8 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
               justifyContent: "center",
               width: 32,
               height: 32,
-              borderRadius: borderRadius.full,
-              background: "rgba(255,255,255,0.04)",
+              borderRadius: radius.full,
+              background: "var(--fill-04)",
               border: "1px solid var(--border)",
               color: "var(--muted)",
               cursor: submitting ? "not-allowed" : "pointer",
@@ -204,15 +205,15 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
         </div>
 
               {/* ── Emoji picker ───────────────────────────────────── */}
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 10 }}>Pick an icon</p>
+              <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", marginBottom: 10 }}>Pick an icon</p>
               <div
                 role="radiogroup"
                 aria-label="Goal icon"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(6, 1fr)",
-                  gap: 8,
-                  marginBottom: 24,
+                  gap: spacing.xs,
+                  marginBottom: spacing.lg,
                 }}
               >
                 {EMOJI_OPTIONS.map(emoji => {
@@ -225,14 +226,14 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                       aria-checked={selected}
                       aria-label={`Icon ${emoji}`}
                       onClick={() => setSelectedEmoji(emoji)}
-                      whileTap={{ scale: prefersReducedMotion ? 1 : 0.92 }}
+                      whileTap={{ scale: prefersReducedMotion ? 1 : 0.95 }}
                       transition={springs.snappy}
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         padding: "10px 0",
-                        fontSize: 22,
+                        fontSize: typography.headline.fontSize,
                         lineHeight: 1,
                         borderRadius: "var(--radius-md)",
                         cursor: "pointer",
@@ -255,7 +256,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
               </div>
 
               {/* ── Name ───────────────────────────────────────────── */}
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>What are you saving for?</p>
+              <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", marginBottom: spacing.xs }}>What are you saving for?</p>
               <input
                 ref={nameRef}
                 type="text"
@@ -270,19 +271,19 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                   border: "none",
                   borderBottom: "1px solid var(--line)",
                   outline: "none",
-                  fontSize: 16,
+                  fontSize: typography.body.fontSize,
                   fontFamily: FONT_FAMILY,
                   color: "var(--text)",
                   padding: "10px 0",
-                  marginBottom: 24,
+                  marginBottom: spacing.lg,
                   caretColor: "var(--text)",
                 }}
               />
 
               {/* ── Target amount ──────────────────────────────────── */}
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>Target amount</p>
+              <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", marginBottom: spacing.xs }}>Target amount</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: error ? 12 : 28 }}>
-                <span style={{ fontSize: 24, fontWeight: 300, color: "var(--muted)" }}>$</span>
+                <span style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.light, color: "var(--muted)" }}>$</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -304,8 +305,8 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                     border: "none",
                     borderBottom: "1px solid var(--line)",
                     outline: "none",
-                    fontSize: 32,
-                    fontWeight: 600,
+                    fontSize: typography.title.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: "var(--text)",
                     padding: "4px 0 6px",
@@ -316,10 +317,10 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
               </div>
 
               {/* ── Target date (optional) ─────────────────────────── */}
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>
-                Target date <span style={{ fontWeight: 400 }}>(optional)</span>
+              <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", marginBottom: spacing.xs }}>
+                Target date <span style={{ fontWeight: fontWeights.regular }}>(optional)</span>
               </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, marginBottom: 28 }}>
                 <input
                   type="date"
                   value={targetDate}
@@ -332,7 +333,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                     border: "none",
                     borderBottom: "1px solid var(--line)",
                     outline: "none",
-                    fontSize: 15,
+                    fontSize: typography.body.fontSize,
                     fontFamily: FONT_FAMILY,
                     color: targetDate ? "var(--text)" : "var(--muted)",
                     padding: "10px 0",
@@ -351,8 +352,8 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                       justifyContent: "center",
                       width: 28,
                       height: 28,
-                      borderRadius: borderRadius.full,
-                      background: "rgba(255,255,255,0.04)",
+                      borderRadius: radius.full,
+                      background: "var(--fill-04)",
                       border: "1px solid var(--border)",
                       color: "var(--muted)",
                       cursor: "pointer",
@@ -369,10 +370,10 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
               {/* ── Link to investment account (optional, progressive disclosure) ── */}
               {savingsAccounts && savingsAccounts.length > 0 && (
                 <>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>
-                    Back with an account <span style={{ fontWeight: 400 }}>(optional)</span>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", marginBottom: spacing.xs }}>
+                    Back with an account <span style={{ fontWeight: fontWeights.regular }}>(optional)</span>
                   </p>
-                  <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 10, lineHeight: 1.4 }}>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: 10, lineHeight: 1.4 }}>
                     Link an investment account so progress grows automatically.
                   </p>
                   <select
@@ -382,12 +383,12 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      fontSize: 14,
+                      fontSize: typography.body.fontSize,
                       fontFamily: FONT_FAMILY,
                       color: linkedAccountId ? "var(--text)" : "var(--muted)",
-                      background: "rgba(255,255,255,0.03)",
+                      background: "var(--fill-03)",
                       border: "1px solid var(--line)",
-                      borderRadius: 8,
+                      borderRadius: radius.control,
                       outline: "none",
                       marginBottom: 28,
                       cursor: "pointer",
@@ -410,7 +411,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
 
               {/* ── Inline error (persistence failure / validation) ── */}
               {error && (
-                <p id="goal-edit-error" role="alert" aria-live="assertive" style={{ fontSize: 13, color: "var(--error)", marginBottom: 20, lineHeight: 1.5 }}>
+                <p id="goal-edit-error" role="alert" aria-live="assertive" style={{ fontSize: typography['body-sm'].fontSize, color: "var(--error)", marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}>
                   {error}
                 </p>
               )}
@@ -434,7 +435,7 @@ export function GoalEditSheet({ isOpen, mode, goal, savingsAccounts, onClose, on
                   color: canSubmit ? "var(--text)" : "var(--muted)",
                   fontFamily: FONT_FAMILY,
                   fontSize: 17,
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   borderRadius: "var(--radius-md)",
                   border: "none",
                   cursor: canSubmit ? "pointer" : "not-allowed",

@@ -20,7 +20,7 @@ import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { EmptyState } from "@/components/ui/EmptyState"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -79,15 +79,15 @@ function StatRow({
         borderBottom: "1px solid var(--border)",
       }}
     >
-      <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }} aria-hidden="true">
+      <span style={{ fontSize: typography.headline.fontSize, lineHeight: 1, flexShrink: 0 }} aria-hidden="true">
         {emoji}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 2 }}>{label}</p>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: 2 }}>{label}</p>
         <p
           style={{
             fontSize: 17,
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             color: "var(--text)",
             fontVariantNumeric: "tabular-nums",
             lineHeight: 1.3,
@@ -96,7 +96,7 @@ function StatRow({
           {value}
         </p>
         {hint && (
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{hint}</p>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 2 }}>{hint}</p>
         )}
       </div>
     </div>
@@ -145,9 +145,9 @@ export function TermReviewScreen({
         background: "none",
         border: "none",
         color: "var(--sub)",
-        fontSize: 14,
+        fontSize: typography.body.fontSize,
         cursor: "pointer",
-        marginBottom: 16,
+        marginBottom: spacing.md,
         padding: "8px 0",
         fontFamily: FONT_FAMILY,
       }}
@@ -162,10 +162,10 @@ export function TermReviewScreen({
     return (
       <div style={containerStyle}>
         {backButton}
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
+        <h2 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", marginBottom: spacing.xs }}>
           {heading}
         </h2>
-        <GlassCard elevation="low" style={{ padding: "4px 0", marginTop: 12 }}>
+        <GlassCard elevation="low" style={{ padding: "4px 0", marginTop: spacing.sm }}>
           <EmptyState
             illustration="review"
             title="Your recap is still growing"
@@ -186,10 +186,10 @@ export function TermReviewScreen({
     <div style={containerStyle}>
       {backButton}
 
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+      <h2 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", marginBottom: 6 }}>
         {heading}
       </h2>
-      <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>
+      <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}>
         {review.periodLabel} — a warm look back, just for you.
       </p>
 
@@ -197,13 +197,13 @@ export function TermReviewScreen({
         <GlassCard elevation="high" glow="celebration" style={{ padding: "24px 22px" }}>
           {/* Header — the celebratory biggest win */}
           <div style={{ textAlign: "center", marginBottom: 18 }}>
-            <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }} aria-hidden="true">
+            <div style={{ fontSize: 40, lineHeight: 1, marginBottom: spacing.xs }} aria-hidden="true">
               🎉
             </div>
             <p
               style={{
-                fontSize: 20,
-                fontWeight: 700,
+                fontSize: typography.subhead.fontSize,
+                fontWeight: fontWeights.bold,
                 color: "var(--text)",
                 marginBottom: 6,
                 lineHeight: 1.25,
@@ -211,13 +211,13 @@ export function TermReviewScreen({
             >
               {biggestWin.headline}
             </p>
-            <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.5 }}>
+            <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", lineHeight: 1.5 }}>
               {biggestWin.detail}
             </p>
           </div>
 
           {/* Stats */}
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: spacing.xs }}>
             <StatRow
               emoji="🔥"
               label="Best streak"
@@ -277,10 +277,10 @@ export function TermReviewScreen({
 
       <p
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--muted)",
           textAlign: "center",
-          marginTop: 16,
+          marginTop: spacing.md,
           lineHeight: 1.5,
         }}
       >

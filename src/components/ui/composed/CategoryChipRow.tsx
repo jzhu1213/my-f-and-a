@@ -22,7 +22,7 @@ import { spacingScale } from "@/styles/layout"
 import { springPresets } from "@/styles/motion"
 import { radius } from "@/styles/surfaces"
 import { textColors } from "@/styles/colors"
-import { FONT_FAMILY, typography } from "@/styles/typography"
+import { FONT_FAMILY, typography, fontWeights } from '@/styles/typography'
 import { Icon } from "@/components/ui/Icon"
 import { getCategoryIconName, type IconName } from "@/lib/icons"
 import { getCategoryAccent } from "@/styles/shared"
@@ -240,7 +240,7 @@ function SuggestionChip({ suggestion, accent, onSelect }: SuggestionChipProps) {
     borderRadius: radius.full,
     fontFamily: FONT_FAMILY,
     fontSize: typography["body-sm"].fontSize,
-    fontWeight: 500,
+    fontWeight: fontWeights.medium,
     lineHeight: typography["body-sm"].lineHeight,
     fontVariantNumeric: "tabular-nums",
     whiteSpace: "nowrap",

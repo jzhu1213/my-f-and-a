@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { GlassCard } from './GlassCard'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import {
   listFriends,
   listPendingRequests,
@@ -50,12 +51,12 @@ const badgeStyle: React.CSSProperties = {
   minWidth: 20,
   height: 20,
   padding: '0 6px',
-  borderRadius: 10,
-  background: 'rgba(167, 139, 250, 0.2)',
-  color: 'var(--accent, #a78bfa)',
-  fontSize: 11,
+  borderRadius: radius.control,
+  background: 'var(--accent-200)',
+  color: 'var(--accent)',
+  fontSize: typography.caption.fontSize,
   fontFamily: FONT_FAMILY,
-  fontWeight: 600,
+  fontWeight: fontWeights.semibold,
 }
 
 const friendRowStyle: React.CSSProperties = {
@@ -63,7 +64,7 @@ const friendRowStyle: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'space-between',
   padding: '10px 0',
-  borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+  borderBottom: '1px solid var(--fill-04)',
 }
 
 const avatarStyle: React.CSSProperties = {
@@ -73,18 +74,18 @@ const avatarStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: 12,
-  fontWeight: 600,
+  fontSize: typography['body-sm'].fontSize,
+  fontWeight: fontWeights.semibold,
   fontFamily: FONT_FAMILY,
-  background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(251, 146, 60, 0.15))',
+  background: 'linear-gradient(135deg, var(--accent-200), var(--warning-200))',
   color: 'var(--text)',
   flexShrink: 0,
 }
 
 const smallButtonStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: typography['body-sm'].fontSize,
   fontFamily: FONT_FAMILY,
-  fontWeight: 500,
+  fontWeight: fontWeights.medium,
   padding: '5px 10px',
   borderRadius: 'var(--radius-sm)',
   cursor: 'pointer',
@@ -94,12 +95,12 @@ const smallButtonStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
-  fontWeight: 400,
+  fontWeight: fontWeights.regular,
   color: 'var(--text)',
-  background: 'rgba(255, 255, 255, 0.05)',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+  background: 'var(--fill-05)',
+  border: '1px solid var(--fill-10)',
   borderRadius: 'var(--radius-sm)',
   padding: '10px 12px',
   outline: 'none',
@@ -258,7 +259,7 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
   if (!userId) return null
 
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: spacing.sm }}>
       {/* Section toggle header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
@@ -266,12 +267,12 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
         aria-label={`Friends section, ${totalCount} total. ${isExpanded ? 'Collapse' : 'Expand'}`}
         style={sectionHeaderStyle}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
           <span
             style={{
-              fontSize: 15,
+              fontSize: typography.body.fontSize,
               fontFamily: FONT_FAMILY,
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
               color: 'var(--text)',
             }}
           >
@@ -282,8 +283,8 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
             <span
               style={{
                 ...badgeStyle,
-                background: 'rgba(251, 191, 36, 0.2)',
-                color: 'var(--warning, #fbbf24)',
+                background: 'var(--warning-200)',
+                color: 'var(--warning)',
               }}
             >
               {pendingRequests.length} new
@@ -319,12 +320,12 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
             transition={springs.gentle}
             style={{ overflow: 'hidden' }}
           >
-            <GlassCard elevation="low" style={{ padding: 16, marginBottom: 12 }}>
+            <GlassCard elevation="low" style={{ padding: spacing.md, marginBottom: 12 }}>
               {/* Loading state */}
               {isLoading && (
                 <p
                   style={{
-                    fontSize: 13,
+                    fontSize: typography['body-sm'].fontSize,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--muted)',
                     textAlign: 'center',
@@ -341,14 +342,14 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                   role="status"
                   aria-live="polite"
                   style={{
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     fontFamily: FONT_FAMILY,
-                    fontWeight: 500,
-                    color: 'var(--accent, #a78bfa)',
-                    background: 'rgba(167, 139, 250, 0.08)',
+                    fontWeight: fontWeights.medium,
+                    color: 'var(--accent)',
+                    background: 'var(--accent-100)',
                     padding: '8px 12px',
                     borderRadius: 'var(--radius-sm)',
-                    marginBottom: 12,
+                    marginBottom: spacing.sm,
                     textAlign: 'center',
                   }}
                 >
@@ -366,8 +367,8 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                 >
                   <p
                     style={{
-                      fontSize: 32,
-                      marginBottom: 8,
+                      fontSize: typography.title.fontSize,
+                      marginBottom: spacing.xs,
                     }}
                     aria-hidden="true"
                   >
@@ -375,9 +376,9 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                   </p>
                   <p
                     style={{
-                      fontSize: 14,
+                      fontSize: typography.body.fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       color: 'var(--text)',
                       marginBottom: 4,
                     }}
@@ -386,7 +387,7 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                   </p>
                   <p
                     style={{
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
                       color: 'var(--muted)',
                     }}
@@ -398,27 +399,27 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
 
               {/* Incoming requests */}
               {!isLoading && pendingRequests.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: spacing.md }}>
                   <p
                     style={{
-                      fontSize: 11,
+                      fontSize: typography.caption.fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 600,
+                      fontWeight: fontWeights.semibold,
                       color: 'var(--muted)',
                       letterSpacing: '0.05em',
                       textTransform: 'uppercase',
-                      marginBottom: 8,
+                      marginBottom: spacing.xs,
                     }}
                   >
                     Incoming requests
                   </p>
                   {pendingRequests.map((req) => (
                     <div key={req.id} style={friendRowStyle}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
                         <UserAvatar />
                         <span
                           style={{
-                            fontSize: 13,
+                            fontSize: typography['body-sm'].fontSize,
                             fontFamily: FONT_FAMILY,
                             color: 'var(--text)',
                           }}
@@ -434,8 +435,8 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                           aria-label="Accept friend request"
                           style={{
                             ...smallButtonStyle,
-                            background: 'rgba(167, 139, 250, 0.15)',
-                            color: 'var(--accent, #a78bfa)',
+                            background: 'var(--accent-200)',
+                            color: 'var(--accent)',
                           }}
                         >
                           Accept
@@ -447,7 +448,7 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                           aria-label="Decline friend request"
                           style={{
                             ...smallButtonStyle,
-                            background: 'rgba(255, 255, 255, 0.05)',
+                            background: 'var(--fill-05)',
                             color: 'var(--muted)',
                           }}
                         >
@@ -461,27 +462,27 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
 
               {/* Outgoing requests */}
               {!isLoading && outgoingRequests.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: spacing.md }}>
                   <p
                     style={{
-                      fontSize: 11,
+                      fontSize: typography.caption.fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 600,
+                      fontWeight: fontWeights.semibold,
                       color: 'var(--muted)',
                       letterSpacing: '0.05em',
                       textTransform: 'uppercase',
-                      marginBottom: 8,
+                      marginBottom: spacing.xs,
                     }}
                   >
                     Sent requests
                   </p>
                   {outgoingRequests.map((req) => (
                     <div key={req.id} style={friendRowStyle}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
                         <UserAvatar />
                         <span
                           style={{
-                            fontSize: 13,
+                            fontSize: typography['body-sm'].fontSize,
                             fontFamily: FONT_FAMILY,
                             color: 'var(--text)',
                           }}
@@ -491,7 +492,7 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                       </div>
                       <span
                         style={{
-                          fontSize: 12,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
                           fontStyle: 'italic',
                           color: 'var(--dim)',
@@ -504,11 +505,11 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                   {/* Optimistic requests */}
                   {optimisticRequests.map((req) => (
                     <div key={req.id} style={friendRowStyle}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
                         <UserAvatar />
                         <span
                           style={{
-                            fontSize: 13,
+                            fontSize: typography['body-sm'].fontSize,
                             fontFamily: FONT_FAMILY,
                             color: 'var(--text)',
                           }}
@@ -518,10 +519,10 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                       </div>
                       <span
                         style={{
-                          fontSize: 12,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
                           fontStyle: 'italic',
-                          color: req.status === 'failed' ? 'var(--error, #f87171)' : 'var(--dim)',
+                          color: req.status === 'failed' ? 'var(--error)' : 'var(--dim)',
                         }}
                       >
                         {req.status === 'failed' ? 'Failed — will retry' : 'Sending…'}
@@ -533,16 +534,16 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
 
               {/* Accepted friends */}
               {!isLoading && friends.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: spacing.md }}>
                   <p
                     style={{
-                      fontSize: 11,
+                      fontSize: typography.caption.fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 600,
+                      fontWeight: fontWeights.semibold,
                       color: 'var(--muted)',
                       letterSpacing: '0.05em',
                       textTransform: 'uppercase',
-                      marginBottom: 8,
+                      marginBottom: spacing.xs,
                     }}
                   >
                     Your friends
@@ -551,11 +552,11 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                     const otherId = friend.requesterId === userId ? friend.addresseeId : friend.requesterId
                     return (
                       <div key={friend.id} style={friendRowStyle}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
                           <UserAvatar />
                           <span
                             style={{
-                              fontSize: 13,
+                              fontSize: typography['body-sm'].fontSize,
                               fontFamily: FONT_FAMILY,
                               color: 'var(--text)',
                             }}
@@ -570,7 +571,7 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                           aria-label={confirmRemoveId === friend.id ? "Confirm remove friend" : "Remove friend"}
                           style={{
                             ...smallButtonStyle,
-                            background: confirmRemoveId === friend.id ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                            background: confirmRemoveId === friend.id ? 'var(--error-200)' : 'var(--fill-04)',
                             color: confirmRemoveId === friend.id ? 'var(--error)' : 'var(--muted)',
                           }}
                         >
@@ -587,13 +588,13 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                 <div>
                   <p
                     style={{
-                      fontSize: 11,
+                      fontSize: typography.caption.fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 600,
+                      fontWeight: fontWeights.semibold,
                       color: 'var(--muted)',
                       letterSpacing: '0.05em',
                       textTransform: 'uppercase',
-                      marginBottom: 8,
+                      marginBottom: spacing.xs,
                     }}
                   >
                     Add a friend
@@ -612,10 +613,10 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                   {isSearching && (
                     <p
                       style={{
-                        fontSize: 12,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
                         color: 'var(--dim)',
-                        marginTop: 8,
+                        marginTop: spacing.xs,
                       }}
                     >
                       Searching…
@@ -624,20 +625,20 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                   {!isSearching && searchQuery.trim() && searchResults.length === 0 && (
                     <p
                       style={{
-                        fontSize: 12,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
                         color: 'var(--muted)',
-                        marginTop: 8,
+                        marginTop: spacing.xs,
                       }}
                     >
                       No one found — try a different handle or share your invite link
                     </p>
                   )}
                   {searchResults.length > 0 && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: spacing.xs }}>
                       {searchResults.map((profile) => (
                         <div key={profile.id} style={friendRowStyle}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
                             <UserAvatar
                               displayName={profile.displayName}
                               avatarUrl={profile.avatarUrl}
@@ -645,9 +646,9 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                             <div>
                               <p
                                 style={{
-                                  fontSize: 13,
+                                  fontSize: typography['body-sm'].fontSize,
                                   fontFamily: FONT_FAMILY,
-                                  fontWeight: 500,
+                                  fontWeight: fontWeights.medium,
                                   color: 'var(--text)',
                                 }}
                               >
@@ -655,9 +656,9 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                               </p>
                               <p
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: typography.caption.fontSize,
                                   fontFamily: FONT_FAMILY,
-                                  color: 'var(--accent, #a78bfa)',
+                                  color: 'var(--accent)',
                                 }}
                               >
                                 @{profile.handle}
@@ -671,8 +672,8 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                             aria-label={`Send friend request to ${profile.displayName || profile.handle}`}
                             style={{
                               ...smallButtonStyle,
-                              background: 'rgba(167, 139, 250, 0.15)',
-                              color: 'var(--accent, #a78bfa)',
+                              background: 'var(--accent-200)',
+                              color: 'var(--accent)',
                             }}
                           >
                             Add
@@ -690,18 +691,18 @@ export function FriendsSection({ userId }: FriendsSectionProps) {
                     aria-label="Copy invite link to clipboard"
                     style={{
                       width: '100%',
-                      marginTop: 12,
+                      marginTop: spacing.sm,
                       height: 36,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 6,
-                      fontSize: 12,
+                      gap: spacing.xxs,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       color: 'var(--muted)',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: 'var(--fill-04)',
+                      border: '1px solid var(--fill-08)',
                       borderRadius: 'var(--radius-sm)',
                       cursor: 'pointer',
                     }}

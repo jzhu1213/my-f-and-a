@@ -14,30 +14,19 @@ import { getHomeCurrency } from '@/lib/currencyPreferences'
 import { getTagsForTransaction, getRecentTags, parseTagInput } from '@/lib/tagUtils'
 import { lookupMerchant } from '@/lib/merchantMemory'
 import { saveHistoryScrollPosition } from '@/lib/useScrollVirtualization'
-import { borderRadius, shadows } from '@/styles/shared'
-import { FONT_FAMILY } from '@/styles/typography'
+import { shadows, getCategoryAccent } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 
-// ── Session storage key ──────────────────────────────────────────
+// â”€â”€ Session storage key â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SESSION_FILTERS_KEY = 'folio-history-filters'
 const COLLAPSE_SUMMARIES_KEY = 'folio-collapse-summaries'
 const SHOW_CATEGORY_BARS_KEY = 'folio-show-category-bars'
 
-// ── Category colors for spending bar ─────────────────────────────
-const CATEGORY_COLORS: Record<string, string> = {
-  food: '#f97316',
-  drinks: '#a78bfa',
-  rent: '#60a5fa',
-  transport: '#34d399',
-  school: '#fbbf24',
-  fun: '#f472b6',
-  health: '#22d3ee',
-  subscriptions: '#c084fc',
-  gig: '#4ade80',
-  income: '#4ade80',
-  other: '#94a3b8',
-}
+// â”€â”€ Category colors for spending bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Use the shared CATEGORY_ACCENTS token system via getCategoryAccent()
 
-// ── Inline Category Spending Bar ─────────────────────────────────
+// â”€â”€ Inline Category Spending Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CategorySpendingBar({
   transactions,
   onCategoryTap,
@@ -64,18 +53,18 @@ function CategorySpendingBar({
       category: cat as TransactionCategory,
       amount,
       pct: (amount / total) * 100,
-      color: CATEGORY_COLORS[cat] || '#94a3b8',
+      color: getCategoryAccent(cat),
     }))
 
   return (
-    <div style={{ marginTop: 8 }}>
+    <div style={{ marginTop: spacing.xs }}>
       <div
         style={{
           display: 'flex',
           height: 6,
           borderRadius: 3,
           overflow: 'hidden',
-          background: 'rgba(255, 255, 255, 0.04)',
+          background: 'var(--fill-04)',
         }}
       >
         {segments.map(seg => (
@@ -126,7 +115,7 @@ function CategorySpendingBar({
   )
 }
 
-// ── Date range presets ───────────────────────────────────────────
+// â”€â”€ Date range presets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type DateRangePreset = 'this_week' | 'last_7' | 'last_30' | null
 
 function getDateRangeStart(preset: DateRangePreset): string | null {
@@ -154,7 +143,7 @@ function getDateRangeStart(preset: DateRangePreset): string | null {
   return start.toISOString().slice(0, 10)
 }
 
-// ── Match highlighting helper ────────────────────────────────────
+// â”€â”€ Match highlighting helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function HighlightText({ text, query }: { text: string; query: string }) {
   if (!query || !text) return <>{text}</>
 
@@ -185,7 +174,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
           <span
             key={i}
             style={{
-              background: 'rgba(129, 140, 248, 0.2)',
+              background: 'var(--accent-200)',
               borderRadius: 3,
               padding: '0 2px',
             }}
@@ -200,7 +189,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
   )
 }
 
-// ── Swipeable row wrapper ────────────────────────────────────────
+// â”€â”€ Swipeable row wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SWIPE_THRESHOLD  = 56   // px to trigger reveal
 const DELETE_PANEL_W   = 72   // px width of the delete panel
 
@@ -256,8 +245,8 @@ function SwipeableRow({ onDelete, children }: SwipeableRowProps) {
         <button
           onClick={e => { e.stopPropagation(); snapTo(0); onDelete() }}
           style={{
-            fontFamily: FONT_FAMILY, fontSize: '12px',
-            fontWeight: 600,
+            fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.semibold,
             color: 'var(--text)', width: '100%', height: '100%',
           }}
         >
@@ -284,7 +273,7 @@ function SwipeableRow({ onDelete, children }: SwipeableRowProps) {
   )
 }
 
-// ── Persisted filter state shape ─────────────────────────────────
+// â”€â”€ Persisted filter state shape â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface PersistedFilters {
   typeFilter: 'income' | 'expense' | null
   categoryFilter: TransactionCategory | null
@@ -324,23 +313,23 @@ interface TransactionListProps {
   onBulkRecategorize?: (ids: string[], category: TransactionCategory) => void
   /** Bulk tag multiple transactions (Task 131) */
   onBulkTag?: (ids: string[], tags: string[]) => void
-  /** Callback when a tag chip is tapped — filters history to that tag (Task 401.2) */
+  /** Callback when a tag chip is tapped â€” filters history to that tag (Task 401.2) */
   onTagFilter?: (tag: string) => void
-  /** Map of transactionId → split info for showing split indicators (Task 401.3) */
+  /** Map of transactionId â†’ split info for showing split indicators (Task 401.3) */
   splitMap?: Map<string, { splitId: string; participantCount: number }>
   /** Callback when split indicator is tapped (Task 401.3) */
   onViewSplit?: (splitId: string) => void
-  /** Whether the user is scrolling fast — shows skeleton placeholders (Task 404.3) */
+  /** Whether the user is scrolling fast â€” shows skeleton placeholders (Task 404.3) */
   isScrollingFast?: boolean
 }
 
 export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fundingSources = [], onBulkDelete, onBulkRecategorize, onBulkTag, onTagFilter, splitMap, onViewSplit, isScrollingFast = false }: TransactionListProps) {
-  // ── State ────────────────────────────────────────────────────────
+  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  // ── Multi-select state (Task 131) ───────────────────────────────
+  // â”€â”€ Multi-select state (Task 131) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
@@ -348,7 +337,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
   const [tagInputValue, setTagInputValue] = useState('')
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Inline spending context state (Task 400) ────────────────────
+  // â”€â”€ Inline spending context state (Task 400) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [collapseSummaries, setCollapseSummaries] = useState(() => {
     try { return localStorage.getItem(COLLAPSE_SUMMARIES_KEY) === 'true' } catch { return false }
   })
@@ -464,7 +453,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     }
   }, [])
 
-  // Filter state — initialized from session storage
+  // Filter state â€” initialized from session storage
   const [activeFilter, setActiveFilter] = useState<TransactionCategory | null>(() => {
     const saved = loadSessionFilters()
     return saved?.categoryFilter ?? null
@@ -482,7 +471,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     return saved?.dateRange ?? null
   })
 
-  // ── Debounced search (300ms) ─────────────────────────────────────
+  // â”€â”€ Debounced search (300ms) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search)
@@ -490,7 +479,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     return () => clearTimeout(timer)
   }, [search])
 
-  // ── Persist filter state to sessionStorage ────────────────────────
+  // â”€â”€ Persist filter state to sessionStorage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     saveSessionFilters({
       typeFilter,
@@ -500,14 +489,14 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     })
   }, [typeFilter, activeFilter, sourceFilter, dateRange])
 
-  // ── Funding source lookup map ─────────────────────────────────────
+  // â”€â”€ Funding source lookup map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sourceMap = useMemo(() => {
     const map = new Map<string, FundingSource>()
     fundingSources.forEach(s => map.set(s.id, s))
     return map
   }, [fundingSources])
 
-  // ── Merchant visit count lookup (Task 401.1) ────────────────────────
+  // â”€â”€ Merchant visit count lookup (Task 401.1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const merchantCountMap = useMemo(() => {
     const map = new Map<string, number>()
     transactions.forEach(tx => {
@@ -522,7 +511,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     return map
   }, [transactions])
 
-  // ── Present funding sources (those used in transactions) ──────────
+  // â”€â”€ Present funding sources (those used in transactions) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const presentSources = useMemo(() => {
     const usedIds = new Set<string>()
     transactions.forEach(t => {
@@ -540,10 +529,10 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     .filter(([, info]) => info !== undefined)
     .map(([cat, info]) => ({ category: cat as TransactionCategory, label: info!.label }))
 
-  // ── Check if any filter is active ─────────────────────────────────
+  // â”€â”€ Check if any filter is active â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const hasActiveFilters = !!(typeFilter || activeFilter || sourceFilter || dateRange || debouncedSearch)
 
-  // ── Clear all handler ──────────────────────────────────────────────
+  // â”€â”€ Clear all handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const clearAllFilters = useCallback(() => {
     setTypeFilter(null)
     setActiveFilter(null)
@@ -556,7 +545,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
   // Normalize search: strip leading $ so "$45" finds a $45 transaction
   const searchNorm = debouncedSearch.replace(/^\$/, '').trim().toLowerCase()
 
-  // ── Filter chain ──────────────────────────────────────────────────
+  // â”€â”€ Filter chain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const filtered = useMemo(() => {
     const dateStart = getDateRangeStart(dateRange)
 
@@ -670,18 +659,18 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
     return diffDays > 1
   }
 
-  // ── Pill style helper ─────────────────────────────────────────────
+  // â”€â”€ Pill style helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const pillStyle = (active: boolean): React.CSSProperties => ({
     flexShrink: 0,
     padding: '8px 16px',
     fontFamily: FONT_FAMILY,
-    fontSize: '13px',
-    fontWeight: 500,
-    borderRadius: 99,
+    fontSize: typography['body-sm'].fontSize,
+    fontWeight: fontWeights.medium,
+    borderRadius: radius.full,
     border: '1px solid',
-    borderColor: active ? 'rgba(129, 140, 248, 0.4)' : 'rgba(255, 255, 255, 0.1)',
+    borderColor: active ? 'var(--accent-400)' : 'var(--fill-10)',
     color: active ? 'var(--text)' : 'var(--sub)',
-    background: active ? 'rgba(129, 140, 248, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+    background: active ? 'var(--accent-200)' : 'var(--fill-04)',
     transition: 'all 0.15s',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
@@ -689,8 +678,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
 
   return (
     <div>
-      {/* ── Search ──────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ marginBottom: 16 }}>
+      {/* â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <GlassCard elevation="low" style={{ marginBottom: spacing.md }}>
         <input
           type="text"
           placeholder="Search transactions..."
@@ -702,17 +691,17 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             border: 'none',
             outline: 'none',
             padding: '14px 16px',
-            fontSize: 15,
+            fontSize: typography.body.fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--text)',
-            borderRadius: 12,
+            borderRadius: radius.control,
           }}
         />
       </GlassCard>
 
-      {/* ── Clear All button (visible when any filter is active) ─── */}
+      {/* â”€â”€ Clear All button (visible when any filter is active) â”€â”€â”€ */}
       {hasActiveFilters && !isMultiSelectMode && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.xs }}>
           <motion.button
             type="button"
             onClick={clearAllFilters}
@@ -721,12 +710,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             style={{
               padding: '6px 14px',
               fontFamily: FONT_FAMILY,
-              fontSize: '12px',
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               color: 'var(--accent)',
-              background: 'rgba(129, 140, 248, 0.08)',
-              border: '1px solid rgba(129, 140, 248, 0.2)',
-              borderRadius: 99,
+              background: 'var(--accent-100)',
+              border: '1px solid var(--accent-200)',
+              borderRadius: radius.full,
               cursor: 'pointer',
             }}
           >
@@ -735,9 +724,9 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         </div>
       )}
 
-      {/* ── Select button / multi-select header (Task 131) ──────── */}
+      {/* â”€â”€ Select button / multi-select header (Task 131) â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {hasBulkActions && !isMultiSelectMode && transactions.length > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.xs }}>
           <motion.button
             type="button"
             onClick={() => enterMultiSelect()}
@@ -747,12 +736,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             style={{
               padding: '6px 14px',
               fontFamily: FONT_FAMILY,
-              fontSize: '12px',
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               color: 'var(--sub)',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 99,
+              background: 'var(--fill-04)',
+              border: '1px solid var(--fill-10)',
+              borderRadius: radius.full,
               cursor: 'pointer',
             }}
           >
@@ -767,7 +756,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 0',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
         }}>
           <span
             role="status"
@@ -775,14 +764,14 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             aria-atomic="true"
             style={{
               fontFamily: FONT_FAMILY,
-              fontSize: '13px',
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               color: 'var(--text)',
             }}
           >
             {selectedIds.size} selected
           </span>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: spacing.xs }}>
             <motion.button
               type="button"
               onClick={selectAll}
@@ -792,12 +781,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               style={{
                 padding: '6px 12px',
                 fontFamily: FONT_FAMILY,
-                fontSize: '12px',
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 color: 'var(--accent)',
-                background: 'rgba(129, 140, 248, 0.08)',
-                border: '1px solid rgba(129, 140, 248, 0.2)',
-                borderRadius: 99,
+                background: 'var(--accent-100)',
+                border: '1px solid var(--accent-200)',
+                borderRadius: radius.full,
                 cursor: 'pointer',
               }}
             >
@@ -812,12 +801,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               style={{
                 padding: '6px 12px',
                 fontFamily: FONT_FAMILY,
-                fontSize: '12px',
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 color: 'var(--sub)',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: 99,
+                background: 'var(--fill-04)',
+                border: '1px solid var(--fill-10)',
+                borderRadius: radius.full,
                 cursor: 'pointer',
               }}
             >
@@ -832,12 +821,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               style={{
                 padding: '6px 12px',
                 fontFamily: FONT_FAMILY,
-                fontSize: '12px',
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 color: 'var(--accent)',
-                background: 'rgba(129, 140, 248, 0.08)',
-                border: '1px solid rgba(129, 140, 248, 0.2)',
-                borderRadius: 99,
+                background: 'var(--accent-100)',
+                border: '1px solid var(--accent-200)',
+                borderRadius: radius.full,
                 cursor: 'pointer',
               }}
             >
@@ -847,7 +836,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         </div>
       )}
 
-      {/* ── Type filter pills (Income/Expense) ───────────────────── */}
+      {/* â”€â”€ Type filter pills (Income/Expense) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="flex gap-2 mb-3">
         <motion.button
           type="button"
@@ -878,7 +867,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         </motion.button>
       </div>
 
-      {/* ── Category filter pills ────────────────────────────────── */}
+      {/* â”€â”€ Category filter pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {presentCategories.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-3 mb-1" style={{ scrollbarWidth: 'none' }}>
           {/* All pill */}
@@ -908,7 +897,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         </div>
       )}
 
-      {/* ── Funding source filter pills ──────────────────────────── */}
+      {/* â”€â”€ Funding source filter pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {presentSources.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-3 mb-1" style={{ scrollbarWidth: 'none' }}>
           <motion.button
@@ -935,7 +924,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         </div>
       )}
 
-      {/* ── Date range filter pills ──────────────────────────────── */}
+      {/* â”€â”€ Date range filter pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="flex gap-2 overflow-x-auto pb-4 mb-3" style={{ scrollbarWidth: 'none' }}>
         <motion.button
           type="button"
@@ -983,11 +972,11 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
           aria-label={showCategoryBars ? 'Hide category bars' : 'Show category bars'}
           style={pillStyle(showCategoryBars)}
         >
-          📊 Bars
+          ðŸ“Š Bars
         </motion.button>
       </div>
 
-      {/* ── Filter result count (screen reader live region) ─────── */}
+      {/* â”€â”€ Filter result count (screen reader live region) â”€â”€â”€â”€â”€â”€â”€ */}
       {hasActiveFilters && (
         <div
           role="status"
@@ -1010,7 +999,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         </div>
       )}
 
-      {/* ── Rows ────────────────────────────────────────────────── */}
+      {/* â”€â”€ Rows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {sortedDates.length > 0 ? (() => {
         let lastWeekKey = ''
         let lastMonthKey = ''
@@ -1033,28 +1022,28 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
           <div
             key={date}
             style={{
-              marginBottom: 24,
+              marginBottom: spacing.lg,
               // CSS-based virtualization (Task 404.1): skip layout/paint for
               // off-screen date groups. The browser auto-manages rendering.
               contentVisibility: 'auto',
               containIntrinsicSize: `auto ${estimatedHeight}px`,
             } as React.CSSProperties}
           >
-            {/* Monthly total separator (Task 400.2) — shown at month boundary */}
+            {/* Monthly total separator (Task 400.2) â€” shown at month boundary */}
             {showMonthHeader && prevMonthKey && monthlyData[prevMonthKey] && !collapseSummaries && (
               <div
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
                   padding: '12px 0',
-                  marginBottom: 16,
-                  borderBottom: '1px solid rgba(129, 140, 248, 0.1)',
+                  marginBottom: spacing.md,
+                  borderBottom: '1px solid var(--accent-100)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <p style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.semibold,
                     color: 'var(--accent)',
                     fontFamily: FONT_FAMILY,
                     opacity: 0.85,
@@ -1062,8 +1051,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     {new Date(prevMonthKey + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long' })} total
                   </p>
                   <p style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.semibold,
                     color: 'var(--text)',
                     fontFamily: FONT_FAMILY,
                     fontVariantNumeric: 'tabular-nums',
@@ -1082,19 +1071,19 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               </div>
             )}
 
-            {/* Weekly total separator (Task 400.2 — enhanced) */}
+            {/* Weekly total separator (Task 400.2 â€” enhanced) */}
             {showWeekHeader && weeklyTotals[weekKey] != null && (
               <div
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
                   padding: '10px 0',
-                  marginBottom: 16,
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                  marginBottom: spacing.md,
+                  borderBottom: '1px solid var(--fill-06)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
                     {/* Collapse/expand toggle */}
                     <button
                       type="button"
@@ -1117,8 +1106,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                       </svg>
                     </button>
                     <p style={{
-                      fontSize: '13px',
-                      fontWeight: 500,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       color: 'var(--sub)',
                       fontFamily: FONT_FAMILY,
                     }}>
@@ -1126,14 +1115,14 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     </p>
                   </div>
                   <p style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.semibold,
                     color: 'var(--text)',
                     fontFamily: FONT_FAMILY,
                     fontVariantNumeric: 'tabular-nums',
                   }}>
                     ${weeklyTotals[weekKey].toFixed(2)} spent
-                    <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: '11px', marginLeft: 4 }}>
+                    <span style={{ fontWeight: fontWeights.regular, color: 'var(--muted)', fontSize: typography.caption.fontSize, marginLeft: 4 }}>
                       across {weeklyTxCounts[weekKey] || 0} txns
                     </span>
                   </p>
@@ -1148,11 +1137,11 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               </div>
             )}
 
-          {/* Day header (Task 400.1 — enhanced with income) */}
+          {/* Day header (Task 400.1 â€” enhanced with income) */}
           <div className="flex items-center justify-between mb-3">
             <p style={{
-              fontSize: '13px',
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               color: 'var(--sub)',
               fontFamily: FONT_FAMILY,
             }}>
@@ -1161,8 +1150,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {dailyTotal > 0 && (
                 <span style={{
-                  fontSize: '12px',
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   color: 'var(--muted)',
                   fontFamily: FONT_FAMILY,
                   fontVariantNumeric: 'tabular-nums',
@@ -1172,8 +1161,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               )}
               {dailyIncome > 0 && (
                 <span style={{
-                  fontSize: '12px',
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   color: 'var(--success)',
                   fontFamily: FONT_FAMILY,
                   fontVariantNumeric: 'tabular-nums',
@@ -1186,7 +1175,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
           </div>
 
           {/* Transactions in glass card with timeline (255.1) */}
-          <GlassCard elevation="low" style={{ padding: '4px 0', borderRadius: borderRadius.lg, marginBottom: 16, position: 'relative' }}>
+          <GlassCard elevation="low" style={{ padding: '4px 0', borderRadius: radius.control, marginBottom: spacing.md, position: 'relative' }}>
             {/* Vertical timeline accent line */}
             <div
               aria-hidden
@@ -1196,7 +1185,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                 top: 12,
                 bottom: 12,
                 width: 1.5,
-                background: 'rgba(129, 140, 248, 0.15)',
+                background: 'var(--accent-200)',
                 borderRadius: 1,
                 pointerEvents: 'none',
               }}
@@ -1234,7 +1223,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                       height: 7,
                       borderRadius: '50%',
                       background: isIncome ? 'var(--success)' : 'var(--accent)',
-                      boxShadow: `0 0 4px ${isIncome ? 'rgba(74, 222, 128, 0.3)' : 'rgba(129, 140, 248, 0.3)'}`,
+                      boxShadow: `0 0 4px ${isIncome ? 'var(--success-300)' : 'var(--accent-300)'}`,
                       zIndex: 1,
                     }}
                   />
@@ -1244,8 +1233,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     style={{
                       paddingLeft: 36,
                       paddingRight: 16,
-                      borderBottom: (expanded || isLast) ? 'none' : '1px solid rgba(255, 255, 255, 0.04)',
-                      background: isSelected ? 'rgba(129, 140, 248, 0.08)' : undefined,
+                      borderBottom: (expanded || isLast) ? 'none' : '1px solid var(--fill-04)',
+                      background: isSelected ? 'var(--accent-100)' : undefined,
                     }}
                     onClick={() => {
                       if (isMultiSelectMode) {
@@ -1263,8 +1252,8 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         style={{
                           width: 22,
                           height: 22,
-                          borderRadius: 6,
-                          border: isSelected ? '2px solid var(--accent)' : '2px solid rgba(255, 255, 255, 0.2)',
+                          borderRadius: radius.min,
+                          border: isSelected ? '2px solid var(--accent)' : '2px solid var(--fill-15)',
                           background: isSelected ? 'var(--accent)' : 'transparent',
                           display: 'flex',
                           alignItems: 'center',
@@ -1285,17 +1274,17 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     )}
                     <div className="min-w-0 flex-1">
                       <p style={{
-                        fontSize: '15px',
+                        fontSize: typography.body.fontSize,
                         color: 'var(--text)',
                         lineHeight: 1.4,
                         fontFamily: FONT_FAMILY,
-                        fontWeight: 500,
+                        fontWeight: fontWeights.medium,
                       }} className="truncate">
                         <HighlightText text={tx.note || getLabel(tx.category)} query={searchNorm} />
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                         <p style={{
-                          fontSize: '12px',
+                          fontSize: typography['body-sm'].fontSize,
                           color: 'var(--sub)',
                           fontFamily: FONT_FAMILY,
                         }}>
@@ -1305,11 +1294,11 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                           <span style={{
                             fontSize: '10px',
                             fontFamily: FONT_FAMILY,
-                            fontWeight: 500,
+                            fontWeight: fontWeights.medium,
                             color: 'var(--sub)',
-                            background: 'rgba(255, 255, 255, 0.06)',
+                            background: 'var(--fill-06)',
                             padding: '2px 6px',
-                            borderRadius: 4,
+                            borderRadius: radius.min,
                           }}>
                             <HighlightText text={`${txSource.emoji} ${txSource.label}`} query={searchNorm} />
                           </span>
@@ -1318,11 +1307,11 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                           <span style={{
                             fontSize: '10px',
                             fontFamily: FONT_FAMILY,
-                            fontWeight: 500,
+                            fontWeight: fontWeights.medium,
                             color: 'var(--muted)',
-                            background: 'rgba(255, 255, 255, 0.06)',
+                            background: 'var(--fill-06)',
                             padding: '2px 6px',
-                            borderRadius: 4,
+                            borderRadius: radius.min,
                             textTransform: 'uppercase',
                             letterSpacing: '0.03em',
                           }}>
@@ -1335,15 +1324,15 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                             style={{
                               fontSize: '10px',
                               fontFamily: FONT_FAMILY,
-                              fontWeight: 500,
+                              fontWeight: fontWeights.medium,
                               color: 'var(--muted)',
-                              background: 'rgba(255, 255, 255, 0.06)',
+                              background: 'var(--fill-06)',
                               padding: '2px 6px',
-                              borderRadius: 4,
+                              borderRadius: radius.min,
                             }}
                             aria-label={`Visited ${merchantCountMap.get(tx.note)} times`}
                           >
-                            {merchantCountMap.get(tx.note)}× here
+                            {merchantCountMap.get(tx.note)}Ã— here
                           </span>
                         )}
                         {/* Split indicator (Task 401.3) */}
@@ -1356,12 +1345,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                             style={{
                               fontSize: '10px',
                               fontFamily: FONT_FAMILY,
-                              fontWeight: 500,
-                              color: 'rgba(74, 222, 128, 0.85)',
-                              background: 'rgba(74, 222, 128, 0.08)',
-                              border: '1px solid rgba(74, 222, 128, 0.2)',
+                              fontWeight: fontWeights.medium,
+                              color: 'var(--success)',
+                              background: 'var(--success-100)',
+                              border: '1px solid var(--success-200)',
                               padding: '1px 6px',
-                              borderRadius: 99,
+                              borderRadius: radius.full,
                               whiteSpace: 'nowrap',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -1381,7 +1370,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                             {splitMap.get(tx.id)!.participantCount}
                           </span>
                         )}
-                        {/* Tag pills (Task 401.2 — with filter onClick) */}
+                        {/* Tag pills (Task 401.2 â€” with filter onClick) */}
                         {(tx.tags ?? getTagsForTransaction(tx.id))?.map((tag) => (
                           <span
                             key={tag}
@@ -1392,12 +1381,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                             style={{
                               fontSize: '10px',
                               fontFamily: FONT_FAMILY,
-                              fontWeight: 500,
-                              color: 'rgba(129, 140, 248, 0.85)',
-                              background: 'rgba(129, 140, 248, 0.08)',
-                              border: '1px solid rgba(129, 140, 248, 0.2)',
+                              fontWeight: fontWeights.medium,
+                              color: 'var(--accent-500)',
+                              background: 'var(--accent-100)',
+                              border: '1px solid var(--accent-200)',
                               padding: '1px 6px',
-                              borderRadius: 99,
+                              borderRadius: radius.full,
                               whiteSpace: 'nowrap',
                               cursor: onTagFilter ? 'pointer' : 'default',
                             }}
@@ -1418,25 +1407,25 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                             <div style={{ textAlign: 'right' }}>
                               <span style={{
                                 fontFamily: FONT_FAMILY,
-                                fontSize: '15px',
-                                fontWeight: 600,
+                                fontSize: typography.body.fontSize,
+                                fontWeight: fontWeights.semibold,
                                 fontVariantNumeric: 'tabular-nums',
                                 color: isIncome ? 'var(--success)' : 'var(--text)',
                                 display: 'block',
                                 lineHeight: 1.3,
                               }}>
-                                {isIncome ? '+' : '−'}{formatted.local}
+                                {isIncome ? '+' : 'âˆ’'}{formatted.local}
                               </span>
                               <span style={{
                                 fontFamily: FONT_FAMILY,
-                                fontSize: '11px',
-                                fontWeight: 400,
+                                fontSize: typography.caption.fontSize,
+                                fontWeight: fontWeights.regular,
                                 fontVariantNumeric: 'tabular-nums',
                                 color: 'var(--muted)',
                                 display: 'block',
                                 lineHeight: 1.3,
                               }}>
-                                ≈ {formatted.home}
+                                â‰ˆ {formatted.home}
                               </span>
                             </div>
                           )
@@ -1444,12 +1433,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         return (
                           <span style={{
                             fontFamily: FONT_FAMILY,
-                            fontSize: '15px',
-                            fontWeight: 600,
+                            fontSize: typography.body.fontSize,
+                            fontWeight: fontWeights.semibold,
                             fontVariantNumeric: 'tabular-nums',
                             color: isIncome ? 'var(--success)' : 'var(--text)',
                           }}>
-                            {isIncome ? '+' : '−'}${tx.amount.toFixed(2)}
+                            {isIncome ? '+' : 'âˆ’'}${tx.amount.toFixed(2)}
                           </span>
                         )
                       })()}
@@ -1472,9 +1461,9 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                       transition={timings.normal}
                       className="flex gap-3 px-4 py-3"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.02)',
-                        borderTop: '1px solid rgba(255, 255, 255, 0.04)',
-                        borderBottom: isLast ? 'none' : '1px solid rgba(255, 255, 255, 0.04)',
+                        background: 'var(--fill-02)',
+                        borderTop: '1px solid var(--fill-04)',
+                        borderBottom: isLast ? 'none' : '1px solid var(--fill-04)',
                       }}
                     >
                       {onEdit && (
@@ -1485,12 +1474,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                           transition={springs.snappy}
                           style={{
                             flex: 1, padding: '10px',
-                            fontFamily: FONT_FAMILY, fontSize: '13px',
-                            fontWeight: 500,
-                            color: 'var(--text)', border: '1px solid rgba(255, 255, 255, 0.1)',
+                            fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize,
+                            fontWeight: fontWeights.medium,
+                            color: 'var(--text)', border: '1px solid var(--fill-10)',
                             borderRadius: '8px', transition: 'all 0.15s',
                             cursor: 'pointer',
-                            background: 'rgba(255, 255, 255, 0.04)',
+                            background: 'var(--fill-04)',
                           }}
                         >
                           Edit
@@ -1504,12 +1493,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                           transition={springs.snappy}
                           style={{
                             flex: 1, padding: '10px',
-                            fontFamily: FONT_FAMILY, fontSize: '13px',
-                            fontWeight: 500,
-                            color: 'var(--text)', border: '1px solid rgba(129, 140, 248, 0.2)',
+                            fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize,
+                            fontWeight: fontWeights.medium,
+                            color: 'var(--text)', border: '1px solid var(--accent-200)',
                             borderRadius: '8px', transition: 'all 0.15s',
                             cursor: 'pointer',
-                            background: 'rgba(129, 140, 248, 0.08)',
+                            background: 'var(--accent-100)',
                           }}
                         >
                           Repeat
@@ -1523,12 +1512,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                           transition={springs.snappy}
                           style={{
                             flex: 1, padding: '10px',
-                            fontFamily: FONT_FAMILY, fontSize: '13px',
-                            fontWeight: 500,
-                            color: 'var(--error)', border: '1px solid rgba(248, 113, 113, 0.2)',
+                            fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize,
+                            fontWeight: fontWeights.medium,
+                            color: 'var(--error)', border: '1px solid var(--error-200)',
                             borderRadius: '8px', transition: 'all 0.15s',
                             cursor: 'pointer',
-                            background: 'rgba(248, 113, 113, 0.08)',
+                            background: 'var(--error-100)',
                           }}
                         >
                           Delete
@@ -1555,7 +1544,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         )
       })
       })() : (
-        <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: borderRadius.lg }}>
+        <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: radius.control }}>
           {hasActiveFilters ? (
             <EmptyState
               illustration="filter"
@@ -1574,7 +1563,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         </GlassCard>
       )}
 
-      {/* ── Floating Bulk Action Bar (Task 131) ────────────────────── */}
+      {/* â”€â”€ Floating Bulk Action Bar (Task 131) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {isMultiSelectMode && selectedIds.size > 0 && (
           <motion.div
@@ -1589,11 +1578,11 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               transform: 'translateX(-50%)',
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              gap: spacing.xs,
               padding: '12px 16px',
               background: 'var(--surface)',
-              border: '1px solid rgba(129, 140, 248, 0.3)',
-              borderRadius: borderRadius.lg,
+              border: '1px solid var(--accent-300)',
+              borderRadius: radius.control,
               boxShadow: shadows.xl,
               zIndex: 100,
               fontFamily: FONT_FAMILY,
@@ -1601,7 +1590,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             aria-label="Bulk actions"
             role="toolbar"
           >
-            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginRight: 4 }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', marginRight: 4 }}>
               {selectedIds.size}
             </span>
 
@@ -1609,18 +1598,18 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               <motion.button
                 type="button"
                 onClick={handleBulkDelete}
-                whileTap={{ scale: 0.92 }}
+                whileTap={{ scale: 0.95 }}
                 transition={springs.snappy}
                 aria-label={`Delete ${selectedIds.size} transactions`}
                 style={{
                   padding: '8px 12px',
-                  fontSize: 12,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--error)',
-                  background: 'rgba(248, 113, 113, 0.1)',
-                  border: '1px solid rgba(248, 113, 113, 0.25)',
-                  borderRadius: 8,
+                  background: 'var(--error-100)',
+                  border: '1px solid var(--error-300)',
+                  borderRadius: radius.control,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -1638,18 +1627,18 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               <motion.button
                 type="button"
                 onClick={() => setShowCategoryPicker(true)}
-                whileTap={{ scale: 0.92 }}
+                whileTap={{ scale: 0.95 }}
                 transition={springs.snappy}
                 aria-label={`Recategorize ${selectedIds.size} transactions`}
                 style={{
                   padding: '8px 12px',
-                  fontSize: 12,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--text)',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: 8,
+                  background: 'var(--fill-06)',
+                  border: '1px solid var(--fill-12)',
+                  borderRadius: radius.control,
                   cursor: 'pointer',
                 }}
               >
@@ -1661,18 +1650,18 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
               <motion.button
                 type="button"
                 onClick={() => setShowTagInput(true)}
-                whileTap={{ scale: 0.92 }}
+                whileTap={{ scale: 0.95 }}
                 transition={springs.snappy}
                 aria-label={`Tag ${selectedIds.size} transactions`}
                 style={{
                   padding: '8px 12px',
-                  fontSize: 12,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--text)',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: 8,
+                  background: 'var(--fill-06)',
+                  border: '1px solid var(--fill-12)',
+                  borderRadius: radius.control,
                   cursor: 'pointer',
                 }}
               >
@@ -1683,18 +1672,18 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             <motion.button
               type="button"
               onClick={handleExportSelected}
-              whileTap={{ scale: 0.92 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               aria-label={`Export ${selectedIds.size} transactions as CSV`}
               style={{
                 padding: '8px 12px',
-                fontSize: 12,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: 8,
+                background: 'var(--fill-06)',
+                border: '1px solid var(--fill-12)',
+                borderRadius: radius.control,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -1710,7 +1699,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         )}
       </AnimatePresence>
 
-      {/* ── Category Picker Overlay (Task 131) ─────────────────────── */}
+      {/* â”€â”€ Category Picker Overlay (Task 131) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {showCategoryPicker && (
           <motion.div
@@ -1721,7 +1710,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(14, 14, 26, 0.7)',
+              background: 'var(--color-canvas)',
               zIndex: 200,
               display: 'flex',
               alignItems: 'flex-end',
@@ -1749,14 +1738,14 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             >
               <p style={{
                 fontFamily: FONT_FAMILY,
-                fontSize: 15,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 color: 'var(--text)',
-                marginBottom: 16,
+                marginBottom: spacing.md,
               }}>
                 Move to category
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.xs }}>
                 {TRANSACTION_CATEGORIES.filter(c => c.type === 'expense').map(cat => (
                   <motion.button
                     key={cat.category}
@@ -1767,12 +1756,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     style={{
                       padding: '12px',
                       fontFamily: FONT_FAMILY,
-                      fontSize: 13,
-                      fontWeight: 500,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       color: 'var(--text)',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: 12,
+                      background: 'var(--fill-04)',
+                      border: '1px solid var(--fill-08)',
+                      borderRadius: radius.control,
                       cursor: 'pointer',
                       textAlign: 'left',
                     }}
@@ -1788,15 +1777,15 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                 transition={springs.snappy}
                 style={{
                   width: '100%',
-                  marginTop: 16,
+                  marginTop: spacing.md,
                   padding: '12px',
                   fontFamily: FONT_FAMILY,
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   color: 'var(--sub)',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: 8,
+                  background: 'var(--fill-04)',
+                  border: '1px solid var(--fill-08)',
+                  borderRadius: radius.control,
                   cursor: 'pointer',
                 }}
               >
@@ -1807,7 +1796,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
         )}
       </AnimatePresence>
 
-      {/* ── Tag Input Overlay (Task 131) ───────────────────────────── */}
+      {/* â”€â”€ Tag Input Overlay (Task 131) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {showTagInput && (
           <motion.div
@@ -1818,7 +1807,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(14, 14, 26, 0.7)',
+              background: 'var(--color-canvas)',
               zIndex: 200,
               display: 'flex',
               alignItems: 'flex-end',
@@ -1844,10 +1833,10 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
             >
               <p style={{
                 fontFamily: FONT_FAMILY,
-                fontSize: 15,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 color: 'var(--text)',
-                marginBottom: 12,
+                marginBottom: spacing.sm,
               }}>
                 Add tags to {selectedIds.size} transaction{selectedIds.size > 1 ? 's' : ''}
               </p>
@@ -1862,11 +1851,11 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   width: '100%',
                   padding: '12px 16px',
                   fontFamily: FONT_FAMILY,
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   color: 'var(--text)',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: 10,
+                  background: 'var(--fill-04)',
+                  border: '1px solid var(--fill-12)',
+                  borderRadius: radius.control,
                   outline: 'none',
                 }}
                 aria-label="Tag input"
@@ -1887,12 +1876,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                         style={{
                           padding: '4px 10px',
                           fontFamily: FONT_FAMILY,
-                          fontSize: 12,
-                          fontWeight: 500,
-                          color: 'rgba(129, 140, 248, 0.85)',
-                          background: 'rgba(129, 140, 248, 0.08)',
-                          border: '1px solid rgba(129, 140, 248, 0.2)',
-                          borderRadius: 99,
+                          fontSize: typography['body-sm'].fontSize,
+                          fontWeight: fontWeights.medium,
+                          color: 'var(--accent-500)',
+                          background: 'var(--accent-100)',
+                          border: '1px solid var(--accent-200)',
+                          borderRadius: radius.full,
                           cursor: 'pointer',
                         }}
                       >
@@ -1902,7 +1891,7 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                   </div>
                 )
               })()}
-              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <div style={{ display: 'flex', gap: spacing.xs, marginTop: 16 }}>
                 <motion.button
                   type="button"
                   onClick={() => setShowTagInput(false)}
@@ -1912,12 +1901,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     flex: 1,
                     padding: '12px',
                     fontFamily: FONT_FAMILY,
-                    fontSize: 13,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     color: 'var(--sub)',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: 8,
+                    background: 'var(--fill-04)',
+                    border: '1px solid var(--fill-08)',
+                    borderRadius: radius.control,
                     cursor: 'pointer',
                   }}
                 >
@@ -1932,12 +1921,12 @@ export function TransactionList({ transactions, onDelete, onEdit, onRepeat, fund
                     flex: 1,
                     padding: '12px',
                     fontFamily: FONT_FAMILY,
-                    fontSize: 13,
-                    fontWeight: 600,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.semibold,
                     color: 'var(--text)',
                     background: 'var(--accent)',
                     border: 'none',
-                    borderRadius: 8,
+                    borderRadius: radius.control,
                     cursor: 'pointer',
                     opacity: tagInputValue.trim() ? 1 : 0.5,
                   }}

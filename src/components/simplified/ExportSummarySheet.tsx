@@ -13,7 +13,9 @@
 
 import { useCallback, useEffect, useRef, useId } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FONT_FAMILY, spacing } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
+import { shadows } from '@/styles/shared'
 import type { ExportSummary } from "@/lib/csvExport"
 
 // ============================================================================
@@ -133,7 +135,7 @@ export function ExportSummarySheet({ open, summary, onConfirm, onClose }: Export
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(0, 0, 0, 0.5)",
+              background: "var(--color-canvas)",
               zIndex: 999,
             }}
             aria-hidden="true"
@@ -158,10 +160,10 @@ export function ExportSummarySheet({ open, summary, onConfirm, onClose }: Export
               right: 0,
               zIndex: 1000,
               background: "var(--surface)",
-              borderRadius: "16px 16px 0 0",
+              borderRadius: `${radius.sheet} ${radius.sheet} 0 0`,
               padding: `${spacing.lg}px ${spacing.md}px ${spacing.xl}px`,
               fontFamily: FONT_FAMILY,
-              boxShadow: "0 -4px 24px rgba(0,0,0,0.3)",
+              boxShadow: shadows.lg,
               outline: "none",
             }}
           >
@@ -182,8 +184,8 @@ export function ExportSummarySheet({ open, summary, onConfirm, onClose }: Export
             <h2
               id={titleId}
               style={{
-                fontSize: "18px",
-                fontWeight: 600,
+                fontSize: typography.subhead.fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--fg)",
                 margin: 0,
                 marginBottom: spacing.sm,
@@ -195,8 +197,8 @@ export function ExportSummarySheet({ open, summary, onConfirm, onClose }: Export
             {/* Summary text */}
             <p
               style={{
-                fontSize: "14px",
-                fontWeight: 400,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.regular,
                 color: "var(--sub)",
                 margin: 0,
                 marginBottom: spacing.xs,
@@ -207,8 +209,8 @@ export function ExportSummarySheet({ open, summary, onConfirm, onClose }: Export
             </p>
             <p
               style={{
-                fontSize: "15px",
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--fg)",
                 margin: 0,
                 marginBottom: spacing.lg,
@@ -221,7 +223,7 @@ export function ExportSummarySheet({ open, summary, onConfirm, onClose }: Export
             {/* File info */}
             <p
               style={{
-                fontSize: "12px",
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--sub)",
                 margin: 0,
                 marginBottom: spacing.lg,
@@ -239,12 +241,12 @@ export function ExportSummarySheet({ open, summary, onConfirm, onClose }: Export
                   flex: 1,
                   padding: "12px 16px",
                   fontFamily: FONT_FAMILY,
-                  fontSize: "14px",
-                  fontWeight: 500,
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.medium,
                   color: "var(--sub)",
                   background: "transparent",
                   border: "1px solid var(--border)",
-                  borderRadius: 8,
+                  borderRadius: radius.control,
                   cursor: "pointer",
                 }}
               >
@@ -256,12 +258,12 @@ export function ExportSummarySheet({ open, summary, onConfirm, onClose }: Export
                   flex: 1,
                   padding: "12px 16px",
                   fontFamily: FONT_FAMILY,
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: "#fff",
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.semibold,
+                  color: "var(--text)",
                   background: "var(--accent)",
                   border: "none",
-                  borderRadius: 8,
+                  borderRadius: radius.control,
                   cursor: "pointer",
                 }}
               >

@@ -14,8 +14,9 @@ import {
   getLastSweep,
 } from "@/lib/autoEarmarkSavings"
 import type { SweepFrequency } from "@/lib/autoEarmarkSavings"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { sectionHeader, shadows } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import type { Transaction, Goal, Budget } from "@/types"
 
 // ============================================================================
@@ -167,10 +168,10 @@ export function AutoSaveSetting({
       {/* Description */}
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
           lineHeight: 1.5,
-          marginBottom: 16,
+          marginBottom: spacing.md,
         }}
       >
         Track unspent daily allowance as virtual savings. When sweep is on, leftovers go straight to your goal — effortlessly.
@@ -187,8 +188,8 @@ export function AutoSaveSetting({
       >
         <span
           style={{
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             color: "var(--text)",
             fontFamily: FONT_FAMILY,
           }}
@@ -206,7 +207,7 @@ export function AutoSaveSetting({
           <label
             htmlFor="auto-earmark-goal"
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
               display: "block",
               marginBottom: 6,
@@ -246,14 +247,14 @@ export function AutoSaveSetting({
             alignItems: "center",
             marginBottom: sweepEnabled ? 14 : 0,
             paddingTop: 8,
-            borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+            borderTop: "1px solid var(--fill-06)",
           }}
         >
           <div>
             <span
               style={{
-                fontSize: 14,
-                fontWeight: 500,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.medium,
                 color: "var(--text)",
                 fontFamily: FONT_FAMILY,
                 display: "block",
@@ -263,7 +264,7 @@ export function AutoSaveSetting({
             </span>
             <span
               style={{
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--sub)",
                 fontFamily: FONT_FAMILY,
               }}
@@ -281,7 +282,7 @@ export function AutoSaveSetting({
           <label
             htmlFor="sweep-frequency"
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
               display: "block",
               marginBottom: 6,
@@ -307,7 +308,7 @@ export function AutoSaveSetting({
       {enabled && sweepEnabled && lastSweptLabel && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             fontFamily: FONT_FAMILY,
             marginBottom: 10,
@@ -324,22 +325,23 @@ export function AutoSaveSetting({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: spacing.xs,
             padding: "10px 14px",
-            borderRadius: 10,
-            background: "rgba(139, 92, 246, 0.08)",
-            border: "1px solid rgba(139, 92, 246, 0.2)",
+            borderRadius: radius.control,
+            background: "var(--accent-100)",
+            border: "1px solid var(--accent-200)",
           }}
         >
-          <span style={{ fontSize: 16 }} aria-hidden="true">
+          <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">
             ✨
           </span>
           <span
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: "rgb(167, 139, 250)",
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
+              fontVariantNumeric: "tabular-nums",
             }}
           >
             This month: ~${monthlyTotal.toFixed(2)} earmarked
@@ -358,11 +360,11 @@ export function AutoSaveSetting({
 const selectStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  background: "rgba(255, 255, 255, 0.06)",
+  borderRadius: radius.control,
+  border: "1px solid var(--fill-10)",
+  background: "var(--fill-06)",
   color: "var(--text)",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   appearance: "none",
   WebkitAppearance: "none",
@@ -383,12 +385,12 @@ function ToggleSwitch({ checked, onToggle, label }: { checked: boolean; onToggle
         position: "relative",
         width: 48,
         height: 28,
-        borderRadius: 14,
+        borderRadius: radius.control,
         border: "none",
         cursor: "pointer",
         background: checked
           ? "var(--success)"
-          : "rgba(255, 255, 255, 0.12)",
+          : "var(--fill-12)",
         transition: "background 0.2s",
         padding: 0,
       }}
@@ -403,7 +405,7 @@ function ToggleSwitch({ checked, onToggle, label }: { checked: boolean; onToggle
           left: 0,
           width: 24,
           height: 24,
-          borderRadius: 12,
+          borderRadius: radius.control,
           background: "var(--text)",
           boxShadow: shadows.sm,
         }}

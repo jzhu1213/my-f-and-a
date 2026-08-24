@@ -7,15 +7,15 @@ import { Card } from "@/components/ui/Card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import type { Debt, DebtType } from "@/types/folio"
 import { DEBT_TYPES } from "@/types/folio"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
   sectionHeader,
   listRow,
-  borderRadius,
 } from "@/styles/shared"
+import { radius } from "@/styles/surfaces"
 import {
   getTotalDebtBalance,
   getTotalMinimumPayments,
@@ -81,18 +81,18 @@ const DEFAULT_FORM: DebtFormData = {
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   background: "var(--color-sunken)",
   border: "1px solid var(--border)",
-  borderRadius: 10,
+  borderRadius: radius.control,
   outline: "none",
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 500,
+  fontSize: typography['body-sm'].fontSize,
+  fontWeight: fontWeights.medium,
   color: "var(--sub)",
   marginBottom: 4,
   fontFamily: FONT_FAMILY,
@@ -203,25 +203,25 @@ export function DebtScreen({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 12,
-          marginBottom: 20,
+          gap: spacing.sm,
+          marginBottom: HORIZONTAL_PADDING,
         }}
       >
         <motion.button
           onClick={onClose}
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.92 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
           transition={springs.snappy}
           style={{
-            background: "rgba(255,255,255,0.06)",
+            background: "var(--fill-06)",
             border: "1px solid var(--border)",
-            borderRadius: borderRadius.full,
+            borderRadius: radius.full,
             width: 36,
             height: 36,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
-            fontSize: 18,
+            fontSize: typography.subhead.fontSize,
             color: "var(--text)",
           }}
           aria-label="Go back"
@@ -230,8 +230,8 @@ export function DebtScreen({
         </motion.button>
         <h1
           style={{
-            fontSize: 22,
-            fontWeight: 700,
+            fontSize: typography.headline.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             margin: 0,
           }}
@@ -241,12 +241,12 @@ export function DebtScreen({
       </div>
 
       {/* ── Summary Card ───────────────────────────────────────────────────── */}
-      <Card style={{ padding: "18px 20px", marginBottom: 20 }}>
+      <Card style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
         <p style={sectionHeader}>Total Balance</p>
-        <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+        <p style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
           ${totalBalance.toLocaleString("en-US", { maximumFractionDigits: 0 })}
         </p>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
           ${totalMinimum.toLocaleString("en-US", { maximumFractionDigits: 0 })}
           <span style={{ marginLeft: 3 }}>/mo minimum</span>
         </p>
@@ -254,24 +254,24 @@ export function DebtScreen({
 
       {/* ── What If Scenarios ──────────────────────────────────────────────── */}
       {debts.length > 0 && totalBalance > 0 && totalMinimum > 0 && (
-        <Card style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <Card style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={sectionHeader}>What If…</p>
-          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginBottom: spacing.sm }}>
             Tap a scenario to see the difference
           </p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: activeWhatIf ? 12 : 0 }}>
+          <div style={{ display: "flex", gap: spacing.xs, flexWrap: "wrap", marginBottom: activeWhatIf ? 12 : 0 }}>
             <motion.button
               onClick={() => setActiveWhatIf(activeWhatIf === "extra50" ? null : "extra50")}
               whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
               transition={springs.snappy}
               style={{
                 padding: "8px 14px",
-                borderRadius: borderRadius.full,
+                borderRadius: radius.full,
                 border: activeWhatIf === "extra50" ? "1.5px solid var(--success)" : "1px solid var(--border)",
-                background: activeWhatIf === "extra50" ? "rgba(6, 214, 160, 0.1)" : "var(--fill-04)",
+                background: activeWhatIf === "extra50" ? "var(--success-100)" : "var(--fill-04)",
                 color: activeWhatIf === "extra50" ? "var(--success)" : "var(--sub)",
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 cursor: "pointer",
               }}
@@ -284,12 +284,12 @@ export function DebtScreen({
               transition={springs.snappy}
               style={{
                 padding: "8px 14px",
-                borderRadius: borderRadius.full,
+                borderRadius: radius.full,
                 border: activeWhatIf === "double" ? "1.5px solid var(--success)" : "1px solid var(--border)",
-                background: activeWhatIf === "double" ? "rgba(6, 214, 160, 0.1)" : "var(--fill-04)",
+                background: activeWhatIf === "double" ? "var(--success-100)" : "var(--fill-04)",
                 color: activeWhatIf === "double" ? "var(--success)" : "var(--sub)",
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 cursor: "pointer",
               }}
@@ -340,31 +340,31 @@ export function DebtScreen({
                     <div
                       style={{
                         padding: 14,
-                        borderRadius: borderRadius.md,
-                        background: "rgba(6, 214, 160, 0.04)",
-                        border: "1px solid rgba(6, 214, 160, 0.12)",
+                        borderRadius: radius.control,
+                        background: "var(--success-50)",
+                        border: "1px solid var(--success-200)",
                       }}
                     >
-                      <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+                      <div style={{ display: "flex", gap: spacing.md, marginBottom: 10 }}>
                         {monthsSaved !== null && monthsSaved > 0 && (
                           <div>
-                            <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                            <p style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, color: "var(--success)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
                               {monthsSaved < 12 ? `${monthsSaved}mo` : `${Math.floor(monthsSaved / 12)}y ${monthsSaved % 12}mo`}
                             </p>
-                            <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>sooner</p>
+                            <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", margin: 0 }}>sooner</p>
                           </div>
                         )}
                         {interestSaved > 0 && (
                           <div>
-                            <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                            <p style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, color: "var(--success)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
                               ${Math.round(interestSaved).toLocaleString()}
                             </p>
-                            <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>less interest</p>
+                            <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", margin: 0 }}>less interest</p>
                           </div>
                         )}
                       </div>
                       {isLearningEnabled() && (
-                      <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>
+                      <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>
                         {activeWhatIf === "extra50"
                           ? "Even $50 more per month adds up fast. The extra goes straight to principal, shrinking the balance that accrues interest."
                           : "Doubling payments dramatically cuts your timeline. Each extra dollar fights interest instead of feeding it."}
@@ -380,7 +380,7 @@ export function DebtScreen({
       )}
 
       {/* ── Debts List ─────────────────────────────────────────────────────── */}
-      <Card style={{ padding: "18px 20px", marginBottom: 20 }}>
+      <Card style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
         <p style={sectionHeader}>Your Debts</p>
 
         {debts.length === 0 && !showAddForm && (
@@ -422,7 +422,7 @@ export function DebtScreen({
                   }}
                 >
                   <div
-                    style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}
+                    style={{ display: "flex", alignItems: "center", gap: spacing.sm, flex: 1 }}
                     onClick={() => openEditForm(debt)}
                     role="button"
                     tabIndex={0}
@@ -431,20 +431,20 @@ export function DebtScreen({
                       if (e.key === "Enter" || e.key === " ") openEditForm(debt)
                     }}
                   >
-                    <span style={{ fontSize: 18 }}>{emojiForType(debt.type)}</span>
+                    <span style={{ fontSize: typography.subhead.fontSize }}>{emojiForType(debt.type)}</span>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, color: "var(--text)", margin: 0, fontWeight: 500 }}>
+                      <p style={{ fontSize: typography.body.fontSize, color: "var(--text)", margin: 0, fontWeight: fontWeights.medium }}>
                         {debt.name}
                       </p>
-                      <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
+                      <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: 0 }}>
                         {debt.apr}% APR · ${debt.minimumPayment}/mo min ·{" "}
                         {formatPayoff(getPayoffMonths(debt.balance, debt.apr, debt.minimumPayment))}
                       </p>
                     </div>
                     <span
                       style={{
-                        fontSize: 14,
-                        fontWeight: 600,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.semibold,
                         color: "var(--text)",
                         fontVariantNumeric: "tabular-nums",
                       }}
@@ -454,18 +454,18 @@ export function DebtScreen({
                   </div>
                   <motion.button
                     onClick={() => handleDelete(debt.id)}
-                    whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
                     transition={springs.snappy}
                     style={{
-                      background: confirmDeleteId === debt.id ? "rgba(239, 68, 68, 0.15)" : "none",
+                      background: confirmDeleteId === debt.id ? "var(--error-200)" : "none",
                       border: "none",
                       padding: "4px 8px",
                       cursor: "pointer",
                       fontSize: confirmDeleteId === debt.id ? 12 : 16,
                       fontWeight: confirmDeleteId === debt.id ? 600 : undefined,
                       color: "var(--error)",
-                      marginLeft: 8,
-                      borderRadius: 6,
+                      marginLeft: spacing.xs,
+                      borderRadius: radius.min,
                     }}
                     aria-label={confirmDeleteId === debt.id ? `Confirm delete ${debt.name}` : `Delete ${debt.name}`}
                   >
@@ -485,7 +485,7 @@ export function DebtScreen({
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={springs.gentle}
-              style={{ overflow: "hidden", marginTop: 12 }}
+              style={{ overflow: "hidden", marginTop: spacing.sm }}
             >
               <DebtForm
                 form={form}
@@ -508,12 +508,12 @@ export function DebtScreen({
               marginTop: 14,
               width: "100%",
               padding: "12px 0",
-              background: "rgba(255,255,255,0.04)",
+              background: "var(--fill-04)",
               border: "1.5px dashed var(--border)",
-              borderRadius: borderRadius.md,
+              borderRadius: radius.control,
               color: "var(--sub)",
-              fontSize: 14,
-              fontWeight: 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
               cursor: "pointer",
             }}
@@ -550,8 +550,8 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
     <div
       style={{
         padding: 14,
-        borderRadius: borderRadius.md,
-        background: "rgba(255,255,255,0.03)",
+        borderRadius: radius.control,
+        background: "var(--fill-03)",
         border: "1px solid var(--border)",
       }}
     >
@@ -583,12 +583,12 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
                 transition={springs.snappy}
                 style={{
                   padding: "8px 14px",
-                  borderRadius: borderRadius.full,
+                  borderRadius: radius.full,
                   border: isActive ? "1.5px solid var(--success)" : "1px solid var(--border)",
-                  background: isActive ? "rgba(6, 214, 160, 0.1)" : "var(--fill-04)",
+                  background: isActive ? "var(--success-100)" : "var(--fill-04)",
                   color: isActive ? "var(--success)" : "var(--sub)",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                 }}
@@ -648,7 +648,7 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
       </div>
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: spacing.xs }}>
         <motion.button
           onClick={onCancel}
           whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
@@ -656,13 +656,13 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
-            background: "rgba(255, 255, 255, 0.06)",
+            background: "var(--fill-06)",
             border: "1px solid var(--border)",
-            borderRadius: borderRadius.full,
+            borderRadius: radius.full,
             cursor: "pointer",
           }}
           aria-label="Cancel"
@@ -677,15 +677,15 @@ function DebtForm({ form, setForm, onSave, onCancel, saving, isEdit }: DebtFormP
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
             background: saving || !form.name.trim() || form.balance <= 0
-              ? "rgba(255,255,255,0.06)"
+              ? "var(--fill-06)"
               : "var(--success)",
             border: "none",
-            borderRadius: borderRadius.full,
+            borderRadius: radius.full,
             cursor: saving || !form.name.trim() || form.balance <= 0 ? "not-allowed" : "pointer",
             opacity: saving || !form.name.trim() || form.balance <= 0 ? 0.5 : 1,
           }}

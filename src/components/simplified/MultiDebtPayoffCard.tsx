@@ -6,8 +6,9 @@ import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import type { Debt } from "@/types/folio"
 import { DEBT_TYPES } from "@/types/folio"
-import { FONT_FAMILY, pxToRem } from "@/styles/typography"
-import { sectionHeader, borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, pxToRem, spacing, typography, fontWeights } from '@/styles/typography'
+import { sectionHeader, HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { compareStrategies, type StrategyComparison, type StrategyResult, type StrategyName } from "@/lib/debtUtils"
 
 // ============================================================================
@@ -72,26 +73,27 @@ function getPayoffDateFromMonth(month: number): string {
 const strategyCardStyle: React.CSSProperties = {
   flex: 1,
   padding: "14px 16px",
-  borderRadius: borderRadius.md,
-  background: "rgba(255, 255, 255, 0.03)",
+  borderRadius: radius.control,
+  background: "var(--fill-03)",
   border: "1px solid var(--border)",
+  fontVariantNumeric: "tabular-nums",
 }
 
 const strategyCardActiveStyle: React.CSSProperties = {
   ...strategyCardStyle,
-  border: "1px solid rgba(6, 214, 160, 0.4)",
-  background: "rgba(6, 214, 160, 0.05)",
+  border: "1px solid var(--success-400)",
+  background: "var(--success-50)",
 }
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   background: "var(--color-sunken)",
   border: "1px solid var(--border)",
-  borderRadius: 10,
+  borderRadius: radius.control,
   outline: "none",
 }
 
@@ -122,19 +124,19 @@ export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
   const { snowball, avalanche, recommended, interestSaved } = comparison
 
   return (
-    <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+    <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
       <p style={sectionHeader}>Payoff Strategy Comparison</p>
       <p style={{ fontSize: pxToRem(13), color: "var(--sub)", margin: "0 0 16px" }}>
         Both strategies work &mdash; here&apos;s how they compare for your {activeDebts.length} debts
       </p>
 
       {/* Extra payment input */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: spacing.md }}>
         <label
           style={{
             display: "block",
-            fontSize: 12,
-            fontWeight: 500,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
             color: "var(--sub)",
             marginBottom: 6,
             fontFamily: FONT_FAMILY,
@@ -155,7 +157,7 @@ export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
       </div>
 
       {/* Strategy comparison cards */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: spacing.md }}>
         <StrategyCard
           name="snowball"
           result={snowball}
@@ -176,13 +178,13 @@ export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
         style={{
           width: "100%",
           padding: "10px 14px",
-          marginBottom: 16,
-          background: "rgba(255, 255, 255, 0.03)",
+          marginBottom: spacing.md,
+          background: "var(--fill-03)",
           border: "1px solid var(--border)",
-          borderRadius: borderRadius.md,
+          borderRadius: radius.control,
           color: "var(--sub)",
           fontSize: pxToRem(13),
-          fontWeight: 500,
+          fontWeight: fontWeights.medium,
           fontFamily: FONT_FAMILY,
           cursor: "pointer",
           display: "flex",
@@ -197,7 +199,7 @@ export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
           style={{
             transform: showTimeline ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.2s ease",
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
           }}
         >
           ▼
@@ -212,7 +214,7 @@ export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={springs.gentle}
-            style={{ overflow: "hidden", marginBottom: 16 }}
+            style={{ overflow: "hidden", marginBottom: spacing.md }}
           >
             <PayoffTimeline
               debts={activeDebts}
@@ -231,15 +233,15 @@ export function MultiDebtPayoffCard({ debts }: MultiDebtPayoffCardProps) {
         transition={springs.gentle}
         style={{
           padding: "12px 16px",
-          borderRadius: borderRadius.md,
-          background: "rgba(6, 214, 160, 0.08)",
-          border: "1px solid rgba(6, 214, 160, 0.2)",
+          borderRadius: radius.control,
+          background: "var(--success-100)",
+          border: "1px solid var(--success-200)",
         }}
       >
         <p
           style={{
             fontSize: pxToRem(13),
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             color: "var(--success)",
             margin: 0,
             fontFamily: FONT_FAMILY,
@@ -282,7 +284,7 @@ function StrategyCard({ name, result, isRecommended }: StrategyCardProps) {
       <p
         style={{
           fontSize: pxToRem(11),
-          fontWeight: 600,
+          fontWeight: fontWeights.semibold,
           color: isRecommended ? "var(--success)" : "var(--muted)",
           margin: "0 0 8px",
           textTransform: "uppercase",
@@ -308,7 +310,7 @@ function StrategyCard({ name, result, isRecommended }: StrategyCardProps) {
           style={{
             fontSize: pxToRem(13),
             color: "var(--text)",
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
             margin: "0 0 2px",
             fontFamily: FONT_FAMILY,
           }}
@@ -394,17 +396,17 @@ function TimelineColumn({ name, schedule, debtMap, isRecommended }: TimelineColu
       style={{
         flex: 1,
         padding: "12px 14px",
-        borderRadius: borderRadius.md,
-        background: isRecommended ? "rgba(6, 214, 160, 0.03)" : "rgba(255, 255, 255, 0.02)",
+        borderRadius: radius.control,
+        background: isRecommended ? "var(--success-50)" : "var(--fill-02)",
         border: isRecommended
-          ? "1px solid rgba(6, 214, 160, 0.25)"
+          ? "1px solid var(--success-300)"
           : "1px solid var(--border)",
       }}
     >
       <p
         style={{
           fontSize: pxToRem(11),
-          fontWeight: 600,
+          fontWeight: fontWeights.semibold,
           color: isRecommended ? "var(--success)" : "var(--muted)",
           margin: "0 0 10px",
           textTransform: "uppercase",
@@ -415,7 +417,7 @@ function TimelineColumn({ name, schedule, debtMap, isRecommended }: TimelineColu
         {strategyLabel(name)} order
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
         {schedule.map((entry, index) => {
           const debt = debtMap.get(entry.debtId)
           if (!debt) return null
@@ -429,7 +431,7 @@ function TimelineColumn({ name, schedule, debtMap, isRecommended }: TimelineColu
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
+                gap: spacing.xs,
               }}
             >
               {/* Order number */}
@@ -439,13 +441,13 @@ function TimelineColumn({ name, schedule, debtMap, isRecommended }: TimelineColu
                   height: 20,
                   borderRadius: "50%",
                   background: isRecommended
-                    ? "rgba(6, 214, 160, 0.15)"
-                    : "rgba(255, 255, 255, 0.06)",
+                    ? "var(--success-200)"
+                    : "var(--fill-06)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: pxToRem(10),
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   color: isRecommended ? "var(--success)" : "var(--muted)",
                   fontFamily: FONT_FAMILY,
                   flexShrink: 0,
@@ -459,7 +461,7 @@ function TimelineColumn({ name, schedule, debtMap, isRecommended }: TimelineColu
                 <p
                   style={{
                     fontSize: pxToRem(12),
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                     color: "var(--text)",
                     margin: 0,
                     fontFamily: FONT_FAMILY,

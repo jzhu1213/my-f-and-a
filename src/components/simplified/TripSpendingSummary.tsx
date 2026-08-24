@@ -17,8 +17,8 @@
 import { useMemo } from "react"
 import { motion } from "framer-motion"
 import type { Transaction } from "@/types"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import { springs } from "@/lib/animations"
 import { getHomeCurrency } from "@/lib/currencyPreferences"
 import {
@@ -131,19 +131,19 @@ export function TripSpendingSummary({
       animate={{ opacity: 1, y: 0 }}
       transition={springs.snappy}
       style={{
-        background: "rgba(129, 140, 248, 0.06)",
-        border: "1px solid rgba(129, 140, 248, 0.15)",
-        borderRadius: borderRadius.lg,
+        background: "var(--accent-100)",
+        border: "1px solid var(--accent-200)",
+        borderRadius: radius.control,
         padding: "20px 16px",
         fontFamily: FONT_FAMILY,
       }}
       aria-label={`Trip spending summary for ${tripCurrency}`}
     >
       {/* Header */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: spacing.md }}>
         <p style={{
-          fontSize: 11,
-          fontWeight: 600,
+          fontSize: typography.caption.fontSize,
+          fontWeight: fontWeights.semibold,
           color: "var(--muted)",
           textTransform: "uppercase",
           letterSpacing: "0.08em",
@@ -152,8 +152,8 @@ export function TripSpendingSummary({
           {label || "Trip Summary"}
         </p>
         <p style={{
-          fontSize: 14,
-          fontWeight: 500,
+          fontSize: typography.body.fontSize,
+          fontWeight: fontWeights.medium,
           color: "var(--sub)",
         }}>
           {stats.transactionCount} transactions over {stats.daysSpent} {stats.daysSpent === 1 ? "day" : "days"}
@@ -164,7 +164,7 @@ export function TripSpendingSummary({
       <div style={{
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
-        gap: 12,
+        gap: spacing.sm,
       }}>
         {/* Total foreign */}
         <StatCell
@@ -213,21 +213,21 @@ function StatCell({
 }) {
   return (
     <div style={{
-      background: "rgba(255, 255, 255, 0.03)",
-      borderRadius: 8,
+      background: "var(--fill-03)",
+      borderRadius: radius.control,
       padding: "10px 12px",
     }}>
       <p style={{
-        fontSize: 11,
-        fontWeight: 500,
+        fontSize: typography.caption.fontSize,
+        fontWeight: fontWeights.medium,
         color: "var(--muted)",
         marginBottom: 4,
       }}>
         {label}
       </p>
       <p style={{
-        fontSize: 15,
-        fontWeight: 600,
+        fontSize: typography.body.fontSize,
+        fontWeight: fontWeights.semibold,
         fontVariantNumeric: "tabular-nums",
         color: accent ? "var(--accent)" : "var(--text)",
         lineHeight: 1.3,
@@ -236,8 +236,8 @@ function StatCell({
       </p>
       {subtitle && (
         <p style={{
-          fontSize: 11,
-          fontWeight: 400,
+          fontSize: typography.caption.fontSize,
+          fontWeight: fontWeights.regular,
           fontVariantNumeric: "tabular-nums",
           color: "var(--muted)",
           marginTop: 2,

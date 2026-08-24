@@ -7,8 +7,10 @@ import type { TutorialStep } from './OnboardingTutorial'
 import type { BudgetPreset, OnboardingResult } from '@/types/folio'
 import type { TransactionCategory, OnboardingPath, UserGoal } from '@/types'
 import { getCategoryEmoji, PRESET_EMOJI } from '@/lib/vocabulary'
-import { borderRadius } from '@/styles/shared'
-import { FONT_FAMILY } from '@/styles/typography'
+import { HORIZONTAL_PADDING } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
+import { Card } from '@/components/ui/Card'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import type { PayCadence } from '@/lib/paySchedule'
 
 // ============================================================================
@@ -278,7 +280,7 @@ function TryLogExpense({ onComplete }: { onComplete: () => void }) {
               key={cat.label}
               type="button"
               onClick={() => setSelectedCategory(cat.label)}
-              whileTap={{ scale: 0.92 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               aria-label={`Category: ${cat.label}`}
               aria-pressed={selected}
@@ -291,22 +293,22 @@ function TryLogExpense({ onComplete }: { onComplete: () => void }) {
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 background: selected
-                  ? 'rgba(129, 140, 248, 0.12)'
-                  : 'rgba(255, 255, 255, 0.04)',
+                  ? 'var(--accent-200)'
+                  : 'var(--fill-04)',
                 border: selected
-                  ? '1.5px solid rgba(129, 140, 248, 0.5)'
-                  : '1px solid rgba(255, 255, 255, 0.08)',
+                  ? '1.5px solid var(--accent-400)'
+                  : '1px solid var(--fill-08)',
                 boxShadow: selected
-                  ? '0 0 10px rgba(129, 140, 248, 0.15)'
+                  ? '0 0 10px var(--accent-200)'
                   : 'none',
               }}
             >
-              <span style={{ fontSize: 24 }}>{cat.emoji}</span>
+              <span style={{ fontSize: typography.headline.fontSize }}>{cat.emoji}</span>
               <span
                 style={{
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                   color: selected ? 'var(--text)' : 'var(--sub)',
                 }}
               >
@@ -330,18 +332,18 @@ function TryLogExpense({ onComplete }: { onComplete: () => void }) {
               key={amt}
               type="button"
               onClick={handleAmountTap}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               aria-label={`Amount: ${amt}`}
               style={{
                 padding: '10px 20px',
-                borderRadius: borderRadius.full,
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: radius.full,
+                background: 'var(--fill-06)',
+                border: '1px solid var(--fill-12)',
                 color: 'var(--text)',
                 fontFamily: FONT_FAMILY,
-                fontSize: 15,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 cursor: 'pointer',
               }}
             >
@@ -354,7 +356,7 @@ function TryLogExpense({ onComplete }: { onComplete: () => void }) {
       {!selectedCategory && (
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: 'var(--muted)',
             fontFamily: FONT_FAMILY,
             textAlign: 'center',
@@ -391,20 +393,20 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
           maxWidth: 280,
           padding: '24px 20px',
           borderRadius: 'var(--radius-lg)',
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--fill-04)',
+          border: '1px solid var(--fill-08)',
           cursor: 'pointer',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 8,
+          gap: spacing.xs,
         }}
       >
         <span
           style={{
             fontSize: 38,
             fontFamily: FONT_FAMILY,
-            fontWeight: 700,
+            fontWeight: fontWeights.bold,
             color: 'var(--success)',
           }}
         >
@@ -412,7 +414,7 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
         </span>
         <span
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: 'var(--sub)',
             fontFamily: FONT_FAMILY,
           }}
@@ -432,8 +434,8 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
             maxWidth: 280,
             padding: '12px 16px',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'var(--fill-03)',
+            border: '1px solid var(--fill-06)',
           }}
         >
           {[
@@ -446,7 +448,7 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
               style={{
                 padding: '8px 0',
                 fontFamily: FONT_FAMILY,
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 color: 'var(--sub)',
               }}
             >
@@ -460,8 +462,8 @@ function TapAllowanceHero({ onComplete }: { onComplete: () => void }) {
 
           <p
             style={{
-              marginTop: 8,
-              fontSize: 12,
+              marginTop: spacing.xs,
+              fontSize: typography['body-sm'].fontSize,
               color: 'var(--muted)',
               fontFamily: FONT_FAMILY,
               textAlign: 'center',
@@ -499,8 +501,8 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
           maxWidth: 280,
           padding: '16px 20px',
           borderRadius: 'var(--radius-md)',
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--fill-04)',
+          border: '1px solid var(--fill-08)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -512,8 +514,8 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
         <div className="flex flex-col flex-1">
           <span
             style={{
-              fontSize: 15,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               fontFamily: FONT_FAMILY,
               color: 'var(--text)',
             }}
@@ -522,7 +524,7 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
           </span>
           <span
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--sub)',
             }}
@@ -536,7 +538,7 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
             width: 60,
             height: 6,
             borderRadius: 3,
-            background: 'rgba(255, 255, 255, 0.08)',
+            background: 'var(--fill-08)',
             overflow: 'hidden',
           }}
         >
@@ -562,8 +564,8 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
             maxWidth: 280,
             padding: '12px 16px',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'var(--fill-03)',
+            border: '1px solid var(--fill-06)',
           }}
         >
           {[
@@ -577,9 +579,9 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
               style={{
                 padding: '7px 0',
                 fontFamily: FONT_FAMILY,
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 color: 'var(--sub)',
-                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                borderBottom: '1px solid var(--fill-04)',
               }}
             >
               <span>{item.note}</span>
@@ -589,8 +591,8 @@ function ViewCategoryCard({ onComplete }: { onComplete: () => void }) {
 
           <p
             style={{
-              marginTop: 8,
-              fontSize: 12,
+              marginTop: spacing.xs,
+              fontSize: typography['body-sm'].fontSize,
               color: 'var(--muted)',
               fontFamily: FONT_FAMILY,
               textAlign: 'center',
@@ -622,7 +624,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div className="flex flex-col items-center text-center flex-1">
       <motion.span
-        style={{ fontSize: 40, marginBottom: 12 }}
+        style={{ fontSize: 40, marginBottom: spacing.sm }}
         initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
         animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
         transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
@@ -632,8 +634,8 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
       </motion.span>
       <h2
         style={{
-          fontSize: 20,
-          fontWeight: 700,
+          fontSize: typography.subhead.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
           marginBottom: 6,
@@ -643,12 +645,12 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
       </h2>
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
           lineHeight: 1.5,
-          marginBottom: 20,
+          marginBottom: HORIZONTAL_PADDING,
         }}
       >
         Three things that make budgeting feel easy.
@@ -666,16 +668,16 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
           style={{
             padding: '16px',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--fill-04)',
+            border: '1px solid var(--fill-08)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <span style={{ fontSize: 20 }} aria-hidden="true">✨</span>
+            <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">✨</span>
             <span
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
@@ -687,7 +689,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
             <span
               style={{
                 fontSize: 28,
-                fontWeight: 700,
+                fontWeight: fontWeights.bold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--success)',
                 fontVariantNumeric: 'tabular-nums',
@@ -697,7 +699,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
             </span>
             <span
               style={{
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--sub)',
               }}
@@ -712,16 +714,16 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
           style={{
             padding: '16px',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--fill-04)',
+            border: '1px solid var(--fill-08)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <span style={{ fontSize: 20 }} aria-hidden="true">💸</span>
+            <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">💸</span>
             <span
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
@@ -739,10 +741,10 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
                 key={cat.label}
                 style={{
                   padding: '8px 12px',
-                  borderRadius: borderRadius.full,
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  fontSize: 12,
+                  borderRadius: radius.full,
+                  background: 'var(--fill-06)',
+                  border: '1px solid var(--fill-10)',
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--sub)',
                   display: 'flex',
@@ -757,8 +759,8 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
           </div>
           <p
             style={{
-              marginTop: 8,
-              fontSize: 11,
+              marginTop: spacing.xs,
+              fontSize: typography.caption.fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--muted)',
             }}
@@ -772,16 +774,16 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
           style={{
             padding: '16px',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--fill-04)',
+            border: '1px solid var(--fill-08)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <span style={{ fontSize: 20 }} aria-hidden="true">📊</span>
+            <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">📊</span>
             <span
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
@@ -790,13 +792,13 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span style={{ fontSize: 22 }}>🍕</span>
+            <span style={{ fontSize: typography.headline.fontSize }}>🍕</span>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
                 <span
                   style={{
-                    fontSize: 13,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
                   }}
@@ -805,7 +807,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
                 </span>
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: typography.caption.fontSize,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--sub)',
                   }}
@@ -818,7 +820,7 @@ export function CondensedPreview({ onDismiss }: { onDismiss: () => void }) {
                   width: '100%',
                   height: 5,
                   borderRadius: 3,
-                  background: 'rgba(255, 255, 255, 0.08)',
+                  background: 'var(--fill-08)',
                   overflow: 'hidden',
                 }}
               >
@@ -884,7 +886,7 @@ export function TutorialStepRenderer({
     <div className="flex flex-col items-center text-center flex-1">
       {/* Emoji */}
       <motion.span
-        style={{ fontSize: 48, marginBottom: 16 }}
+        style={{ fontSize: 48, marginBottom: spacing.md }}
         initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
         animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
         transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
@@ -896,11 +898,11 @@ export function TutorialStepRenderer({
       {/* Title */}
       <h2
         style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: typography.headline.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
         }}
       >
         {step.title}
@@ -909,7 +911,7 @@ export function TutorialStepRenderer({
       {/* Subtitle */}
       <p
         style={{
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
@@ -925,7 +927,7 @@ export function TutorialStepRenderer({
           {/* Prompt */}
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--muted)',
               marginBottom: 4,
@@ -949,10 +951,10 @@ export function TutorialStepRenderer({
 
       {/* Info steps just show the content — no interactive element needed */}
       {step.type === 'info' && step.id !== 'welcome' && (
-        <div style={{ marginTop: 24 }}>
+        <div style={{ marginTop: spacing.lg }}>
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: 'var(--muted)',
               fontFamily: FONT_FAMILY,
             }}
@@ -1323,12 +1325,12 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
         💰
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         What&apos;s your monthly income?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 32, lineHeight: 1.5 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: spacing.xl, lineHeight: 1.5 }}
       >
         Rough estimate is fine — you can change this later.
       </p>
@@ -1377,7 +1379,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
           style={{
             color: 'var(--accent)',
             fontFamily: FONT_FAMILY,
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
             cursor: 'pointer',
             background: 'none',
             border: 'none',
@@ -1399,12 +1401,11 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
               transition={springs.gentle}
               className="overflow-hidden"
             >
-              <div
-                className="mt-3 p-4 rounded-xl text-left"
-                style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}
+              <Card
+                className="mt-3 p-4 text-left"
               >
                 <p
-                  style={{ fontSize: 13, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginBottom: 12, textAlign: 'center' }}
+                  style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginBottom: spacing.sm, textAlign: 'center' }}
                 >
                   A rough guess is perfect — you can always adjust later.
                 </p>
@@ -1422,7 +1423,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         color: 'var(--text)',
                         fontFamily: FONT_FAMILY,
                         cursor: 'pointer',
-                        borderRadius: 8,
+                        borderRadius: radius.control,
                       }}
                     >
                       💼 I know my hourly rate
@@ -1437,7 +1438,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                         color: 'var(--text)',
                         fontFamily: FONT_FAMILY,
                         cursor: 'pointer',
-                        borderRadius: 8,
+                        borderRadius: radius.control,
                       }}
                     >
                       📅 I know my weekly take-home
@@ -1449,7 +1450,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                 {helperMode === 'hourly' && (
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' }}>$/hr</span>
+                      <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', whiteSpace: 'nowrap' }}>$/hr</span>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -1463,13 +1464,13 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                           color: 'var(--text)',
                           fontFamily: FONT_FAMILY,
                           outline: 'none',
-                          borderRadius: 8,
+                          borderRadius: radius.control,
                         }}
                         aria-label="Hourly rate"
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' }}>hrs/wk</span>
+                      <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', whiteSpace: 'nowrap' }}>hrs/wk</span>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -1483,13 +1484,13 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                           color: 'var(--text)',
                           fontFamily: FONT_FAMILY,
                           outline: 'none',
-                          borderRadius: 8,
+                          borderRadius: radius.control,
                         }}
                         aria-label="Hours per week"
                       />
                     </div>
                     {parseFloat(hourlyRate) > 0 && parseFloat(hoursPerWeek) > 0 && (
-                      <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, textAlign: 'center' }}>
+                      <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, textAlign: 'center' }}>
                         ≈ ${Math.round(parseFloat(hourlyRate) * parseFloat(hoursPerWeek) * WEEKS_PER_MONTH).toLocaleString()}/mo
                       </p>
                     )}
@@ -1512,7 +1513,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                           color: 'var(--text)',
                           fontFamily: FONT_FAMILY,
                           opacity: (parseFloat(hourlyRate) && parseFloat(hoursPerWeek)) ? 1 : 0.5,
-                          borderRadius: 8,
+                          borderRadius: radius.control,
                         }}
                       >
                         Use this
@@ -1525,7 +1526,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                 {helperMode === 'weekly' && (
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' }}>$/wk</span>
+                      <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', whiteSpace: 'nowrap' }}>$/wk</span>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -1539,13 +1540,13 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                           color: 'var(--text)',
                           fontFamily: FONT_FAMILY,
                           outline: 'none',
-                          borderRadius: 8,
+                          borderRadius: radius.control,
                         }}
                         aria-label="Weekly take-home amount"
                       />
                     </div>
                     {parseFloat(weeklyAmount) > 0 && (
-                      <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, textAlign: 'center' }}>
+                      <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, textAlign: 'center' }}>
                         ≈ ${Math.round(parseFloat(weeklyAmount) * WEEKS_PER_MONTH).toLocaleString()}/mo
                       </p>
                     )}
@@ -1568,7 +1569,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                           color: 'var(--text)',
                           fontFamily: FONT_FAMILY,
                           opacity: parseFloat(weeklyAmount) ? 1 : 0.5,
-                          borderRadius: 8,
+                          borderRadius: radius.control,
                         }}
                       >
                         Use this
@@ -1576,7 +1577,7 @@ function SetupIncomeStep({ value, onChange }: SetupIncomeProps) {
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1603,12 +1604,12 @@ function SetupBudgetStyleStep({ selected, onChange, monthlyIncome }: SetupBudget
           📊
         </div>
         <h2
-          style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+          style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
         >
           What fits your life?
         </h2>
         <p
-          style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}
+          style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}
         >
           Pick a starting point — you can always adjust.
         </p>
@@ -1632,7 +1633,7 @@ function SetupBudgetStyleStep({ selected, onChange, monthlyIncome }: SetupBudget
               style={{
                 background: isSelected ? 'var(--accent-muted)' : 'var(--surface)',
                 border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                boxShadow: isSelected ? '0 0 12px rgba(129, 140, 248, 0.25)' : 'none',
+                boxShadow: isSelected ? '0 0 12px var(--accent-300)' : 'none',
               }}
             >
               <span className="text-xl flex-shrink-0">{preset.emoji}</span>
@@ -1695,12 +1696,12 @@ function SetupCategoryLimitsStep({ values, onChange }: SetupCategoryLimitsProps)
           🎯
         </div>
         <h2
-          style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+          style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
         >
           Set category limits
         </h2>
         <p
-          style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', lineHeight: 1.5 }}
+          style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', lineHeight: 1.5 }}
         >
           Totally optional — leave any blank and move on.
         </p>
@@ -1718,16 +1719,16 @@ function SetupCategoryLimitsStep({ values, onChange }: SetupCategoryLimitsProps)
             <div key={cat.key} className="flex flex-col gap-1">
               <label
                 className="flex items-center gap-2"
-                style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--text)', fontWeight: 500 }}
+                style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--text)', fontWeight: fontWeights.medium }}
               >
                 <span>{cat.emoji}</span>
                 <span>{cat.label}</span>
                 {cat.weekly && (
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>/wk</span>
+                  <span style={{ fontSize: typography.caption.fontSize, color: 'var(--muted)' }}>/wk</span>
                 )}
               </label>
               <div className="flex items-center gap-2">
-                <span style={{ fontSize: 16, color: 'var(--muted)' }}>$</span>
+                <span style={{ fontSize: typography.body.fontSize, color: 'var(--muted)' }}>$</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -1745,7 +1746,7 @@ function SetupCategoryLimitsStep({ values, onChange }: SetupCategoryLimitsProps)
                   aria-label={`${cat.label} amount`}
                 />
                 {monthlyHint && (
-                  <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
                     {monthlyHint}
                   </span>
                 )}
@@ -1784,12 +1785,12 @@ function SetupConfirmationStep({ monthlyIncome, budgetPreset, dailyAllowance, ca
         ✨
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         You&apos;re all set!
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: spacing.lg }}
       >
         Here&apos;s your starting daily budget:
       </p>
@@ -1894,11 +1895,11 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
       </div>
       <h2
         style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: typography.headline.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
           lineHeight: 1.3,
         }}
       >
@@ -1906,10 +1907,10 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
       </h2>
       <p
         style={{
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
-          marginBottom: 24,
+          marginBottom: spacing.lg,
           lineHeight: 1.5,
           maxWidth: 300,
         }}
@@ -1925,13 +1926,13 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
             alignItems: 'center',
             background: 'var(--surface)',
             border: '1.5px solid var(--border)',
-            borderRadius: 12,
+            borderRadius: radius.control,
             padding: '12px 14px',
           }}
         >
           <span
             style={{
-              fontSize: 18,
+              fontSize: typography.subhead.fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--sub)',
               marginRight: 4,
@@ -1952,7 +1953,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              fontSize: 18,
+              fontSize: typography.subhead.fontSize,
               fontFamily: FONT_FAMILY,
               fontVariantNumeric: 'tabular-nums',
               color: 'var(--text)',
@@ -1969,7 +1970,7 @@ function OptionalRecentIncomeStep({ value, onChange }: OptionalRecentIncomeStepP
           animate={{ opacity: 1, y: 0 }}
           transition={springs.gentle}
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--accent)',
             marginTop: 4,
@@ -2072,11 +2073,11 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
       </div>
       <h2
         style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: typography.headline.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
           lineHeight: 1.3,
         }}
       >
@@ -2084,10 +2085,10 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
       </h2>
       <p
         style={{
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
-          marginBottom: 24,
+          marginBottom: spacing.lg,
           lineHeight: 1.5,
           maxWidth: 300,
         }}
@@ -2100,7 +2101,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
         <label
           style={{
             display: 'block',
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
@@ -2120,16 +2121,16 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
                 className="py-2 px-3 transition-all"
                 style={{
                   background: isSelected
-                    ? 'rgba(167, 139, 250, 0.12)'
+                    ? 'var(--accent-200)'
                     : 'var(--surface)',
                   border: isSelected
                     ? '1.5px solid var(--accent)'
                     : '1.5px solid var(--border)',
-                  borderRadius: 8,
+                  borderRadius: radius.control,
                   cursor: 'pointer',
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                   color: isSelected ? 'var(--text)' : 'var(--sub)',
                 }}
                 aria-pressed={isSelected}
@@ -2148,7 +2149,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           htmlFor="recent-expense-amount"
           style={{
             display: 'block',
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
@@ -2163,13 +2164,13 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
             alignItems: 'center',
             background: 'var(--surface)',
             border: '1.5px solid var(--border)',
-            borderRadius: 12,
+            borderRadius: radius.control,
             padding: '12px 14px',
           }}
         >
           <span
             style={{
-              fontSize: 18,
+              fontSize: typography.subhead.fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--sub)',
               marginRight: 4,
@@ -2190,7 +2191,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              fontSize: 18,
+              fontSize: typography.subhead.fontSize,
               fontFamily: FONT_FAMILY,
               fontVariantNumeric: 'tabular-nums',
               color: 'var(--text)',
@@ -2205,7 +2206,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
         <label
           style={{
             display: 'block',
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
@@ -2225,15 +2226,15 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
                 className="flex-1 py-2.5 rounded-lg transition-all"
                 style={{
                   background: isSelected
-                    ? 'rgba(167, 139, 250, 0.12)'
+                    ? 'var(--accent-200)'
                     : 'var(--surface)',
                   border: isSelected
                     ? '1.5px solid var(--accent)'
                     : '1.5px solid var(--border)',
                   cursor: 'pointer',
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                   color: isSelected ? 'var(--text)' : 'var(--sub)',
                 }}
                 aria-pressed={isSelected}
@@ -2252,7 +2253,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           htmlFor="recent-expense-note"
           style={{
             display: 'block',
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
             marginBottom: 6,
@@ -2271,12 +2272,12 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           style={{
             width: '100%',
             padding: '12px 14px',
-            borderRadius: 12,
+            borderRadius: radius.control,
             background: 'var(--surface)',
             border: '1.5px solid var(--border)',
             color: 'var(--text)',
             fontFamily: FONT_FAMILY,
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             outline: 'none',
           }}
           aria-label="Optional note for this expense"
@@ -2290,7 +2291,7 @@ function OptionalRecentExpenseStep({ value, onChange }: OptionalRecentExpenseSte
           animate={{ opacity: 1, y: 0 }}
           transition={springs.gentle}
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--accent)',
             marginTop: 4,
@@ -2344,11 +2345,11 @@ function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
       </div>
       <h2
         style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: typography.headline.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
           lineHeight: 1.3,
         }}
       >
@@ -2356,10 +2357,10 @@ function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
       </h2>
       <p
         style={{
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
-          marginBottom: 24,
+          marginBottom: spacing.lg,
           lineHeight: 1.5,
           maxWidth: 300,
         }}
@@ -2378,12 +2379,12 @@ function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
               className="flex items-center gap-3 p-3.5 text-left transition-all"
               style={{
                 background: isSelected
-                  ? 'rgba(167, 139, 250, 0.12)'
+                  ? 'var(--accent-200)'
                   : 'var(--surface)',
                 border: isSelected
                   ? '1.5px solid var(--accent)'
                   : '1.5px solid var(--border)',
-                borderRadius: 12,
+                borderRadius: radius.control,
                 cursor: 'pointer',
               }}
               aria-pressed={isSelected}
@@ -2405,7 +2406,7 @@ function OptionalGoalStep({ value, onChange }: OptionalGoalStepProps) {
                 </div>
               </div>
               {isSelected && (
-                <span style={{ color: 'var(--accent)', fontSize: 16 }} aria-hidden="true">✓</span>
+                <span style={{ color: 'var(--accent)', fontSize: typography.body.fontSize }} aria-hidden="true">✓</span>
               )}
             </button>
           )
@@ -2430,18 +2431,18 @@ function DailyNumberPreview({ dailyAllowance }: { dailyAllowance: number }) {
     <div
       className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl mb-5"
       style={{
-        background: 'rgba(129, 140, 248, 0.08)',
-        border: '1px solid rgba(129, 140, 248, 0.2)',
+        background: 'var(--accent-100)',
+        border: '1px solid var(--accent-200)',
       }}
       aria-live="polite"
       aria-label={`Estimated daily budget: $${dailyAllowance}`}
     >
-      <span style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}>
+      <span style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}>
         Your daily number
       </span>
       <span
         className="tabular-nums"
-        style={{ fontSize: 18, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--accent)' }}
+        style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--accent)' }}
       >
         ${dailyAllowance}/day
       </span>
@@ -2482,11 +2483,11 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
       </div>
       <h2
         style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: typography.headline.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
           lineHeight: 1.3,
         }}
       >
@@ -2494,10 +2495,10 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
       </h2>
       <p
         style={{
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
-          marginBottom: 24,
+          marginBottom: spacing.lg,
           lineHeight: 1.5,
           maxWidth: 280,
         }}
@@ -2511,7 +2512,7 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
             onClick={() => handleSelect(band)}
             className="flex items-center justify-between p-3.5 rounded-xl transition-all"
             style={{
-              background: selected === band.label ? 'rgba(167, 139, 250, 0.12)' : 'var(--surface)',
+              background: selected === band.label ? 'var(--accent-200)' : 'var(--surface)',
               border: selected === band.label
                 ? '1.5px solid var(--accent)'
                 : '1.5px solid var(--border)',
@@ -2522,8 +2523,8 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
           >
             <span
               style={{
-                fontSize: 15,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
@@ -2532,7 +2533,7 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
             </span>
             <span
               style={{
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--sub)',
               }}
@@ -2545,10 +2546,10 @@ function MinimalEstimateStep({ onChange }: MinimalEstimateStepProps) {
       {selected && (
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--accent)',
-            marginTop: 16,
+            marginTop: spacing.md,
             lineHeight: 1.4,
           }}
           role="status"
@@ -2607,19 +2608,19 @@ function ExpressIncomeStep({ value, onChange, dailyAllowance }: ExpressIncomeSte
         💰
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         What&apos;s your monthly income?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: spacing.lg, lineHeight: 1.5 }}
       >
         A rough number is fine — change it anytime.
       </p>
 
       {/* Typed numeric input */}
       <div className="flex items-center gap-2 mb-5 w-full max-w-[200px]">
-        <span style={{ fontSize: 22, color: 'var(--muted)', fontWeight: 600 }}>$</span>
+        <span style={{ fontSize: typography.headline.fontSize, color: 'var(--muted)', fontWeight: fontWeights.semibold }}>$</span>
         <input
           type="text"
           inputMode="numeric"
@@ -2714,12 +2715,12 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
         🧾
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         Any fixed monthly bills?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}
       >
         Rent, subscriptions, utilities — these come out first so your daily number stays honest.
       </p>
@@ -2734,15 +2735,15 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
               style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
             >
               <div className="flex flex-col text-left">
-                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {exp.label}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
+                <span style={{ fontSize: typography.caption.fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
                   Due day {exp.dueDay}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="tabular-nums" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                <span className="tabular-nums" style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   ${exp.amount}
                 </span>
                 <button
@@ -2756,7 +2757,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
               </div>
             </div>
           ))}
-          <div className="text-right" style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
+          <div className="text-right" style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
             Total: ${totalFixed}/mo
           </div>
         </div>
@@ -2779,7 +2780,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
           />
           <div className="flex gap-2">
             <div className="flex items-center gap-1 flex-1">
-              <span style={{ fontSize: 14, color: 'var(--muted)' }}>$</span>
+              <span style={{ fontSize: typography.body.fontSize, color: 'var(--muted)' }}>$</span>
               <input
                 type="text"
                 inputMode="decimal"
@@ -2819,7 +2820,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
                 color: 'var(--text)',
                 fontFamily: FONT_FAMILY,
                 opacity: label.trim() && amount ? 1 : 0.5,
-                borderRadius: 8,
+                borderRadius: radius.control,
               }}
               aria-label="Add expense"
             >
@@ -2837,7 +2838,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
             color: 'var(--sub)',
             fontFamily: FONT_FAMILY,
             cursor: 'pointer',
-            borderRadius: 12,
+            borderRadius: radius.control,
           }}
           aria-label="Add a fixed expense"
         >
@@ -2846,7 +2847,7 @@ function ExpressFixedExpensesStep({ expenses, onAdd, onRemove, dailyAllowance }:
       )}
 
       {expenses.length === 0 && !showForm && (
-        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 12 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: spacing.sm }}>
           No worries if you skip this — you can add bills later from Settings.
         </p>
       )}
@@ -2882,12 +2883,12 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
           🎯
         </div>
         <h2
-          style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+          style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
         >
           Set category budgets
         </h2>
         <p
-          style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', lineHeight: 1.5 }}
+          style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', lineHeight: 1.5 }}
         >
           Totally optional — leave any blank and move on.
         </p>
@@ -2909,7 +2910,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
               <div className="flex items-center justify-between">
                 <label
                   className="flex items-center gap-2"
-                  style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--text)', fontWeight: 500 }}
+                  style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--text)', fontWeight: fontWeights.medium }}
                 >
                   <span>{cat.emoji}</span>
                   <span>{cat.label.replace(/ per week$/, '')}</span>
@@ -2923,7 +2924,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
                       background: period === 'weekly' ? 'var(--accent)' : 'transparent',
                       color: period === 'weekly' ? 'var(--text)' : 'var(--muted)',
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                     }}
                     aria-label={`Set ${cat.label} to weekly`}
                     aria-pressed={period === 'weekly'}
@@ -2937,7 +2938,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
                       background: period === 'monthly' ? 'var(--accent)' : 'transparent',
                       color: period === 'monthly' ? 'var(--text)' : 'var(--muted)',
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                     }}
                     aria-label={`Set ${cat.label} to monthly`}
                     aria-pressed={period === 'monthly'}
@@ -2947,7 +2948,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span style={{ fontSize: 16, color: 'var(--muted)' }}>$</span>
+                <span style={{ fontSize: typography.body.fontSize, color: 'var(--muted)' }}>$</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -2965,7 +2966,7 @@ function ExpressCategoryLimitsStep({ values, periods, onValueChange, onPeriodCha
                   aria-label={`${cat.label} budget amount`}
                 />
                 {hint && (
-                  <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
                     {hint}
                   </span>
                 )}
@@ -2999,12 +3000,12 @@ function ExpressConfirmationStep({ setupState, dailyAllowance }: ExpressConfirma
         ✨
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         Here&apos;s your daily number
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: spacing.lg }}
       >
         This is your easy daily spending number — no math needed.
       </p>
@@ -3012,7 +3013,7 @@ function ExpressConfirmationStep({ setupState, dailyAllowance }: ExpressConfirma
       {/* Hero daily allowance */}
       <div
         className="rounded-2xl p-6 mb-5 w-full"
-        style={{ background: 'var(--surface)', border: '1.5px solid rgba(129, 140, 248, 0.3)' }}
+        style={{ background: 'var(--surface)', border: '1.5px solid var(--accent-300)' }}
       >
         <div
           className="text-5xl font-bold mb-1 tabular-nums"
@@ -3069,7 +3070,7 @@ function ExpressConfirmationStep({ setupState, dailyAllowance }: ExpressConfirma
         </div>
       </div>
 
-      <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 16 }}>
+      <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: spacing.md }}>
         You can always tweak these numbers in Settings.
       </p>
     </div>
@@ -3135,12 +3136,12 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
         💵
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         When do you get paid?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: spacing.lg, lineHeight: 1.5 }}
       >
         We&apos;ll align your daily number to your pay cycle — no more running out before payday.
       </p>
@@ -3158,17 +3159,17 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
               style={{
                 background: isSelected ? 'var(--accent-muted)' : 'var(--surface)',
                 border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                boxShadow: isSelected ? '0 0 12px rgba(129, 140, 248, 0.25)' : 'none',
+                boxShadow: isSelected ? '0 0 12px var(--accent-300)' : 'none',
                 cursor: 'pointer',
               }}
               aria-pressed={isSelected}
             >
               <span className="text-lg flex-shrink-0">{opt.emoji}</span>
               <div className="flex-1 min-w-0">
-                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                <div style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {opt.label}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
+                <div style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
                   {opt.description}
                 </div>
               </div>
@@ -3191,7 +3192,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
       {!isIrregular && (
         <div className="w-full mb-4">
           <label
-            style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
+            style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
           >
             Your most recent payday
           </label>
@@ -3206,7 +3207,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
               color: 'var(--text)',
               fontFamily: FONT_FAMILY,
               outline: 'none',
-              borderRadius: 8,
+              borderRadius: radius.control,
             }}
             aria-label="Most recent payday date"
           />
@@ -3216,9 +3217,9 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
       {isIrregular && (
         <div
           className="w-full mb-4 p-3 rounded-xl text-left"
-          style={{ background: 'rgba(129, 140, 248, 0.06)', border: '1px solid rgba(129, 140, 248, 0.15)', borderRadius: 12 }}
+          style={{ background: 'var(--accent-100)', border: '1px solid var(--accent-200)', borderRadius: 12 }}
         >
-          <p style={{ fontSize: 13, color: 'var(--sub)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
             No worries — we&apos;ll use a trailing average of your income to smooth things out and show you a &quot;usually $X–$Y&quot; range.
           </p>
         </div>
@@ -3227,12 +3228,12 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
       {/* Expected paycheck amount */}
       <div className="w-full">
         <label
-          style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
+          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
         >
           {isIrregular ? 'Typical paycheck (rough estimate)' : 'Expected paycheck amount'}
         </label>
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600 }}>$</span>
+          <span style={{ fontSize: typography.subhead.fontSize, color: 'var(--muted)', fontWeight: fontWeights.semibold }}>$</span>
           <input
             type="text"
             inputMode="decimal"
@@ -3246,7 +3247,7 @@ function PayScheduleStep({ value, onChange, onSwitchToSimple }: PayScheduleStepP
               color: 'var(--text)',
               fontFamily: FONT_FAMILY,
               outline: 'none',
-              borderRadius: 8,
+              borderRadius: radius.control,
             }}
             aria-label="Expected paycheck amount"
           />
@@ -3338,12 +3339,12 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
         🪣
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         Split your paycheck
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}
       >
         Your &quot;Spend&quot; bucket becomes your daily number. The rest is tucked away for you automatically.
       </p>
@@ -3381,10 +3382,10 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
           return (
             <div key={bucket.key} className="w-full">
               <div className="flex items-center justify-between mb-1">
-                <span style={{ fontSize: 13, fontWeight: 500, color: bucket.color, fontFamily: FONT_FAMILY }}>
+                <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: bucket.color, fontFamily: FONT_FAMILY }}>
                   {bucket.emoji} {bucket.label}
                 </span>
-                <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                <span className="tabular-nums" style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {pct}%{paycheckAmount > 0 && ` · $${dollars}`}
                 </span>
               </div>
@@ -3412,7 +3413,7 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
 
       {/* Total check */}
       {total !== 100 && (
-        <p style={{ fontSize: 12, color: 'var(--warning)', fontFamily: FONT_FAMILY, marginTop: 8 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--warning)', fontFamily: FONT_FAMILY, marginTop: spacing.xs }}>
           Total is {total}% — should be 100%
         </p>
       )}
@@ -3422,15 +3423,15 @@ function AllocationSplitStep({ value, onChange, paycheckAmount }: AllocationSpli
         <div
           className="w-full mt-4 px-4 py-2.5 rounded-xl flex items-center justify-between"
           style={{
-            background: 'rgba(129, 140, 248, 0.08)',
-            border: '1px solid rgba(129, 140, 248, 0.2)',
+            background: 'var(--accent-100)',
+            border: '1px solid var(--accent-200)',
           }}
           aria-live="polite"
         >
-          <span style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}>
+          <span style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}>
             Spending pool
           </span>
-          <span className="tabular-nums" style={{ fontSize: 16, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--accent)' }}>
+          <span className="tabular-nums" style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--accent)' }}>
             ${spendDollars}
           </span>
         </div>
@@ -3490,12 +3491,12 @@ function PaycheckConfirmationStep({ setupState }: PaycheckConfirmationStepProps)
         ✨
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         You&apos;re all set!
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: spacing.lg, lineHeight: 1.5 }}
       >
         {isIrregular
           ? "Your daily number will smooth out over time as we learn your rhythm."
@@ -3506,7 +3507,7 @@ function PaycheckConfirmationStep({ setupState }: PaycheckConfirmationStepProps)
       {/* Hero daily number */}
       <div
         className="rounded-2xl p-6 mb-5 w-full"
-        style={{ background: 'var(--surface)', border: '1.5px solid rgba(129, 140, 248, 0.3)' }}
+        style={{ background: 'var(--surface)', border: '1.5px solid var(--accent-300)' }}
       >
         <div
           className="text-5xl font-bold mb-1 tabular-nums"
@@ -3562,7 +3563,7 @@ function PaycheckConfirmationStep({ setupState }: PaycheckConfirmationStepProps)
       </div>
 
       {monthlyEquivalent > 0 && (
-        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 12 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: spacing.sm }}>
           ≈ ${Math.round(monthlyEquivalent).toLocaleString()}/mo · You can tweak all of this in Settings.
         </p>
       )}
@@ -3597,12 +3598,12 @@ function PaycheckModeStep({ mode, onModeChange }: PaycheckModeStepProps) {
         💵
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         How would you like to set up?
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: spacing.lg, lineHeight: 1.5 }}
       >
         Both paths give you a daily number — pick what feels right. You can always switch later.
       </p>
@@ -3619,18 +3620,18 @@ function PaycheckModeStep({ mode, onModeChange }: PaycheckModeStepProps) {
               style={{
                 background: isSelected ? 'var(--accent-muted)' : 'var(--surface)',
                 border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                boxShadow: isSelected ? '0 0 12px rgba(129, 140, 248, 0.25)' : 'none',
+                boxShadow: isSelected ? '0 0 12px var(--accent-300)' : 'none',
                 cursor: 'pointer',
-                borderRadius: 12,
+                borderRadius: radius.control,
               }}
               aria-pressed={isSelected}
             >
               <span className="text-2xl flex-shrink-0">{opt.emoji}</span>
               <div className="flex-1 min-w-0">
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                <div style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {opt.label}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 2 }}>
+                <div style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 2 }}>
                   {opt.description}
                 </div>
               </div>
@@ -3728,12 +3729,12 @@ function SimpleSplitStep({
         🪣
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         Split your paycheck
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 20, lineHeight: 1.5 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}
       >
         A rough number is fine — you can change it anytime.
       </p>
@@ -3741,12 +3742,12 @@ function SimpleSplitStep({
       {/* Paycheck amount input */}
       <div className="w-full mb-5">
         <label
-          style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
+          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
         >
           Paycheck amount
         </label>
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600 }}>$</span>
+          <span style={{ fontSize: typography.subhead.fontSize, color: 'var(--muted)', fontWeight: fontWeights.semibold }}>$</span>
           <input
             type="text"
             inputMode="decimal"
@@ -3760,7 +3761,7 @@ function SimpleSplitStep({
               color: 'var(--text)',
               fontFamily: FONT_FAMILY,
               outline: 'none',
-              borderRadius: 8,
+              borderRadius: radius.control,
             }}
             aria-label="Paycheck amount"
           />
@@ -3770,7 +3771,7 @@ function SimpleSplitStep({
       {/* Cadence assumption (task 217.2) */}
       <div className="w-full mb-5">
         <label
-          style={{ fontSize: 13, fontWeight: 500, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
+          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--sub)', fontFamily: FONT_FAMILY, display: 'block', marginBottom: 6, textAlign: 'left' }}
         >
           How often do you get paid?
         </label>
@@ -3789,7 +3790,7 @@ function SimpleSplitStep({
                   border: `1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
                   fontFamily: FONT_FAMILY,
                   cursor: 'pointer',
-                  borderRadius: 8,
+                  borderRadius: radius.control,
                 }}
                 aria-pressed={isActive}
               >
@@ -3833,10 +3834,10 @@ function SimpleSplitStep({
           return (
             <div key={bucket.key} className="w-full">
               <div className="flex items-center justify-between mb-1">
-                <span style={{ fontSize: 13, fontWeight: 500, color: bucket.color, fontFamily: FONT_FAMILY }}>
+                <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: bucket.color, fontFamily: FONT_FAMILY }}>
                   {bucket.emoji} {bucket.label}
                 </span>
-                <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                <span className="tabular-nums" style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                   {pct}%{amount > 0 && ` · $${dollars}`}
                 </span>
               </div>
@@ -3867,16 +3868,16 @@ function SimpleSplitStep({
         <div
           className="w-full px-4 py-3 rounded-xl flex items-center justify-between mb-4"
           style={{
-            background: 'rgba(129, 140, 248, 0.08)',
-            border: '1px solid rgba(129, 140, 248, 0.2)',
-            borderRadius: 12,
+            background: 'var(--accent-100)',
+            border: '1px solid var(--accent-200)',
+            borderRadius: radius.control,
           }}
           aria-live="polite"
         >
-          <span style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}>
+          <span style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)' }}>
             Your daily number
           </span>
-          <span className="tabular-nums" style={{ fontSize: 18, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--accent)' }}>
+          <span className="tabular-nums" style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--accent)' }}>
             ${dailyNumber}/day
           </span>
         </div>
@@ -3931,12 +3932,12 @@ function SimpleConfirmationStep({ amount, allocation, cadence }: SimpleConfirmat
         ✨
       </div>
       <h2
-        style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: 8 }}
+        style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, fontFamily: FONT_FAMILY, color: 'var(--text)', marginBottom: spacing.xs }}
       >
         You&apos;re all set!
       </h2>
       <p
-        style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 24, lineHeight: 1.5 }}
+        style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: spacing.lg, lineHeight: 1.5 }}
       >
         Your spending money, turned into one simple daily number. Nice and easy.
       </p>
@@ -3944,7 +3945,7 @@ function SimpleConfirmationStep({ amount, allocation, cadence }: SimpleConfirmat
       {/* Hero daily number */}
       <div
         className="rounded-2xl p-6 mb-5 w-full"
-        style={{ background: 'var(--surface)', border: '1.5px solid rgba(129, 140, 248, 0.3)' }}
+        style={{ background: 'var(--surface)', border: '1.5px solid var(--accent-300)' }}
       >
         <div
           className="text-5xl font-bold mb-1 tabular-nums"
@@ -3995,7 +3996,7 @@ function SimpleConfirmationStep({ amount, allocation, cadence }: SimpleConfirmat
       </div>
 
       {monthlyEquivalent > 0 && (
-        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 12 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: spacing.sm }}>
           ≈ ${monthlyEquivalent.toLocaleString()}/mo · You can tweak all of this in Settings.
         </p>
       )}
@@ -4251,7 +4252,7 @@ export function TutorialSetupStepRenderer({
     <div className="flex flex-col items-center text-center flex-1">
       {/* Emoji */}
       <motion.span
-        style={{ fontSize: 48, marginBottom: 16 }}
+        style={{ fontSize: 48, marginBottom: spacing.md }}
         initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
         animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
         transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
@@ -4263,11 +4264,11 @@ export function TutorialSetupStepRenderer({
       {/* Title */}
       <h2
         style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: typography.headline.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
         }}
       >
         {step.title}
@@ -4276,7 +4277,7 @@ export function TutorialSetupStepRenderer({
       {/* Subtitle */}
       <p
         style={{
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
@@ -4291,7 +4292,7 @@ export function TutorialSetupStepRenderer({
         <div className="w-full mt-2">
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--muted)',
               marginBottom: 4,
@@ -4314,10 +4315,10 @@ export function TutorialSetupStepRenderer({
 
       {/* Info steps */}
       {step.type === 'info' && (
-        <div style={{ marginTop: 24 }}>
+        <div style={{ marginTop: spacing.lg }}>
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: 'var(--muted)',
               fontFamily: FONT_FAMILY,
             }}

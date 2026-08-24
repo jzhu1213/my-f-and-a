@@ -5,6 +5,7 @@ import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { springPresets } from "@/styles/motion"
 import { Icon } from "@/components/ui/Icon"
+import { radius } from "@/styles/surfaces"
 
 // ============================================================================
 // SwipeableTransactionRow
@@ -123,7 +124,7 @@ export function SwipeableTransactionRow({
           style={{
             position: "relative",
             overflow: "hidden",
-            borderBottom: showBorder ? "1px solid rgba(255,255,255,0.04)" : "none",
+            borderBottom: showBorder ? "1px solid var(--fill-04)" : "none",
           }}
         >
           {/* Delete action revealed behind (swipe left) */}
@@ -150,7 +151,7 @@ export function SwipeableTransactionRow({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                borderRadius: 12,
+                borderRadius: radius.control,
                 background: "var(--error)",
                 color: "var(--text)",
               }}
@@ -184,8 +185,8 @@ export function SwipeableTransactionRow({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  borderRadius: 12,
-                  background: "rgba(129, 140, 248, 0.9)",
+                  borderRadius: radius.control,
+                  background: "var(--accent-500)",
                   color: "var(--text)",
                 }}
               >

@@ -7,8 +7,9 @@ import type { FundingSource } from '@/lib/fundingSources'
 import { shiftMonth, toMonthString } from '@/lib/budgetUtils'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { springs } from '@/lib/animations'
-import { borderRadius } from '@/styles/shared'
-import { FONT_FAMILY } from '@/styles/typography'
+import { SECTION_SPACING, DOCK_PADDING_BOTTOM } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { useWindowScrollTracking, restoreHistoryScrollPosition } from '@/lib/useScrollVirtualization'
 
 interface HistoryViewProps {
@@ -63,22 +64,22 @@ export function HistoryView({
           padding: "0 20px",
           display: "flex",
           flexDirection: "column",
-          gap: 32,
-          paddingTop: 16,
-          paddingBottom: 120, // room for dock
+          gap: SECTION_SPACING,
+          paddingTop: spacing.md,
+          paddingBottom: DOCK_PADDING_BOTTOM, // room for dock
         }}
       >
         {/* Month selector card */}
-        <GlassCard elevation="low" style={{ padding: "20px", borderRadius: borderRadius.lg }}>
+        <GlassCard elevation="low" style={{ padding: "20px", borderRadius: radius.control }}>
           <h2
             style={{
-              fontSize: 12,
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               color: "var(--sub)",
               fontFamily: "Inter, sans-serif",
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-              marginBottom: 16,
+              marginBottom: spacing.md,
             }}
           >
             History
@@ -88,14 +89,14 @@ export function HistoryView({
             <motion.button
               type="button"
               onClick={() => setSelectedMonth(m => shiftMonth(m, -1))}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               style={{
                 color: 'var(--sub)',
                 padding: '8px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                borderRadius: 8,
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'var(--fill-04)',
+                borderRadius: radius.control,
+                border: '1px solid var(--fill-08)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -110,8 +111,8 @@ export function HistoryView({
 
             <p
               style={{
-                fontSize: '16px',
-                fontWeight: 500,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.medium,
                 color: 'var(--text)',
                 fontFamily: FONT_FAMILY,
               }}
@@ -123,14 +124,14 @@ export function HistoryView({
               type="button"
               onClick={() => setSelectedMonth(m => shiftMonth(m, 1))}
               disabled={isCurrentMonth}
-              whileTap={{ scale: isCurrentMonth ? 1 : 0.9 }}
+              whileTap={{ scale: isCurrentMonth ? 1 : 0.95 }}
               transition={springs.snappy}
               style={{
                 color: isCurrentMonth ? 'var(--border)' : 'var(--sub)',
                 padding: '8px',
-                background: isCurrentMonth ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.04)',
-                borderRadius: 8,
-                border: `1px solid ${isCurrentMonth ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.08)'}`,
+                background: isCurrentMonth ? 'var(--fill-02)' : 'var(--fill-04)',
+                borderRadius: radius.control,
+                border: `1px solid ${isCurrentMonth ? 'var(--fill-04)' : 'var(--fill-08)'}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -148,18 +149,18 @@ export function HistoryView({
 
         {/* Transaction list */}
         {isLoading ? (
-          <GlassCard elevation="low" style={{ padding: "32px 20px", borderRadius: borderRadius.lg }}>
+          <GlassCard elevation="low" style={{ padding: "32px 20px", borderRadius: radius.control }}>
             <div className="flex flex-col items-center justify-center gap-4">
               <div
                 className="w-6 h-6 animate-spin"
-                style={{ border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent)', borderRadius: '50%' }}
+                style={{ border: '2px solid var(--fill-10)', borderTopColor: 'var(--accent)', borderRadius: '50%' }}
               />
               <p
                 style={{
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   color: 'var(--sub)',
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                 }}
               >
                 Loading...

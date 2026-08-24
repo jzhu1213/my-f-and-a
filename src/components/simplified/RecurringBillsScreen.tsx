@@ -9,7 +9,7 @@ import { BUDGET_CATEGORIES } from "@/types"
 import type { TransactionCategory } from "@/types"
 import type { FixedExpense } from "@/lib/fixedExpenses"
 import { getTotalFixedMonthly } from "@/lib/fixedExpenses"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   sectionHeader,
   listRow,
@@ -20,7 +20,9 @@ import {
   segmentedButtonActive,
   segmentedButtonInactive,
   colorRamp,
+  HORIZONTAL_PADDING,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import {
   buildMonthCalendar,
   getWeeklyBillSummaries,
@@ -81,18 +83,18 @@ const DEFAULT_FORM: BillFormData = {
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   background: "var(--color-sunken)",
   border: "1px solid var(--border)",
-  borderRadius: 10,
+  borderRadius: radius.control,
   outline: "none",
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 500,
+  fontSize: typography['body-sm'].fontSize,
+  fontWeight: fontWeights.medium,
   color: "var(--sub)",
   marginBottom: 4,
   fontFamily: FONT_FAMILY,
@@ -143,15 +145,15 @@ export function RecurringBillsScreen({
   function renderSummary() {
     return (
       <>
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={sectionHeader}>Monthly Fixed Costs</p>
-          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+          <p style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
             ${totalMonthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 3 }}>
               /mo
             </span>
           </p>
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 4 }}>
             {bills.filter(b => b.isActive).length} active bill
             {bills.filter(b => b.isActive).length !== 1 ? "s" : ""}
           </p>
@@ -159,10 +161,10 @@ export function RecurringBillsScreen({
 
         {/* Bill-heavy week warning */}
         {billHeavyWarning && (
-          <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: 16, border: `1px solid ${colorRamp.warning[300]}` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 16 }}>📅</span>
-              <p style={{ fontSize: 13, color: "var(--text)", margin: 0, fontFamily: FONT_FAMILY, lineHeight: 1.4 }}>
+          <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: spacing.md, border: `1px solid ${colorRamp.warning[300]}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
+              <span style={{ fontSize: typography.body.fontSize }}>📅</span>
+              <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", margin: 0, fontFamily: FONT_FAMILY, lineHeight: 1.4 }}>
                 {billHeavyWarning.message}
               </p>
             </div>
@@ -170,7 +172,7 @@ export function RecurringBillsScreen({
         )}
 
         {/* View mode segmented control */}
-        <div style={{ ...segmentedControl, marginBottom: 16 }}>
+        <div style={{ ...segmentedControl, marginBottom: spacing.md }}>
           <button
             type="button"
             onClick={() => setViewMode("list")}
@@ -220,7 +222,7 @@ export function RecurringBillsScreen({
         }}
       >
         <div
-          style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}
+          style={{ display: "flex", alignItems: "center", gap: spacing.sm, flex: 1 }}
           onClick={context.startEdit}
           role="button"
           tabIndex={0}
@@ -229,19 +231,19 @@ export function RecurringBillsScreen({
             if (e.key === "Enter" || e.key === " ") context.startEdit()
           }}
         >
-          <span style={{ fontSize: 18 }}>{emojiForCategory(bill.category)}</span>
+          <span style={{ fontSize: typography.subhead.fontSize }}>{emojiForCategory(bill.category)}</span>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, color: "var(--text)", margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: typography.body.fontSize, color: "var(--text)", margin: 0, fontWeight: fontWeights.medium }}>
               {bill.label}
             </p>
-            <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: 0 }}>
               Due day {bill.dueDay}
             </p>
           </div>
           <span
             style={{
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--text)",
               fontVariantNumeric: "tabular-nums",
             }}
@@ -250,20 +252,20 @@ export function RecurringBillsScreen({
           </span>
         </div>
         {isConfirmingDelete ? (
-          <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+          <div style={{ display: "flex", gap: 4, marginLeft: spacing.xs }}>
             <motion.button
               onClick={confirmDelete}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               style={{
-                background: "rgba(239, 68, 68, 0.15)",
+                background: "var(--error-200)",
                 border: "none",
                 padding: "4px 8px",
                 cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--error)",
-                borderRadius: 6,
+                borderRadius: radius.min,
               }}
               aria-label={`Confirm delete ${bill.label}`}
             >
@@ -271,14 +273,14 @@ export function RecurringBillsScreen({
             </motion.button>
             <motion.button
               onClick={cancelDelete}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               style={{
                 background: "none",
                 border: "none",
                 padding: "4px 8px",
                 cursor: "pointer",
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--sub)",
               }}
               aria-label="Cancel delete"
@@ -289,16 +291,16 @@ export function RecurringBillsScreen({
         ) : (
           <motion.button
             onClick={requestDelete}
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.95 }}
             transition={springs.snappy}
             style={{
               background: "none",
               border: "none",
               padding: "4px 8px",
               cursor: "pointer",
-              fontSize: 16,
+              fontSize: typography.body.fontSize,
               color: "var(--error)",
-              marginLeft: 8,
+              marginLeft: spacing.xs,
             }}
             aria-label={`Delete ${bill.label}`}
           >
@@ -365,7 +367,7 @@ const MONTH_NAMES = [
 
 function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCalendarViewProps) {
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: HORIZONTAL_PADDING }}>
       {/* Month label */}
       <p style={{ ...sectionHeader, marginBottom: 10 }}>
         {MONTH_NAMES[month]} {year}
@@ -378,8 +380,8 @@ function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCa
             key={day}
             style={{
               textAlign: "center",
-              fontSize: 10,
-              fontWeight: 500,
+              fontSize: typography.caption.fontSize,
+              fontWeight: fontWeights.medium,
               color: "var(--muted)",
               fontFamily: FONT_FAMILY,
               padding: "4px 0",
@@ -403,7 +405,7 @@ function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCa
                 alignItems: "center",
                 justifyContent: "center",
                 padding: "6px 2px",
-                borderRadius: 6,
+                borderRadius: radius.min,
                 minHeight: 36,
                 background: day.isToday ? colorRamp.accent[200] : "transparent",
               }}
@@ -412,7 +414,7 @@ function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCa
                 <>
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: typography.caption.fontSize,
                       fontWeight: day.isToday ? 600 : 400,
                       color: day.isToday ? "var(--text)" : day.bills.length > 0 ? "var(--text)" : "var(--muted)",
                       fontFamily: FONT_FAMILY,
@@ -430,7 +432,7 @@ function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCa
                             width: 4,
                             height: 4,
                             borderRadius: "50%",
-                            background: "var(--accent, #a78bfa)",
+                            background: "var(--accent)",
                           }}
                         />
                       ))}
@@ -445,7 +447,7 @@ function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCa
 
       {/* Weekly breakdown */}
       <div style={{ marginTop: 14 }}>
-        <p style={{ ...sectionHeader, marginBottom: 8 }}>Weekly Breakdown</p>
+        <p style={{ ...sectionHeader, marginBottom: spacing.xs }}>Weekly Breakdown</p>
         {weeklySummaries.map((week, i) => {
           const startLabel = `${week.startDate.getMonth() + 1}/${week.startDate.getDate()}`
           const endLabel = `${week.endDate.getMonth() + 1}/${week.endDate.getDate()}`
@@ -457,7 +459,7 @@ function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCa
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "8px 12px",
-                borderRadius: 8,
+                borderRadius: radius.control,
                 marginBottom: 4,
                 background: week.isCurrent ? colorRamp.accent[100] : fills[3],
                 border: week.isCurrent ? `1px solid ${colorRamp.accent[300]}` : `1px solid ${fills[6]}`,
@@ -465,7 +467,7 @@ function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCa
             >
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   color: week.isCurrent ? "var(--text)" : "var(--sub)",
                   fontFamily: FONT_FAMILY,
                   fontWeight: week.isCurrent ? 500 : 400,
@@ -473,15 +475,15 @@ function BillCalendarView({ calendarDays, weeklySummaries, year, month }: BillCa
               >
                 {startLabel} – {endLabel}
                 {week.isCurrent && (
-                  <span style={{ fontSize: 11, color: "var(--accent, #a78bfa)", marginLeft: 6 }}>
+                  <span style={{ fontSize: typography.caption.fontSize, color: "var(--accent)", marginLeft: 6 }}>
                     this week
                   </span>
                 )}
               </span>
               <span
                 style={{
-                  fontSize: 13,
-                  fontWeight: 600,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.semibold,
                   color: week.totalAmount > 0 ? "var(--text)" : "var(--muted)",
                   fontFamily: FONT_FAMILY,
                   fontVariantNumeric: "tabular-nums",
@@ -574,8 +576,8 @@ function BillForm({ form, setForm, onSave, onCancel, saving, isEdit }: BillFormP
     <div
       style={{
         padding: 14,
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.03)",
+        borderRadius: radius.control,
+        background: "var(--fill-03)",
         border: "1px solid var(--border)",
       }}
     >
@@ -641,10 +643,10 @@ function BillForm({ form, setForm, onSave, onCancel, saving, isEdit }: BillFormP
                   padding: "8px 14px",
                   borderRadius: borderRadius.full,
                   border: isActive ? "1.5px solid var(--success)" : "1px solid var(--border)",
-                  background: isActive ? "rgba(6, 214, 160, 0.1)" : "var(--fill-04)",
+                  background: isActive ? "var(--success-100)" : "var(--fill-04)",
                   color: isActive ? "var(--success)" : "var(--sub)",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                 }}
@@ -659,7 +661,7 @@ function BillForm({ form, setForm, onSave, onCancel, saving, isEdit }: BillFormP
       </div>
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: spacing.xs }}>
         <motion.button
           onClick={onCancel}
           whileTap={{ scale: 0.97 }}
@@ -667,11 +669,11 @@ function BillForm({ form, setForm, onSave, onCancel, saving, isEdit }: BillFormP
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
-            background: "rgba(255, 255, 255, 0.06)",
+            background: "var(--fill-06)",
             border: "1px solid var(--border)",
             borderRadius: borderRadius.full,
             cursor: "pointer",
@@ -688,12 +690,12 @@ function BillForm({ form, setForm, onSave, onCancel, saving, isEdit }: BillFormP
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
             background: saving || !form.label.trim() || form.amount <= 0
-              ? "rgba(255,255,255,0.06)"
+              ? "var(--fill-06)"
               : "var(--success)",
             border: "none",
             borderRadius: borderRadius.full,

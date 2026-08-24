@@ -25,7 +25,7 @@ import type { HeroMeaning } from "@/types/folio"
 import { computeBudgetSummary } from "@/lib/budgetSummary"
 import { contentColumn, spacingScale } from "@/styles/layout"
 import { safeAreaBottom } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, fontWeights } from '@/styles/typography'
 import { textColors } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
 import { useFeatureFlags } from "@/hooks/useFeatureFlags"
@@ -44,6 +44,8 @@ import { SettingsAutomationScreen } from "./SettingsAutomationScreen"
 import { SettingsMotivationScreen } from "./SettingsMotivationScreen"
 import { SettingsEducationScreen } from "./SettingsEducationScreen"
 import { getEducationPreferences } from "@/lib/educationPreferences"
+import { ListRow } from "@/components/ui"
+import { SectionHeader } from "@/components/ui/primitives/SectionHeader"
 import { SettingsNavList } from "./SettingsNavList"
 import { SettingsDangerZone } from "./SettingsDangerZone"
 import { WHATS_NEW_ITEMS } from "@/lib/whatsNew"
@@ -457,50 +459,44 @@ export function SettingsScreen(props: SettingsScreenProps) {
           aria-labelledby="help-info-heading"
           style={{ marginTop: spacingScale["24"] }}
         >
-          <h2
+          <SectionHeader
             id="help-info-heading"
             style={{
               ...typography["body-sm"],
               color: textColors.muted,
-              margin: 0,
-              marginBottom: spacingScale["12"],
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
               paddingLeft: spacingScale["4"],
+              paddingBottom: 0,
+              marginBottom: spacingScale["12"],
             }}
           >
             Help & Info
-          </h2>
+          </SectionHeader>
           <div style={{ display: "flex", flexDirection: "column", gap: spacingScale["8"] }}>
             {/* What's New (495.1) */}
             {WHATS_NEW_ITEMS.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  // Show a sub-screen-like display — for now open inline. We use a state toggle below.
+              <ListRow
+                variant="dense"
+                onPress={() => {
                   setShowWhatsNew(v => !v)
-                }}
-                style={{
-                  width: "100%",
-                  padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
-                  background: elevations.sunken.fill,
-                  border: `1px solid ${elevations.resting.border}`,
-                  borderRadius: radius.control,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: spacingScale["8"],
-                  cursor: "pointer",
-                  ...typography["body-sm"],
-                  color: textColors.text,
-                  fontWeight: 500,
-                  textAlign: "left",
                 }}
                 aria-label="What's New"
                 aria-expanded={showWhatsNew}
+                style={{
+                  minHeight: '44px',
+                  background: elevations.sunken.fill,
+                  border: `1px solid ${elevations.resting.border}`,
+                  borderRadius: radius.control,
+                }}
               >
-                <span aria-hidden="true">✨</span>
-                <span style={{ flex: 1 }}>What&apos;s New</span>
+                <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1, width: '28px', textAlign: 'center', flexShrink: 0 }}>
+                  ✨
+                </span>
+                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium }}>
+                  What&apos;s New
+                </span>
                 <span aria-hidden="true" style={{ color: textColors.muted }}>{showWhatsNew ? '▾' : '›'}</span>
-              </button>
+              </ListRow>
             )}
 
             {/* What's New content (inline expandable) */}
@@ -508,14 +504,14 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <div
                 style={{
                   padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
-                  background: "rgba(96, 165, 250, 0.06)",
-                  border: "1px solid rgba(96, 165, 250, 0.18)",
+                  background: "var(--blue-100)",
+                  border: "1px solid var(--blue-200)",
                   borderRadius: radius.control,
                 }}
               >
                 {WHATS_NEW_ITEMS.map((item) => (
                   <div key={item.version} style={{ display: "flex", gap: spacingScale["8"], marginBottom: spacingScale["8"] }}>
-                    <span style={{ fontSize: 16, flexShrink: 0 }} aria-hidden="true">{item.emoji}</span>
+                    <span style={{ fontSize: typography.body.fontSize, flexShrink: 0 }} aria-hidden="true">{item.emoji}</span>
                     <div>
                       <p style={{ ...typography["body-sm"], color: textColors.text, margin: 0, fontWeight: 500 }}>
                         {item.title}
@@ -531,86 +527,71 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
             {/* Catch up on missed days (495.2) */}
             {props.onOpenBackfill && (
-              <button
-                type="button"
-                onClick={props.onOpenBackfill}
+              <ListRow
+                variant="dense"
+                onPress={props.onOpenBackfill}
+                aria-label="Catch up on missed days"
                 style={{
-                  width: "100%",
-                  padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+                  minHeight: '44px',
                   background: elevations.sunken.fill,
                   border: `1px solid ${elevations.resting.border}`,
                   borderRadius: radius.control,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: spacingScale["8"],
-                  cursor: "pointer",
-                  ...typography["body-sm"],
-                  color: textColors.text,
-                  fontWeight: 500,
-                  textAlign: "left",
                 }}
-                aria-label="Catch up on missed days"
               >
-                <span aria-hidden="true">📅</span>
-                <span style={{ flex: 1 }}>Catch up on missed days</span>
+                <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1, width: '28px', textAlign: 'center', flexShrink: 0 }}>
+                  📅
+                </span>
+                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium }}>
+                  Catch up on missed days
+                </span>
                 <span aria-hidden="true" style={{ color: textColors.muted }}>›</span>
-              </button>
+              </ListRow>
             )}
 
             {/* Travel Mode (495.3) */}
             {props.onOpenTravelMode && (
-              <button
-                type="button"
-                onClick={props.onOpenTravelMode}
+              <ListRow
+                variant="dense"
+                onPress={props.onOpenTravelMode}
+                aria-label="Travel mode"
                 style={{
-                  width: "100%",
-                  padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+                  minHeight: '44px',
                   background: elevations.sunken.fill,
                   border: `1px solid ${elevations.resting.border}`,
                   borderRadius: radius.control,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: spacingScale["8"],
-                  cursor: "pointer",
-                  ...typography["body-sm"],
-                  color: textColors.text,
-                  fontWeight: 500,
-                  textAlign: "left",
                 }}
-                aria-label="Travel mode"
               >
-                <span aria-hidden="true">✈️</span>
-                <span style={{ flex: 1 }}>Travel mode</span>
+                <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1, width: '28px', textAlign: 'center', flexShrink: 0 }}>
+                  ✈️
+                </span>
+                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium }}>
+                  Travel mode
+                </span>
                 <span aria-hidden="true" style={{ color: textColors.muted }}>›</span>
-              </button>
+              </ListRow>
             )}
 
             {/* Resume setup (495.4, task 392.2) — shown when checklist is dismissed but not complete */}
             {props.showResumeChecklist && props.onResumeChecklist && (
-              <button
-                type="button"
-                onClick={props.onResumeChecklist}
+              <ListRow
+                variant="dense"
+                onPress={props.onResumeChecklist}
+                aria-label="Resume setup checklist"
                 style={{
-                  width: "100%",
-                  padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
+                  minHeight: '44px',
                   background: elevations.sunken.fill,
                   border: `1px solid ${elevations.resting.border}`,
                   borderRadius: radius.control,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: spacingScale["8"],
-                  cursor: "pointer",
-                  ...typography["body-sm"],
-                  color: textColors.text,
-                  fontWeight: 500,
-                  textAlign: "left",
                 }}
-                aria-label="Resume setup checklist"
               >
-                <span aria-hidden="true">🔄</span>
-                <span style={{ flex: 1 }}>Resume setup</span>
+                <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1, width: '28px', textAlign: 'center', flexShrink: 0 }}>
+                  🔄
+                </span>
+                <span style={{ flex: 1, ...typography["body-sm"], color: textColors.text, fontWeight: fontWeights.medium }}>
+                  Resume setup
+                </span>
                 <span aria-hidden="true" style={{ color: textColors.muted }}>›</span>
-              </button>
+              </ListRow>
             )}
           </div>
         </section>

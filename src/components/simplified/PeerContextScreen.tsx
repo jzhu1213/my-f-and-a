@@ -1,18 +1,18 @@
-"use client"
+﻿"use client"
 
 /**
- * PeerContextScreen — encouraging "typical for a student" framing (Task 186.1)
+ * PeerContextScreen â€” encouraging "typical for a student" framing (Task 186.1)
  *
  * An OPT-IN surface that places the user's monthly spending inside rough,
- * anonymized student ranges — purely to reassure ("you're in the comfy
+ * anonymized student ranges â€” purely to reassure ("you're in the comfy
  * middle"), never to compete or shame. It only renders when the user has
  * enabled peer context in Settings and is reached through Tools.
  *
  * Guardrails:
- *   • Opt-in, OFF by default — the toggle lives in Settings.
- *   • Never on the home screen (progressive disclosure).
- *   • No leaderboard, no ranking, no comparison to specific people.
- *   • Warm, shame-free copy; soft purple theme; prefers-reduced-motion honored.
+ *   â€¢ Opt-in, OFF by default â€” the toggle lives in Settings.
+ *   â€¢ Never on the home screen (progressive disclosure).
+ *   â€¢ No leaderboard, no ranking, no comparison to specific people.
+ *   â€¢ Warm, shame-free copy; soft purple theme; prefers-reduced-motion honored.
  */
 
 import { useMemo } from "react"
@@ -20,7 +20,7 @@ import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { EmptyState } from "@/components/ui/EmptyState"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -60,19 +60,19 @@ function bandChip(band: PeerBand): { label: string; color: string; bg: string } 
       return {
         label: "Right in the middle",
         color: "var(--success)",
-        bg: "rgba(52, 211, 153, 0.12)",
+        bg: "var(--success-200)",
       }
     case "lighter":
       return {
         label: "A little lighter",
-        color: "rgba(167, 139, 250, 0.95)",
-        bg: "rgba(167, 139, 250, 0.12)",
+        color: "var(--accent-500)",
+        bg: "var(--accent-200)",
       }
     case "above":
       return {
-        label: "A bit above — all good",
+        label: "A bit above â€” all good",
         color: "var(--sub)",
-        bg: "rgba(255, 255, 255, 0.06)",
+        bg: "var(--fill-06)",
       }
   }
 }
@@ -97,12 +97,12 @@ function ContextRow({
       style={{
         display: "flex",
         alignItems: "flex-start",
-        gap: 14,
+        gap: spacing.md,
         padding: "14px 0",
         borderBottom: "1px solid var(--border)",
       }}
     >
-      <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0, marginTop: 2 }} aria-hidden="true">
+      <span style={{ fontSize: typography.headline.fontSize, lineHeight: 1, flexShrink: 0, marginTop: 2 }} aria-hidden="true">
         {emoji}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -111,15 +111,15 @@ function ContextRow({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 8,
+            gap: spacing.xs,
             marginBottom: 4,
           }}
         >
-          <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{label}</p>
+          <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>{label}</p>
           <span
             style={{
-              fontSize: 15,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--text)",
               fontVariantNumeric: "tabular-nums",
               flexShrink: 0,
@@ -128,14 +128,14 @@ function ContextRow({
             {money(monthlySpend)}
           </span>
         </div>
-        <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, marginBottom: 8 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, marginBottom: spacing.xs }}>
           {message}
         </p>
         <span
           style={{
             display: "inline-block",
-            fontSize: 11,
-            fontWeight: 600,
+            fontSize: typography.caption.fontSize,
+            fontWeight: fontWeights.semibold,
             color: chip.color,
             background: chip.bg,
             padding: "3px 10px",
@@ -182,31 +182,31 @@ export function PeerContextScreen({ transactions, monthKey, onBack }: PeerContex
         background: "none",
         border: "none",
         color: "var(--sub)",
-        fontSize: 14,
+        fontSize: typography.body.fontSize,
         cursor: "pointer",
-        marginBottom: 16,
+        marginBottom: spacing.md,
         padding: "8px 0",
         fontFamily: FONT_FAMILY,
       }}
       aria-label="Go back"
     >
-      ← Back
+      â† Back
     </button>
   )
 
-  // ── Not-yet state: gentle, never hollow ──────────────────────────────────
+  // â”€â”€ Not-yet state: gentle, never hollow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!context.hasEnoughData) {
     return (
       <div style={containerStyle}>
         {backButton}
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
+        <h1 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", marginBottom: spacing.xs }}>
           How you compare
         </h1>
-        <GlassCard elevation="low" style={{ padding: "4px 0", marginTop: 12 }}>
+        <GlassCard elevation="low" style={{ padding: "4px 0", marginTop: spacing.sm }}>
           <EmptyState
             illustration="review"
             title="Not much to compare yet"
-            subtitle="Log a few more expenses this month and we'll show some warm, anonymized context — just for reassurance, never a scoreboard."
+            subtitle="Log a few more expenses this month and we'll show some warm, anonymized context â€” just for reassurance, never a scoreboard."
           />
         </GlassCard>
       </div>
@@ -221,11 +221,11 @@ export function PeerContextScreen({ transactions, monthKey, onBack }: PeerContex
     <div style={containerStyle}>
       {backButton}
 
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+      <h1 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", marginBottom: 6 }}>
         How you compare
       </h1>
-      <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>
-        {context.monthLabel} — {context.intro}
+      <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}>
+        {context.monthLabel} â€” {context.intro}
       </p>
 
       <motion.div
@@ -233,14 +233,14 @@ export function PeerContextScreen({ transactions, monthKey, onBack }: PeerContex
         transition={prefersReducedMotion ? { duration: 0.2 } : springs.gentle}
       >
         <GlassCard elevation="high" style={{ padding: "20px 22px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-            <span style={{ fontSize: 22, lineHeight: 1 }} aria-hidden="true">💜</span>
-            <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, marginBottom: 6 }}>
+            <span style={{ fontSize: typography.headline.fontSize, lineHeight: 1 }} aria-hidden="true">ðŸ’œ</span>
+            <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.bold, color: "var(--text)" }}>
               You&apos;re doing just fine
             </p>
           </div>
-          <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, marginBottom: 6 }}>
-            Rough student ranges, just for context — never a ranking.
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, marginBottom: 6 }}>
+            Rough student ranges, just for context â€” never a ranking.
           </p>
 
           <div style={{ marginTop: 6 }}>
@@ -260,10 +260,10 @@ export function PeerContextScreen({ transactions, monthKey, onBack }: PeerContex
 
       <p
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--muted)",
           textAlign: "center",
-          marginTop: 16,
+          marginTop: spacing.md,
           lineHeight: 1.5,
         }}
       >

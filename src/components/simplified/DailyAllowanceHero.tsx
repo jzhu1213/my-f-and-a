@@ -285,6 +285,7 @@ function AnimatedAmount({
         lineHeight: 1.05,
         display: "block",
         textAlign: "center",
+        fontVariantNumeric: "tabular-nums",
         ...fontWeightStyle,
         ...(prefersReducedMotion
           ? { color: grad.from }
@@ -799,7 +800,7 @@ export function DailyAllowanceHero({
                 top: -28,
                 left: '50%',
                 transform: 'translateX(-50%)',
-                fontSize: '11px',
+                fontSize: typography.caption.fontSize,
                 color: 'var(--text)',
                 background: fills[6],
                 border: `1px solid ${fills[10]}`,
@@ -824,7 +825,7 @@ export function DailyAllowanceHero({
           className="text-center"
           style={{
             fontSize: pxToRem(22),
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             color,
             lineHeight: 1.3,
             margin: 0,
@@ -857,7 +858,7 @@ export function DailyAllowanceHero({
             transition={timings.normal}
             aria-label={`Travel mode active: ${travelBadge.label}`}
           >
-            <span style={{ fontSize: pxToRem(11), color: textColors.text, fontWeight: 500 }}>
+            <span style={{ fontSize: pxToRem(11), color: textColors.text, fontWeight: fontWeights.medium }}>
               {travelBadge.label}
             </span>
           </motion.div>
@@ -937,7 +938,7 @@ export function DailyAllowanceHero({
                   top: "50%",
                   left: "50%",
                   transform: "translate(-150%, -85%)",
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                 }}
               >
                 ~
@@ -979,7 +980,7 @@ export function DailyAllowanceHero({
                 margin: 0,
                 marginTop: 4,
                 maxWidth: 260,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
               }}
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
               animate={{ opacity: 0.9, y: 0 }}
@@ -1221,7 +1222,7 @@ export function DailyAllowanceHero({
                         {row.label}
                       </span>
                     </span>
-                    <span style={{ color: row.valueColor, fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>{row.value}</span>
+                    <span style={{ color: row.valueColor, fontVariantNumeric: 'tabular-nums', fontWeight: fontWeights.medium }}>{row.value}</span>
                   </motion.div>
                 ))}
               </motion.div>

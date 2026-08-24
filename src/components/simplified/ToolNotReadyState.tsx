@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { timings } from '@/lib/animations'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, typography, fontWeights } from '@/styles/typography'
 import { spacingScale } from '@/styles/layout'
 import { textColors, colorRamp } from '@/styles/colors'
 import { radius } from '@/styles/surfaces'
@@ -54,8 +54,8 @@ export function ToolNotReadyState({ readiness, toolName }: ToolNotReadyStateProp
       {/* Warm message */}
       <p
         style={{
-          fontSize: 15,
-          fontWeight: 500,
+          fontSize: typography.body.fontSize,
+          fontWeight: fontWeights.medium,
           color: textColors.text,
           fontFamily: FONT_FAMILY,
           lineHeight: 1.5,
@@ -81,8 +81,8 @@ export function ToolNotReadyState({ readiness, toolName }: ToolNotReadyStateProp
         >
           <span
             style={{
-              fontSize: 12,
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               color: textColors.sub,
               fontFamily: FONT_FAMILY,
             }}
@@ -95,7 +95,7 @@ export function ToolNotReadyState({ readiness, toolName }: ToolNotReadyStateProp
       {/* Subtle reassurance */}
       <p
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: textColors.muted,
           fontFamily: FONT_FAMILY,
           lineHeight: 1.4,

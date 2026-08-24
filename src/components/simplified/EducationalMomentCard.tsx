@@ -1,11 +1,11 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { useReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from "@/styles/surfaces"
 import type { ContextualLesson } from "@/lib/contextualLessonContent"
 
 // ============================================================================
@@ -15,9 +15,9 @@ import type { ContextualLesson } from "@/lib/contextualLessonContent"
 interface EducationalMomentCardProps {
   /** The contextual lesson to display (already rendered with user data) */
   lesson: ContextualLesson
-  /** Called when the user taps "Got it" — dismisses and marks as seen */
+  /** Called when the user taps "Got it" â€” dismisses and marks as seen */
   onDismiss: (lessonId: string) => void
-  /** Optional action button config (e.g., "Try it: set a food budget →") */
+  /** Optional action button config (e.g., "Try it: set a food budget â†’") */
   action?: {
     label: string
     onAction: () => void
@@ -25,13 +25,13 @@ interface EducationalMomentCardProps {
 }
 
 /**
- * EducationalMomentCard — a contextual educational card with "Learn more"
+ * EducationalMomentCard â€” a contextual educational card with "Learn more"
  * accordion expansion.
  *
  * Renders a micro-lesson in the home screen tip slot. When the user taps
  * "Learn more", the card expands inline to reveal:
  *   - A 30-second explanation (deepDiveContent)
- *   - An optional action button ("Try it: set a food budget →")
+ *   - An optional action button ("Try it: set a food budget â†’")
  *
  * Visually distinct from ContextualTipCard: uses a blue educational glow
  * and expanded content area. Takes priority over regular tips when fresh.
@@ -56,17 +56,17 @@ export function EducationalMomentCard({
       transition={{ duration: 0.25, ease: 'easeOut' }}
       layout={!prefersReducedMotion}
     >
-      <GlassCard elevation="medium" glow="rgba(99, 179, 237, 0.3)">
+      <GlassCard elevation="medium" glow="var(--blue-300)">
         <div style={{ padding: 16 }}>
           {/* Header: emoji + title + dismiss */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: 20 }} role="img" aria-hidden="true">
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: 8 }}>
+            <span style={{ fontSize: typography.subhead.fontSize }} role="img" aria-hidden="true">
               {lesson.emoji}
             </span>
             <span
               style={{
-                fontSize: 14,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 color: 'var(--text)',
                 fontFamily: FONT_FAMILY,
                 flex: 1,
@@ -78,12 +78,12 @@ export function EducationalMomentCard({
               type="button"
               onClick={() => onDismiss(lesson.id)}
               style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: borderRadius.sm,
+                background: 'var(--fill-06)',
+                border: '1px solid var(--fill-08)',
+                borderRadius: radius.control,
                 cursor: 'pointer',
-                fontSize: 11,
-                fontWeight: 500,
+                fontSize: typography.caption.fontSize,
+                fontWeight: fontWeights.medium,
                 color: 'var(--muted)',
                 fontFamily: FONT_FAMILY,
                 padding: '4px 10px',
@@ -98,7 +98,7 @@ export function EducationalMomentCard({
           {/* Micro-content (always visible) */}
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               lineHeight: 1.5,
               color: 'var(--sub)',
               fontFamily: FONT_FAMILY,
@@ -122,14 +122,14 @@ export function EducationalMomentCard({
                 <div
                   style={{
                     padding: '12px 0 8px 0',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderTop: '1px solid var(--fill-06)',
                     marginTop: 4,
                   }}
                 >
                   {/* Deep dive content */}
                   <p
                     style={{
-                      fontSize: 13,
+                      fontSize: typography['body-sm'].fontSize,
                       lineHeight: 1.6,
                       color: 'var(--sub)',
                       fontFamily: FONT_FAMILY,
@@ -146,17 +146,17 @@ export function EducationalMomentCard({
                       onClick={action.onAction}
                       whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
                       style={{
-                        marginTop: 12,
+                        marginTop: spacing.sm,
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 6,
-                        background: 'rgba(99, 179, 237, 0.1)',
-                        border: '1px solid rgba(99, 179, 237, 0.2)',
-                        borderRadius: borderRadius.sm,
+                        background: 'var(--blue-100)',
+                        border: '1px solid var(--blue-200)',
+                        borderRadius: radius.control,
                         padding: '8px 14px',
                         cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 500,
+                        fontSize: typography['body-sm'].fontSize,
+                        fontWeight: fontWeights.medium,
                         color: 'var(--accent)',
                         fontFamily: FONT_FAMILY,
                       }}
@@ -194,8 +194,8 @@ export function EducationalMomentCard({
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 color: 'var(--accent)',
                 fontFamily: FONT_FAMILY,
                 padding: 0,
@@ -210,10 +210,10 @@ export function EducationalMomentCard({
               <motion.span
                 animate={{ rotate: expanded ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
-                style={{ display: 'inline-flex', fontSize: 12 }}
+                style={{ display: 'inline-flex', fontSize: typography['body-sm'].fontSize }}
                 aria-hidden="true"
               >
-                ▾
+                â–¾
               </motion.span>
             </button>
           )}

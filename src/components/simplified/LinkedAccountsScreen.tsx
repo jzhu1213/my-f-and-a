@@ -5,12 +5,13 @@ import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { EmptyState } from "@/components/ui/EmptyState"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import type { LinkedAccount, LinkedAccountStatus } from "@/types/folio"
 import { startAccountLink, linkedAccountKindLabel } from "@/lib/linkedAccounts"
 
@@ -35,17 +36,17 @@ const STATUS_DISPLAY: Record<
   connected: {
     label: "Connected",
     color: "var(--success)",
-    bg: "rgba(6, 214, 160, 0.1)",
+    bg: "var(--success-100)",
   },
   disconnected: {
     label: "Paused",
     color: "var(--sub)",
-    bg: "rgba(255, 255, 255, 0.06)",
+    bg: "var(--fill-06)",
   },
   error: {
     label: "Needs attention",
     color: "var(--warning)",
-    bg: "rgba(245, 158, 11, 0.1)",
+    bg: "var(--warning-100)",
   },
 }
 
@@ -100,8 +101,8 @@ export function LinkedAccountsScreen({
         style={{
           display: "flex",
           alignItems: "center",
-          marginBottom: 20,
-          gap: 12,
+          marginBottom: HORIZONTAL_PADDING,
+          gap: spacing.sm,
         }}
       >
         {onBack && (
@@ -112,7 +113,7 @@ export function LinkedAccountsScreen({
               background: "none",
               border: "none",
               padding: 4,
-              fontSize: 18,
+              fontSize: typography.subhead.fontSize,
               color: "var(--sub)",
               cursor: "pointer",
               fontFamily: FONT_FAMILY,
@@ -125,15 +126,15 @@ export function LinkedAccountsScreen({
         <div style={{ flex: 1 }}>
           <h1
             style={{
-              fontSize: 22,
-              fontWeight: 700,
+              fontSize: typography.headline.fontSize,
+              fontWeight: fontWeights.bold,
               color: "var(--text)",
               marginBottom: 4,
             }}
           >
             Linked Accounts
           </h1>
-          <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.4 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.4 }}>
             Optional — Folio works great without linking a thing
           </p>
         </div>
@@ -143,15 +144,15 @@ export function LinkedAccountsScreen({
       <div
         style={{
           padding: "14px 16px",
-          borderRadius: 12,
-          background: "rgba(167, 139, 250, 0.08)",
-          border: "1px solid rgba(167, 139, 250, 0.15)",
-          marginBottom: 20,
+          borderRadius: radius.control,
+          background: "var(--accent-100)",
+          border: "1px solid var(--accent-200)",
+          marginBottom: HORIZONTAL_PADDING,
         }}
       >
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             lineHeight: 1.5,
             fontFamily: FONT_FAMILY,
@@ -170,7 +171,7 @@ export function LinkedAccountsScreen({
           subtitle="Linking is 100% optional. If you ever want balances to update automatically, you can connect an account here — but it's never required."
         />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
           {linkedAccounts.map((account) => {
             const status = STATUS_DISPLAY[account.status]
             return (
@@ -181,11 +182,11 @@ export function LinkedAccountsScreen({
               >
                 <GlassCard elevation="low" style={{ padding: "14px 16px" }}>
                   <div
-                    style={{ display: "flex", alignItems: "center", gap: 12 }}
+                    style={{ display: "flex", alignItems: "center", gap: spacing.sm }}
                   >
                     {/* Icon */}
                     <span
-                      style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}
+                      style={{ fontSize: typography.headline.fontSize, lineHeight: 1, flexShrink: 0 }}
                       aria-hidden="true"
                     >
                       {account.kind === "bank" ? "🏦" : "💳"}
@@ -195,8 +196,8 @@ export function LinkedAccountsScreen({
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p
                         style={{
-                          fontSize: 15,
-                          fontWeight: 600,
+                          fontSize: typography.body.fontSize,
+                          fontWeight: fontWeights.semibold,
                           color: "var(--text)",
                           marginBottom: 4,
                           whiteSpace: "nowrap",
@@ -219,12 +220,12 @@ export function LinkedAccountsScreen({
                         <span
                           aria-label={`Type: ${linkedAccountKindLabel(account.kind)}`}
                           style={{
-                            fontSize: 11,
-                            fontWeight: 500,
+                            fontSize: typography.caption.fontSize,
+                            fontWeight: fontWeights.medium,
                             padding: "2px 8px",
-                            borderRadius: 9999,
-                            background: "rgba(255, 255, 255, 0.06)",
-                            border: "1px solid rgba(255, 255, 255, 0.08)",
+                            borderRadius: radius.full,
+                            background: "var(--fill-06)",
+                            border: "1px solid var(--fill-08)",
                             color: "var(--sub)",
                             fontFamily: FONT_FAMILY,
                           }}
@@ -236,10 +237,10 @@ export function LinkedAccountsScreen({
                         <span
                           aria-label={`Status: ${status.label}`}
                           style={{
-                            fontSize: 11,
-                            fontWeight: 500,
+                            fontSize: typography.caption.fontSize,
+                            fontWeight: fontWeights.medium,
                             padding: "2px 8px",
-                            borderRadius: 9999,
+                            borderRadius: radius.full,
                             background: status.bg,
                             color: status.color,
                             fontFamily: FONT_FAMILY,
@@ -258,7 +259,7 @@ export function LinkedAccountsScreen({
       )}
 
       {/* ── Link CTA ─────────────────────────────────────────────────── */}
-      <div style={{ marginTop: 24, display: "flex", justifyContent: "center" }}>
+      <div style={{ marginTop: spacing.lg, display: "flex", justifyContent: "center" }}>
         <motion.button
           onClick={handleStartLink}
           disabled={isChecking}
@@ -267,12 +268,12 @@ export function LinkedAccountsScreen({
           aria-label="Link an account"
           style={{
             padding: "12px 24px",
-            borderRadius: 9999,
-            border: "1.5px solid rgba(167, 139, 250, 0.4)",
+            borderRadius: radius.full,
+            border: "1.5px solid var(--accent-400)",
             background: "transparent",
             color: "var(--text)",
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             cursor: isChecking ? "default" : "pointer",
             opacity: isChecking ? 0.6 : 1,
@@ -288,16 +289,16 @@ export function LinkedAccountsScreen({
           role="status"
           aria-live="polite"
           style={{
-            marginTop: 16,
+            marginTop: spacing.md,
             padding: "14px 16px",
-            borderRadius: 12,
-            background: "rgba(255, 255, 255, 0.04)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: radius.control,
+            background: "var(--fill-04)",
+            border: "1px solid var(--fill-08)",
           }}
         >
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
               lineHeight: 1.5,
               textAlign: "center",

@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius, fills } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { fills, HORIZONTAL_PADDING } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 import { springs } from '@/lib/animations'
 
 // ============================================================================
@@ -108,7 +109,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(0, 0, 0, 0.6)',
+            background: 'var(--color-canvas)',
             backdropFilter: 'blur(4px)',
             WebkitBackdropFilter: 'blur(4px)',
           }}
@@ -133,8 +134,8 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
               padding: '24px',
               background: 'var(--surface)',
               border: `1px solid ${fills[8]}`,
-              borderRadius: borderRadius.lg,
-              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.5)',
+              borderRadius: radius.control,
+              boxShadow: 'var(--shadow-xl)',
               outline: 'none',
             }}
           >
@@ -144,14 +145,14 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 20,
+                marginBottom: HORIZONTAL_PADDING,
               }}
             >
               <h2
                 style={{
                   fontFamily: FONT_FAMILY,
-                  fontSize: '1rem',
-                  fontWeight: 600,
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.semibold,
                   color: 'var(--text)',
                   margin: 0,
                 }}
@@ -193,18 +194,18 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
             </div>
 
             {/* Shortcut groups */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: HORIZONTAL_PADDING }}>
               {SHORTCUT_GROUPS.map((group) => (
                 <div key={group.title}>
                   <h3
                     style={{
                       fontFamily: FONT_FAMILY,
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
+                      fontSize: typography.caption.fontSize,
+                      fontWeight: fontWeights.semibold,
                       color: 'var(--muted)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
-                      marginBottom: 8,
+                      marginBottom: spacing.xs,
                       margin: '0 0 8px 0',
                     }}
                   >
@@ -224,7 +225,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
                         <span
                           style={{
                             fontFamily: FONT_FAMILY,
-                            fontSize: '0.8125rem',
+                            fontSize: typography['body-sm'].fontSize,
                             color: 'var(--text)',
                           }}
                         >
@@ -237,7 +238,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
                                 <span
                                   style={{
                                     fontFamily: FONT_FAMILY,
-                                    fontSize: '0.6875rem',
+                                    fontSize: typography.caption.fontSize,
                                     color: 'var(--muted)',
                                   }}
                                 >
@@ -253,12 +254,12 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
                                   height: 24,
                                   padding: '0 6px',
                                   fontFamily: FONT_FAMILY,
-                                  fontSize: '0.6875rem',
-                                  fontWeight: 500,
+                                  fontSize: typography.caption.fontSize,
+                                  fontWeight: fontWeights.medium,
                                   color: 'var(--text)',
                                   background: fills[6],
                                   border: `1px solid ${fills[10]}`,
-                                  borderRadius: 6,
+                                  borderRadius: radius.min,
                                 }}
                               >
                                 {key}
@@ -277,9 +278,9 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
             <p
               style={{
                 fontFamily: FONT_FAMILY,
-                fontSize: '0.6875rem',
+                fontSize: typography.caption.fontSize,
                 color: 'var(--muted)',
-                marginTop: 16,
+                marginTop: spacing.md,
                 marginBottom: 0,
                 textAlign: 'center',
                 lineHeight: 1.4,

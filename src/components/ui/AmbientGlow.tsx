@@ -91,7 +91,7 @@ const STATUS_GLOW_COLORS: Record<AmbientGlowStatus, string> = {
   warning: 'rgba(251, 146, 60, 0.55)', // urgent orange
   over: 'rgba(251, 182, 182, 0.35)', // muted rose — calm, not alarming
   celebration: 'rgba(252, 211, 77, 0.6)', // warm gold
-  neutral: 'rgba(129, 140, 248, 0.5)', // --accent indigo
+  neutral: 'var(--accent-400)', // --accent indigo
 }
 
 /**

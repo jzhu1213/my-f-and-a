@@ -16,7 +16,7 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { spacingScale } from "@/styles/layout"
-import { typography, pxToRem } from "@/styles/typography"
+import { typography, pxToRem, fontWeights } from '@/styles/typography'
 import { textColors, colorRamp } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
 import { fills } from "@/styles/shared"
@@ -123,7 +123,7 @@ export function TravelModeSheet({ open, onClose, transactions = [] }: TravelMode
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.5)",
+          background: "var(--color-canvas)",
           zIndex: 999,
         }}
         initial={{ opacity: 0 }}
@@ -190,12 +190,12 @@ export function TravelModeSheet({ open, onClose, transactions = [] }: TravelMode
                     width: "100%",
                     padding: `${spacingScale["12"]} ${spacingScale["20"]}`,
                     background: colorRamp.accent[500],
-                    color: "#fff",
+                    color: "var(--text)",
                     border: "none",
                     borderRadius: radius.control,
                     cursor: "pointer",
                     ...typography.body,
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                   }}
                 >
                   Back home
@@ -253,12 +253,12 @@ export function TravelModeSheet({ open, onClose, transactions = [] }: TravelMode
                     width: "100%",
                     padding: `${spacingScale["12"]} ${spacingScale["20"]}`,
                     background: colorRamp.error[500],
-                    color: "#fff",
+                    color: "var(--text)",
                     border: "none",
                     borderRadius: radius.control,
                     cursor: "pointer",
                     ...typography.body,
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                   }}
                 >
                   End trip
@@ -392,12 +392,12 @@ export function TravelModeSheet({ open, onClose, transactions = [] }: TravelMode
                 width: "100%",
                 padding: `${spacingScale["12"]} ${spacingScale["20"]}`,
                 background: selectedCurrency ? colorRamp.accent[500] : fills[6],
-                color: selectedCurrency ? "#fff" : textColors.muted,
+                color: selectedCurrency ? "var(--text)" : textColors.muted,
                 border: "none",
                 borderRadius: radius.control,
                 cursor: selectedCurrency ? "pointer" : "not-allowed",
                 ...typography.body,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 opacity: selectedCurrency ? 1 : 0.6,
               }}
             >

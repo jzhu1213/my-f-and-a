@@ -50,6 +50,7 @@ import { useRubberBand } from '@/hooks/useRubberBand'
 import { useScrollProgress } from '@/hooks/useScrollProgress'
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation'
 import { useScrollPreservation } from '@/hooks/useScrollPreservation'
+import { typography, fontWeights } from '@/styles/typography'
 
 /**
  * App navigation keys.
@@ -206,8 +207,8 @@ export function AppShell({
           background: 'var(--surface)',
           color: 'var(--text)',
           borderRadius: '8px',
-          fontSize: '14px',
-          fontWeight: 500,
+          fontSize: typography.body.fontSize,
+          fontWeight: fontWeights.medium,
           textDecoration: 'none',
         }}
         onFocus={(e) => {
@@ -308,7 +309,7 @@ export function AppShell({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.6 }}
-            whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
             transition={springs.snappy}
             style={
               prefersReducedMotion

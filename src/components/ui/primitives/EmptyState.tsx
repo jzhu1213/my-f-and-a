@@ -20,7 +20,7 @@
 import type { ReactNode } from "react"
 import { motion } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, fontWeights } from '@/styles/typography'
 import { spacingScale } from "@/styles/layout"
 import { radius } from "@/styles/surfaces"
 import { colorRamp, textColors, gradients, surfaceColors } from "@/styles/colors"
@@ -110,7 +110,7 @@ export function EmptyState({
         <motion.button
           type="button"
           onClick={onAction}
-          whileTap={{ scale: prefersReducedMotion ? 1 : 0.98 }}
+          whileTap={{ scale: prefersReducedMotion ? 1 : 0.96 }}
           transition={springs.snappy}
           style={{
             marginTop: spacingScale["4"],
@@ -121,7 +121,7 @@ export function EmptyState({
             color: surfaceColors.canvas,
             fontFamily: FONT_FAMILY,
             fontSize: typography["body-sm"].fontSize,
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             cursor: "pointer",
             minHeight: 44,
             minWidth: 44,

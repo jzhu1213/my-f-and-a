@@ -154,6 +154,21 @@ export const HORIZONTAL_PADDING = 20
 export const SECTION_SPACING = spacing.xl
 
 // ============================================================================
+// Border radius tokens
+// ============================================================================
+
+/**
+ * Named border-radius tokens (numeric px values for backward compatibility).
+ */
+export const borderRadius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  full: 9999,
+} as const
+
+// ============================================================================
 // Shared style objects
 // ============================================================================
 
@@ -242,10 +257,10 @@ export const emptyStateSubtitle: CSSProperties = {
 export const emptyStateAction: CSSProperties = {
   marginTop: 4,
   padding: "10px 20px",
-  borderRadius: 9999,
+  borderRadius: borderRadius.full,
   border: "none",
   background: colorRamp.accent[200],
-  color: "var(--accent, #a78bfa)",
+  color: "var(--accent)",
   fontSize: pxToRem(13),
   fontWeight: 500,
   fontFamily: FONT_FAMILY,
@@ -270,8 +285,8 @@ export const listRow: CSSProperties = {
  */
 export const pillButton: CSSProperties = {
   background: "transparent",
-  border: "1.5px solid rgba(74, 222, 128, 0.4)",
-  borderRadius: 99,
+  border: `1.5px solid ${colorRamp.success[400]}`,
+  borderRadius: borderRadius.full,
   padding: "10px 20px",
   minHeight: 44,
   boxSizing: "border-box",
@@ -298,7 +313,7 @@ export const chipButton: CSSProperties = {
   boxSizing: "border-box",
   background: fills[6],
   border: `1px solid ${fills[10]}`,
-  borderRadius: 99,
+  borderRadius: borderRadius.full,
   color: "var(--text)",
   fontSize: pxToRem(13),
   fontWeight: 500,
@@ -309,21 +324,6 @@ export const chipButton: CSSProperties = {
 }
 
 // ============================================================================
-// Border radius tokens
-// ============================================================================
-
-/**
- * Named border-radius tokens (numeric px values for backward compatibility).
- */
-export const borderRadius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  full: 9999,
-} as const
-
-// ============================================================================
 // Elevation shadow tokens (Phase 6 — task 244.2)
 // ============================================================================
 
@@ -331,12 +331,15 @@ export const borderRadius = {
  * Tokenized shadow scale referencing CSS custom properties.
  */
 export const shadows = {
+  none: "var(--shadow-none)",
   sm: "var(--shadow-sm)",
   md: "var(--shadow-md)",
   lg: "var(--shadow-lg)",
   xl: "var(--shadow-xl)",
   glowAccent: "var(--shadow-glow-accent)",
   glowAccentStrong: "var(--shadow-glow-accent-strong)",
+  /** Focus ring — 2px solid accent outline via box-shadow (WCAG 2.4.7). */
+  focusRing: "0 0 0 2px var(--focus-ring-color)",
 } as const
 
 // ============================================================================
@@ -404,8 +407,8 @@ export const segmentedButtonInactive: CSSProperties = {
 export const dangerZone: CSSProperties = {
   padding: 16,
   borderRadius: borderRadius.md,
-  background: "rgba(248, 113, 113, 0.1)",
-  border: "1px solid rgba(248, 113, 113, 0.3)",
+  background: colorRamp.error[100],
+  border: `1px solid ${colorRamp.error[300]}`,
 }
 
 /**

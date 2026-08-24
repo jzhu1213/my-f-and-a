@@ -17,7 +17,7 @@
  */
 
 import type { ReactNode } from "react"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, fontWeights } from '@/styles/typography'
 import { radius } from "@/styles/surfaces"
 import { spacingScale } from "@/styles/layout"
 import { colorRamp, surfaceColors, textColors } from "@/styles/colors"
@@ -100,7 +100,7 @@ export function Badge({ variant = "neutral", children }: BadgeProps) {
         border: styles.border,
         fontFamily: FONT_FAMILY,
         fontSize: typography.caption.fontSize,
-        fontWeight: 600,
+        fontWeight: fontWeights.semibold,
         lineHeight: 1,
         whiteSpace: "nowrap",
         userSelect: "none",

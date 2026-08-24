@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import {
   getLastActiveInfo,
   isWelcomeBackDismissed,
@@ -120,20 +121,20 @@ export function WelcomeBackBadge({ allowanceAmount, onCatchMeUp }: WelcomeBackBa
             width: "100%",
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: spacing.sm,
             padding: "12px 16px",
-            background: "rgba(167, 139, 250, 0.08)",
-            border: "1px solid rgba(167, 139, 250, 0.2)",
-            borderRadius: 12,
+            background: "var(--accent-100)",
+            border: "1px solid var(--accent-200)",
+            borderRadius: radius.control,
             textAlign: "left",
           }}
         >
-          <span style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true">
+          <span style={{ fontSize: typography.subhead.fontSize, flexShrink: 0 }} aria-hidden="true">
             👋
           </span>
           <span
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--text)",
               fontFamily: FONT_FAMILY,
               lineHeight: 1.4,
@@ -154,13 +155,13 @@ export function WelcomeBackBadge({ allowanceAmount, onCatchMeUp }: WelcomeBackBa
                 alignItems: "center",
                 gap: 4,
                 padding: "6px 12px",
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
-                color: "rgba(167, 139, 250, 1)",
-                background: "rgba(167, 139, 250, 0.12)",
-                border: "1px solid rgba(167, 139, 250, 0.25)",
-                borderRadius: 8,
+                fontWeight: fontWeights.medium,
+                color: "var(--accent-500)",
+                background: "var(--accent-200)",
+                border: "1px solid var(--accent-300)",
+                borderRadius: radius.control,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
                 flexShrink: 0,
@@ -188,7 +189,7 @@ export function WelcomeBackBadge({ allowanceAmount, onCatchMeUp }: WelcomeBackBa
           >
             <span
               style={{
-                fontSize: 11,
+                fontSize: typography.caption.fontSize,
                 color: "var(--muted)",
                 fontFamily: FONT_FAMILY,
               }}

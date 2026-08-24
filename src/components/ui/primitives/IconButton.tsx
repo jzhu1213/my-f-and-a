@@ -115,7 +115,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       aria-disabled={disabled}
       className="focus-ring"
       style={baseStyles}
-      whileTap={disabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.98 })}
+      whileTap={disabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.95 })}
       transition={springs.snappy}
     >
       {children}

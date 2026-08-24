@@ -3,8 +3,9 @@
 import { motion } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { springs } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, fills } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { fills } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { BUDGET_CATEGORIES } from "@/types"
 import type { TransactionCategory } from "@/types"
 import type { BillPreFill, VariableBillInfo, BillConfirmation } from "@/lib/billReminders"
@@ -89,12 +90,12 @@ export function BillReminderCard({
     >
       <GlassCard elevation="low" glow="caution" style={{ padding: "16px 18px" }}>
         {/* Header row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <span style={{ fontSize: 20 }}>{emoji}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, marginBottom: 8 }}>
+          <span style={{ fontSize: typography.subhead.fontSize }}>{emoji}</span>
           <div style={{ flex: 1 }}>
             <p style={{
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--text)",
               margin: 0,
               fontFamily: FONT_FAMILY,
@@ -102,7 +103,7 @@ export function BillReminderCard({
               {label}
             </p>
             <p style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
               margin: 0,
               fontFamily: FONT_FAMILY,
@@ -113,14 +114,14 @@ export function BillReminderCard({
           {/* Dismiss button */}
           <motion.button
             onClick={onDismiss}
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.95 }}
             transition={springs.snappy}
             style={{
               background: "none",
               border: "none",
               padding: "4px 6px",
               cursor: "pointer",
-              fontSize: 14,
+              fontSize: typography.body.fontSize,
               color: "var(--muted)",
               lineHeight: 1,
             }}
@@ -133,10 +134,11 @@ export function BillReminderCard({
         {/* Variable bill range context */}
         {variableInfo && (
           <p style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             margin: "0 0 10px 0",
             fontFamily: FONT_FAMILY,
+            fontVariantNumeric: "tabular-nums",
             lineHeight: 1.4,
           }}>
             Usually ${variableInfo.min}–${variableInfo.max}, last month was ${variableInfo.lastAmount}
@@ -145,7 +147,7 @@ export function BillReminderCard({
 
         {/* Pre-filled amount + actions */}
         {preFill && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
             {/* Confirm button — one-tap */}
             <motion.button
               onClick={() => onConfirm(suggestedAmount)}
@@ -160,11 +162,12 @@ export function BillReminderCard({
                 padding: "10px 16px",
                 background: "var(--success)",
                 border: "none",
-                borderRadius: borderRadius.full,
+                borderRadius: radius.full,
                 color: "var(--text)",
-                fontSize: 14,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
+                fontVariantNumeric: "tabular-nums",
                 cursor: "pointer",
               }}
               aria-label={`Confirm ${label} payment of $${suggestedAmount}`}
@@ -181,10 +184,10 @@ export function BillReminderCard({
                 padding: "10px 14px",
                 background: fills[6],
                 border: `1px solid ${fills[10]}`,
-                borderRadius: borderRadius.full,
+                borderRadius: radius.full,
                 color: "var(--sub)",
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 cursor: "pointer",
               }}
@@ -228,11 +231,11 @@ export function BillConfirmationCard({
     >
       <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
-          <span style={{ fontSize: 20, marginTop: 1 }}>{emoji}</span>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: spacing.sm, marginBottom: 10 }}>
+          <span style={{ fontSize: typography.subhead.fontSize, marginTop: 1 }}>{emoji}</span>
           <p style={{
             flex: 1,
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             color: "var(--text)",
             margin: 0,
             fontFamily: FONT_FAMILY,
@@ -243,7 +246,7 @@ export function BillConfirmationCard({
         </div>
 
         {/* Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
           {/* Log it button */}
           <motion.button
             onClick={() => onLogPayment(confirmation.billId, confirmation.expectedAmount)}
@@ -254,11 +257,12 @@ export function BillConfirmationCard({
               padding: "10px 16px",
               background: fills[6],
               border: `1px solid ${fills[10]}`,
-              borderRadius: borderRadius.full,
+              borderRadius: radius.full,
               color: "var(--text)",
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               fontFamily: FONT_FAMILY,
+              fontVariantNumeric: "tabular-nums",
               cursor: "pointer",
             }}
             aria-label={`Log payment for ${confirmation.label}`}
@@ -275,10 +279,10 @@ export function BillConfirmationCard({
               padding: "10px 14px",
               background: "none",
               border: "none",
-              borderRadius: borderRadius.full,
+              borderRadius: radius.full,
               color: "var(--muted)",
-              fontSize: 12,
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
               cursor: "pointer",
             }}

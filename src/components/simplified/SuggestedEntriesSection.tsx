@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography } from '@/styles/typography'
 import { sectionHeader } from "@/styles/shared"
 import type { SuggestedEntry } from "@/lib/suggestedEntries"
 import { SuggestedTransactionRow } from "./SuggestedTransactionRow"
@@ -54,7 +54,7 @@ export function SuggestedEntriesSection({
       exit={{ opacity: 0, y: -8 }}
       transition={springs.gentle}
       aria-label="Suggested transactions"
-      style={{ marginBottom: 16 }}
+      style={{ marginBottom: spacing.md }}
     >
       {/* Section header */}
       <div
@@ -71,7 +71,7 @@ export function SuggestedEntriesSection({
         {pendingTotal > 0 && (
           <span
             style={{
-              fontSize: 11,
+              fontSize: typography.caption.fontSize,
               color: "var(--muted)",
               fontFamily: FONT_FAMILY,
             }}

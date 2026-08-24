@@ -17,8 +17,8 @@
 import { useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { timings, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import type { PeriodContext } from "@/lib/budgetPeriod"
 import type { TimeHorizonStats } from "@/lib/timeHorizonStats"
 import type { SpendDownResult } from "@/lib/spendDown"
@@ -322,7 +322,7 @@ export function HeroContextRow({
   const summaryText = summaryParts.join(" · ")
 
   return (
-    <div style={{ marginTop: 8, width: "100%" }}>
+    <div style={{ marginTop: spacing.xs, width: "100%" }}>
       {/* Collapsed: single tappable summary line */}
       <motion.button
         type="button"
@@ -342,14 +342,14 @@ export function HeroContextRow({
           padding: "6px 14px",
           background: "transparent",
           border: "none",
-          borderRadius: borderRadius.md,
+          borderRadius: radius.control,
           cursor: "pointer",
           fontFamily: FONT_FAMILY,
         }}
       >
         <span
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             opacity: 0.85,
             textAlign: "center",
@@ -360,7 +360,7 @@ export function HeroContextRow({
         </span>
         <span
           style={{
-            fontSize: 10,
+            fontSize: typography.caption.fontSize,
             color: "var(--sub)",
             opacity: 0.5,
             transition: "transform 0.2s ease",
@@ -387,13 +387,13 @@ export function HeroContextRow({
           >
             <div
               style={{
-                background: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: borderRadius.md,
+                background: "var(--fill-04)",
+                border: "1px solid var(--fill-08)",
+                borderRadius: radius.control,
                 padding: "10px 14px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 8,
+                gap: spacing.xs,
               }}
             >
               {indicators.map((item) => (
@@ -416,12 +416,12 @@ function IndicatorRow({ item }: { item: IndicatorItem }) {
 
   const content = (
     <>
-      <span style={{ fontSize: 13, flexShrink: 0 }} aria-hidden>
+      <span style={{ fontSize: typography['body-sm'].fontSize, flexShrink: 0 }} aria-hidden>
         {item.emoji}
       </span>
       <span
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
           fontFamily: FONT_FAMILY,
           opacity: 0.85,
@@ -442,7 +442,7 @@ function IndicatorRow({ item }: { item: IndicatorItem }) {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: spacing.xs,
           padding: "4px 0",
           background: "transparent",
           border: "none",
@@ -464,7 +464,7 @@ function IndicatorRow({ item }: { item: IndicatorItem }) {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 8,
+        gap: spacing.xs,
         padding: "4px 0",
       }}
     >

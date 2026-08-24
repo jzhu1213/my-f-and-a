@@ -2,9 +2,11 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { computeInvestmentProjection } from '@/lib/investmentExplorerUtils'
 import type { InvestmentProjection } from '@/lib/investmentExplorerUtils'
+import { HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -96,20 +98,20 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           fontFamily: FONT_FAMILY,
-          fontWeight: 500,
+          fontWeight: fontWeights.medium,
           color: 'var(--sub)',
           background: 'transparent',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: 99,
+          border: '1px solid var(--fill-10)',
+          borderRadius: radius.full,
           padding: '8px 16px',
           cursor: 'pointer',
-          marginBottom: 32,
+          marginBottom: spacing.xl,
           transition: 'border-color 0.15s, color 0.15s',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = 'var(--text)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = 'var(--sub)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--fill-15)'; e.currentTarget.style.color = 'var(--text)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--fill-10)'; e.currentTarget.style.color = 'var(--sub)' }}
       >
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
@@ -118,27 +120,27 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
       </button>
 
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 4 }}>
+      <div style={{ marginBottom: spacing.lg }}>
+        <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 4 }}>
           Explorer
         </p>
-        <h1 style={{ fontSize: 28, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+        <h1 style={{ fontSize: 28, fontFamily: FONT_FAMILY, fontWeight: fontWeights.semibold, color: 'var(--text)', marginBottom: spacing.xs }}>
           What If I Invest?
         </h1>
-        <p style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', lineHeight: 1.5 }}>
+        <p style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', lineHeight: 1.5 }}>
           See how putting away a little each month could grow over time.
         </p>
       </div>
 
       {/* Controls */}
-      <GlassCard elevation="low" style={{ padding: 20, marginBottom: 20 }}>
+      <GlassCard elevation="low" style={{ padding: 20, marginBottom: HORIZONTAL_PADDING }}>
         {/* Monthly Contribution Slider */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+        <div style={{ marginBottom: HORIZONTAL_PADDING }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: spacing.xs }}>
+            <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)' }}>
               Monthly Contribution
             </p>
-            <p style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
+            <p style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.semibold, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
               ${monthlyContribution.toLocaleString()}/mo
             </p>
           </div>
@@ -155,12 +157,12 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
         </div>
 
         {/* Annual Return Slider */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+        <div style={{ marginBottom: HORIZONTAL_PADDING }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: spacing.xs }}>
+            <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)' }}>
               Expected Annual Return
             </p>
-            <p style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
+            <p style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.semibold, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
               {annualReturn}%
             </p>
           </div>
@@ -178,11 +180,11 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
 
         {/* Starting Balance Input */}
         <div style={{ paddingTop: 16, borderTop: '1px solid var(--line)' }}>
-          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>
+          <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.xs }}>
             Starting Balance (optional)
           </p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }}>$</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: spacing.xs }}>
+            <span style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--muted)' }}>$</span>
             <input
               type="text"
               inputMode="numeric"
@@ -193,9 +195,9 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
               style={{
                 flex: 1,
                 background: 'transparent',
-                fontSize: 20,
+                fontSize: typography.subhead.fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: 'var(--text)',
                 outline: 'none',
                 border: 'none',
@@ -208,7 +210,7 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
       </GlassCard>
 
       {/* Horizon Chips */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: spacing.xs, marginBottom: HORIZONTAL_PADDING, flexWrap: 'wrap' }}>
         {HORIZONS.map((h) => (
           <button
             key={h}
@@ -216,13 +218,13 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
             aria-label={`Set projection to ${h} year${h > 1 ? 's' : ''}`}
             aria-pressed={years === h}
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
               color: years === h ? 'var(--text)' : 'var(--sub)',
-              background: years === h ? 'rgba(168, 130, 255, 0.12)' : 'transparent',
-              border: `1px solid ${years === h ? 'rgba(168, 130, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
-              borderRadius: 99,
+              background: years === h ? 'var(--accent-200)' : 'transparent',
+              border: `1px solid ${years === h ? 'var(--accent-300)' : 'var(--fill-10)'}`,
+              borderRadius: radius.full,
               padding: '8px 16px',
               cursor: 'pointer',
               transition: 'all 0.15s',
@@ -237,36 +239,36 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
       {projection && (
         <div>
           {/* Warm copy */}
-          <p style={{ fontSize: 14, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: 16, lineHeight: 1.5 }}>
-            If you put away <span style={{ color: 'var(--text)', fontWeight: 600 }}>${monthlyContribution.toLocaleString()}</span> each month
-            at <span style={{ color: 'var(--text)', fontWeight: 600 }}>{annualReturn}%</span> annual return…
+          <p style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, color: 'var(--sub)', marginBottom: spacing.md, lineHeight: 1.5 }}>
+            If you put away <span style={{ color: 'var(--text)', fontWeight: fontWeights.semibold }}>${monthlyContribution.toLocaleString()}</span> each month
+            at <span style={{ color: 'var(--text)', fontWeight: fontWeights.semibold }}>{annualReturn}%</span> annual return…
           </p>
 
           {/* Future Value Hero Card */}
-          <GlassCard elevation="medium" glow="healthy" style={{ padding: 24, marginBottom: 16 }}>
-            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>
+          <GlassCard elevation="medium" glow="healthy" style={{ padding: spacing.lg, marginBottom: 16 }}>
+            <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.xs }}>
               In {years} year{years > 1 ? 's' : ''} you could have
             </p>
-            <p style={{ fontSize: 36, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>
+            <p style={{ fontSize: 36, fontFamily: FONT_FAMILY, fontWeight: fontWeights.semibold, color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>
               ${projection.summary.finalAmount.toLocaleString()}
             </p>
           </GlassCard>
 
           {/* Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.sm, marginBottom: 24 }}>
             <GlassCard elevation="low" style={{ padding: 16 }}>
-              <p style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
+              <p style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
                 ${projection.summary.totalContributions.toLocaleString()}
               </p>
-              <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+              <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                 contributed
               </p>
             </GlassCard>
             <GlassCard elevation="low" style={{ padding: 16 }}>
-              <p style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>
+              <p style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>
                 ${projection.summary.totalInterest.toLocaleString()}
               </p>
-              <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+              <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                 from growth
               </p>
             </GlassCard>
@@ -274,11 +276,11 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
 
           {/* Growth Curve SVG */}
           {chartPath && (
-            <div style={{ marginBottom: 24 }}>
-              <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>
+            <div style={{ marginBottom: spacing.lg }}>
+              <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.sm }}>
                 Growth Curve
               </p>
-              <GlassCard elevation="low" style={{ padding: 16, overflow: 'hidden' }}>
+              <GlassCard elevation="low" style={{ padding: spacing.md, overflow: 'hidden' }}>
                 <svg
                   viewBox={`0 0 ${chartPath.width} ${chartPath.height}`}
                   width="100%"
@@ -310,16 +312,16 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
                   />
                 </svg>
                 {/* X-axis labels */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                  <span style={{ fontSize: 10, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>Now</span>
-                  <span style={{ fontSize: 10, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>{years} yr{years > 1 ? 's' : ''}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: spacing.xs }}>
+                  <span style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>Now</span>
+                  <span style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>{years} yr{years > 1 ? 's' : ''}</span>
                 </div>
               </GlassCard>
             </div>
           )}
 
           {/* Year-by-year breakdown (condensed) */}
-          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>
+          <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.sm }}>
             Milestones
           </p>
           <GlassCard elevation="low" style={{ padding: 16 }}>
@@ -334,16 +336,16 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
+                    gap: spacing.sm,
                     paddingTop: idx === 0 ? 0 : 10,
                     paddingBottom: 10,
                     borderBottom: idx === arr.length - 1 ? 'none' : '1px solid var(--line)',
                   }}
                 >
-                  <span style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', width: 48 }}>
+                  <span style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--muted)', width: 48 }}>
                     YR {row.year}
                   </span>
-                  <div style={{ flex: 1, height: 2, background: 'var(--line)', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ flex: 1, height: 2, background: 'var(--line)', borderRadius: radius.full, overflow: 'hidden' }}>
                     <div
                       style={{
                         height: '100%',
@@ -353,7 +355,7 @@ export function InvestmentExplorerScreen({ onBack }: InvestmentExplorerScreenPro
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: 12, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--sub)', width: 80, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--sub)', width: 80, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                     ${row.balance.toLocaleString()}
                   </span>
                 </div>

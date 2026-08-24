@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { ChartFrame } from "@/components/ui/primitives/ChartFrame"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -13,6 +13,7 @@ import {
   sectionHeader,
   borderRadius,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { chartMotion } from "@/styles/chartTokens"
 import {
   computeAllocationByType,
@@ -40,12 +41,12 @@ function formatDollars(amount: number): string {
 
 /** Soft, distinct colors for each allocation bar segment. */
 const TYPE_COLORS: Record<string, string> = {
-  hysa: "rgba(6, 214, 160, 0.7)",       // teal
-  roth_ira: "rgba(129, 140, 248, 0.7)", // purple
-  "401k": "rgba(245, 158, 11, 0.7)",    // amber
-  brokerage: "rgba(99, 179, 237, 0.7)", // blue
-  savings: "rgba(74, 222, 128, 0.7)",   // green
-  other: "rgba(156, 163, 175, 0.6)",    // gray
+  hysa: "var(--success)",       // teal
+  roth_ira: "var(--accent-500)", // purple
+  "401k": "var(--warning)",    // amber
+  brokerage: "var(--blue-500)", // blue
+  savings: "var(--success-500)",   // green
+  other: "var(--muted)",    // gray
 }
 
 function getTypeColor(type: string): string {
@@ -98,12 +99,12 @@ export function PortfolioAllocationScreen({
             background: "none",
             border: "none",
             color: "var(--sub)",
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             cursor: "pointer",
             padding: "4px 0",
-            marginBottom: 20,
+            marginBottom: HORIZONTAL_PADDING,
           }}
         >
           ← Back
@@ -119,14 +120,14 @@ export function PortfolioAllocationScreen({
             alignItems: "center",
             justifyContent: "center",
             paddingTop: 80,
-            gap: 12,
+            gap: spacing.sm,
           }}
         >
           <span style={{ fontSize: 40 }}>🥧</span>
           <p
             style={{
-              fontSize: 16,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--text)",
               textAlign: "center",
             }}
@@ -135,7 +136,7 @@ export function PortfolioAllocationScreen({
           </p>
           <p
             style={{
-              fontSize: 14,
+              fontSize: typography.body.fontSize,
               color: "var(--sub)",
               textAlign: "center",
               maxWidth: 280,
@@ -166,12 +167,12 @@ export function PortfolioAllocationScreen({
           background: "none",
           border: "none",
           color: "var(--sub)",
-          fontSize: 14,
-          fontWeight: 500,
+          fontSize: typography.body.fontSize,
+          fontWeight: fontWeights.medium,
           fontFamily: FONT_FAMILY,
           cursor: "pointer",
           padding: "4px 0",
-          marginBottom: 20,
+          marginBottom: HORIZONTAL_PADDING,
         }}
       >
         ← Back
@@ -182,16 +183,16 @@ export function PortfolioAllocationScreen({
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springs.gentle}
-        style={{ marginBottom: 24, textAlign: "center" }}
+        style={{ marginBottom: spacing.lg, textAlign: "center" }}
       >
         <p
           style={{
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.semibold,
             color: "var(--sub)",
             textTransform: "uppercase",
             letterSpacing: "0.05em",
-            marginBottom: 8,
+            marginBottom: spacing.xs,
           }}
         >
           Total Savings
@@ -199,7 +200,7 @@ export function PortfolioAllocationScreen({
         <p
           style={{
             fontSize: 36,
-            fontWeight: 700,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             fontVariantNumeric: "tabular-nums",
             lineHeight: 1.1,
@@ -209,7 +210,7 @@ export function PortfolioAllocationScreen({
         </p>
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             marginTop: 6,
           }}
@@ -223,7 +224,7 @@ export function PortfolioAllocationScreen({
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...springs.gentle, delay: 0.05 }}
-        style={{ marginBottom: 24 }}
+        style={{ marginBottom: spacing.lg }}
       >
         <p style={{ ...sectionHeader, marginBottom: 14 }}>
           Breakdown by Type
@@ -241,10 +242,10 @@ export function PortfolioAllocationScreen({
               style={{
                 display: "flex",
                 height: 12,
-                borderRadius: 6,
+                borderRadius: radius.min,
                 overflow: "hidden",
-                marginBottom: 16,
-                background: "rgba(255, 255, 255, 0.04)",
+                marginBottom: spacing.md,
+                background: "var(--fill-04)",
               }}
               role="img"
               aria-label="Savings breakdown bar"
@@ -263,7 +264,7 @@ export function PortfolioAllocationScreen({
             </div>
 
             {/* Per-type rows */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
               {allocations.map((alloc) => (
                 <div
                   key={alloc.type}
@@ -274,7 +275,7 @@ export function PortfolioAllocationScreen({
                     padding: "4px 0",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
                     {/* Color dot */}
                     <div
                       style={{
@@ -285,24 +286,24 @@ export function PortfolioAllocationScreen({
                         flexShrink: 0,
                       }}
                     />
-                    <span style={{ fontSize: 15 }} aria-hidden="true">
+                    <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">
                       {alloc.emoji}
                     </span>
                     <span
                       style={{
-                        fontSize: 14,
-                        fontWeight: 500,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.medium,
                         color: "var(--text)",
                       }}
                     >
                       {alloc.label}
                     </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
                     <span
                       style={{
-                        fontSize: 14,
-                        fontWeight: 600,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.semibold,
                         color: "var(--text)",
                         fontVariantNumeric: "tabular-nums",
                       }}
@@ -311,8 +312,8 @@ export function PortfolioAllocationScreen({
                     </span>
                     <span
                       style={{
-                        fontSize: 12,
-                        fontWeight: 500,
+                        fontSize: typography['body-sm'].fontSize,
+                        fontWeight: fontWeights.medium,
                         color: "var(--muted)",
                         minWidth: 40,
                         textAlign: "right",
@@ -334,7 +335,7 @@ export function PortfolioAllocationScreen({
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...springs.gentle, delay: 0.1 }}
-        style={{ marginBottom: 24 }}
+        style={{ marginBottom: spacing.lg }}
       >
         <p style={{ ...sectionHeader, marginBottom: 14 }}>
           Growth vs. Contributions
@@ -352,7 +353,7 @@ export function PortfolioAllocationScreen({
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                gap: 12,
+                gap: spacing.sm,
                 marginBottom: 14,
               }}
             >
@@ -360,14 +361,14 @@ export function PortfolioAllocationScreen({
                 style={{
                   padding: "12px 14px",
                   borderRadius: borderRadius.sm,
-                  background: "rgba(255, 255, 255, 0.04)",
+                  background: "var(--fill-04)",
                   textAlign: "center",
                 }}
               >
                 <p
                   style={{
-                    fontSize: 11,
-                    fontWeight: 500,
+                    fontSize: typography.caption.fontSize,
+                    fontWeight: fontWeights.medium,
                     color: "var(--muted)",
                     marginBottom: 4,
                     textTransform: "uppercase",
@@ -378,8 +379,8 @@ export function PortfolioAllocationScreen({
                 </p>
                 <p
                   style={{
-                    fontSize: 16,
-                    fontWeight: 700,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.bold,
                     color: "var(--text)",
                     fontVariantNumeric: "tabular-nums",
                   }}
@@ -391,14 +392,14 @@ export function PortfolioAllocationScreen({
                 style={{
                   padding: "12px 14px",
                   borderRadius: borderRadius.sm,
-                  background: "rgba(255, 255, 255, 0.04)",
+                  background: "var(--fill-04)",
                   textAlign: "center",
                 }}
               >
                 <p
                   style={{
-                    fontSize: 11,
-                    fontWeight: 500,
+                    fontSize: typography.caption.fontSize,
+                    fontWeight: fontWeights.medium,
                     color: "var(--muted)",
                     marginBottom: 4,
                     textTransform: "uppercase",
@@ -409,8 +410,8 @@ export function PortfolioAllocationScreen({
                 </p>
                 <p
                   style={{
-                    fontSize: 16,
-                    fontWeight: 700,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.bold,
                     color: growthSummary.totalEstimatedGrowth >= 0
                       ? "var(--success)"
                       : "var(--text)",
@@ -430,9 +431,9 @@ export function PortfolioAllocationScreen({
                   style={{
                     display: "flex",
                     height: 8,
-                    borderRadius: 4,
+                    borderRadius: radius.min,
                     overflow: "hidden",
-                    background: "rgba(255, 255, 255, 0.04)",
+                    background: "var(--fill-04)",
                   }}
                   role="img"
                   aria-label={`Contributions: ${formatDollars(growthSummary.totalContributions)}, Growth: ${formatDollars(growthSummary.totalEstimatedGrowth)}`}
@@ -443,7 +444,7 @@ export function PortfolioAllocationScreen({
                         (growthSummary.totalContributions / growthSummary.totalBalance) * 100,
                         2
                       )}%`,
-                      background: "rgba(129, 140, 248, 0.6)",
+                      background: "var(--accent-400)",
                       transition: chartMotion.barGrow,
                     }}
                   />
@@ -454,7 +455,7 @@ export function PortfolioAllocationScreen({
                           (growthSummary.totalEstimatedGrowth / growthSummary.totalBalance) * 100,
                           2
                         )}%`,
-                        background: "rgba(6, 214, 160, 0.6)",
+                        background: "var(--success)",
                         transition: chartMotion.barGrow,
                       }}
                     />
@@ -467,10 +468,10 @@ export function PortfolioAllocationScreen({
                     marginTop: 6,
                   }}
                 >
-                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                  <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)" }}>
                     💰 Contributed
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                  <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)" }}>
                     📈 Growth
                   </span>
                 </div>
@@ -480,7 +481,7 @@ export function PortfolioAllocationScreen({
             {growthSummary.totalContributions === 0 && (
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   color: "var(--sub)",
                   lineHeight: 1.5,
                   textAlign: "center",
@@ -503,7 +504,7 @@ export function PortfolioAllocationScreen({
           Per-Account Breakdown
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
           {growthSummary.perAccount.map((acct) => {
             const meta = getAccountTypeMetadata(acct.accountType)
             return (
@@ -521,15 +522,15 @@ export function PortfolioAllocationScreen({
                     marginBottom: 10,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 18 }} aria-hidden="true">
+                  <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
+                    <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">
                       {meta.emoji}
                     </span>
                     <div>
                       <p
                         style={{
-                          fontSize: 14,
-                          fontWeight: 600,
+                          fontSize: typography.body.fontSize,
+                          fontWeight: fontWeights.semibold,
                           color: "var(--text)",
                         }}
                       >
@@ -537,7 +538,7 @@ export function PortfolioAllocationScreen({
                       </p>
                       <p
                         style={{
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           color: "var(--muted)",
                         }}
                       >
@@ -547,8 +548,8 @@ export function PortfolioAllocationScreen({
                   </div>
                   <p
                     style={{
-                      fontSize: 16,
-                      fontWeight: 700,
+                      fontSize: typography.body.fontSize,
+                      fontWeight: fontWeights.bold,
                       color: "var(--text)",
                       fontVariantNumeric: "tabular-nums",
                     }}
@@ -562,16 +563,16 @@ export function PortfolioAllocationScreen({
                   <div
                     style={{
                       display: "flex",
-                      gap: 12,
+                      gap: spacing.sm,
                       padding: "8px 10px",
                       borderRadius: borderRadius.sm,
-                      background: "rgba(255, 255, 255, 0.03)",
+                      background: "var(--fill-03)",
                     }}
                   >
                     <div style={{ flex: 1 }}>
                       <p
                         style={{
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           color: "var(--muted)",
                           marginBottom: 2,
                         }}
@@ -580,8 +581,8 @@ export function PortfolioAllocationScreen({
                       </p>
                       <p
                         style={{
-                          fontSize: 13,
-                          fontWeight: 600,
+                          fontSize: typography['body-sm'].fontSize,
+                          fontWeight: fontWeights.semibold,
                           color: "var(--text)",
                           fontVariantNumeric: "tabular-nums",
                         }}
@@ -592,7 +593,7 @@ export function PortfolioAllocationScreen({
                     <div style={{ flex: 1 }}>
                       <p
                         style={{
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           color: "var(--muted)",
                           marginBottom: 2,
                         }}
@@ -601,8 +602,8 @@ export function PortfolioAllocationScreen({
                       </p>
                       <p
                         style={{
-                          fontSize: 13,
-                          fontWeight: 600,
+                          fontSize: typography['body-sm'].fontSize,
+                          fontWeight: fontWeights.semibold,
                           color: acct.estimatedGrowth >= 0
                             ? "var(--success)"
                             : "var(--sub)",
@@ -617,7 +618,7 @@ export function PortfolioAllocationScreen({
                 ) : (
                   <p
                     style={{
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       color: "var(--sub)",
                       fontStyle: "italic",
                     }}
@@ -637,10 +638,10 @@ export function PortfolioAllocationScreen({
         animate={{ opacity: 1 }}
         transition={{ delay: 0.25 }}
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
           textAlign: "center",
-          marginTop: 24,
+          marginTop: spacing.lg,
           lineHeight: 1.5,
         }}
       >

@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { triggerHaptic } from '@/lib/haptics'
 import { parseTagInput, MAX_TAGS_PER_TRANSACTION, MAX_TAG_LENGTH } from '@/lib/tagUtils'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 
 interface TagInputProps {
   /** Current tags */
@@ -78,12 +78,12 @@ export function TagInput({
           aria-label="Add tags"
           style={{
             background: 'transparent',
-            border: '1px dashed rgba(255, 255, 255, 0.15)',
-            borderRadius: borderRadius.md,
+            border: '1px dashed var(--fill-15)',
+            borderRadius: radius.control,
             padding: '8px 14px',
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
-            fontWeight: 400,
+            fontWeight: fontWeights.regular,
             color: 'var(--sub)',
             cursor: 'pointer',
             display: 'inline-flex',
@@ -91,7 +91,7 @@ export function TagInput({
             gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>#</span> Add tags
+          <span style={{ fontSize: typography.body.fontSize }}>#</span> Add tags
         </button>
       </div>
     )
@@ -106,7 +106,7 @@ export function TagInput({
             display: 'flex',
             gap: 6,
             flexWrap: 'wrap',
-            marginBottom: 8,
+            marginBottom: spacing.xs,
           }}
           aria-label="Current tags"
         >
@@ -126,20 +126,20 @@ export function TagInput({
                   alignItems: 'center',
                   gap: 4,
                   padding: '4px 10px',
-                  background: 'rgba(129, 140, 248, 0.1)',
-                  border: '1px solid rgba(129, 140, 248, 0.25)',
-                  borderRadius: borderRadius.full,
-                  fontSize: 12,
+                  background: 'var(--accent-100)',
+                  border: '1px solid var(--accent-300)',
+                  borderRadius: radius.full,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
-                  color: 'rgba(129, 140, 248, 0.9)',
+                  fontWeight: fontWeights.medium,
+                  color: 'var(--accent-500)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                 }}
               >
                 #{tag}
                 <span
-                  style={{ fontSize: 13, lineHeight: 1, opacity: 0.7 }}
+                  style={{ fontSize: typography['body-sm'].fontSize, lineHeight: 1, opacity: 0.7 }}
                   aria-hidden="true"
                 >
                   ×
@@ -166,7 +166,7 @@ export function TagInput({
             border: 'none',
             borderBottom: '1px solid var(--line)',
             outline: 'none',
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--text)',
             padding: '8px 0',
@@ -178,7 +178,7 @@ export function TagInput({
       {/* Helper text */}
       <span
         style={{
-          fontSize: 11,
+          fontSize: typography.caption.fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--muted)',
           marginTop: 4,
@@ -197,7 +197,7 @@ export function TagInput({
             display: 'flex',
             gap: 6,
             flexWrap: 'wrap',
-            marginTop: 8,
+            marginTop: spacing.xs,
           }}
           aria-label="Suggested tags"
         >
@@ -213,12 +213,12 @@ export function TagInput({
               aria-label={`Add tag: ${suggestion}`}
               style={{
                 padding: '4px 10px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: borderRadius.full,
-                fontSize: 12,
+                background: 'var(--fill-04)',
+                border: '1px solid var(--fill-08)',
+                borderRadius: radius.full,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 400,
+                fontWeight: fontWeights.regular,
                 color: 'var(--sub)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -6,7 +6,7 @@ import { timings } from "@/lib/animations"
 import type { MonthlyDigest } from "@/lib/monthlyDigest"
 import { dismissDigest, isDigestDismissed } from "@/lib/monthlyDigest"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY, typography } from "@/styles/typography"
+import { FONT_FAMILY, typography, spacing, fontWeights } from '@/styles/typography'
 import { textColors } from "@/styles/colors"
 import { spacingScale } from "@/styles/layout"
 
@@ -26,12 +26,12 @@ export interface MonthlyDigestCardProps {
 // ============================================================================
 
 /**
- * MonthlyDigestCard — A compact, celebratory "Your month in review" card
+ * MonthlyDigestCard â€” A compact, celebratory "Your month in review" card
  * shown at the end of each budget period.
  *
  * Features:
- * - Title: "Your month in review ✨"
- * - Shows 3–5 bullet highlights (wins first, trends second)
+ * - Title: "Your month in review âœ¨"
+ * - Shows 3â€“5 bullet highlights (wins first, trends second)
  * - Ends with a single actionable tip
  * - Warm, celebratory tone (GlassCard with celebration glow)
  * - Dismissible, persisted with month key (shows once per period)
@@ -63,14 +63,14 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
         >
           <GlassCard elevation="low" glow="celebration" style={{ padding: "16px 18px", borderRadius: 14 }}>
             {/* Header row */}
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: spacingScale["12"] }}>
-              <span style={{ fontSize: 20, lineHeight: 1.3 }} aria-hidden="true">
-                🎉
+            <div style={{ display: "flex", alignItems: "flex-start", gap: spacing.sm, marginBottom: spacingScale["12"] }}>
+              <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3 }} aria-hidden="true">
+                ðŸŽ‰
               </span>
               <p
                 style={{
                   ...typography["body-sm"],
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   color: textColors.text,
                   flex: 1,
                 }}
@@ -86,14 +86,14 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
                   border: "none",
                   padding: 4,
                   cursor: "pointer",
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   color: "var(--sub)",
                   opacity: 0.6,
                   lineHeight: 1,
                   flexShrink: 0,
                 }}
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -112,16 +112,16 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
                   style={{
                     display: "flex",
                     alignItems: "flex-start",
-                    gap: 8,
+                    gap: spacing.xs,
                   }}
                 >
-                  <span style={{ fontSize: 12, lineHeight: 1.5, flexShrink: 0 }} aria-hidden="true">
+                  <span style={{ fontSize: typography['body-sm'].fontSize, lineHeight: 1.5, flexShrink: 0 }} aria-hidden="true">
                     {highlight.emoji}
                   </span>
                   <p
                     style={{
                       fontFamily: FONT_FAMILY,
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       color: textColors.sub,
                       lineHeight: 1.5,
                     }}
@@ -131,25 +131,25 @@ export function MonthlyDigestCard({ digest, onDismiss }: MonthlyDigestCardProps)
                 </div>
               ))}
 
-              {/* Actionable tip — visually distinct */}
+              {/* Actionable tip â€” visually distinct */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "flex-start",
-                  gap: 8,
+                  gap: spacing.xs,
                   marginTop: spacingScale["4"],
                   paddingTop: spacingScale["8"],
-                  borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                  borderTop: "1px solid var(--fill-06)",
                 }}
               >
-                <span style={{ fontSize: 12, lineHeight: 1.5, flexShrink: 0 }} aria-hidden="true">
-                  💡
+                <span style={{ fontSize: typography['body-sm'].fontSize, lineHeight: 1.5, flexShrink: 0 }} aria-hidden="true">
+                  ðŸ’¡
                 </span>
                 <p
                   style={{
                     fontFamily: FONT_FAMILY,
-                    fontSize: 12,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     color: textColors.text,
                     lineHeight: 1.5,
                     opacity: 0.9,

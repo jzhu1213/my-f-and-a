@@ -4,7 +4,7 @@ import type { Transaction, TransactionCategory } from '@/types'
 import type { CategoryBudgetRow } from '@/lib/budgetUtils'
 import { weekStart } from '@/lib/budgetUtils'
 import { CategoryIcon } from '@/components/ui/CategoryIcon'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, typography } from '@/styles/typography'
 
 interface CategoryDetailSheetProps {
   isOpen: boolean
@@ -43,7 +43,7 @@ export function CategoryDetailSheet({
     <>
       <div
         className={`fixed inset-0 z-40 transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        style={{ background: 'rgba(14, 14, 26, 0.85)' }}
+        style={{ background: 'var(--color-canvas)' }}
         onClick={onClose}
       />
 
@@ -56,7 +56,7 @@ export function CategoryDetailSheet({
             <div>
               <p style={{ fontSize: '17px', color: 'var(--text)' }}>{row.label}</p>
               <p style={{
-                fontFamily: FONT_FAMILY, fontSize: '14px',
+                fontFamily: FONT_FAMILY, fontSize: typography.body.fontSize,
                 color: statusColor, marginTop: '4px',
               }}>
                 {leftLabel}
@@ -75,7 +75,7 @@ export function CategoryDetailSheet({
             <div>
               <div className="flex justify-between mb-2">
                 <span className="label">Weekly progress</span>
-                <span style={{ fontFamily: FONT_FAMILY, fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                   ${row.weeklySpent.toFixed(0)} / ${row.weeklyLimit.toFixed(0)}
                 </span>
               </div>
@@ -89,7 +89,7 @@ export function CategoryDetailSheet({
                 />
               </div>
               {row.monthlyLimit > 0 && (
-                <p style={{ fontFamily: FONT_FAMILY, fontSize: '11px', color: 'var(--muted)', marginTop: '8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                <p style={{ fontFamily: FONT_FAMILY, fontSize: typography.caption.fontSize, color: 'var(--muted)', marginTop: '8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                   ${row.monthlySpent.toFixed(0)} / ${row.monthlyLimit.toFixed(0)} this month
                 </p>
               )}
@@ -105,10 +105,10 @@ export function CategoryDetailSheet({
                   className="flex items-center justify-between py-3"
                   style={{ borderBottom: '1px solid var(--border)' }}
                 >
-                  <span style={{ fontSize: '14px', color: 'var(--text)' }} className="truncate flex-1 mr-4">
+                  <span style={{ fontSize: typography.body.fontSize, color: 'var(--text)' }} className="truncate flex-1 mr-4">
                     {tx.note || getLabel(tx.category)}
                   </span>
-                  <span style={{ fontFamily: FONT_FAMILY, fontSize: '14px', color: 'var(--sub)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontFamily: FONT_FAMILY, fontSize: typography.body.fontSize, color: 'var(--sub)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
                     −${tx.amount.toFixed(2)}
                   </span>
                 </div>
@@ -117,7 +117,7 @@ export function CategoryDetailSheet({
           )}
 
           {recentTxs.length === 0 && (
-            <p style={{ fontSize: '14px', color: 'var(--muted)' }}>No spending in this category yet this week.</p>
+            <p style={{ fontSize: typography.body.fontSize, color: 'var(--muted)' }}>No spending in this category yet this week.</p>
           )}
         </div>
 

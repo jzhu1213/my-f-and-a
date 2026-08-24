@@ -40,12 +40,7 @@ import {
 import { ProgressRing } from "@/components/ui/primitives/ProgressRing"
 import { AmbientGlow } from "@/components/ui/AmbientGlow"
 import type { AmbientGlowStatus } from "@/components/ui/AmbientGlow"
-import {
-  typography,
-  FONT_FAMILY,
-  TABULAR_NUMS,
-  DISPLAY_GRADIENT_CLASS,
-} from "@/styles/typography"
+import { typography, FONT_FAMILY, TABULAR_NUMS, DISPLAY_GRADIENT_CLASS, fontWeights } from '@/styles/typography'
 import { textColors } from "@/styles/colors"
 import { spacingScale } from "@/styles/layout"
 import { springPresets } from "@/styles/motion"
@@ -297,7 +292,7 @@ function CalculationBreakdown({
   const valueStyle: React.CSSProperties = {
     fontFamily: FONT_FAMILY,
     fontSize: typography["body"].fontSize,
-    fontWeight: 600,
+    fontWeight: fontWeights.semibold,
     lineHeight: typography["body"].lineHeight,
     ...TABULAR_NUMS,
     fontVariantNumeric: "tabular-nums",
@@ -320,7 +315,7 @@ function CalculationBreakdown({
   const totalValueStyle: React.CSSProperties = {
     ...valueStyle,
     fontSize: typography["subhead"].fontSize,
-    fontWeight: 700,
+    fontWeight: fontWeights.bold,
   }
 
   if (error) {
@@ -385,7 +380,7 @@ function CalculationBreakdown({
 
       {/* Total */}
       <div style={totalRowStyle}>
-        <span style={{ ...labelStyle, fontWeight: 600 }}>You can spend</span>
+        <span style={{ ...labelStyle, fontWeight: fontWeights.semibold }}>You can spend</span>
         <span style={totalValueStyle}>{formatAmount(totalAmount)}</span>
       </div>
     </div>

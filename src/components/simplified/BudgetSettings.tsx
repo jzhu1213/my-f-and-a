@@ -9,8 +9,9 @@ import { computeBudgetSummary, computeDailyEquivalent } from "@/lib/budgetSummar
 import { getIncomeProjection } from "@/lib/incomePatterns"
 import { BUDGET_CATEGORIES } from "@/types"
 import type { Budget, Transaction, TransactionCategory } from "@/types"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, segmentedControl, segmentedButtonBase, shadows, fills, colorRamp } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { segmentedControl, segmentedButtonBase, shadows, fills, colorRamp, HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Limit-type persistence helpers (localStorage, keyed per category)
@@ -398,7 +399,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
             color: "var(--muted)",
             cursor: "pointer",
             fontFamily: FONT_FAMILY,
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
           }}
         >
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -409,12 +410,12 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
       )}
 
       {/* ── Summary Header (Task 12.3) ─────────────────────────────────────── */}
-      <GlassCard elevation="medium" style={{ padding: "20px 24px", marginBottom: 20 }}>
+      <GlassCard elevation="medium" style={{ padding: "20px 24px", marginBottom: HORIZONTAL_PADDING }}>
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
-            marginBottom: 8,
+            marginBottom: spacing.xs,
             fontFamily: FONT_FAMILY,
             letterSpacing: "0.02em",
           }}
@@ -423,8 +424,8 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
         </p>
         <p
           style={{
-            fontSize: 32,
-            fontWeight: 700,
+            fontSize: typography.title.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             fontFamily: FONT_FAMILY,
             fontVariantNumeric: "tabular-nums",
@@ -432,13 +433,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
           }}
         >
           ${totalMonthly.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          <span style={{ fontSize: 16, fontWeight: 400, color: "var(--sub)", marginLeft: 4 }}>
+          <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 4 }}>
             /mo
           </span>
         </p>
         <p
           style={{
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             color: "var(--sub)",
             marginTop: 6,
             fontFamily: FONT_FAMILY,
@@ -457,7 +458,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
           exit={{ opacity: 0, y: -8 }}
           transition={springs.gentle}
         >
-          <GlassCard elevation="low" style={{ padding: "14px 18px", marginBottom: 20, position: "relative" }}>
+          <GlassCard elevation="low" style={{ padding: "14px 18px", marginBottom: HORIZONTAL_PADDING, position: "relative" }}>
             {/* Dismiss button */}
             <button
               onClick={() => setProjectionDismissed(true)}
@@ -472,7 +473,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                 cursor: "pointer",
                 padding: 4,
                 lineHeight: 1,
-                fontSize: 16,
+                fontSize: typography.body.fontSize,
               }}
             >
               ✕
@@ -480,7 +481,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
 
             <p
               style={{
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--muted)",
                 fontFamily: FONT_FAMILY,
                 marginBottom: 6,
@@ -493,8 +494,8 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
             </p>
             <p
               style={{
-                fontSize: 18,
-                fontWeight: 600,
+                fontSize: typography.subhead.fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--text)",
                 fontFamily: FONT_FAMILY,
                 fontVariantNumeric: "tabular-nums",
@@ -502,7 +503,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
               }}
             >
               ${Math.round(incomeProjection.projectedMonthlyIncome).toLocaleString("en-US")}
-              <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 4 }}>
+              <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 4 }}>
                 /mo
               </span>
             </p>
@@ -511,7 +512,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
             {incomeProjection.confidence >= 0.7 && (
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   color: "var(--sub)",
                   fontFamily: FONT_FAMILY,
                   marginTop: 4,
@@ -531,13 +532,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                 style={{
                   marginTop: 10,
                   padding: "6px 14px",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   background: "var(--accent)",
-                  color: "#fff",
+                  color: "var(--text)",
                   border: "none",
-                  borderRadius: 20,
+                  borderRadius: radius.card,
                   cursor: "pointer",
                 }}
               >
@@ -549,11 +550,11 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
       )}
 
       {/* ── Category Limits List (Task 12.1 & 12.2) ────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "8px 0", marginBottom: 20 }}>
+      <GlassCard elevation="low" style={{ padding: "8px 0", marginBottom: HORIZONTAL_PADDING }}>
         <div style={{ padding: "12px 20px 8px" }}>
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--muted)",
               fontFamily: FONT_FAMILY,
               letterSpacing: "0.02em",
@@ -593,7 +594,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                   justifyContent: "space-between",
                   width: "100%",
                   padding: "14px 20px",
-                  background: isExpanded ? "rgba(255,255,255,0.03)" : "transparent",
+                  background: isExpanded ? "var(--fill-03)" : "transparent",
                   border: "none",
                   borderBottom: "1px solid var(--border)",
                   cursor: "pointer",
@@ -603,22 +604,22 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                 aria-expanded={isExpanded}
                 aria-label={limit > 0 ? `${cat.label} budget limit: $${limit} per month` : `${cat.label}: no limit set — tap to add one`}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 22, lineHeight: 1 }}>{cat.emoji}</span>
-                  <span style={{ fontSize: 15, color: "var(--text)", fontWeight: 500 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+                  <span style={{ fontSize: typography.headline.fontSize, lineHeight: 1 }}>{cat.emoji}</span>
+                  <span style={{ fontSize: typography.body.fontSize, color: "var(--text)", fontWeight: fontWeights.medium }}>
                     {cat.label}
                   </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
                   {isFirm && limit > 0 && (
                     <span
                       style={{
-                        fontSize: 10,
-                        fontWeight: 600,
+                        fontSize: typography.caption.fontSize,
+                        fontWeight: fontWeights.semibold,
                         color: colorRamp.warning[500],
                         background: colorRamp.warning[100],
                         border: `1px solid ${colorRamp.warning[300]}`,
-                        borderRadius: 99,
+                        borderRadius: radius.full,
                         padding: "2px 7px",
                         letterSpacing: "0.04em",
                         fontFamily: FONT_FAMILY,
@@ -630,9 +631,9 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                   )}
                   <span
                     style={{
-                      fontSize: 15,
+                      fontSize: typography.body.fontSize,
                       color: limit > 0 ? "var(--text)" : "var(--muted)",
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >
@@ -666,7 +667,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                     <div
                       style={{
                         padding: "16px 20px 20px",
-                        background: "rgba(255,255,255,0.02)",
+                        background: "var(--fill-02)",
                         borderBottom: "1px solid var(--border)",
                       }}
                     >
@@ -675,8 +676,8 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 12,
-                          marginBottom: 16,
+                          gap: spacing.sm,
+                          marginBottom: spacing.md,
                         }}
                       >
                         <motion.button
@@ -690,13 +691,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            background: limit > SLIDER_MIN ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                            background: limit > SLIDER_MIN ? "var(--fill-06)" : "var(--fill-02)",
                             border: "1px solid var(--border)",
-                            borderRadius: borderRadius.sm,
+                            borderRadius: radius.control,
                             cursor: limit > SLIDER_MIN ? "pointer" : "not-allowed",
                             color: limit > SLIDER_MIN ? "var(--text)" : "var(--muted)",
-                            fontSize: 18,
-                            fontWeight: 600,
+                            fontSize: typography.subhead.fontSize,
+                            fontWeight: fontWeights.semibold,
                           }}
                           aria-label="Decrease by $50"
                         >
@@ -706,15 +707,15 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                         <div style={{ flex: 1, textAlign: "center" }}>
                           <div
                             style={{
-                              fontSize: 24,
-                              fontWeight: 700,
+                              fontSize: typography.headline.fontSize,
+                              fontWeight: fontWeights.bold,
                               color: "var(--text)",
                               fontFamily: FONT_FAMILY,
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
                             ${limit}
-                            <span style={{ fontSize: 14, fontWeight: 400, color: "var(--sub)", marginLeft: 4 }}>
+                            <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 4 }}>
                               {isWeekly ? "/week" : "/mo"}
                             </span>
                           </div>
@@ -731,13 +732,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            background: limit < SLIDER_MAX ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                            background: limit < SLIDER_MAX ? "var(--fill-06)" : "var(--fill-02)",
                             border: "1px solid var(--border)",
-                            borderRadius: borderRadius.sm,
+                            borderRadius: radius.control,
                             cursor: limit < SLIDER_MAX ? "pointer" : "not-allowed",
                             color: limit < SLIDER_MAX ? "var(--text)" : "var(--muted)",
-                            fontSize: 18,
-                            fontWeight: 600,
+                            fontSize: typography.subhead.fontSize,
+                            fontWeight: fontWeights.semibold,
                           }}
                           aria-label="Increase by $50"
                         >
@@ -773,8 +774,8 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
-                          marginTop: 8,
-                          fontSize: 11,
+                          marginTop: spacing.xs,
+                          fontSize: typography.caption.fontSize,
                           color: "var(--muted)",
                           fontFamily: FONT_FAMILY,
                         }}
@@ -787,9 +788,9 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                       <div
                         style={{
                           display: "flex",
-                          gap: 16,
+                          gap: spacing.md,
                           marginTop: 14,
-                          fontSize: 13,
+                          fontSize: typography['body-sm'].fontSize,
                           color: "var(--sub)",
                           fontFamily: FONT_FAMILY,
                         }}
@@ -820,14 +821,14 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                         style={{
                           marginTop: 14,
                           padding: "8px 14px",
-                          fontSize: 12,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
                           color: "var(--error)",
                           background: colorRamp.error[100],
                           border: `1px solid ${colorRamp.error[200]}`,
-                          borderRadius: borderRadius.sm,
+                          borderRadius: radius.control,
                           cursor: "pointer",
-                          fontWeight: 500,
+                          fontWeight: fontWeights.medium,
                         }}
                         aria-label={`Remove ${cat.label} limit`}
                       >
@@ -839,10 +840,10 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                         <div style={{ marginTop: 18 }}>
                           <p
                             style={{
-                              fontSize: 12,
+                              fontSize: typography['body-sm'].fontSize,
                               color: "var(--muted)",
                               fontFamily: FONT_FAMILY,
-                              marginBottom: 8,
+                              marginBottom: spacing.xs,
                               letterSpacing: "0.03em",
                             }}
                           >
@@ -861,7 +862,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                               aria-checked={!isFirm}
                               style={{
                                 ...segmentedButtonBase,
-                                background: !isFirm ? "rgba(255,255,255,0.08)" : "transparent",
+                                background: !isFirm ? "var(--fill-08)" : "transparent",
                                 color: !isFirm ? "var(--text)" : "var(--muted)",
                                 boxShadow: !isFirm ? shadows.sm : "none",
                               }}
@@ -886,7 +887,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                           </div>
                           <p
                             style={{
-                              fontSize: 11,
+                              fontSize: typography.caption.fontSize,
                               color: "var(--muted)",
                               fontFamily: FONT_FAMILY,
                               marginTop: 6,
@@ -905,10 +906,10 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                         <div style={{ marginTop: 18 }}>
                           <p
                             style={{
-                              fontSize: 12,
+                              fontSize: typography['body-sm'].fontSize,
                               color: "var(--muted)",
                               fontFamily: FONT_FAMILY,
-                              marginBottom: 8,
+                              marginBottom: spacing.xs,
                               letterSpacing: "0.03em",
                             }}
                           >
@@ -927,7 +928,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                               aria-checked={!isWeekly && !isPaydayAligned && !isSemester}
                               style={{
                                 ...segmentedButtonBase,
-                                background: !isWeekly && !isPaydayAligned && !isSemester ? "rgba(255,255,255,0.08)" : "transparent",
+                                background: !isWeekly && !isPaydayAligned && !isSemester ? "var(--fill-08)" : "transparent",
                                 color: !isWeekly && !isPaydayAligned && !isSemester ? "var(--text)" : "var(--muted)",
                                 boxShadow: !isWeekly && !isPaydayAligned && !isSemester ? shadows.sm : "none",
                               }}
@@ -942,7 +943,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                               aria-checked={isWeekly}
                               style={{
                                 ...segmentedButtonBase,
-                                background: isWeekly ? "rgba(129, 140, 248, 0.15)" : "transparent",
+                                background: isWeekly ? "var(--accent-200)" : "transparent",
                                 color: isWeekly ? "var(--accent)" : "var(--muted)",
                                 boxShadow: isWeekly ? shadows.sm : "none",
                               }}
@@ -958,7 +959,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                 aria-checked={isPaydayAligned}
                                 style={{
                                   ...segmentedButtonBase,
-                                  background: isPaydayAligned ? "rgba(52, 211, 153, 0.15)" : "transparent",
+                                  background: isPaydayAligned ? "var(--success-200)" : "transparent",
                                   color: isPaydayAligned ? "var(--success)" : "var(--muted)",
                                   boxShadow: isPaydayAligned ? shadows.sm : "none",
                                 }}
@@ -984,7 +985,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                           </div>
                           <p
                             style={{
-                              fontSize: 11,
+                              fontSize: typography.caption.fontSize,
                               color: "var(--muted)",
                               fontFamily: FONT_FAMILY,
                               marginTop: 6,
@@ -1007,10 +1008,10 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                         <div style={{ marginTop: 18 }}>
                           <p
                             style={{
-                              fontSize: 12,
+                              fontSize: typography['body-sm'].fontSize,
                               color: "var(--muted)",
                               fontFamily: FONT_FAMILY,
-                              marginBottom: 8,
+                              marginBottom: spacing.xs,
                               letterSpacing: "0.03em",
                             }}
                           >
@@ -1020,7 +1021,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: 10,
+                              gap: spacing.sm,
                             }}
                           >
                             <motion.button
@@ -1035,13 +1036,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                background: currentPerTxAlert > 0 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                                background: currentPerTxAlert > 0 ? "var(--fill-06)" : "var(--fill-02)",
                                 border: "1px solid var(--border)",
-                                borderRadius: borderRadius.sm,
+                                borderRadius: radius.control,
                                 cursor: currentPerTxAlert > 0 ? "pointer" : "not-allowed",
                                 color: currentPerTxAlert > 0 ? "var(--text)" : "var(--muted)",
-                                fontSize: 16,
-                                fontWeight: 600,
+                                fontSize: typography.body.fontSize,
+                                fontWeight: fontWeights.semibold,
                                 fontFamily: FONT_FAMILY,
                               }}
                             >
@@ -1052,8 +1053,8 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                               style={{
                                 flex: 1,
                                 textAlign: "center",
-                                fontSize: 15,
-                                fontWeight: 600,
+                                fontSize: typography.body.fontSize,
+                                fontWeight: fontWeights.semibold,
                                 color: currentPerTxAlert > 0 ? "var(--text)" : "var(--muted)",
                                 fontFamily: FONT_FAMILY,
                                 fontVariantNumeric: "tabular-nums",
@@ -1073,13 +1074,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                background: "rgba(255,255,255,0.06)",
+                                background: "var(--fill-06)",
                                 border: "1px solid var(--border)",
-                                borderRadius: borderRadius.sm,
+                                borderRadius: radius.control,
                                 cursor: "pointer",
                                 color: "var(--text)",
-                                fontSize: 16,
-                                fontWeight: 600,
+                                fontSize: typography.body.fontSize,
+                                fontWeight: fontWeights.semibold,
                                 fontFamily: FONT_FAMILY,
                               }}
                             >
@@ -1088,7 +1089,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                           </div>
                           <p
                             style={{
-                              fontSize: 11,
+                              fontSize: typography.caption.fontSize,
                               color: "var(--muted)",
                               fontFamily: FONT_FAMILY,
                               marginTop: 6,
@@ -1120,13 +1121,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
             display: "block",
             width: "100%",
             padding: "14px 20px",
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             fontFamily: FONT_FAMILY,
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
             color: "var(--sub)",
-            background: "rgba(255,255,255,0.03)",
+            background: "var(--fill-03)",
             border: "1px solid var(--border)",
-            borderRadius: borderRadius.md,
+            borderRadius: radius.control,
             cursor: "pointer",
             textAlign: "center",
             marginBottom: 40,
@@ -1139,15 +1140,15 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
         <GlassCard elevation="medium" style={{ padding: "16px 20px", marginBottom: 40 }}>
           <p
             style={{
-              fontSize: 14,
+              fontSize: typography.body.fontSize,
               color: "var(--text)",
               fontFamily: FONT_FAMILY,
-              marginBottom: 12,
+              marginBottom: spacing.sm,
             }}
           >
             Reset all category limits to default values?
           </p>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: spacing.xs }}>
             <motion.button
               onClick={() => setShowResetConfirm(false)}
               whileTap={{ scale: 0.96 }}
@@ -1155,13 +1156,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
               style={{
                 flex: 1,
                 padding: "10px 16px",
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: "var(--sub)",
-                background: "rgba(255,255,255,0.03)",
+                background: "var(--fill-03)",
                 border: "1px solid var(--border)",
-                borderRadius: borderRadius.sm,
+                borderRadius: radius.control,
                 cursor: "pointer",
               }}
             >
@@ -1174,13 +1175,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
               style={{
                 flex: 1,
                 padding: "10px 16px",
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: "var(--text)",
                 background: "var(--accent)",
                 border: "1px solid var(--accent)",
-                borderRadius: borderRadius.sm,
+                borderRadius: radius.control,
                 cursor: "pointer",
               }}
             >
@@ -1197,13 +1198,13 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 8,
+            marginBottom: spacing.xs,
           }}
         >
           <span
             style={{
-              fontSize: 14,
-              fontWeight: 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.medium,
               color: "var(--text)",
               fontFamily: FONT_FAMILY,
             }}
@@ -1223,12 +1224,12 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
               position: "relative",
               width: 48,
               height: 28,
-              borderRadius: 14,
+              borderRadius: radius.control,
               border: "none",
               cursor: "pointer",
               background: rolloverEnabled
                 ? "var(--success)"
-                : "rgba(255, 255, 255, 0.12)",
+                : "var(--fill-12)",
               transition: "background 0.2s",
               padding: 0,
             }}
@@ -1243,7 +1244,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
                 left: 0,
                 width: 24,
                 height: 24,
-                borderRadius: borderRadius.md,
+                borderRadius: radius.control,
                 background: "var(--text)",
                 boxShadow: shadows.sm,
               }}
@@ -1253,7 +1254,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
 
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             lineHeight: 1.5,
             fontFamily: FONT_FAMILY,
@@ -1265,14 +1266,14 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
         {rolloverEnabled && (
           <p
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--muted)",
               lineHeight: 1.5,
               fontFamily: FONT_FAMILY,
-              marginTop: 8,
+              marginTop: spacing.xs,
               padding: "8px 12px",
-              borderRadius: borderRadius.sm,
-              background: "rgba(255,255,255,0.03)",
+              borderRadius: radius.control,
+              background: "var(--fill-03)",
               border: "1px solid var(--border)",
             }}
           >
@@ -1291,7 +1292,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
           background: var(--text);
           cursor: pointer;
           border: 2px solid var(--success);
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+          box-shadow: var(--shadow-sm);
         }
 
         .budget-slider::-moz-range-thumb {
@@ -1301,7 +1302,7 @@ export function BudgetSettings({ budgets, onUpdateBudget, onUpdateLimitType, onU
           background: var(--text);
           cursor: pointer;
           border: 2px solid var(--success);
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+          box-shadow: var(--shadow-sm);
         }
 
         .budget-slider::-webkit-slider-thumb:hover {

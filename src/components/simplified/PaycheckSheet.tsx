@@ -16,8 +16,9 @@ import {
 import type { Goal, IncomeAllocation, AllocationPreset } from '@/types'
 import type { SavingsAccount } from '@/types/folio'
 import { getAccountTypeMetadata } from '@/lib/savingsAccountUtils'
-import { FONT_FAMILY } from '@/styles/typography'
-import { colorRamp } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { colorRamp, HORIZONTAL_PADDING } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 
 // ── Default presets ──────────────────────────────────────────────────────────
 
@@ -234,16 +235,16 @@ export function PaycheckSheet({
     <Sheet open={isOpen} onClose={onClose} size="full" aria-label="Split paycheck">
       <div style={{ padding: '0 24px 32px' }}>
               {/* ── Header ──────────────────────────────────────── */}
-              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ textAlign: 'center', marginBottom: HORIZONTAL_PADDING }}>
                 <p
                   style={{
-                    fontSize: 13,
+                    fontSize: typography['body-sm'].fontSize,
                     fontFamily: FONT_FAMILY,
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                     color: 'var(--muted)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
-                    marginBottom: 8,
+                    marginBottom: spacing.xs,
                   }}
                 >
                   Paycheck logged
@@ -252,7 +253,7 @@ export function PaycheckSheet({
                   style={{
                     fontSize: 40,
                     fontFamily: FONT_FAMILY,
-                    fontWeight: 300,
+                    fontWeight: fontWeights.light,
                     color: 'var(--success)',
                     lineHeight: 1,
                   }}
@@ -261,7 +262,7 @@ export function PaycheckSheet({
                 </p>
                 <p
                   style={{
-                    fontSize: 14,
+                    fontSize: typography.body.fontSize,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--muted)',
                     marginTop: 10,
@@ -283,18 +284,18 @@ export function PaycheckSheet({
                     border: `1px solid ${colorRamp.warning[300]}`,
                     borderRadius: 'var(--radius-md)',
                     padding: '14px 16px',
-                    marginBottom: 16,
+                    marginBottom: spacing.md,
                     position: 'relative',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    <span style={{ fontSize: 18, lineHeight: 1.3 }}>💡</span>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm }}>
+                    <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3 }}>💡</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p
                         style={{
-                          fontSize: 13,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
-                          fontWeight: 500,
+                          fontWeight: fontWeights.medium,
                           color: 'var(--warning)',
                           marginBottom: 4,
                         }}
@@ -303,7 +304,7 @@ export function PaycheckSheet({
                       </p>
                       <p
                         style={{
-                          fontSize: 12,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
                           color: 'var(--sub)',
                           lineHeight: 1.4,
@@ -313,7 +314,7 @@ export function PaycheckSheet({
                       </p>
                       <p
                         style={{
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           fontFamily: FONT_FAMILY,
                           color: 'var(--muted)',
                           marginTop: 4,
@@ -331,7 +332,7 @@ export function PaycheckSheet({
                         background: 'transparent',
                         border: 'none',
                         color: 'var(--muted)',
-                        fontSize: 16,
+                        fontSize: typography.body.fontSize,
                         cursor: 'pointer',
                         padding: 4,
                         lineHeight: 1,
@@ -351,17 +352,17 @@ export function PaycheckSheet({
                     border: `1px solid ${colorRamp.success[200]}`,
                     borderRadius: 'var(--radius-md)',
                     padding: '14px 16px',
-                    marginBottom: 16,
+                    marginBottom: spacing.md,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    <span style={{ fontSize: 18, lineHeight: 1.3 }}>🎯</span>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm }}>
+                    <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3 }}>🎯</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p
                         style={{
-                          fontSize: 13,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
-                          fontWeight: 500,
+                          fontWeight: fontWeights.medium,
                           color: 'var(--success)',
                           marginBottom: 4,
                         }}
@@ -370,7 +371,7 @@ export function PaycheckSheet({
                       </p>
                       <p
                         style={{
-                          fontSize: 12,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
                           color: 'var(--sub)',
                           lineHeight: 1.4,
@@ -380,16 +381,16 @@ export function PaycheckSheet({
                           ? autoContributions[0].goalName
                           : `${autoContributions.length} goals`} when you confirm.
                       </p>
-                      <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 6, marginTop: spacing.xs, flexWrap: 'wrap' }}>
                         {autoContributions.map(c => (
                           <span
                             key={c.goalId}
                             style={{
-                              fontSize: 11,
+                              fontSize: typography.caption.fontSize,
                               fontFamily: FONT_FAMILY,
                               color: 'var(--muted)',
-                              background: 'rgba(255,255,255,0.05)',
-                              borderRadius: 6,
+                              background: 'var(--fill-05)',
+                              borderRadius: radius.min,
                               padding: '3px 8px',
                             }}
                           >
@@ -406,7 +407,7 @@ export function PaycheckSheet({
                         background: 'transparent',
                         border: 'none',
                         color: 'var(--muted)',
-                        fontSize: 12,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
                         cursor: 'pointer',
                         padding: '2px 6px',
@@ -433,13 +434,13 @@ export function PaycheckSheet({
                     <GlassCard
                       elevation="low"
                       glow="healthy"
-                      style={{ padding: '12px 16px', marginBottom: 16 }}
+                      style={{ padding: '12px 16px', marginBottom: spacing.md }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>
+                        <p style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>
                           📈 Invest bucket remaining
                         </p>
-                        <p style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
+                        <p style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.semibold, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
                           ${Math.max(0, allocation.invest - savingsContributed).toLocaleString()}
                         </p>
                       </div>
@@ -447,7 +448,7 @@ export function PaycheckSheet({
 
                     <p
                       style={{
-                        fontSize: 13,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
                         color: 'var(--muted)',
                         marginBottom: 10,
@@ -456,7 +457,7 @@ export function PaycheckSheet({
                       Fund your future 🌱 — tap to move money into an account
                     </p>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: HORIZONTAL_PADDING }}>
                       {availableSavingsAccounts.map(account => {
                         const meta = getAccountTypeMetadata(account.type)
                         const remaining = Math.max(0, allocation.invest - savingsContributed)
@@ -475,14 +476,14 @@ export function PaycheckSheet({
 
                         return (
                           <GlassCard key={account.id} elevation="low" style={{ padding: '16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                              <span style={{ fontSize: 22 }}>{meta.emoji}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: 12 }}>
+                              <span style={{ fontSize: typography.headline.fontSize }}>{meta.emoji}</span>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <p
                                   style={{
-                                    fontSize: 15,
+                                    fontSize: typography.body.fontSize,
                                     fontFamily: FONT_FAMILY,
-                                    fontWeight: 500,
+                                    fontWeight: fontWeights.medium,
                                     color: 'var(--text)',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
@@ -493,7 +494,7 @@ export function PaycheckSheet({
                                 </p>
                                 <p
                                   style={{
-                                    fontSize: 12,
+                                    fontSize: typography['body-sm'].fontSize,
                                     fontFamily: FONT_FAMILY,
                                     color: 'var(--muted)',
                                     marginTop: 2,
@@ -506,7 +507,7 @@ export function PaycheckSheet({
                             </div>
 
                             {/* Quick-contribution chips */}
-                            <div style={{ display: 'flex', gap: 8 }}>
+                            <div style={{ display: 'flex', gap: spacing.xs }}>
                               {quickAmounts.length > 0 ? quickAmounts.map(q => (
                                 <button
                                   key={q}
@@ -515,11 +516,11 @@ export function PaycheckSheet({
                                   style={{
                                     flex: 1,
                                     padding: '10px 0',
-                                    fontSize: 14,
+                                    fontSize: typography.body.fontSize,
                                     fontFamily: FONT_FAMILY,
-                                    fontWeight: 600,
+                                    fontWeight: fontWeights.semibold,
                                     color: 'var(--text)',
-                                    background: 'rgba(255, 255, 255, 0.06)',
+                                    background: 'var(--fill-06)',
                                     border: '1px solid var(--line)',
                                     borderRadius: 'var(--radius-md)',
                                     cursor: 'pointer',
@@ -531,7 +532,7 @@ export function PaycheckSheet({
                               )) : (
                                 <p
                                   style={{
-                                    fontSize: 12,
+                                    fontSize: typography['body-sm'].fontSize,
                                     fontFamily: FONT_FAMILY,
                                     color: 'var(--muted)',
                                     padding: '10px 0',
@@ -559,8 +560,8 @@ export function PaycheckSheet({
                         background: 'var(--gradient-action)',
                         color: 'var(--text)',
                         fontFamily: FONT_FAMILY,
-                        fontSize: 16,
-                        fontWeight: 600,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.semibold,
                         borderRadius: 'var(--radius-md)',
                         border: 'none',
                         cursor: 'pointer',
@@ -578,7 +579,7 @@ export function PaycheckSheet({
                     transition={timings.fast}
                   >
                     {/* ── Preset Buttons ───────────────────────────── */}
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', gap: spacing.xs, marginBottom: HORIZONTAL_PADDING }}>
                       {ALLOCATION_PRESETS.map((preset, idx) => (
                         <button
                           key={preset.label}
@@ -587,13 +588,13 @@ export function PaycheckSheet({
                           style={{
                             flex: 1,
                             padding: '10px 6px',
-                            fontSize: 12,
+                            fontSize: typography['body-sm'].fontSize,
                             fontFamily: FONT_FAMILY,
-                            fontWeight: 600,
+                            fontWeight: fontWeights.semibold,
                             color: activePreset === idx ? 'var(--color-canvas)' : 'var(--text)',
                             background: activePreset === idx
                               ? 'var(--gradient-action)'
-                              : 'rgba(255, 255, 255, 0.06)',
+                              : 'var(--fill-06)',
                             border: activePreset === idx
                               ? 'none'
                               : '1px solid var(--line)',
@@ -602,16 +603,16 @@ export function PaycheckSheet({
                             transition: 'all 0.15s ease',
                           }}
                         >
-                          <span style={{ display: 'block', fontSize: 16, marginBottom: 2 }}>
+                          <span style={{ display: 'block', fontSize: typography.body.fontSize, marginBottom: 2 }}>
                             {preset.emoji}
                           </span>
                           {preset.label}
                           <span
                             style={{
                               display: 'block',
-                              fontSize: 10,
-                              fontWeight: 400,
-                              color: activePreset === idx ? 'rgba(255,255,255,0.8)' : 'var(--muted)',
+                              fontSize: typography.caption.fontSize,
+                              fontWeight: fontWeights.regular,
+                              color: activePreset === idx ? 'var(--text)' : 'var(--muted)',
                               marginTop: 2,
                             }}
                           >
@@ -626,13 +627,13 @@ export function PaycheckSheet({
                         style={{
                           flex: 1,
                           padding: '10px 6px',
-                          fontSize: 12,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
-                          fontWeight: 600,
+                          fontWeight: fontWeights.semibold,
                           color: activePreset === null ? 'var(--color-canvas)' : 'var(--text)',
                           background: activePreset === null
                             ? 'var(--gradient-action)'
-                            : 'rgba(255, 255, 255, 0.06)',
+                            : 'var(--fill-06)',
                           border: activePreset === null
                             ? 'none'
                             : '1px solid var(--line)',
@@ -641,24 +642,24 @@ export function PaycheckSheet({
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        <span style={{ display: 'block', fontSize: 16, marginBottom: 2 }}>✏️</span>
+                        <span style={{ display: 'block', fontSize: typography.body.fontSize, marginBottom: 2 }}>✏️</span>
                         Custom
                       </button>
                     </div>
 
                     {/* ── Allocation Breakdown ─────────────────────── */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: HORIZONTAL_PADDING }}>
                       {BUCKETS.map((bucket, idx) => (
                         <GlassCard key={bucket.key} elevation="low" style={{ padding: '12px 16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: 20 }}>{bucket.emoji}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                            <span style={{ fontSize: typography.subhead.fontSize }}>{bucket.emoji}</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                                 <p
                                   style={{
-                                    fontSize: 14,
+                                    fontSize: typography.body.fontSize,
                                     fontFamily: FONT_FAMILY,
-                                    fontWeight: 500,
+                                    fontWeight: fontWeights.medium,
                                     color: bucket.color,
                                   }}
                                 >
@@ -666,9 +667,9 @@ export function PaycheckSheet({
                                 </p>
                                 <p
                                   style={{
-                                    fontSize: 14,
+                                    fontSize: typography.body.fontSize,
                                     fontFamily: FONT_FAMILY,
-                                    fontWeight: 600,
+                                    fontWeight: fontWeights.semibold,
                                     color: 'var(--text)',
                                   }}
                                 >
@@ -676,7 +677,7 @@ export function PaycheckSheet({
                                 </p>
                               </div>
                               {/* Slider row */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
                                 <input
                                   type="range"
                                   min={0}
@@ -693,9 +694,9 @@ export function PaycheckSheet({
                                 />
                                 <span
                                   style={{
-                                    fontSize: 12,
+                                    fontSize: typography['body-sm'].fontSize,
                                     fontFamily: FONT_FAMILY,
-                                    fontWeight: 500,
+                                    fontWeight: fontWeights.medium,
                                     color: 'var(--muted)',
                                     minWidth: 32,
                                     textAlign: 'right',
@@ -714,11 +715,11 @@ export function PaycheckSheet({
                     {!isValid && (
                       <p
                         style={{
-                          fontSize: 12,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
                           color: totalPercent > 100 ? 'var(--error)' : 'var(--warning)',
                           textAlign: 'center',
-                          marginBottom: 12,
+                          marginBottom: spacing.sm,
                         }}
                       >
                         {totalPercent > 100
@@ -743,8 +744,8 @@ export function PaycheckSheet({
                           : 'var(--dim)',
                         color: isValid ? 'var(--color-canvas)' : 'var(--muted)',
                         fontFamily: FONT_FAMILY,
-                        fontSize: 16,
-                        fontWeight: 600,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.semibold,
                         borderRadius: 'var(--radius-md)',
                         border: 'none',
                         cursor: isValid ? 'pointer' : 'not-allowed',
@@ -768,15 +769,15 @@ export function PaycheckSheet({
                     <GlassCard
                       elevation="low"
                       glow="healthy"
-                      style={{ padding: '12px 16px', marginBottom: 16 }}
+                      style={{ padding: '12px 16px', marginBottom: spacing.md }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: spacing.xs }}>
                         {BUCKETS.map(bucket => (
                           <div key={bucket.key} style={{ textAlign: 'center' }}>
-                            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>
+                            <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, color: 'var(--muted)' }}>
                               {bucket.emoji} {bucket.label}
                             </p>
-                            <p style={{ fontSize: 14, fontFamily: FONT_FAMILY, fontWeight: 600, color: bucket.color }}>
+                            <p style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.semibold, color: bucket.color }}>
                               ${allocation[bucket.key].toLocaleString()}
                             </p>
                           </div>
@@ -787,7 +788,7 @@ export function PaycheckSheet({
                     {/* ── Goals List (contribute from Save bucket) ── */}
                     <p
                       style={{
-                        fontSize: 13,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
                         color: 'var(--muted)',
                         marginBottom: 10,
@@ -796,7 +797,7 @@ export function PaycheckSheet({
                       Savings bucket: ${(allocation.save - contributed).toLocaleString()} remaining
                     </p>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: HORIZONTAL_PADDING }}>
                       {activeGoals.map(goal => {
                         const pct = goal.targetAmount > 0
                           ? Math.round((goal.currentAmount / goal.targetAmount) * 100)
@@ -806,14 +807,14 @@ export function PaycheckSheet({
 
                         return (
                           <GlassCard key={goal.id} elevation="low" style={{ padding: '16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                              <span style={{ fontSize: 22 }}>{goal.emoji}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: 12 }}>
+                              <span style={{ fontSize: typography.headline.fontSize }}>{goal.emoji}</span>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <p
                                   style={{
-                                    fontSize: 15,
+                                    fontSize: typography.body.fontSize,
                                     fontFamily: FONT_FAMILY,
-                                    fontWeight: 500,
+                                    fontWeight: fontWeights.medium,
                                     color: 'var(--text)',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
@@ -824,7 +825,7 @@ export function PaycheckSheet({
                                 </p>
                                 <p
                                   style={{
-                                    fontSize: 12,
+                                    fontSize: typography['body-sm'].fontSize,
                                     fontFamily: FONT_FAMILY,
                                     color: 'var(--muted)',
                                     marginTop: 2,
@@ -836,7 +837,7 @@ export function PaycheckSheet({
                             </div>
 
                             {/* Quick-contribution chips */}
-                            <div style={{ display: 'flex', gap: 8 }}>
+                            <div style={{ display: 'flex', gap: spacing.xs }}>
                               {quickAmounts.length > 0 ? quickAmounts.map(q => (
                                 <button
                                   key={q}
@@ -845,11 +846,11 @@ export function PaycheckSheet({
                                   style={{
                                     flex: 1,
                                     padding: '10px 0',
-                                    fontSize: 14,
+                                    fontSize: typography.body.fontSize,
                                     fontFamily: FONT_FAMILY,
-                                    fontWeight: 600,
+                                    fontWeight: fontWeights.semibold,
                                     color: 'var(--text)',
-                                    background: 'rgba(255, 255, 255, 0.06)',
+                                    background: 'var(--fill-06)',
                                     border: '1px solid var(--line)',
                                     borderRadius: 'var(--radius-md)',
                                     cursor: 'pointer',
@@ -860,7 +861,7 @@ export function PaycheckSheet({
                               )) : (
                                 <p
                                   style={{
-                                    fontSize: 12,
+                                    fontSize: typography['body-sm'].fontSize,
                                     fontFamily: FONT_FAMILY,
                                     color: 'var(--muted)',
                                     padding: '10px 0',
@@ -888,8 +889,8 @@ export function PaycheckSheet({
                         background: 'var(--gradient-action)',
                         color: 'var(--text)',
                         fontFamily: FONT_FAMILY,
-                        fontSize: 16,
-                        fontWeight: 600,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.semibold,
                         borderRadius: 'var(--radius-md)',
                         border: 'none',
                         cursor: 'pointer',

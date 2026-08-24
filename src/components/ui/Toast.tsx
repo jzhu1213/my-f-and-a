@@ -5,8 +5,10 @@ import type { Toast as ToastType } from '@/contexts/ToastContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { Icon } from '@/components/ui/Icon'
+import { GlassCard } from '@/components/ui/GlassCard'
 import type { IconName } from '@/lib/icons'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 
 /** Map toast type to its semantic icon name. */
 function getToastIcon(type: ToastType['type']): IconName {
@@ -69,79 +71,76 @@ export function Toast() {
             onMouseLeave={() => resumeToast(toast.id)}
             onFocus={() => pauseToast(toast.id)}
             onBlur={() => resumeToast(toast.id)}
-            className="pointer-events-auto flex items-center gap-3 px-4 py-3 w-full max-w-sm"
-            style={{
-              background: 'rgba(26, 26, 46, 0.85)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid var(--line)',
-              borderRadius: 'var(--radius-md, 12px)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0.5px 0 rgba(255,255,255,0.06)',
-            }}
+            className="pointer-events-auto w-full max-w-sm"
           >
-            {/* Status icon */}
-            <span
-              className="flex-shrink-0"
-              style={{ color: getAccentColor(toast.type) }}
+            <GlassCard
+              elevation="high"
+              className="flex items-center gap-3 px-4 py-3"
             >
-              <Icon name={getToastIcon(toast.type)} size={16} strokeWidth={2} />
-            </span>
+              {/* Status icon */}
+              <span
+                className="flex-shrink-0"
+                style={{ color: getAccentColor(toast.type) }}
+              >
+                <Icon name={getToastIcon(toast.type)} size={16} strokeWidth={2} />
+              </span>
 
-            {/* Message */}
-            <p
-              className="text-xs flex-1 leading-snug"
-              style={{
-                color: 'var(--text)',
-                fontFamily: FONT_FAMILY,
-                fontWeight: 400,
-              }}
-            >
-              {toast.message}
-            </p>
-
-            {/* Action/Undo button */}
-            {toast.action && (
-              <button
-                onClick={() => { toast.action!.onClick(); removeToast(toast.id) }}
-                className="flex-shrink-0 text-xs transition-all duration-150"
+              {/* Message */}
+              <p
+                className="text-xs flex-1 leading-snug"
                 style={{
-                  fontFamily: FONT_FAMILY,
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
                   color: 'var(--text)',
-                  padding: '4px 10px',
-                  border: '1px solid var(--line)',
-                  borderRadius: '20px',
-                  background: 'transparent',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = getAccentColor(toast.type)
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'var(--line)'
-                  e.currentTarget.style.background = 'transparent'
+                  fontFamily: FONT_FAMILY,
+                  fontWeight: fontWeights.regular,
                 }}
               >
-                {toast.action.label}
-              </button>
-            )}
+                {toast.message}
+              </p>
 
-            {/* Dismiss button — always visible so toasts can be manually dismissed (Req 27.3) */}
-            <button
-              onClick={() => removeToast(toast.id)}
-              className="flex-shrink-0 transition-colors duration-150"
-              style={{ color: 'var(--sub)', padding: '2px' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--sub)')}
-              aria-label="Dismiss notification"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              {/* Action/Undo button */}
+              {toast.action && (
+                <button
+                  onClick={() => { toast.action!.onClick(); removeToast(toast.id) }}
+                  className="flex-shrink-0 text-xs transition-all duration-150"
+                  style={{
+                    fontFamily: FONT_FAMILY,
+                    fontSize: typography.caption.fontSize,
+                    fontWeight: fontWeights.semibold,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text)',
+                    padding: '4px 10px',
+                    border: '1px solid var(--line)',
+                    borderRadius: radius.full,
+                    background: 'transparent',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = getAccentColor(toast.type)
+                    e.currentTarget.style.background = 'var(--fill-04)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--line)'
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  {toast.action.label}
+                </button>
+              )}
+
+              {/* Dismiss button — always visible so toasts can be manually dismissed (Req 27.3) */}
+              <button
+                onClick={() => removeToast(toast.id)}
+                className="flex-shrink-0 transition-colors duration-150"
+                style={{ color: 'var(--sub)', padding: '2px' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--sub)')}
+                aria-label="Dismiss notification"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </GlassCard>
           </motion.div>
         ))}
       </AnimatePresence>

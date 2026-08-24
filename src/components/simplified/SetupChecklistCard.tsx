@@ -2,8 +2,8 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { timings, layoutTransition, useReducedMotion } from '@/lib/animations'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import type { ChecklistStep } from '@/lib/setupChecklist'
 
 // ============================================================================
@@ -96,7 +96,7 @@ function ProgressRing({ completed, total, size = 32 }: { completed: number; tota
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="rgba(167, 139, 250, 0.15)"
+        stroke="var(--accent-200)"
         strokeWidth={strokeWidth}
       />
       {/* Progress arc */}
@@ -105,7 +105,7 @@ function ProgressRing({ completed, total, size = 32 }: { completed: number; tota
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="rgba(167, 139, 250, 0.8)"
+        stroke="var(--accent-500)"
         strokeWidth={strokeWidth}
         strokeDasharray={circumference}
         strokeDashoffset={offset}
@@ -160,19 +160,19 @@ export function ProgressiveChecklistCard({
         style={{
           position: 'relative',
           padding: '14px 16px',
-          background: 'rgba(167, 139, 250, 0.06)',
-          border: '1px solid rgba(167, 139, 250, 0.12)',
-          borderRadius: borderRadius.lg,
+          background: 'var(--accent-100)',
+          border: '1px solid var(--accent-200)',
+          borderRadius: radius.control,
         }}
       >
         {/* Header with progress ring */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: 10 }}>
           <ProgressRing completed={completedCount} total={totalCount} size={30} />
           <div style={{ flex: 1 }}>
             <span
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 color: 'var(--text)',
                 fontFamily: FONT_FAMILY,
               }}
@@ -181,7 +181,7 @@ export function ProgressiveChecklistCard({
             </span>
             <p
               style={{
-                fontSize: 11,
+                fontSize: typography.caption.fontSize,
                 color: 'var(--sub)',
                 fontFamily: FONT_FAMILY,
                 margin: '2px 0 0 0',
@@ -211,25 +211,25 @@ export function ProgressiveChecklistCard({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
+                    gap: spacing.xs,
                     padding: '8px 10px',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
-                    borderRadius: borderRadius.md,
+                    background: 'var(--fill-03)',
+                    border: '1px solid var(--fill-06)',
+                    borderRadius: radius.control,
                     cursor: 'pointer',
                     width: '100%',
                     textAlign: 'left',
                   }}
                   aria-label={`${step.label}: ${step.description}`}
                 >
-                  <span style={{ fontSize: 14 }} aria-hidden="true">{step.emoji}</span>
+                  <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">{step.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span
                       style={{
-                        fontSize: 13,
+                        fontSize: typography['body-sm'].fontSize,
                         color: 'var(--text)',
                         fontFamily: FONT_FAMILY,
-                        fontWeight: 500,
+                        fontWeight: fontWeights.medium,
                         display: 'block',
                       }}
                     >
@@ -237,7 +237,7 @@ export function ProgressiveChecklistCard({
                     </span>
                     <span
                       style={{
-                        fontSize: 11,
+                        fontSize: typography.caption.fontSize,
                         color: 'var(--sub)',
                         fontFamily: FONT_FAMILY,
                         display: 'block',
@@ -249,7 +249,7 @@ export function ProgressiveChecklistCard({
                   </div>
                   <span
                     style={{
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       color: 'var(--accent)',
                       fontFamily: FONT_FAMILY,
                       opacity: 0.9,
@@ -272,15 +272,15 @@ export function ProgressiveChecklistCard({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
+                    gap: spacing.xs,
                     padding: '6px 10px',
                     opacity: 0.6,
                   }}
                 >
-                  <span style={{ fontSize: 12 }} aria-hidden="true">✓</span>
+                  <span style={{ fontSize: typography['body-sm'].fontSize }} aria-hidden="true">✓</span>
                   <span
                     style={{
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       color: 'var(--sub)',
                       fontFamily: FONT_FAMILY,
                       textDecoration: 'line-through',
@@ -300,14 +300,14 @@ export function ProgressiveChecklistCard({
             type="button"
             onClick={() => setExpanded(!expanded)}
             style={{
-              marginTop: 8,
+              marginTop: spacing.xs,
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: 'var(--accent)',
               fontFamily: FONT_FAMILY,
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
               padding: '4px 0',
             }}
           >
@@ -324,7 +324,7 @@ export function ProgressiveChecklistCard({
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            fontSize: 11,
+            fontSize: typography.caption.fontSize,
             color: 'var(--muted)',
             fontFamily: FONT_FAMILY,
             padding: '4px 0',
@@ -377,17 +377,17 @@ export function SetupChecklistCard({
         style={{
           position: 'relative',
           padding: isHome ? '12px 14px' : '14px 16px',
-          background: 'rgba(167, 139, 250, 0.06)',
-          border: '1px solid rgba(167, 139, 250, 0.12)',
-          borderRadius: borderRadius.lg,
+          background: 'var(--accent-100)',
+          border: '1px solid var(--accent-200)',
+          borderRadius: radius.control,
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
           <span
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               color: 'var(--text)',
               fontFamily: FONT_FAMILY,
             }}
@@ -402,11 +402,11 @@ export function SetupChecklistCard({
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: 14,
+                fontSize: typography.body.fontSize,
                 color: 'var(--muted)',
                 padding: '2px 6px',
                 lineHeight: 1,
-                borderRadius: 4,
+                borderRadius: radius.min,
               }}
               aria-label="Dismiss setup checklist"
             >
@@ -418,7 +418,7 @@ export function SetupChecklistCard({
         {/* Subtitle */}
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: 'var(--sub)',
             fontFamily: FONT_FAMILY,
             margin: '0 0 10px 0',
@@ -446,24 +446,24 @@ export function SetupChecklistCard({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: spacing.xs,
                   padding: '8px 10px',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  borderRadius: borderRadius.md,
+                  background: 'var(--fill-03)',
+                  border: '1px solid var(--fill-06)',
+                  borderRadius: radius.control,
                   cursor: 'pointer',
                   width: '100%',
                   textAlign: 'left',
                 }}
                 aria-label={`Resume: ${item.label}`}
               >
-                <span style={{ fontSize: 14 }} aria-hidden="true">{item.emoji}</span>
+                <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">{item.emoji}</span>
                 <span
                   style={{
-                    fontSize: 13,
+                    fontSize: typography['body-sm'].fontSize,
                     color: 'var(--text)',
                     fontFamily: FONT_FAMILY,
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                     flex: 1,
                   }}
                 >
@@ -471,7 +471,7 @@ export function SetupChecklistCard({
                 </span>
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: typography.caption.fontSize,
                     color: 'var(--accent)',
                     fontFamily: FONT_FAMILY,
                     opacity: 0.9,

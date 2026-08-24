@@ -58,6 +58,7 @@ import { getCategorizationRules, saveCategorizationRule, updateCategorizationRul
 import { getActiveShareLinksSync } from '@/lib/sharingUtils'
 import type { CategorizationRule, CategorizationRuleUpdate } from '@/lib/categorizationRules'
 import { shadows } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 import { FONT_FAMILY } from '@/styles/typography'
 
 // ── Code-split: heavy/advanced features loaded on demand ─────────────────────
@@ -2365,16 +2366,23 @@ export default function FolioApp() {
   // ── Categorization & Routing Rules (full-screen overlay, task 187.1) ──
   if (overlay.activeOverlay === 'categorizationRules') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <CategorizationRulesScreen
-          rules={categorizationRules}
-          fundingSources={fundingSources}
-          onAddRule={handleAddCategorizationRule}
-          onUpdateRule={handleUpdateCategorizationRule}
-          onDeleteRule={handleDeleteCategorizationRule}
-          onClose={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        aria-label="Categorization Rules"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <CategorizationRulesScreen
+            rules={categorizationRules}
+            fundingSources={fundingSources}
+            onAddRule={handleAddCategorizationRule}
+            onUpdateRule={handleUpdateCategorizationRule}
+            onDeleteRule={handleDeleteCategorizationRule}
+            onClose={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
@@ -2533,15 +2541,22 @@ export default function FolioApp() {
   // ── Sharing (full-screen overlay, task 115.1) ──────────────────
   if (overlay.activeOverlay === 'sharing' && user?.id) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <SharingScreen
-          userId={user.id}
-          transactions={transactions}
-          budgets={budgets}
-          allowance={allowance}
-          onBack={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        aria-label="Sharing"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <SharingScreen
+            userId={user.id}
+            transactions={transactions}
+            budgets={budgets}
+            allowance={allowance}
+            onBack={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
@@ -2651,15 +2666,22 @@ export default function FolioApp() {
   // ── Category Hub (full-screen overlay, task 138.1) ─────────────
   if (overlay.activeOverlay === 'categoryHub') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', paddingTop: 60 }}>
-        <CategoryHubScreen
-          customCategories={customCategories}
-          onAddCustomCategory={addCustomCategory}
-          onRemoveCustomCategory={removeCustomCategory}
-          onRenameCustomCategory={renameCustomCategory}
-          onClose={() => overlay.closeOverlay()}
-        />
-      </div>
+      <DepthSurfaceTransition
+        open
+        aria-label="Category Hub"
+      >
+        <DepthSurfaceLoadGuard onClose={handleCloseDepthSurface}>
+        <div className="min-h-screen" style={{ paddingTop: 60 }}>
+          <CategoryHubScreen
+            customCategories={customCategories}
+            onAddCustomCategory={addCustomCategory}
+            onRemoveCustomCategory={removeCustomCategory}
+            onRenameCustomCategory={renameCustomCategory}
+            onClose={handleCloseDepthSurface}
+          />
+        </div>
+        </DepthSurfaceLoadGuard>
+      </DepthSurfaceTransition>
     )
   }
 
@@ -3115,7 +3137,7 @@ export default function FolioApp() {
             padding: '12px 16px',
             background: 'rgba(26, 26, 46, 0.96)',
             border: '1px solid rgba(129, 140, 248, 0.25)',
-            borderRadius: 12,
+            borderRadius: radius.control,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',

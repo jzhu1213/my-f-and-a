@@ -19,6 +19,7 @@
 
 import { type ReactNode, useEffect, useRef, useState, useCallback } from "react"
 import { ErrorState } from "@/components/ui/primitives/ErrorState"
+import { HORIZONTAL_PADDING } from "@/styles/shared"
 
 // ============================================================================
 // Constants
@@ -91,7 +92,7 @@ export function DepthSurfaceLoadGuard({ children, onClose }: DepthSurfaceLoadGua
           alignItems: "center",
           justifyContent: "center",
           minHeight: "60vh",
-          padding: 20,
+          padding: HORIZONTAL_PADDING,
         }}
       >
         <ErrorState

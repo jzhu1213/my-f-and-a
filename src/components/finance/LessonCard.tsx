@@ -1,7 +1,8 @@
 "use client"
 import { useState } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import type { Lesson } from '@/types'
 
 interface LessonCardProps {
@@ -16,8 +17,8 @@ interface LessonCardProps {
 // ============================================================================
 
 const sectionLabel: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 500,
+  fontSize: typography.caption.fontSize,
+  fontWeight: fontWeights.medium,
   letterSpacing: '0.04em',
   textTransform: 'uppercase',
   color: 'var(--muted)',
@@ -30,12 +31,12 @@ const primaryButton: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   padding: '12px 24px',
-  borderRadius: 99,
+  borderRadius: radius.full,
   border: 'none',
   background: 'var(--success)',
   color: 'var(--text)',
-  fontSize: 14,
-  fontWeight: 500,
+  fontSize: typography.body.fontSize,
+  fontWeight: fontWeights.medium,
   fontFamily: FONT_FAMILY,
   cursor: 'pointer',
   transition: 'opacity 0.2s ease',
@@ -46,12 +47,12 @@ const ghostButton: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   padding: '12px 24px',
-  borderRadius: 99,
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: radius.full,
+  border: '1px solid var(--fill-10)',
   background: 'transparent',
   color: 'var(--sub)',
-  fontSize: 14,
-  fontWeight: 500,
+  fontSize: typography.body.fontSize,
+  fontWeight: fontWeights.medium,
   fontFamily: FONT_FAMILY,
   cursor: 'pointer',
   transition: 'opacity 0.2s ease',
@@ -82,17 +83,17 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: spacing.xs,
         padding: '8px 14px',
-        borderRadius: 99,
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: radius.full,
+        border: '1px solid var(--fill-10)',
         background: 'transparent',
         color: 'var(--sub)',
-        fontSize: 12,
-        fontWeight: 500,
+        fontSize: typography['body-sm'].fontSize,
+        fontWeight: fontWeights.medium,
         fontFamily: FONT_FAMILY,
         cursor: 'pointer',
-        marginBottom: 32,
+        marginBottom: spacing.xl,
         transition: 'border-color 0.2s ease',
       }}
     >
@@ -113,17 +114,17 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
       <div style={{ paddingBottom: 80, padding: '40px 20px 80px', fontFamily: FONT_FAMILY }}>
         <BackBtn label="back to lessons" />
 
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: spacing.lg }}>
           <p style={sectionLabel}>Result</p>
-          <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY, margin: '4px 0' }}>
+          <h2 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', fontFamily: FONT_FAMILY, margin: '4px 0' }}>
             {passed ? 'Great job!' : 'Almost there!'}
           </h2>
-          <p style={{ fontSize: 14, fontFamily: FONT_FAMILY, marginTop: 4, color: passed ? 'var(--success)' : 'var(--warning)' }}>
+          <p style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, marginTop: 4, color: passed ? 'var(--success)' : 'var(--warning)' }}>
             {score}/{lesson.quizQuestions.length} correct
           </p>
         </div>
 
-        <GlassCard elevation="low" style={{ marginBottom: 24 }}>
+        <GlassCard elevation="low" style={{ marginBottom: spacing.lg }}>
           <div style={{ padding: 16 }}>
             {lesson.quizQuestions.map((q, idx) => {
               const correct = answers[idx] === q.correctIndex
@@ -132,15 +133,15 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
                   key={q.id}
                   style={{
                     padding: '14px 0',
-                    borderBottom: idx < lesson.quizQuestions.length - 1 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
+                    borderBottom: idx < lesson.quizQuestions.length - 1 ? '1px solid var(--fill-06)' : 'none',
                   }}
                 >
-                  <p style={{ fontSize: 13, color: 'var(--text)', fontFamily: FONT_FAMILY, marginBottom: 6 }}>{q.question}</p>
-                  <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, color: correct ? 'var(--success)' : 'var(--error)' }}>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--text)', fontFamily: FONT_FAMILY, marginBottom: 6 }}>{q.question}</p>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, color: correct ? 'var(--success)' : 'var(--error)' }}>
                     {correct ? '✓' : '✗'} {q.options[answers[idx]]}
                   </p>
                   {!correct && (
-                    <p style={{ fontSize: 12, fontFamily: FONT_FAMILY, color: 'var(--muted)', marginTop: 4 }}>
+                    <p style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, color: 'var(--muted)', marginTop: 4 }}>
                       → {q.options[q.correctIndex]}
                     </p>
                   )}
@@ -150,7 +151,7 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
           </div>
         </GlassCard>
 
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: spacing.sm }}>
           <button onClick={onBack} style={{ ...ghostButton, flex: 1 }}>Lessons</button>
           <button onClick={() => onComplete(score)} style={{ ...primaryButton, flex: 1 }}>
             {passed ? 'Complete' : 'Done'}
@@ -170,22 +171,22 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
       <div style={{ paddingBottom: 80, padding: '40px 20px 80px', fontFamily: FONT_FAMILY }}>
         <BackBtn label="back to lesson" />
 
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: spacing.lg }}>
           {/* Progress dots */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: spacing.md }}>
             {lesson.quizQuestions.map((_, idx) => (
               <div
                 key={idx}
                 style={{
                   flex: 1,
                   height: 2,
-                  borderRadius: 99,
+                  borderRadius: radius.full,
                   transition: 'background 0.3s ease',
                   background: idx < currentQuestion
                     ? (answers[idx] === lesson.quizQuestions[idx].correctIndex ? 'var(--success)' : 'var(--error)')
                     : idx === currentQuestion
                       ? 'var(--muted)'
-                      : 'rgba(255, 255, 255, 0.08)',
+                      : 'var(--fill-08)',
                 }}
               />
             ))}
@@ -195,7 +196,7 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
           </p>
         </div>
 
-        <h3 style={{ fontSize: 16, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY, marginBottom: 24, lineHeight: 1.5 }}>
+        <h3 style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', fontFamily: FONT_FAMILY, marginBottom: spacing.lg, lineHeight: 1.5 }}>
           {question.question}
         </h3>
 
@@ -208,23 +209,23 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 16,
+                gap: spacing.md,
                 padding: '14px 12px',
                 textAlign: 'left',
-                fontSize: 14,
+                fontSize: typography.body.fontSize,
                 color: 'var(--text)',
                 fontFamily: FONT_FAMILY,
                 background: 'transparent',
                 border: 'none',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                borderBottom: '1px solid var(--fill-06)',
                 cursor: 'pointer',
-                borderRadius: 8,
+                borderRadius: radius.control,
                 transition: 'background 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--fill-04)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', width: 16, fontFamily: FONT_FAMILY }}>
+              <span style={{ fontSize: typography.caption.fontSize, fontWeight: fontWeights.medium, color: 'var(--muted)', width: 16, fontFamily: FONT_FAMILY }}>
                 {String.fromCharCode(65 + idx)}
               </span>
               {option}
@@ -243,26 +244,26 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
     <div style={{ paddingBottom: 80, padding: '40px 20px 80px', fontFamily: FONT_FAMILY }}>
       <BackBtn label="back to lessons" />
 
-      <div style={{ marginBottom: 24 }}>
-        <p style={{ ...sectionLabel, marginBottom: 8 }}>Lesson {lesson.order}</p>
-        <h1 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY, margin: '0 0 8px' }}>
+      <div style={{ marginBottom: spacing.lg }}>
+        <p style={{ ...sectionLabel, marginBottom: spacing.xs }}>Lesson {lesson.order}</p>
+        <h1 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', fontFamily: FONT_FAMILY, margin: '0 0 8px' }}>
           {lesson.title}
         </h1>
-        <div style={{ width: 32, height: 2, borderRadius: 99, background: 'var(--muted)' }} />
+        <div style={{ width: 32, height: 2, borderRadius: radius.full, background: 'var(--muted)' }} />
       </div>
 
-      <div style={{ marginBottom: 32, paddingTop: 24, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+      <div style={{ marginBottom: spacing.xl, paddingTop: 24, borderTop: '1px solid var(--fill-06)' }}>
         {lesson.content.split('\n\n').map((para, idx) => (
-          <p key={idx} style={{ fontSize: 14, color: 'var(--text)', fontFamily: FONT_FAMILY, lineHeight: 1.6, marginBottom: 16 }}>
+          <p key={idx} style={{ fontSize: typography.body.fontSize, color: 'var(--text)', fontFamily: FONT_FAMILY, lineHeight: 1.6, marginBottom: spacing.md }}>
             {para}
           </p>
         ))}
       </div>
 
-      <GlassCard elevation="low" style={{ marginBottom: 32 }}>
+      <GlassCard elevation="low" style={{ marginBottom: spacing.xl }}>
         <div style={{ padding: 16 }}>
-          <p style={{ ...sectionLabel, marginBottom: 8 }}>Real Example</p>
-          <p style={{ fontSize: 13, color: 'var(--text)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
+          <p style={{ ...sectionLabel, marginBottom: spacing.xs }}>Real Example</p>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--text)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
             {lesson.example}
           </p>
         </div>
@@ -276,7 +277,7 @@ export function LessonCard({ lesson, isCompleted, onComplete, onBack }: LessonCa
       </button>
 
       {isCompleted && (
-        <p style={{ textAlign: 'center', fontSize: 12, fontFamily: FONT_FAMILY, color: 'var(--muted)', marginTop: 16 }}>
+        <p style={{ textAlign: 'center', fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, color: 'var(--muted)', marginTop: spacing.md }}>
           ✓ Completed
         </p>
       )}

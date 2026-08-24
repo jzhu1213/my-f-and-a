@@ -103,7 +103,7 @@ export function QuickLogControl({
       aria-label={ariaLabel}
       className="focus-ring"
       style={buttonStyle}
-      whileTap={{ scale: 0.92 }}
+      whileTap={{ scale: 0.96 }}
       transition={PRESS_SPRING}
     >
       {/* Glow ring */}

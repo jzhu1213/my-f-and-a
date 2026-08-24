@@ -7,7 +7,7 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { Icon } from "@/components/ui/Icon"
 import type { DetectedSubscription } from "@/lib/subscriptionDetector"
 import { emojiForCategory } from "@/lib/subscriptionDetector"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -111,7 +111,7 @@ const REASONS_TO_CANCEL: readonly string[] = [
 /** A numbered step row used in the cancellation checklist. */
 function StepRow({ index, text }: { index: number; text: string }) {
   return (
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+    <div style={{ display: "flex", gap: spacing.sm, alignItems: "flex-start" }}>
       <span
         aria-hidden="true"
         style={{
@@ -119,10 +119,10 @@ function StepRow({ index, text }: { index: number; text: string }) {
           width: 24,
           height: 24,
           borderRadius: borderRadius.full,
-          background: "rgba(129, 140, 248, 0.16)",
+          background: "var(--accent-200)",
           color: "var(--text)",
-          fontSize: 12,
-          fontWeight: 700,
+          fontSize: typography['body-sm'].fontSize,
+          fontWeight: fontWeights.bold,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -131,7 +131,7 @@ function StepRow({ index, text }: { index: number; text: string }) {
       >
         {index}
       </span>
-      <p style={{ fontSize: 13.5, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>{text}</p>
+      <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>{text}</p>
     </div>
   )
 }
@@ -139,9 +139,9 @@ function StepRow({ index, text }: { index: number; text: string }) {
 /** A bulleted reason row (keep / cancel prompts). */
 function ReasonRow({ emoji, text }: { emoji: string; text: string }) {
   return (
-    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-      <span style={{ fontSize: 14, lineHeight: 1.5 }} aria-hidden="true">{emoji}</span>
-      <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>{text}</p>
+    <div style={{ display: "flex", gap: spacing.sm, alignItems: "flex-start" }}>
+      <span style={{ fontSize: typography.body.fontSize, lineHeight: 1.5 }} aria-hidden="true">{emoji}</span>
+      <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>{text}</p>
     </div>
   )
 }
@@ -195,13 +195,13 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
       }}
     >
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, marginBottom: HORIZONTAL_PADDING }}>
         <motion.button
           onClick={onClose}
-          whileTap={!prefersReducedMotion ? { scale: 0.92 } : undefined}
+          whileTap={!prefersReducedMotion ? { scale: 0.96 } : undefined}
           transition={springs.snappy}
           style={{
-            background: "rgba(255,255,255,0.06)",
+            background: "var(--fill-06)",
             border: "1px solid var(--border)",
             borderRadius: borderRadius.full,
             width: 36,
@@ -210,40 +210,40 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
-            fontSize: 18,
+            fontSize: typography.subhead.fontSize,
             color: "var(--text)",
           }}
           aria-label="Go back"
         >
           ←
         </motion.button>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+        <h1 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", margin: 0 }}>
           Cancel or negotiate
         </h1>
       </div>
 
       {/* ── Warm intro ─────────────────────────────────────────────── */}
-      <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>
+      <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}>
         You&apos;ve got this. Here&apos;s everything you need to lower a bill or cancel it yourself —
         no phone calls we make for you, no account linking, just the steps and the words.
       </p>
 
       {/* ── Subscription context (when opened from a specific one) ──── */}
       {subscription && (
-        <GlassCard elevation="low" style={{ padding: "14px 18px", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 22 }} aria-hidden="true">{emojiForCategory(subscription.category)}</span>
+        <GlassCard elevation="low" style={{ padding: "14px 18px", marginBottom: HORIZONTAL_PADDING }}>
+          <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+            <span style={{ fontSize: typography.headline.fontSize }} aria-hidden="true">{emojiForCategory(subscription.category)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: 0 }}>{name}</p>
+              <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0 }}>{name}</p>
               {price && (
-                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 2 }}>
                   {price}<span style={{ marginLeft: 2 }}>/mo</span>
                 </p>
               )}
             </div>
           </div>
           {subscription.studentDiscountHint && (
-            <p style={{ fontSize: 12.5, color: "var(--sub)", marginTop: 10, lineHeight: 1.5, display: "flex", alignItems: "center", gap: 6 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: 10, lineHeight: 1.5, display: "flex", alignItems: "center", gap: 6 }}>
               <Icon name="status:caution" size={14} /> {subscription.studentDiscountHint}
             </p>
           )}
@@ -251,21 +251,21 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
       )}
 
       {/* ── Reasons to keep vs. cancel (gentle, shame-free) ────────── */}
-      <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
+      <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: HORIZONTAL_PADDING }}>
         <p style={sectionHeader}>No wrong answer</p>
-        <p style={{ fontSize: 13, color: "var(--sub)", marginTop: -4, marginBottom: 14, lineHeight: 1.5 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: -4, marginBottom: 14, lineHeight: 1.5 }}>
           A quick gut-check before you decide — whatever feels right is the right call.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
           <div>
-            <p style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", margin: "0 0 8px" }}>Reasons to keep it</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: "0 0 8px" }}>Reasons to keep it</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
               {REASONS_TO_KEEP.map((r) => <ReasonRow key={r} emoji="💜" text={r} />)}
             </div>
           </div>
           <div>
-            <p style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", margin: "0 0 8px" }}>Reasons to let it go</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: "0 0 8px" }}>Reasons to let it go</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
               {REASONS_TO_CANCEL.map((r) => <ReasonRow key={r} emoji="🍃" text={r} />)}
             </div>
           </div>
@@ -276,7 +276,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
       <div
         role="tablist"
         aria-label="Choose a path"
-        style={{ ...segmentedControl, marginBottom: 20 }}
+        style={{ ...segmentedControl, marginBottom: HORIZONTAL_PADDING }}
       >
         <button
           role="tab"
@@ -306,7 +306,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
       {mode === "negotiate" && (
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
           <p style={sectionHeader}>A friendly script to use</p>
-          <p style={{ fontSize: 13, color: "var(--sub)", marginTop: -4, marginBottom: 14, lineHeight: 1.5 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: -4, marginBottom: 14, lineHeight: 1.5 }}>
             Read it on a call or paste it into their chat. Companies would rather keep you than lose you,
             so it&apos;s very normal to just ask.
           </p>
@@ -317,7 +317,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
               borderRadius: borderRadius.md,
               background: "var(--color-sunken)",
               border: "1px solid var(--border)",
-              fontSize: 13.5,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--text)",
               lineHeight: 1.6,
               whiteSpace: "pre-wrap",
@@ -334,12 +334,12 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
               marginTop: 14,
               width: "100%",
               padding: "12px 0",
-              background: copied ? "rgba(6, 214, 160, 0.14)" : "rgba(129, 140, 248, 0.16)",
+              background: copied ? "var(--success-200)" : "var(--accent-200)",
               border: `1px solid ${copied ? "var(--success)" : "var(--border)"}`,
               borderRadius: borderRadius.md,
               color: copied ? "var(--success)" : "var(--text)",
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               fontFamily: FONT_FAMILY,
               cursor: "pointer",
             }}
@@ -348,7 +348,7 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
             {copied ? "✓ Copied" : "Copy script"}
           </motion.button>
 
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 14, lineHeight: 1.5 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 14, lineHeight: 1.5 }}>
             Tip: ask for retention or loyalty offers by name, and mention any student rate. If the
             first person can&apos;t help, it&apos;s okay to politely ask for the retention team.
           </p>
@@ -359,16 +359,16 @@ export function CancelNegotiateHelper({ subscription, onClose }: CancelNegotiate
       {mode === "cancel" && (
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
           <p style={sectionHeader}>Step-by-step cancel</p>
-          <p style={{ fontSize: 13, color: "var(--sub)", marginTop: -4, marginBottom: 16, lineHeight: 1.5 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: -4, marginBottom: spacing.md, lineHeight: 1.5 }}>
             These steps work for just about any service. Take your time — you can always resubscribe later.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
             {CANCELLATION_STEPS.map((step, i) => (
               <StepRow key={step} index={i + 1} text={step} />
             ))}
           </div>
 
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 16, lineHeight: 1.5 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: spacing.md, lineHeight: 1.5 }}>
             Heads up: if you&apos;re still in a free trial, cancelling before the renewal date usually
             means you won&apos;t be charged — but you often keep access until the trial ends.
           </p>

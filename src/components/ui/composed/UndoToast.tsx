@@ -17,8 +17,9 @@ import React, { useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { elevations, radius } from "@/styles/surfaces"
 import { spacingScale } from "@/styles/layout"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, fontWeights } from '@/styles/typography'
 import { textColors, colorRamp } from "@/styles/colors"
+import { shadows } from "@/styles/shared"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 
 // ============================================================================
@@ -118,7 +119,7 @@ export function UndoToast({
             background: elevations.raised.fill,
             border: elevations.raised.border,
             borderRadius: radius.control,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            boxShadow: shadows.xl,
             backdropFilter: `blur(${elevations.raised.blur})`,
             maxWidth: "calc(100vw - 40px)",
           }}
@@ -146,7 +147,7 @@ export function UndoToast({
             style={{
               fontFamily: FONT_FAMILY,
               fontSize: typography["body-sm"].fontSize,
-              fontWeight: 600,
+              fontWeight: fontWeights.semibold,
               lineHeight: typography["body-sm"].lineHeight,
               color: colorRamp.accent[400],
               background: "transparent",

@@ -24,7 +24,7 @@ import {
   isDisbursementActive,
   getRemainingMonths,
 } from "@/lib/disbursements"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -33,6 +33,7 @@ import {
   listRow,
   borderRadius,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -94,19 +95,19 @@ function emojiForCategory(category: TransactionCategory): string {
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   background: "var(--color-sunken)",
   border: "1px solid var(--border)",
-  borderRadius: 10,
+  borderRadius: radius.control,
   outline: "none",
   boxSizing: "border-box",
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 500,
+  fontSize: typography['body-sm'].fontSize,
+  fontWeight: fontWeights.medium,
   color: "var(--sub)",
   marginBottom: 4,
   fontFamily: FONT_FAMILY,
@@ -241,13 +242,13 @@ export function SinkingFundsScreen({
       }}
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, marginBottom: HORIZONTAL_PADDING }}>
         <motion.button
           onClick={onClose}
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.96 }}
           transition={springs.snappy}
           style={{
-            background: "rgba(255,255,255,0.06)",
+            background: "var(--fill-06)",
             border: "1px solid var(--border)",
             borderRadius: borderRadius.full,
             width: 36,
@@ -256,21 +257,21 @@ export function SinkingFundsScreen({
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
-            fontSize: 18,
+            fontSize: typography.subhead.fontSize,
             color: "var(--text)",
           }}
           aria-label="Go back to settings"
         >
           ←
         </motion.button>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+        <h2 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", margin: 0 }}>
           Sinking Funds
         </h2>
       </div>
 
       {/* ── Explainer ──────────────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "14px 18px", marginBottom: 20 }}>
-        <p style={{ fontSize: 13, color: "var(--sub)", margin: 0, lineHeight: 1.5 }}>
+      <GlassCard elevation="low" style={{ padding: "14px 18px", marginBottom: HORIZONTAL_PADDING }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", margin: 0, lineHeight: 1.5 }}>
           Save a little each month toward big upcoming costs — textbooks, travel, gifts —
           so they don&apos;t blow up your daily budget when they arrive. 💡
         </p>
@@ -278,15 +279,15 @@ export function SinkingFundsScreen({
 
       {/* ── Summary Card ───────────────────────────────────────────────────── */}
       {funds.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={sectionHeader}>Total Monthly Reserve</p>
-          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+          <p style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
             ${dynamicTotalReserve.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 3 }}>
               /mo set aside
             </span>
           </p>
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 4 }}>
             {summary.count} fund{summary.count !== 1 ? "s" : ""}
             {summary.fundedCount > 0 && ` · ${summary.fundedCount} fully funded 🎉`}
           </p>
@@ -294,7 +295,7 @@ export function SinkingFundsScreen({
       )}
 
       {/* ── Funds List ─────────────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
         <p style={sectionHeader}>Your Funds</p>
 
         {funds.length === 0 && !showAddForm && (
@@ -348,7 +349,7 @@ export function SinkingFundsScreen({
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={springs.gentle}
-              style={{ overflow: "hidden", marginTop: 12 }}
+              style={{ overflow: "hidden", marginTop: spacing.sm }}
             >
               <FundForm
                 form={form}
@@ -373,12 +374,12 @@ export function SinkingFundsScreen({
               marginTop: 14,
               width: "100%",
               padding: "12px 0",
-              background: "rgba(255,255,255,0.04)",
+              background: "var(--fill-04)",
               border: "1.5px dashed var(--border)",
-              borderRadius: 12,
+              borderRadius: radius.control,
               color: "var(--sub)",
-              fontSize: 14,
-              fontWeight: 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
               cursor: "pointer",
             }}
@@ -393,10 +394,10 @@ export function SinkingFundsScreen({
       {!showAddForm && !editingId && (
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
           <p style={sectionHeader}>Quick Start</p>
-          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 14 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: 14 }}>
             Common funds for students — tap to pre-fill.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
             {SINKING_FUND_PRESETS.map(preset => (
               <motion.button
                 key={preset.label}
@@ -408,8 +409,8 @@ export function SinkingFundsScreen({
                   alignItems: "center",
                   justifyContent: "space-between",
                   padding: "12px 14px",
-                  borderRadius: 12,
-                  background: "rgba(255,255,255,0.03)",
+                  borderRadius: radius.control,
+                  background: "var(--fill-03)",
                   border: "1px solid var(--border)",
                   cursor: "pointer",
                   fontFamily: FONT_FAMILY,
@@ -417,10 +418,10 @@ export function SinkingFundsScreen({
                 }}
                 aria-label={`Add ${preset.label} sinking fund`}
               >
-                <span style={{ fontSize: 14, color: "var(--text)" }}>
+                <span style={{ fontSize: typography.body.fontSize, color: "var(--text)" }}>
                   {preset.emoji} {preset.label}
                 </span>
-                <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)" }}>
                   ~${preset.suggestedTarget}
                 </span>
               </motion.button>
@@ -487,7 +488,7 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
   }
 
   return (
-    <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 20 }}>
+    <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: HORIZONTAL_PADDING }}>
       <div
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
         onClick={() => setExpanded(prev => !prev)}
@@ -498,14 +499,14 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setExpanded(prev => !prev) }}
       >
         <div>
-          <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", margin: 0 }}>
+          <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0 }}>
             🎓 Financial Aid / Lump-Sum Income
           </p>
-          <p style={{ fontSize: 12, color: "var(--sub)", margin: "4px 0 0" }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", margin: "4px 0 0" }}>
             Spread a lump-sum across months to boost your daily budget
           </p>
         </div>
-        <span style={{ fontSize: 16, color: "var(--sub)", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }}>
+        <span style={{ fontSize: typography.body.fontSize, color: "var(--sub)", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }}>
           ▾
         </span>
       </div>
@@ -522,31 +523,31 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
+                  gap: spacing.sm,
                   padding: "10px 0",
                   borderBottom: "1px solid var(--border)",
                 }}
               >
-                <span style={{ fontSize: 18 }}>{d.emoji}</span>
+                <span style={{ fontSize: typography.subhead.fontSize }}>{d.emoji}</span>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: "var(--text)", margin: 0 }}>
                     {d.label}
                   </p>
-                  <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0" }}>
+                  <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", margin: "2px 0 0" }}>
                     +${monthly.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mo · {remaining}mo left
                   </p>
                 </div>
                 {onRemoveDisbursement && (
                   <motion.button
                     onClick={() => onRemoveDisbursement(d.id)}
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.95 }}
                     transition={springs.snappy}
                     style={{
                       background: "none",
                       border: "none",
                       padding: "4px 8px",
                       cursor: "pointer",
-                      fontSize: 14,
+                      fontSize: typography.body.fontSize,
                       color: "var(--error)",
                     }}
                     aria-label={`Remove ${d.label}`}
@@ -567,10 +568,10 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={springs.gentle}
-            style={{ overflow: "hidden", marginTop: 16 }}
+            style={{ overflow: "hidden", marginTop: spacing.md }}
           >
             {/* Label input */}
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: spacing.sm }}>
               <p style={labelStyle}>Label (optional)</p>
               <input
                 type="text"
@@ -583,7 +584,7 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
             </div>
 
             {/* Lump-sum input */}
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: spacing.sm }}>
               <p style={labelStyle}>Lump-sum amount ($)</p>
               <input
                 type="number"
@@ -598,7 +599,7 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
             </div>
 
             {/* Type selector */}
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: spacing.sm }}>
               <p style={labelStyle}>Type</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {([
@@ -619,11 +620,11 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
                         ? "1.5px solid var(--accent)"
                         : "1px solid var(--border)",
                       background: disbursementType === opt.value
-                        ? "rgba(129, 140, 248, 0.1)"
+                        ? "var(--accent-100)"
                         : "var(--fill-04)",
                       color: disbursementType === opt.value ? "var(--accent)" : "var(--sub)",
-                      fontSize: 12,
-                      fontWeight: 500,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       fontFamily: FONT_FAMILY,
                       cursor: "pointer",
                     }}
@@ -663,14 +664,14 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
             <div
               style={{
                 padding: "10px 14px",
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.04)",
+                borderRadius: radius.control,
+                background: "var(--fill-04)",
                 border: "1px solid var(--border)",
                 marginBottom: 14,
               }}
             >
-              <p style={{ fontSize: 13, color: "var(--sub)", margin: 0 }}>Monthly boost</p>
-              <p style={{ fontSize: 18, fontWeight: 600, color: "var(--text)", margin: "2px 0 0", fontVariantNumeric: "tabular-nums" }}>
+              <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", margin: 0 }}>Monthly boost</p>
+              <p style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: "2px 0 0", fontVariantNumeric: "tabular-nums" }}>
                 +${monthlyShare.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo
               </p>
             </div>
@@ -684,11 +685,11 @@ function DisbursementSection({ onSetDisbursement, disbursements = [], onAddDisbu
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                fontSize: 14,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: "var(--text)",
-                background: lumpSum <= 0 ? "rgba(255,255,255,0.06)" : "var(--success)",
+                background: lumpSum <= 0 ? "var(--fill-06)" : "var(--success)",
                 border: "none",
                 borderRadius: borderRadius.full,
                 cursor: lumpSum <= 0 ? "not-allowed" : "pointer",
@@ -732,8 +733,8 @@ function FundRow({ fund, now, onEdit, onDelete }: FundRowProps) {
         alignItems: "stretch",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 18 }}>{emojiForCategory(fund.category)}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+        <span style={{ fontSize: typography.subhead.fontSize }}>{emojiForCategory(fund.category)}</span>
         <div
           style={{ flex: 1, cursor: "pointer" }}
           onClick={onEdit}
@@ -742,11 +743,11 @@ function FundRow({ fund, now, onEdit, onDelete }: FundRowProps) {
           aria-label={`Edit ${fund.label}`}
           onKeyDown={e => { if (e.key === "Enter" || e.key === " ") onEdit() }}
         >
-          <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+          <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, color: "var(--text)", margin: 0 }}>
             {fund.label}
-            {funded && <span style={{ marginLeft: 6, fontSize: 12 }}>🎉</span>}
+            {funded && <span style={{ marginLeft: 6, fontSize: typography['body-sm'].fontSize }}>🎉</span>}
           </p>
-          <p style={{ fontSize: 12, color: "var(--muted)", margin: "2px 0 0" }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: "2px 0 0" }}>
             {funded
               ? "Fully funded"
               : `$${remaining.toLocaleString("en-US")} left · $${reserve}/mo`}
@@ -754,23 +755,23 @@ function FundRow({ fund, now, onEdit, onDelete }: FundRowProps) {
           </p>
         </div>
         <div style={{ textAlign: "right" }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+          <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
             ${fund.savedAmount.toLocaleString("en-US")}
           </p>
-          <p style={{ fontSize: 12, color: "var(--muted)", margin: "2px 0 0", fontVariantNumeric: "tabular-nums" }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: "2px 0 0", fontVariantNumeric: "tabular-nums" }}>
             / ${fund.targetAmount.toLocaleString("en-US")}
           </p>
         </div>
         <motion.button
           onClick={onDelete}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           style={{
             background: "none",
             border: "none",
             padding: "4px 8px",
             cursor: "pointer",
-            fontSize: 16,
+            fontSize: typography.body.fontSize,
             color: "var(--error)",
             marginLeft: 4,
           }}
@@ -783,10 +784,10 @@ function FundRow({ fund, now, onEdit, onDelete }: FundRowProps) {
       {/* Progress bar */}
       <div
         style={{
-          marginTop: 8,
+          marginTop: spacing.xs,
           height: 4,
           borderRadius: borderRadius.full,
-          background: "rgba(255,255,255,0.08)",
+          background: "var(--fill-08)",
           overflow: "hidden",
         }}
         aria-label={`${Math.round(progress * 100)}% funded`}
@@ -833,8 +834,8 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
     <div
       style={{
         padding: 14,
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.03)",
+        borderRadius: radius.control,
+        background: "var(--fill-03)",
         border: "1px solid var(--border)",
       }}
     >
@@ -900,16 +901,16 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
         <div
           style={{
             padding: "10px 12px",
-            borderRadius: 10,
-            background: "rgba(255,255,255,0.04)",
+            borderRadius: radius.control,
+            background: "var(--fill-04)",
             border: "1px solid var(--border)",
-            marginBottom: 8,
+            marginBottom: spacing.xs,
           }}
         >
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: 0 }}>
+          <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0 }}>
             ${effectiveReserve.toLocaleString("en-US")}/mo
             {form.autoReserve && (
-              <span style={{ fontSize: 11, fontWeight: 400, color: "var(--muted)", marginLeft: 6 }}>
+              <span style={{ fontSize: typography.caption.fontSize, fontWeight: fontWeights.regular, color: "var(--muted)", marginLeft: 6 }}>
                 auto-computed
               </span>
             )}
@@ -933,7 +934,7 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
             background: "none",
             border: "none",
             padding: 0,
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             cursor: "pointer",
             fontFamily: FONT_FAMILY,
@@ -961,10 +962,10 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
                   padding: "8px 14px",
                   borderRadius: borderRadius.full,
                   border: isActive ? "1.5px solid var(--success)" : "1px solid var(--border)",
-                  background: isActive ? "rgba(6, 214, 160, 0.1)" : "var(--fill-04)",
+                  background: isActive ? "var(--success-100)" : "var(--fill-04)",
                   color: isActive ? "var(--success)" : "var(--sub)",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                 }}
@@ -980,9 +981,9 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
 
       {/* Validation errors */}
       {errors.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: spacing.sm }}>
           {errors.map((err, i) => (
-            <p key={i} style={{ fontSize: 12, color: "var(--error)", margin: "2px 0", fontFamily: FONT_FAMILY }}>
+            <p key={i} style={{ fontSize: typography['body-sm'].fontSize, color: "var(--error)", margin: "2px 0", fontFamily: FONT_FAMILY }}>
               {err}
             </p>
           ))}
@@ -990,7 +991,7 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
       )}
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: spacing.xs }}>
         <motion.button
           onClick={onCancel}
           whileTap={{ scale: 0.97 }}
@@ -998,11 +999,11 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
-            background: "rgba(255, 255, 255, 0.06)",
+            background: "var(--fill-06)",
             border: "1px solid var(--border)",
             borderRadius: borderRadius.full,
             cursor: "pointer",
@@ -1019,11 +1020,11 @@ function FundForm({ form, setForm, errors, onSave, onCancel, saving, isEdit, now
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
-            background: saving || !canSave ? "rgba(255,255,255,0.06)" : "var(--success)",
+            background: saving || !canSave ? "var(--fill-06)" : "var(--success)",
             border: "none",
             borderRadius: borderRadius.full,
             cursor: saving || !canSave ? "not-allowed" : "pointer",

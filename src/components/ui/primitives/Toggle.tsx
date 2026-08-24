@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { elevations, radius } from "@/styles/surfaces"
 import { colorRamp } from "@/styles/colors"
+import { shadows } from "@/styles/shared"
 
 /**
  * Toggle primitive — a switch/toggle control.
@@ -176,7 +177,7 @@ export function Toggle({
             height: `${config.knobSize}px`,
             borderRadius: radius.full,
             background: checked ? KNOB_FILL_ON : KNOB_FILL_OFF,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+            boxShadow: shadows.sm,
           }}
         />
       </motion.div>

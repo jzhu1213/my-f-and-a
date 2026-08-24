@@ -2,7 +2,8 @@
 import { useState, useMemo } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { ChartFrame } from '@/components/ui/primitives/ChartFrame'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import { progressBar, chartLabel, chartValueLabel, chartMotion } from '@/styles/chartTokens'
 import { computeCombinedSavingsInputs } from '@/lib/savingsAccountUtils'
 import { isLearningEnabled } from '@/lib/educationPreferences'
@@ -83,20 +84,20 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           fontFamily: FONT_FAMILY,
-          fontWeight: 500,
+          fontWeight: fontWeights.medium,
           color: 'var(--sub)',
           background: 'transparent',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: 99,
+          border: '1px solid var(--fill-10)',
+          borderRadius: radius.full,
           padding: '8px 16px',
           cursor: 'pointer',
-          marginBottom: 32,
+          marginBottom: spacing.xl,
           transition: 'border-color 0.15s, color 0.15s',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = 'var(--text)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = 'var(--sub)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--fill-15)'; e.currentTarget.style.color = 'var(--text)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--fill-10)'; e.currentTarget.style.color = 'var(--sub)' }}
       >
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
@@ -104,15 +105,15 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
         Back
       </button>
 
-      <div style={{ marginBottom: 24 }}>
-        <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 4 }}>Calculator</p>
-        <h1 style={{ fontSize: 28, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--text)' }}>Compound Growth</h1>
+      <div style={{ marginBottom: spacing.lg }}>
+        <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 4 }}>Calculator</p>
+        <h1 style={{ fontSize: 28, fontFamily: FONT_FAMILY, fontWeight: fontWeights.semibold, color: 'var(--text)' }}>Compound Growth</h1>
       </div>
 
-      <GlassCard elevation="low" style={{ padding: 20, marginBottom: 24 }}>
+      <GlassCard elevation="low" style={{ padding: 20, marginBottom: spacing.lg }}>
         {/* Pre-fill from portfolio chip */}
         {canPrefill && (
-          <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--line)' }}>
+          <div style={{ marginBottom: spacing.md, paddingBottom: 16, borderBottom: '1px solid var(--line)' }}>
             <button
               onClick={handlePrefill}
               aria-label="Pre-fill calculator with your combined savings portfolio values"
@@ -120,25 +121,25 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: 'var(--sub)',
-                background: 'rgba(168, 130, 255, 0.08)',
-                border: '1px solid rgba(168, 130, 255, 0.2)',
-                borderRadius: 99,
+                background: 'var(--accent-100)',
+                border: '1px solid var(--accent-200)',
+                borderRadius: radius.full,
                 padding: '7px 14px',
                 cursor: 'pointer',
                 transition: 'border-color 0.15s, background 0.15s, color 0.15s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(168, 130, 255, 0.4)'
-                e.currentTarget.style.background = 'rgba(168, 130, 255, 0.12)'
+                e.currentTarget.style.borderColor = 'var(--accent-400)'
+                e.currentTarget.style.background = 'var(--accent-200)'
                 e.currentTarget.style.color = 'var(--text)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(168, 130, 255, 0.2)'
-                e.currentTarget.style.background = 'rgba(168, 130, 255, 0.08)'
+                e.currentTarget.style.borderColor = 'var(--accent-200)'
+                e.currentTarget.style.background = 'var(--accent-100)'
                 e.currentTarget.style.color = 'var(--sub)'
               }}
             >
@@ -151,10 +152,10 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
         )}
 
         {/* Starting Amount */}
-        <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
-          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Starting Amount</p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }} aria-hidden="true">$</span>
+        <div style={{ paddingBottom: 16, marginBottom: spacing.md, borderBottom: '1px solid var(--line)' }}>
+          <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.xs }}>Starting Amount</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: spacing.xs }}>
+            <span style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--muted)' }} aria-hidden="true">$</span>
             <input
               type="text"
               inputMode="decimal"
@@ -165,9 +166,9 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
               style={{
                 flex: 1,
                 background: 'transparent',
-                fontSize: 20,
+                fontSize: typography.subhead.fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: 'var(--text)',
                 outline: 'none',
                 border: 'none',
@@ -179,10 +180,10 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
         </div>
 
         {/* Monthly Contribution */}
-        <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--line)' }}>
-          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Monthly Contribution</p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 18, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }} aria-hidden="true">$</span>
+        <div style={{ paddingBottom: 16, marginBottom: spacing.md, borderBottom: '1px solid var(--line)' }}>
+          <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.xs }}>Monthly Contribution</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: spacing.xs }}>
+            <span style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--muted)' }} aria-hidden="true">$</span>
             <input
               type="text"
               inputMode="decimal"
@@ -193,9 +194,9 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
               style={{
                 flex: 1,
                 background: 'transparent',
-                fontSize: 20,
+                fontSize: typography.subhead.fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: 'var(--text)',
                 outline: 'none',
                 border: 'none',
@@ -207,9 +208,9 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
         </div>
 
         {/* Annual Return + Years */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }}>
           <div>
-            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Annual Return</p>
+            <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.xs }}>Annual Return</p>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
               <input
                 type="text"
@@ -221,9 +222,9 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
                 style={{
                   flex: 1,
                   background: 'transparent',
-                  fontSize: 20,
+                  fontSize: typography.subhead.fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                   color: 'var(--text)',
                   outline: 'none',
                   border: 'none',
@@ -231,11 +232,11 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
                   paddingBottom: 4,
                 }}
               />
-              <span style={{ fontSize: 14, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)' }} aria-hidden="true">%</span>
+              <span style={{ fontSize: typography.body.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--muted)' }} aria-hidden="true">%</span>
             </div>
           </div>
           <div>
-            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Years</p>
+            <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.xs }}>Years</p>
             <input
               type="text"
               inputMode="numeric"
@@ -246,9 +247,9 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
               style={{
                 width: '100%',
                 background: 'transparent',
-                fontSize: 20,
+                fontSize: typography.subhead.fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: 'var(--text)',
                 outline: 'none',
                 border: 'none',
@@ -262,33 +263,33 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
 
       {result && (
         <div style={{ animation: 'slide-up 0.3s ease-out' }}>
-          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 16 }}>Projection</p>
+          <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.md }}>Projection</p>
 
-          <GlassCard elevation="medium" glow="healthy" style={{ padding: 24, marginBottom: 16 }}>
-            <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Future Value</p>
-            <p style={{ fontSize: 40, fontFamily: FONT_FAMILY, fontWeight: 600, color: 'var(--success)' }}>
+          <GlassCard elevation="medium" glow="healthy" style={{ padding: 24, marginBottom: spacing.md }}>
+            <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.xs }}>Future Value</p>
+            <p style={{ fontSize: 40, fontFamily: FONT_FAMILY, fontWeight: fontWeights.semibold, color: 'var(--success)' }}>
               ${result.finalAmount.toLocaleString()}
             </p>
           </GlassCard>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.sm, marginBottom: 24 }}>
             <GlassCard elevation="low" style={{ padding: 16 }}>
-              <p style={{ fontSize: 20, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--text)' }}>${result.totalContributions.toLocaleString()}</p>
-              <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>contributed</p>
+              <p style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, color: 'var(--text)' }}>${result.totalContributions.toLocaleString()}</p>
+              <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>contributed</p>
             </GlassCard>
             <GlassCard elevation="low" style={{ padding: 16 }}>
-              <p style={{ fontSize: 20, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--success)' }}>${result.totalInterest.toLocaleString()}</p>
-              <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>from growth</p>
+              <p style={{ fontSize: typography.subhead.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, color: 'var(--success)' }}>${result.totalInterest.toLocaleString()}</p>
+              <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>from growth</p>
             </GlassCard>
           </div>
 
           {/* What this means for you — personalized insight panel */}
           {isLearningEnabled() && (
-          <GlassCard elevation="low" style={{ padding: 16, marginBottom: 24, borderLeft: '2px solid var(--success)' }}>
-            <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+          <GlassCard elevation="low" style={{ padding: 16, marginBottom: spacing.lg, borderLeft: '2px solid var(--success)' }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, color: 'var(--text)', marginBottom: 4 }}>
               💡 What this means for you
             </p>
-            <p style={{ fontSize: 13, fontFamily: FONT_FAMILY, fontWeight: 400, color: 'var(--sub)', lineHeight: 1.5 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.regular, color: 'var(--sub)', lineHeight: 1.5 }}>
               {(() => {
                 const principal = parseFloat(initialAmount) || 0
                 const monthly = parseFloat(monthlyContribution) || 0
@@ -306,7 +307,7 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
           )}
 
           {/* Growth chart */}
-          <p style={{ fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>Year by Year</p>
+          <p style={{ fontSize: typography.caption.fontSize, fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: spacing.sm }}>Year by Year</p>
           {/* Screen reader text summary for the chart */}
           <span id="compound-growth-chart-summary" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0 }}>
             {`Compound growth chart: final value $${result.finalAmount.toLocaleString()} after ${years} years, with $${result.totalContributions.toLocaleString()} contributed and $${result.totalInterest.toLocaleString()} from growth.`}
@@ -325,7 +326,7 @@ export function CompoundGrowthCalculator({ onBack, savingsAccounts }: CompoundGr
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
+                    gap: spacing.sm,
                     paddingTop: idx === 0 ? 0 : 10,
                     paddingBottom: 10,
                     borderBottom: idx === displayRows.length - 1 ? 'none' : '1px solid var(--line)',

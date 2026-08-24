@@ -55,7 +55,7 @@ export function SettingsNavList({ rows, getBadge, onRowPress, rowRefs }: Setting
           <span
             aria-hidden="true"
             style={{
-              fontSize: '20px',
+              fontSize: typography.subhead.fontSize,
               lineHeight: 1,
               width: '28px',
               textAlign: 'center',

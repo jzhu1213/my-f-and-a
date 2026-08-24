@@ -14,13 +14,14 @@
 import { useState } from "react"
 import { RoommateInviteScreen } from "./RoommateInviteScreen"
 import { SharedBudgetsScreen } from "./SharedBudgetsScreen"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   segmentedControl,
   segmentedButtonBase,
   segmentedButtonActive,
   segmentedButtonInactive,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import type { Goal } from "@/types"
 
 // ============================================================================
@@ -137,16 +138,16 @@ function PoolsTabContent({
         style={{
           textAlign: "center",
           padding: "32px 20px",
-          background: "rgba(255,255,255,0.03)",
-          borderRadius: 12,
+          background: "var(--fill-03)",
+          borderRadius: radius.control,
           border: "1px solid var(--border)",
         }}
       >
-        <p style={{ fontSize: 32, marginBottom: 12 }}>🏠</p>
+        <p style={{ fontSize: typography.title.fontSize, marginBottom: spacing.sm }}>🏠</p>
         <h3
           style={{
-            fontSize: 16,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             color: "var(--text)",
             fontFamily: FONT_FAMILY,
             margin: "0 0 8px",
@@ -156,7 +157,7 @@ function PoolsTabContent({
         </h3>
         <p
           style={{
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             color: "var(--sub)",
             fontFamily: FONT_FAMILY,
             margin: "0 0 20px",
@@ -170,13 +171,13 @@ function PoolsTabContent({
             onClick={onOpenHouseholdPool}
             style={{
               padding: "12px 24px",
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               fontFamily: FONT_FAMILY,
               color: "var(--text)",
               background: "var(--accent)",
               border: "none",
-              borderRadius: 8,
+              borderRadius: radius.control,
               cursor: "pointer",
             }}
           >

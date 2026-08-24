@@ -6,12 +6,13 @@ import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { ChartFrame } from "@/components/ui/primitives/ChartFrame"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import {
   chartColors,
   chartDimensions,
@@ -236,9 +237,9 @@ export function TrajectoryScreen({
           background: "none",
           border: "none",
           color: "var(--sub)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           cursor: "pointer",
-          marginBottom: 20,
+          marginBottom: HORIZONTAL_PADDING,
           padding: "8px 0",
           fontFamily: FONT_FAMILY,
         }}
@@ -258,7 +259,7 @@ export function TrajectoryScreen({
           style={{
             fontSize: 48,
             color,
-            marginBottom: 8,
+            marginBottom: spacing.xs,
             lineHeight: 1,
           }}
           aria-hidden="true"
@@ -268,12 +269,12 @@ export function TrajectoryScreen({
 
         <p
           style={{
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.semibold,
             color,
             textTransform: "uppercase",
             letterSpacing: "0.05em",
-            marginBottom: 8,
+            marginBottom: spacing.xs,
           }}
         >
           {label}
@@ -281,8 +282,8 @@ export function TrajectoryScreen({
 
         <h2
           style={{
-            fontSize: 20,
-            fontWeight: 700,
+            fontSize: typography.subhead.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             lineHeight: 1.3,
             marginBottom: 6,
@@ -293,7 +294,7 @@ export function TrajectoryScreen({
 
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             lineHeight: 1.5,
           }}
@@ -311,8 +312,8 @@ export function TrajectoryScreen({
           style={{
             display: "flex",
             justifyContent: "center",
-            gap: 10,
-            marginBottom: 24,
+            gap: spacing.sm,
+            marginBottom: spacing.lg,
             flexWrap: "wrap",
           }}
         >
@@ -322,19 +323,19 @@ export function TrajectoryScreen({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 5,
+                gap: spacing.xxs,
                 padding: "6px 14px",
-                borderRadius: 20,
+                borderRadius: radius.card,
                 background: "var(--surface)",
-                border: "1px solid var(--border, rgba(255,255,255,0.06))",
-                fontSize: 13,
-                fontWeight: 500,
+                border: "1px solid var(--border, var(--fill-06))",
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 color: pill.color,
                 fontFamily: FONT_FAMILY,
               }}
             >
               <span>{pill.label}</span>
-              <span style={{ fontSize: 15 }}>{pill.arrow}</span>
+              <span style={{ fontSize: typography.body.fontSize }}>{pill.arrow}</span>
             </div>
           ))}
         </motion.div>
@@ -346,12 +347,12 @@ export function TrajectoryScreen({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springs.gentle, delay: 0.15 }}
-          style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}
+          style={{ display: "flex", flexDirection: "column", gap: spacing.sm, marginBottom: HORIZONTAL_PADDING }}
         >
           <p
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--muted)",
               letterSpacing: "0.02em",
               marginBottom: 4,
@@ -396,12 +397,12 @@ export function TrajectoryScreen({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springs.gentle, delay: 0.2 }}
-          style={{ marginBottom: 20 }}
+          style={{ marginBottom: HORIZONTAL_PADDING }}
         >
           <p
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--muted)",
               letterSpacing: "0.02em",
               marginBottom: 10,
@@ -415,7 +416,7 @@ export function TrajectoryScreen({
       )}
 
       {/* ── Insight cards ──────────────────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
         {trajectory.insights.length === 0 && !showProgressSection && (
           <EmptyState
             illustration="review"
@@ -427,8 +428,8 @@ export function TrajectoryScreen({
         {trajectory.insights.length > 0 && (
           <p
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--muted)",
               letterSpacing: "0.02em",
               marginBottom: 4,
@@ -449,7 +450,7 @@ export function TrajectoryScreen({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springs.gentle, delay: 0.15 }}
-          style={{ marginTop: 16 }}
+          style={{ marginTop: spacing.md }}
         >
           <EmptyState
             illustration="goals"
@@ -462,10 +463,10 @@ export function TrajectoryScreen({
       {/* ── Footer note ────────────────────────────────────────────── */}
       <p
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--muted)",
           textAlign: "center",
-          marginTop: 24,
+          marginTop: spacing.lg,
           lineHeight: 1.5,
         }}
       >
@@ -491,14 +492,14 @@ function SavingsBalanceCard({
 }) {
   return (
     <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 20 }} aria-hidden="true">🌱</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
+        <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+          <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">🌱</span>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+            <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
               Savings growing
             </p>
-            <p style={{ fontSize: 12, color: "var(--sub)" }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
               {accounts.length} account{accounts.length > 1 ? "s" : ""}
             </p>
           </div>
@@ -506,8 +507,8 @@ function SavingsBalanceCard({
         <div style={{ textAlign: "end" }}>
           <p
             style={{
-              fontSize: 18,
-              fontWeight: 700,
+              fontSize: typography.subhead.fontSize,
+              fontWeight: fontWeights.bold,
               color: "var(--text)",
               fontVariantNumeric: "tabular-nums",
             }}
@@ -515,7 +516,7 @@ function SavingsBalanceCard({
             {formatDollars(totalBalance)}
           </p>
           {monthlyContributions > 0 && (
-            <p style={{ fontSize: 11, color: "var(--success)", fontWeight: 500 }}>
+            <p style={{ fontSize: typography.caption.fontSize, color: "var(--success)", fontWeight: fontWeights.medium }}>
               +{formatDollars(monthlyContributions)}/mo
             </p>
           )}
@@ -534,20 +535,20 @@ function SavingsBalanceCard({
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "4px 0",
-                borderTop: "1px solid var(--border, rgba(255,255,255,0.04))",
+                borderTop: "1px solid var(--border, var(--fill-04))",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 14 }} aria-hidden="true">{emoji}</span>
-                <span style={{ fontSize: 12, color: "var(--sub)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
+                <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">{emoji}</span>
+                <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
                   {account.name || label}
                 </span>
               </div>
               <span
                 style={{
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   color: "var(--text)",
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
@@ -574,22 +575,22 @@ function DebtProgressCard({
 }) {
   return (
     <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 20 }} aria-hidden="true">📤</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
+        <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+          <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">📤</span>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+            <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
               Trending toward zero
             </p>
-            <p style={{ fontSize: 12, color: "var(--sub)" }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
               {debts.length} debt{debts.length > 1 ? "s" : ""} tracked
             </p>
           </div>
         </div>
         <p
           style={{
-            fontSize: 18,
-            fontWeight: 700,
+            fontSize: typography.subhead.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             fontVariantNumeric: "tabular-nums",
           }}
@@ -599,7 +600,7 @@ function DebtProgressCard({
       </div>
 
       {/* Individual debt rows */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
         {debts.map((debt) => {
           const emoji = getDebtTypeEmoji(debt.type)
           // Progress: show how much of minimum payment contributes to principal reduction
@@ -611,19 +612,19 @@ function DebtProgressCard({
               key={debt.id}
               style={{
                 padding: "6px 0",
-                borderTop: "1px solid var(--border, rgba(255,255,255,0.04))",
+                borderTop: "1px solid var(--border, var(--fill-04))",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 14 }} aria-hidden="true">{emoji}</span>
-                  <span style={{ fontSize: 12, color: "var(--sub)" }}>{debt.name}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
+                  <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">{emoji}</span>
+                  <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>{debt.name}</span>
                 </div>
                 <span
                   style={{
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     color: "var(--text)",
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
@@ -631,7 +632,7 @@ function DebtProgressCard({
                 </span>
               </div>
               {/* Mini progress bar representing paydown momentum */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
                 <div
                   style={{
                     flex: 1,
@@ -658,7 +659,7 @@ function DebtProgressCard({
                     }}
                   />
                 </div>
-                <span style={{ fontSize: 10, color: "var(--muted)", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", whiteSpace: "nowrap" }}>
                   {monthsToZero < 999 ? `~${monthsToZero}mo` : "—"}
                 </span>
               </div>
@@ -688,21 +689,21 @@ function SetAsideCard({
   return (
     <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 20 }} aria-hidden="true">🎒</span>
+        <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+          <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">🎒</span>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+            <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
               Set aside this month
             </p>
-            <p style={{ fontSize: 12, color: "var(--sub)" }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
               Protecting future-you from surprises
             </p>
           </div>
         </div>
         <p
           style={{
-            fontSize: 18,
-            fontWeight: 700,
+            fontSize: typography.subhead.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             fontVariantNumeric: "tabular-nums",
           }}
@@ -720,13 +721,13 @@ function SetAsideCard({
               alignItems: "center",
               justifyContent: "space-between",
               padding: "4px 0",
-              borderTop: "1px solid var(--border, rgba(255,255,255,0.04))",
+              borderTop: "1px solid var(--border, var(--fill-04))",
             }}
           >
-            <span style={{ fontSize: 12, color: "var(--sub)" }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
               Sinking funds ({sinkingFunds.length})
             </span>
-            <span style={{ fontSize: 12, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
               {formatDollars(totalSaved)} saved
             </span>
           </div>
@@ -738,13 +739,13 @@ function SetAsideCard({
               alignItems: "center",
               justifyContent: "space-between",
               padding: "4px 0",
-              borderTop: "1px solid var(--border, rgba(255,255,255,0.04))",
+              borderTop: "1px solid var(--border, var(--fill-04))",
             }}
           >
-            <span style={{ fontSize: 12, color: "var(--sub)" }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
               Allocation reserves
             </span>
-            <span style={{ fontSize: 12, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
               {formatDollars(totalSetAside)}
             </span>
           </div>
@@ -761,19 +762,19 @@ function SetAsideCard({
 function GoalsProgressCard({ goals }: { goals: Goal[] }) {
   return (
     <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{ fontSize: 20 }} aria-hidden="true">🎯</span>
+      <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, marginBottom: 12 }}>
+        <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">🎯</span>
         <div>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+          <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
             Goals in progress
           </p>
-          <p style={{ fontSize: 12, color: "var(--sub)" }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
             {goals.length} active goal{goals.length > 1 ? "s" : ""}
           </p>
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
         {goals.map((goal) => {
           const progress = goal.targetAmount > 0
             ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100))
@@ -782,12 +783,12 @@ function GoalsProgressCard({ goals }: { goals: Goal[] }) {
             <div key={goal.id}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 14 }} aria-hidden="true">{goal.emoji}</span>
-                  <span style={{ fontSize: 12, color: "var(--text)", fontWeight: 500 }}>
+                  <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">{goal.emoji}</span>
+                  <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", fontWeight: fontWeights.medium }}>
                     {goal.name}
                   </span>
                 </div>
-                <span style={{ fontSize: 11, color: "var(--sub)", fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ fontSize: typography.caption.fontSize, color: "var(--sub)", fontVariantNumeric: "tabular-nums" }}>
                   {formatDollars(goal.currentAmount)} / {formatDollars(goal.targetAmount)}
                 </span>
               </div>
@@ -815,7 +816,7 @@ function GoalsProgressCard({ goals }: { goals: Goal[] }) {
                   }}
                 />
               </div>
-              <p style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>
+              <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginTop: 2 }}>
                 {progress}% there
               </p>
             </div>
@@ -868,22 +869,22 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
     >
       <div style={{ padding: "16px 18px" }}>
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 18 }} aria-hidden="true">📈</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
+          <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
+            <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">📈</span>
+            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
               Progress Score
             </span>
           </div>
           {progressGain > 0 && (
             <span
               style={{
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--success)",
-                background: "rgba(74, 222, 128, 0.1)",
+                background: "var(--success-100)",
                 padding: "3px 8px",
-                borderRadius: 10,
+                borderRadius: radius.control,
               }}
             >
               +{progressGain} pts projected
@@ -929,7 +930,7 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
               strokeWidth={chartStrokes.lineWidth}
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ filter: "drop-shadow(0 1px 3px rgba(74, 222, 128, 0.3))" }}
+              style={{ filter: "drop-shadow(0 1px 3px var(--success-300))" }}
             />
 
             {/* Current position dot */}
@@ -955,7 +956,7 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
         </div>
 
         {/* Month labels */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: spacing.sm }}>
           {monthLabels.map((ml) => (
             <span
               key={ml}
@@ -969,7 +970,7 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
         {/* Warm copy */}
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             lineHeight: 1.5,
             marginBottom: 10,
@@ -982,26 +983,26 @@ function ProgressCurveCard({ curve }: { curve: ProgressCurveData }) {
         <div
           style={{
             padding: "8px 0 0",
-            borderTop: "1px solid var(--border, rgba(255,255,255,0.04))",
+            borderTop: "1px solid var(--border, var(--fill-04))",
             display: "flex",
             flexDirection: "column",
             gap: 4,
           }}
         >
           {hasSavingsSignal && (
-            <p style={{ fontSize: 12, color: "var(--sub)" }}>
-              <span style={{ color: "var(--success)", fontWeight: 600 }}>Savings</span>{" "}
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
+              <span style={{ color: "var(--success)", fontWeight: fontWeights.semibold }}>Savings</span>{" "}
               projected to reach{" "}
-              <span style={{ color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ color: "var(--text)", fontWeight: fontWeights.medium, fontVariantNumeric: "tabular-nums" }}>
                 {formatDollars(projectedSavings)}
               </span>
             </p>
           )}
           {hasDebtSignal && (
-            <p style={{ fontSize: 12, color: "var(--sub)" }}>
-              <span style={{ color: "var(--accent)", fontWeight: 600 }}>Debt</span>{" "}
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
+              <span style={{ color: "var(--accent)", fontWeight: fontWeights.semibold }}>Debt</span>{" "}
               projected to drop to{" "}
-              <span style={{ color: "var(--text)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ color: "var(--text)", fontWeight: fontWeights.medium, fontVariantNumeric: "tabular-nums" }}>
                 {formatDollars(projectedDebt)}
               </span>
             </p>
@@ -1063,9 +1064,9 @@ function InsightCard({
       transition={{ ...springs.gentle, delay: 0.05 * index }}
     >
       <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: spacing.md }}>
           <span
-            style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, marginTop: 2 }}
+            style={{ fontSize: typography.headline.fontSize, lineHeight: 1, flexShrink: 0, marginTop: 2 }}
             aria-hidden="true"
           >
             {insight.emoji}
@@ -1073,8 +1074,8 @@ function InsightCard({
           <div style={{ flex: 1, minWidth: 0 }}>
             <p
               style={{
-                fontSize: 14,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--text)",
                 marginBottom: 4,
               }}
@@ -1083,7 +1084,7 @@ function InsightCard({
             </p>
             <p
               style={{
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--sub)",
                 lineHeight: 1.4,
               }}

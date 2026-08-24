@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { springs, useReducedMotion, timings } from '@/lib/animations'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, typography, fontWeights } from '@/styles/typography'
 
 // ============================================================================
 // OnboardingTransition (Task 391.1)
@@ -64,7 +64,7 @@ export function OnboardingTransition({ dailyAllowance }: OnboardingTransitionPro
           animate={{ opacity: 0 }}
           transition={prefersReducedMotion ? timings.fast : { duration: 0.3, ease: 'easeOut' }}
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: 'var(--sub)',
             margin: 0,
           }}
@@ -84,12 +84,12 @@ export function OnboardingTransition({ dailyAllowance }: OnboardingTransitionPro
           }
           transition={prefersReducedMotion ? timings.fast : springs.gentle}
           style={{
-            fontSize: 32,
-            fontWeight: 700,
+            fontSize: typography.title.fontSize,
+            fontWeight: fontWeights.bold,
             fontFamily: FONT_FAMILY,
             color: 'var(--success)',
             fontVariantNumeric: 'tabular-nums',
-            textShadow: '0 0 24px rgba(74, 222, 128, 0.35)',
+            textShadow: '0 0 24px var(--success-300)',
           }}
         >
           ${dailyAllowance}/day

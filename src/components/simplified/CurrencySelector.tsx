@@ -8,8 +8,9 @@ import { CURRENCIES, getCurrencySymbol, normalizeCode, formatCurrency } from '@/
 import { getHomeCurrency } from '@/lib/currencyPreferences'
 import { getRate } from '@/lib/exchangeRates'
 import { getTravelCurrency } from '@/lib/travelMode'
-import { FONT_FAMILY, pxToRem } from '@/styles/typography'
-import { borderRadius, fills, colorRamp } from '@/styles/shared'
+import { FONT_FAMILY, pxToRem, fontWeights } from '@/styles/typography'
+import { fills, colorRamp } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -132,10 +133,10 @@ export function CurrencySelector({
           border: isForeign
             ? `1px solid ${colorRamp.accent[300]}`
             : `1px solid ${fills[10]}`,
-          borderRadius: borderRadius.full,
+          borderRadius: radius.full,
           cursor: 'pointer',
           fontSize: pxToRem(12),
-          fontWeight: 500,
+          fontWeight: fontWeights.medium,
           fontFamily: FONT_FAMILY,
           color: isForeign ? 'var(--accent)' : 'var(--sub)',
           transition: 'background 0.15s, border-color 0.15s',
@@ -172,7 +173,7 @@ export function CurrencySelector({
               padding: 10,
               background: fills[4],
               border: `1px solid ${fills[10]}`,
-              borderRadius: borderRadius.md,
+              borderRadius: radius.control,
               maxWidth: 320,
               justifyContent: 'center',
               transformOrigin: 'top center',
@@ -201,7 +202,7 @@ export function CurrencySelector({
                     border: isSelected
                       ? `1px solid ${colorRamp.accent[400]}`
                       : '1px solid transparent',
-                    borderRadius: borderRadius.full,
+                    borderRadius: radius.full,
                     cursor: 'pointer',
                     fontSize: pxToRem(12),
                     fontWeight: isSelected ? 600 : 400,

@@ -217,7 +217,7 @@ function TimerRing({ durationMs }: TimerRingProps) {
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="rgba(255, 255, 255, 0.15)"
+        stroke="var(--fill-15)"
         strokeWidth={strokeWidth}
       />
       {/* Depleting progress arc */}
@@ -226,7 +226,7 @@ function TimerRing({ durationMs }: TimerRingProps) {
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="rgba(252, 211, 77, 0.7)"
+        stroke="var(--caution-500)"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeDasharray={circumference}
@@ -588,7 +588,7 @@ export function CelebrationOverlay({ event, onDismiss }: CelebrationOverlayProps
                     onClick={handleDismiss}
                     className="celebration-card__dismiss"
                     whileHover={prefersReducedMotion ? undefined : { scale: 1.06 }}
-                    whileTap={prefersReducedMotion ? undefined : { scale: 0.94 }}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
                     transition={springs.snappy}
                   >
                     {dismissCopy}

@@ -15,8 +15,9 @@
 import React, { useEffect, useState } from 'react'
 import { getRate, getCacheInfo, getOverride } from '@/lib/exchangeRates'
 import { normalizeCode, getCurrencySymbol } from '@/lib/currencyUtils'
-import { FONT_FAMILY, pxToRem } from '@/styles/typography'
-import { fills, borderRadius, colorRamp } from '@/styles/shared'
+import { FONT_FAMILY, pxToRem, fontWeights } from '@/styles/typography'
+import { fills, colorRamp } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -107,12 +108,12 @@ export function RateDisplay({ from, to, base, compact = false, style }: RateDisp
     alignItems: 'center',
     gap: 6,
     padding: compact ? '4px 10px' : '6px 12px',
-    borderRadius: borderRadius.full,
+    borderRadius: radius.full,
     background: fills[4],
     border: `1px solid ${fills[8]}`,
     fontFamily: FONT_FAMILY,
     fontSize: pxToRem(12),
-    fontWeight: 500,
+    fontWeight: fontWeights.medium,
     color: 'var(--sub)',
     lineHeight: 1.4,
     ...style,
@@ -125,7 +126,7 @@ export function RateDisplay({ from, to, base, compact = false, style }: RateDisp
 
   const overrideBadgeStyle: React.CSSProperties = {
     fontSize: pxToRem(10),
-    fontWeight: 600,
+    fontWeight: fontWeights.semibold,
     color: colorRamp.accent[500],
     textTransform: 'uppercase' as const,
     letterSpacing: '0.04em',
@@ -134,7 +135,7 @@ export function RateDisplay({ from, to, base, compact = false, style }: RateDisp
   const timestampStyle: React.CSSProperties = {
     fontSize: pxToRem(11),
     color: 'var(--muted)',
-    fontWeight: 400,
+    fontWeight: fontWeights.regular,
   }
 
   if (loading) {

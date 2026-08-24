@@ -1,31 +1,31 @@
-"use client"
+﻿"use client"
 
 /**
- * PrivacyDataScreen — Privacy & Data dashboard (Task 191.1)
+ * PrivacyDataScreen â€” Privacy & Data dashboard (Task 191.1)
  *
  * A single, calm surface where a user can:
  *   1. See what data Folio stores about them (categories + counts).
  *   2. Export everything in one tap (reuses the existing full-data export and
- *      the filtered Reports flow from task 185.1 — no export logic is
+ *      the filtered Reports flow from task 185.1 â€” no export logic is
  *      reimplemented here).
  *   3. Delete their account + all data in a GDPR/CCPA-style flow, guarded by an
  *      explicit type-to-confirm step.
  *
- * Lives behind Settings → Privacy & security via progressive disclosure —
+ * Lives behind Settings â†’ Privacy & security via progressive disclosure â€”
  * never on the home screen.
  *
  * Guardrails:
- *   • Warm, shame-free, human copy. Control is framed as a right, not a chore.
- *   • Soft purple theme; prefers-reduced-motion honored.
- *   • Accessible: labelled controls, keyboard-operable, live status regions.
- *   • Deletion is destructive and irreversible — clear confirmation required.
+ *   â€¢ Warm, shame-free, human copy. Control is framed as a right, not a chore.
+ *   â€¢ Soft purple theme; prefers-reduced-motion honored.
+ *   â€¢ Accessible: labelled controls, keyboard-operable, live status regions.
+ *   â€¢ Deletion is destructive and irreversible â€” clear confirmation required.
  */
 
 import { useMemo, useState, useCallback } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -55,11 +55,11 @@ export interface PrivacyDataScreenProps {
   /** Categories of stored data with counts, built by the caller. */
   categories: StoredDataCategory[]
   onBack: () => void
-  /** One-tap full export — reuses the existing full-data (JSON) export. */
+  /** One-tap full export â€” reuses the existing full-data (JSON) export. */
   onExportAll: () => void
   /** Opens the filtered Reports overlay (task 185.1) for PDF/CSV by filter. */
   onOpenReports?: () => void
-  /** Exports all transactions as CSV — reuses the existing CSV export. */
+  /** Exports all transactions as CSV â€” reuses the existing CSV export. */
   onExportCSV?: () => void
   /**
    * Permanently deletes the account + all data. Resolves when done; the caller
@@ -102,9 +102,9 @@ export function PrivacyDataScreen({
     setIsDeleting(true)
     try {
       await onDeleteEverything()
-      // On success the caller signs out / resets — no further UI needed here.
+      // On success the caller signs out / resets â€” no further UI needed here.
     } catch {
-      onNotify?.("We couldn't finish deleting just now. Nothing was lost — try again in a moment.", "error")
+      onNotify?.("We couldn't finish deleting just now. Nothing was lost â€” try again in a moment.", "error")
       setIsDeleting(false)
     }
   }, [canDelete, onDeleteEverything, onNotify])
@@ -121,12 +121,12 @@ export function PrivacyDataScreen({
       width: "100%",
       padding: "14px 20px",
       borderRadius: borderRadius.full,
-      background: enabled ? "rgba(129, 140, 248, 0.85)" : "rgba(129, 140, 248, 0.25)",
+      background: enabled ? "var(--accent-500)" : "var(--accent-300)",
       border: "none",
       color: "var(--text)",
-      fontSize: 14,
+      fontSize: typography.body.fontSize,
       fontFamily: FONT_FAMILY,
-      fontWeight: 600,
+      fontWeight: fontWeights.semibold,
       cursor: enabled ? "pointer" : "not-allowed",
     }) as const
 
@@ -134,12 +134,12 @@ export function PrivacyDataScreen({
     width: "100%",
     padding: "14px 20px",
     borderRadius: borderRadius.full,
-    background: "rgba(255,255,255,0.04)",
+    background: "var(--fill-04)",
     border: "1px solid var(--border)",
     color: "var(--text)",
-    fontSize: 14,
+    fontSize: typography.body.fontSize,
     fontFamily: FONT_FAMILY,
-    fontWeight: 600,
+    fontWeight: fontWeights.semibold,
     cursor: "pointer",
   } as const
 
@@ -151,30 +151,30 @@ export function PrivacyDataScreen({
           background: "none",
           border: "none",
           color: "var(--sub)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           cursor: "pointer",
-          marginBottom: 16,
+          marginBottom: spacing.md,
           padding: "8px 0",
           fontFamily: FONT_FAMILY,
         }}
         aria-label="Go back"
       >
-        ← Back
+        â† Back
       </button>
 
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+      <h1 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", marginBottom: 6 }}>
         Privacy &amp; data
       </h1>
-      <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 24, lineHeight: 1.5 }}>
+      <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", marginBottom: spacing.lg, lineHeight: 1.5 }}>
         Your money data is yours. Here&apos;s exactly what Folio keeps, how to take a copy,
         and how to erase it all whenever you want.
       </p>
 
-      {/* ── Section 1: What's stored ─────────────────────────────────────── */}
+      {/* â”€â”€ Section 1: What's stored â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section aria-labelledby="privacy-stored-heading" style={{ marginBottom: 28 }}>
         <h2
           id="privacy-stored-heading"
-          style={{ ...sectionHeader, marginBottom: 12 }}
+          style={{ ...sectionHeader, marginBottom: spacing.sm }}
         >
           What&apos;s stored
         </h2>
@@ -185,15 +185,15 @@ export function PrivacyDataScreen({
             style={{
               display: "flex",
               alignItems: "flex-start",
-              gap: 12,
+              gap: spacing.sm,
               padding: "14px 0",
               borderBottom: "1px solid var(--border)",
             }}
           >
-            <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1.2 }}>👤</span>
+            <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.2 }}>ðŸ‘¤</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Profile</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, lineHeight: 1.4 }}>
+              <div style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>Profile</div>
+              <div style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 2, lineHeight: 1.4 }}>
                 {userEmail ? `Signed in as ${userEmail}` : "Your account and preferences"}
               </div>
             </div>
@@ -205,12 +205,12 @@ export function PrivacyDataScreen({
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: 12,
+                gap: spacing.sm,
                 padding: "14px 0",
                 borderBottom: idx < categories.length - 1 ? "1px solid var(--border)" : "none",
               }}
             >
-              <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1.2 }}>
+              <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.2 }}>
                 {cat.emoji}
               </span>
               <div style={{ flex: 1 }}>
@@ -219,15 +219,15 @@ export function PrivacyDataScreen({
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "baseline",
-                    gap: 8,
+                    gap: spacing.xs,
                   }}
                 >
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+                  <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
                     {cat.label}
                   </span>
                   <span
                     style={{
-                      fontSize: 14,
+                      fontSize: typography.body.fontSize,
                       color: "var(--sub)",
                       fontVariantNumeric: "tabular-nums",
                     }}
@@ -235,7 +235,7 @@ export function PrivacyDataScreen({
                     {cat.count}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, lineHeight: 1.4 }}>
+                <div style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 2, lineHeight: 1.4 }}>
                   {cat.note}
                 </div>
               </div>
@@ -246,26 +246,26 @@ export function PrivacyDataScreen({
         <p
           role="status"
           aria-live="polite"
-          style={{ fontSize: 12, color: "var(--muted)", marginTop: 10, lineHeight: 1.5 }}
+          style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 10, lineHeight: 1.5 }}
         >
           {totalItems === 0
-            ? "Nothing tracked yet — this fills in as you use Folio."
+            ? "Nothing tracked yet â€” this fills in as you use Folio."
             : `${totalItems} ${totalItems === 1 ? "item" : "items"} in total. All of it stays private to your account.`}
         </p>
       </section>
 
-      {/* ── Section 2: Export ────────────────────────────────────────────── */}
+      {/* â”€â”€ Section 2: Export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section aria-labelledby="privacy-export-heading" style={{ marginBottom: 28 }}>
         <h2
           id="privacy-export-heading"
-          style={{ ...sectionHeader, marginBottom: 12 }}
+          style={{ ...sectionHeader, marginBottom: spacing.sm }}
         >
           Take a copy
         </h2>
 
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-          <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 16, lineHeight: 1.5 }}>
-            Download everything above as a single file — yours to keep, back up, or move
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: spacing.md, lineHeight: 1.5 }}>
+            Download everything above as a single file â€” yours to keep, back up, or move
             anywhere.
           </p>
 
@@ -276,7 +276,7 @@ export function PrivacyDataScreen({
             style={{ ...primaryButton(true), marginBottom: onOpenReports || onExportCSV ? 12 : 0 }}
             aria-label="Export all of your Folio data as a single file"
           >
-            ⬇ Export everything
+            â¬‡ Export everything
           </motion.button>
 
           {onOpenReports && (
@@ -287,7 +287,7 @@ export function PrivacyDataScreen({
               style={{ ...secondaryButton, marginBottom: onExportCSV ? 12 : 0 }}
               aria-label="Open reports to filter and export by tag, merchant, or category"
             >
-              📄 Filtered reports (PDF)
+              ðŸ“„ Filtered reports (PDF)
             </motion.button>
           )}
 
@@ -299,17 +299,17 @@ export function PrivacyDataScreen({
               style={secondaryButton}
               aria-label="Export your transactions as a CSV spreadsheet"
             >
-              ⬇ Transactions (CSV)
+              â¬‡ Transactions (CSV)
             </motion.button>
           )}
         </GlassCard>
       </section>
 
-      {/* ── Section 3: Delete everything (GDPR / CCPA) ───────────────────── */}
+      {/* â”€â”€ Section 3: Delete everything (GDPR / CCPA) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section aria-labelledby="privacy-delete-heading">
         <h2
           id="privacy-delete-heading"
-          style={{ ...sectionHeader, marginBottom: 12, color: "var(--error)" }}
+          style={{ ...sectionHeader, marginBottom: spacing.sm, color: "var(--error)" }}
         >
           Delete everything
         </h2>
@@ -317,9 +317,9 @@ export function PrivacyDataScreen({
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
           {!showDeleteConfirm ? (
             <>
-              <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 16, lineHeight: 1.5 }}>
+              <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: spacing.md, lineHeight: 1.5 }}>
                 You can erase your account and every record above at any time. This is
-                permanent and can&apos;t be undone — so grab an export first if you want a copy.
+                permanent and can&apos;t be undone â€” so grab an export first if you want a copy.
               </p>
               <motion.button
                 onClick={() => setShowDeleteConfirm(true)}
@@ -332,9 +332,9 @@ export function PrivacyDataScreen({
                   background: "transparent",
                   border: "1px solid var(--error)",
                   color: "var(--error)",
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   cursor: "pointer",
                 }}
                 aria-label="Start deleting your account and all data"
@@ -344,17 +344,17 @@ export function PrivacyDataScreen({
             </>
           ) : (
             <div style={dangerZone}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--error)", marginBottom: 8 }}>
-                ⚠️ This erases everything
+              <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--error)", marginBottom: spacing.xs }}>
+                âš ï¸ This erases everything
               </p>
-              <p style={{ fontSize: 13, color: "var(--text)", marginBottom: 12, lineHeight: 1.5 }}>
+              <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", marginBottom: spacing.sm, lineHeight: 1.5 }}>
                 We&apos;ll permanently remove your profile, transactions, budgets, goals,
                 savings, funding sources, and everything else. There&apos;s no way to get it
                 back.
               </p>
               <label
                 htmlFor="privacy-delete-confirm"
-                style={{ fontSize: 13, color: "var(--sub)", display: "block", marginBottom: 8 }}
+                style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", display: "block", marginBottom: spacing.xs }}
               >
                 Type <strong>DELETE</strong> to confirm:
               </label>
@@ -369,8 +369,8 @@ export function PrivacyDataScreen({
                 style={{
                   width: "100%",
                   padding: "10px 12px",
-                  marginBottom: 12,
-                  fontSize: 14,
+                  marginBottom: spacing.sm,
+                  fontSize: typography.body.fontSize,
                   fontFamily: FONT_FAMILY,
                   color: "var(--text)",
                   background: "var(--color-sunken)",
@@ -380,7 +380,7 @@ export function PrivacyDataScreen({
                 }}
                 aria-label="Type DELETE to confirm account and data deletion"
               />
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: spacing.xs }}>
                 <motion.button
                   onClick={() => {
                     setShowDeleteConfirm(false)
@@ -392,11 +392,11 @@ export function PrivacyDataScreen({
                   style={{
                     flex: 1,
                     padding: "10px 16px",
-                    fontSize: 14,
-                    fontWeight: 500,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.medium,
                     fontFamily: FONT_FAMILY,
                     color: "var(--text)",
-                    background: "rgba(255, 255, 255, 0.06)",
+                    background: "var(--fill-06)",
                     border: "1px solid var(--border)",
                     borderRadius: borderRadius.sm,
                     cursor: isDeleting ? "not-allowed" : "pointer",
@@ -414,11 +414,11 @@ export function PrivacyDataScreen({
                   style={{
                     flex: 1,
                     padding: "10px 16px",
-                    fontSize: 14,
-                    fontWeight: 600,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: canDelete ? "var(--text)" : "var(--muted)",
-                    background: canDelete ? "var(--error)" : "rgba(255, 255, 255, 0.03)",
+                    background: canDelete ? "var(--error)" : "var(--fill-03)",
                     border: "none",
                     borderRadius: borderRadius.sm,
                     cursor: canDelete ? "pointer" : "not-allowed",
@@ -426,7 +426,7 @@ export function PrivacyDataScreen({
                   }}
                   aria-label="Permanently delete my account and all data"
                 >
-                  {isDeleting ? "Deleting…" : "Delete forever"}
+                  {isDeleting ? "Deletingâ€¦" : "Delete forever"}
                 </motion.button>
               </div>
             </div>

@@ -6,7 +6,9 @@ import { springs, useReducedMotion } from '@/lib/animations'
 import { BottomSheet } from './BottomSheet'
 import { signOut, updateProfilePreferences } from '@/lib/supabaseData'
 import { GlassCard } from './GlassCard'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING, shadows } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 import { validateHandle, normalizeHandle, HANDLE_ERRORS } from '@/lib/social/handles'
 import { FriendsSection } from './FriendsSection'
 
@@ -137,43 +139,43 @@ export function ProfileSheet({
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    fontSize: 14,
+    fontSize: typography.body.fontSize,
     fontFamily: FONT_FAMILY,
-    fontWeight: 400,
+    fontWeight: fontWeights.regular,
     color: 'var(--text)',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'var(--fill-05)',
+    border: '1px solid var(--fill-10)',
     borderRadius: 'var(--radius-sm)',
     padding: '10px 12px',
     outline: 'none',
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 12,
+    fontSize: typography['body-sm'].fontSize,
     fontFamily: FONT_FAMILY,
-    fontWeight: 500,
+    fontWeight: fontWeights.medium,
     color: 'var(--muted)',
-    marginBottom: 6,
+    marginBottom: spacing.xxs,
     display: 'block',
   }
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} ariaLabel="Account">
-      <div style={{ padding: '0 24px 32px' }}>
+      <div style={{ padding: `0 ${spacing.lg}px ${spacing.xl}px` }}>
         {/* Header */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: 24,
+            marginBottom: spacing.lg,
           }}
         >
           <h2
             style={{
               fontFamily: FONT_FAMILY,
-              fontSize: 20,
-              fontWeight: 600,
+              fontSize: typography.subhead.fontSize,
+              fontWeight: fontWeights.semibold,
               color: 'var(--text)',
             }}
           >
@@ -184,7 +186,7 @@ export function ProfileSheet({
             aria-label="Close"
             style={{
               color: 'var(--muted)',
-              padding: 4,
+              padding: spacing.xxs,
               cursor: 'pointer',
               background: 'transparent',
               border: 'none',
@@ -202,9 +204,9 @@ export function ProfileSheet({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 16,
-            padding: 20,
-            marginBottom: 20,
+            gap: spacing.md,
+            padding: HORIZONTAL_PADDING,
+            marginBottom: HORIZONTAL_PADDING,
           }}
         >
           {/* Avatar with initials */}
@@ -216,10 +218,10 @@ export function ProfileSheet({
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.15), rgba(217, 70, 239, 0.15))',
+              background: 'linear-gradient(135deg, var(--warning-200), var(--accent-200))',
               borderRadius: '50%',
-              fontSize: 18,
-              fontWeight: 600,
+              fontSize: typography.subhead.fontSize,
+              fontWeight: fontWeights.semibold,
               fontFamily: FONT_FAMILY,
               color: 'var(--text)',
             }}
@@ -237,9 +239,9 @@ export function ProfileSheet({
           <div style={{ minWidth: 0, flex: 1 }}>
             <p
               style={{
-                fontSize: 15,
+                fontSize: typography.body.fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: 'var(--text)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -251,10 +253,10 @@ export function ProfileSheet({
             {initialHandle && (
               <p
                 style={{
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 400,
-                  color: 'var(--accent, #a78bfa)',
+                  fontWeight: fontWeights.regular,
+                  color: 'var(--accent)',
                   marginTop: 2,
                 }}
               >
@@ -263,9 +265,9 @@ export function ProfileSheet({
             )}
             <p
               style={{
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 400,
+                fontWeight: fontWeights.regular,
                 color: 'var(--muted)',
                 marginTop: 4,
                 overflow: 'hidden',
@@ -283,12 +285,12 @@ export function ProfileSheet({
           <GlassCard
             elevation="low"
             style={{
-              padding: 20,
-              marginBottom: 20,
+              padding: HORIZONTAL_PADDING,
+              marginBottom: HORIZONTAL_PADDING,
             }}
           >
             {/* Display Name */}
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: spacing.md }}>
               <label style={labelStyle}>Display name</label>
               <input
                 type="text"
@@ -301,7 +303,7 @@ export function ProfileSheet({
             </div>
 
             {/* Handle */}
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: spacing.md }}>
               <label style={labelStyle}>Handle</label>
               <div style={{ position: 'relative' }}>
                 <span
@@ -310,7 +312,7 @@ export function ProfileSheet({
                     left: 12,
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    fontSize: 14,
+                    fontSize: typography.body.fontSize,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--muted)',
                     pointerEvents: 'none',
@@ -327,16 +329,16 @@ export function ProfileSheet({
                   style={{
                     ...inputStyle,
                     paddingLeft: 28,
-                    borderColor: handleError ? 'rgba(248, 113, 113, 0.5)' : 'rgba(255, 255, 255, 0.1)',
+                    borderColor: handleError ? 'var(--error-400)' : 'var(--fill-10)',
                   }}
                 />
               </div>
               {handleError && (
                 <p
                   style={{
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     fontFamily: FONT_FAMILY,
-                    color: 'var(--error, #f87171)',
+                    color: 'var(--error)',
                     marginTop: 4,
                   }}
                 >
@@ -345,7 +347,7 @@ export function ProfileSheet({
               )}
               <p
                 style={{
-                  fontSize: 11,
+                  fontSize: typography.caption.fontSize,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--dim)',
                   marginTop: 4,
@@ -356,7 +358,7 @@ export function ProfileSheet({
             </div>
 
             {/* Avatar URL */}
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: HORIZONTAL_PADDING }}>
               <label style={labelStyle}>Avatar URL</label>
               <input
                 type="url"
@@ -368,7 +370,7 @@ export function ProfileSheet({
               />
               <p
                 style={{
-                  fontSize: 11,
+                  fontSize: typography.caption.fontSize,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--dim)',
                   marginTop: 4,
@@ -384,17 +386,17 @@ export function ProfileSheet({
                 display: 'flex',
                 alignItems: 'flex-start',
                 justifyContent: 'space-between',
-                gap: 12,
-                padding: '12px 0',
-                borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                gap: spacing.sm,
+                padding: `${spacing.sm}px 0`,
+                borderTop: '1px solid var(--fill-06)',
               }}
             >
               <div style={{ flex: 1 }}>
                 <p
                   style={{
-                    fontSize: 14,
+                    fontSize: typography.body.fontSize,
                     fontFamily: FONT_FAMILY,
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                     color: 'var(--text)',
                     marginBottom: 4,
                   }}
@@ -403,7 +405,7 @@ export function ProfileSheet({
                 </p>
                 <p
                   style={{
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--muted)',
                     lineHeight: 1.4,
@@ -420,14 +422,14 @@ export function ProfileSheet({
                 style={{
                   width: 44,
                   height: 24,
-                  borderRadius: 12,
+                  borderRadius: radius.control,
                   border: 'none',
                   cursor: 'pointer',
                   flexShrink: 0,
                   marginTop: 2,
                   background: discoverable
-                    ? 'rgba(167, 139, 250, 0.6)'
-                    : 'rgba(255, 255, 255, 0.12)',
+                    ? 'var(--accent-400)'
+                    : 'var(--fill-12)',
                   position: 'relative',
                   transition: 'background 0.2s',
                 }}
@@ -440,16 +442,16 @@ export function ProfileSheet({
                     width: 20,
                     height: 20,
                     borderRadius: '50%',
-                    background: '#fff',
+                    background: 'var(--text)',
                     transition: 'left 0.2s',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    boxShadow: shadows.sm,
                   }}
                 />
               </button>
             </div>
 
             {/* Save / Cancel */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <div style={{ display: 'flex', gap: spacing.xs, marginTop: spacing.md }}>
               <motion.button
                 onClick={handleSave}
                 disabled={isSaving}
@@ -458,12 +460,12 @@ export function ProfileSheet({
                 style={{
                   flex: 1,
                   height: 40,
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                   color: 'var(--text)',
-                  background: 'rgba(167, 139, 250, 0.15)',
-                  border: '1px solid rgba(167, 139, 250, 0.3)',
+                  background: 'var(--accent-200)',
+                  border: '1px solid var(--accent-300)',
                   borderRadius: 'var(--radius-sm)',
                   cursor: isSaving ? 'not-allowed' : 'pointer',
                   opacity: isSaving ? 0.6 : 1,
@@ -478,12 +480,12 @@ export function ProfileSheet({
                 style={{
                   flex: 1,
                   height: 40,
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                   color: 'var(--muted)',
                   background: 'transparent',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid var(--fill-10)',
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                 }}
@@ -507,22 +509,22 @@ export function ProfileSheet({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(255, 255, 255, 0.04)',
+              background: 'var(--fill-04)',
               color: 'var(--text)',
               fontFamily: FONT_FAMILY,
-              fontSize: 14,
-              fontWeight: 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.medium,
               borderRadius: 'var(--radius-md)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              border: '1px solid var(--fill-10)',
               cursor: 'pointer',
-              marginBottom: 12,
+              marginBottom: spacing.sm,
               transition: 'all 0.15s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'
+              e.currentTarget.style.background = 'var(--fill-06)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'
+              e.currentTarget.style.background = 'var(--fill-04)'
             }}
           >
             Edit profile
@@ -550,19 +552,19 @@ export function ProfileSheet({
               background: 'transparent',
               color: 'var(--error)',
               fontFamily: FONT_FAMILY,
-              fontSize: 15,
-              fontWeight: 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.medium,
               borderRadius: 'var(--radius-md)',
-              border: '1px solid rgba(248, 113, 113, 0.3)',
+              border: '1px solid var(--error-300)',
               cursor: 'pointer',
               transition: 'all 0.15s',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = 'var(--error)'
-              e.currentTarget.style.background = 'rgba(248, 113, 113, 0.08)'
+              e.currentTarget.style.background = 'var(--error-100)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(248, 113, 113, 0.3)'
+              e.currentTarget.style.borderColor = 'var(--error-300)'
               e.currentTarget.style.background = 'transparent'
             }}
           >
@@ -571,9 +573,9 @@ export function ProfileSheet({
         ) : (
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
-              fontWeight: 400,
+              fontWeight: fontWeights.regular,
               color: 'var(--muted)',
               textAlign: 'center',
             }}
@@ -585,12 +587,12 @@ export function ProfileSheet({
         {/* App info */}
         <p
           style={{
-            fontSize: 11,
+            fontSize: typography.caption.fontSize,
             fontFamily: FONT_FAMILY,
-            fontWeight: 400,
+            fontWeight: fontWeights.regular,
             textAlign: 'center',
             color: 'var(--dim)',
-            marginTop: 24,
+            marginTop: spacing.lg,
           }}
         >
           folio · personal finance

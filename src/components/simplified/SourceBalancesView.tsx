@@ -3,8 +3,9 @@
 import { useMemo } from "react"
 import { Card } from "@/components/ui/Card"
 import { Icon } from "@/components/ui/Icon"
-import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeader, borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { sectionHeader } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { computeSourceBalances } from "@/lib/sourceBalances"
 import type { FundingSource } from "@/lib/fundingSources"
 import type { Transaction } from "@/types"
@@ -60,7 +61,7 @@ export function SourceBalancesView({
   const balanceEntries = Array.from(balances.values())
 
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: spacing.md }}>
       {/* Section heading — using shared sectionHeader token */}
       <p style={{ ...sectionHeader, marginBottom: 10 }}>
         Where my money is
@@ -71,7 +72,7 @@ export function SourceBalancesView({
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: 10,
+          gap: spacing.sm,
         }}
       >
         {balanceEntries.map((balance) => (
@@ -79,7 +80,7 @@ export function SourceBalancesView({
             key={balance.sourceId}
             padding="12px 14px"
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
               {/* Icon chip replacing emoji */}
               <span
                 aria-hidden="true"
@@ -90,7 +91,7 @@ export function SourceBalancesView({
                   width: 28,
                   height: 28,
                   flexShrink: 0,
-                  borderRadius: borderRadius.sm,
+                  borderRadius: radius.control,
                   background: "color-mix(in srgb, var(--accent) 12%, transparent)",
                   color: "var(--accent)",
                 }}
@@ -100,7 +101,7 @@ export function SourceBalancesView({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
                   style={{
-                    fontSize: 11,
+                    fontSize: typography.caption.fontSize,
                     color: "var(--sub)",
                     fontFamily: FONT_FAMILY,
                     marginBottom: 2,
@@ -113,8 +114,8 @@ export function SourceBalancesView({
                 </p>
                 <p
                   style={{
-                    fontSize: 16,
-                    fontWeight: 700,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.bold,
                     fontFamily: FONT_FAMILY,
                     fontVariantNumeric: "tabular-nums",
                     color:

@@ -29,8 +29,9 @@ import { parseNaturalLog } from "@/lib/naturalLogParser"
 import type { QuickCaptureSource } from "@/lib/quickCapture"
 import { getCategoryEmoji } from "@/lib/vocabulary"
 import { BottomSheet } from "@/components/ui/BottomSheet"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -149,7 +150,7 @@ export function QuickLogConfirmSheet({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 20,
+          gap: HORIZONTAL_PADDING,
           padding: "8px 20px 20px",
           fontFamily: FONT_FAMILY,
         }}
@@ -159,14 +160,14 @@ export function QuickLogConfirmSheet({
           <h2
             style={{
               margin: 0,
-              fontSize: 18,
-              fontWeight: 600,
+              fontSize: typography.subhead.fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--text)",
             }}
           >
             {headline}
           </h2>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--sub)" }}>
+          <p style={{ margin: 0, fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
             Nothing&apos;s saved yet — check it over first.
           </p>
         </div>
@@ -176,33 +177,33 @@ export function QuickLogConfirmSheet({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: spacing.md,
             padding: "16px 18px",
-            background: "rgba(167, 139, 250, 0.08)",
-            border: "1px solid rgba(167, 139, 250, 0.25)",
-            borderRadius: borderRadius.md,
+            background: "var(--accent-100)",
+            border: "1px solid var(--accent-300)",
+            borderRadius: radius.control,
           }}
         >
-          <span style={{ fontSize: 32, lineHeight: 1 }} aria-hidden="true">
+          <span style={{ fontSize: typography.title.fontSize, lineHeight: 1 }} aria-hidden="true">
             {getCategoryEmoji(parsed.category)}
           </span>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
             <span
               style={{
-                fontSize: 24,
-                fontWeight: 700,
+                fontSize: typography.headline.fontSize,
+                fontWeight: fontWeights.bold,
                 color: "var(--text)",
                 fontVariantNumeric: "tabular-nums",
               }}
             >
               ${formatAmount(parsed.amount)}
             </span>
-            <span style={{ fontSize: 13, color: "var(--sub)", fontWeight: 500 }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", fontWeight: fontWeights.medium }}>
               {categoryLabel(parsed.category)}
               {parsed.note ? ` · ${parsed.note}` : ""}
             </span>
             {fundingSource && (
-              <span style={{ fontSize: 12, color: "var(--muted)" }}>
+              <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)" }}>
                 {fundingSource.label}
               </span>
             )}
@@ -210,7 +211,7 @@ export function QuickLogConfirmSheet({
         </div>
 
         {/* Actions — explicit confirm required before anything is persisted */}
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: spacing.sm }}>
           <button
             type="button"
             onClick={handleEdit}
@@ -218,11 +219,11 @@ export function QuickLogConfirmSheet({
               flex: 1,
               height: 48,
               background: "transparent",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
-              borderRadius: borderRadius.sm,
+              border: "1px solid var(--fill-12)",
+              borderRadius: radius.control,
               color: "var(--sub)",
-              fontSize: 14,
-              fontWeight: 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.medium,
               cursor: "pointer",
               fontFamily: FONT_FAMILY,
             }}
@@ -235,12 +236,12 @@ export function QuickLogConfirmSheet({
             style={{
               flex: 2,
               height: 48,
-              background: "rgba(167, 139, 250, 0.25)",
-              border: "1px solid rgba(167, 139, 250, 0.5)",
-              borderRadius: borderRadius.sm,
+              background: "var(--accent-300)",
+              border: "1px solid var(--accent-400)",
+              borderRadius: radius.control,
               color: "var(--text)",
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               cursor: "pointer",
               fontFamily: FONT_FAMILY,
             }}

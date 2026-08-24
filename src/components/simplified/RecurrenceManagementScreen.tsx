@@ -16,11 +16,12 @@ import {
   type RecurrenceFrequency,
   type RecurrenceStatus,
 } from "@/lib/recurrenceDetector"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   sectionHeader,
   borderRadius,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -58,7 +59,7 @@ function frequencyLabel(freq: RecurrenceFrequency): string {
 
 function confidenceBadge(confidence: number): { label: string; color: string } {
   if (confidence >= 0.8) return { label: "Very likely", color: "var(--success, #4ade80)" }
-  if (confidence >= 0.6) return { label: "Likely", color: "var(--accent, #a78bfa)" }
+  if (confidence >= 0.6) return { label: "Likely", color: "var(--accent)" }
   return { label: "Maybe", color: "var(--muted, #6b7280)" }
 }
 
@@ -109,10 +110,10 @@ const cardStyle: React.CSSProperties = {
 const actionBtnStyle: React.CSSProperties = {
   background: "none",
   border: "1px solid var(--border)",
-  borderRadius: 8,
+  borderRadius: radius.control,
   padding: "6px 12px",
-  fontSize: 12,
-  fontWeight: 500,
+  fontSize: typography['body-sm'].fontSize,
+  fontWeight: fontWeights.medium,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   cursor: "pointer",
@@ -207,17 +208,17 @@ export function RecurrenceManagementScreen({
       {/* Header — hidden when embedded */}
       {!embedded && (
       <div style={headerStyle}>
-        <h1 style={{ fontSize: 18, fontWeight: 600, color: "var(--text)", margin: 0 }}>
+        <h1 style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0 }}>
           Recurring Expenses
         </h1>
         <motion.button
           onClick={onClose}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           style={{
             background: "none",
             border: "none",
-            fontSize: 16,
+            fontSize: typography.body.fontSize,
             color: "var(--sub)",
             cursor: "pointer",
             padding: "4px 8px",
@@ -230,21 +231,21 @@ export function RecurrenceManagementScreen({
       )}
       <div style={contentStyle}>
         {/* Summary card */}
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 24 }}>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.lg }}>
           <p style={sectionHeader}>Predicted Monthly Total</p>
           <p style={{
-            fontSize: 22,
-            fontWeight: 700,
+            fontSize: typography.headline.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             margin: 0,
             fontVariantNumeric: "tabular-nums",
           }}>
             ${Math.round(monthlyTotal).toLocaleString("en-US")}
-            <span style={{ fontSize: 13, fontWeight: 400, color: "var(--sub)", marginLeft: 3 }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 3 }}>
               /mo
             </span>
           </p>
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 4 }}>
             {confirmed.length} confirmed · {suggested.length} suggested
           </p>
         </GlassCard>
@@ -252,7 +253,7 @@ export function RecurrenceManagementScreen({
         {/* Confirmed section */}
         {confirmed.length > 0 && (
           <section aria-label="Confirmed recurring expenses" style={{ marginBottom: 28 }}>
-            <h2 style={{ ...sectionHeader, marginBottom: 12 }}>Confirmed</h2>
+            <h2 style={{ ...sectionHeader, marginBottom: spacing.sm }}>Confirmed</h2>
             {confirmed.map(r => (
               <RecurrenceCard
                 key={r.id}
@@ -266,8 +267,8 @@ export function RecurrenceManagementScreen({
         {/* Suggested (new discoveries) section */}
         {suggested.length > 0 && (
           <section aria-label="Suggested recurring expenses" style={{ marginBottom: 28 }}>
-            <h2 style={{ ...sectionHeader, marginBottom: 12 }}>Discovered</h2>
-            <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 12, lineHeight: 1.4 }}>
+            <h2 style={{ ...sectionHeader, marginBottom: spacing.sm }}>Discovered</h2>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: spacing.sm, lineHeight: 1.4 }}>
               We spotted these patterns in your spending. Confirm to track them, or dismiss if they're not recurring.
             </p>
             {suggested.map(r => (
@@ -285,7 +286,7 @@ export function RecurrenceManagementScreen({
         {/* Paused section */}
         {paused.length > 0 && (
           <section aria-label="Paused recurring expenses" style={{ marginBottom: 28 }}>
-            <h2 style={{ ...sectionHeader, marginBottom: 12 }}>Paused</h2>
+            <h2 style={{ ...sectionHeader, marginBottom: spacing.sm }}>Paused</h2>
             {paused.map(r => (
               <RecurrenceCard
                 key={r.id}
@@ -300,11 +301,11 @@ export function RecurrenceManagementScreen({
         {/* Empty state */}
         {confirmed.length === 0 && suggested.length === 0 && paused.length === 0 && (
           <div style={{ textAlign: "center", padding: "40px 20px" }}>
-            <p style={{ fontSize: 32, marginBottom: 8 }}>🔍</p>
-            <p style={{ fontSize: 15, color: "var(--text)", fontWeight: 500, marginBottom: 4 }}>
+            <p style={{ fontSize: typography.title.fontSize, marginBottom: spacing.xs }}>🔍</p>
+            <p style={{ fontSize: typography.body.fontSize, color: "var(--text)", fontWeight: fontWeights.medium, marginBottom: 4 }}>
               No recurring patterns detected yet
             </p>
-            <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.4 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.4 }}>
               Keep logging expenses and we'll spot patterns automatically — usually takes about 3 months of data.
             </p>
           </div>
@@ -342,12 +343,12 @@ function RecurrenceCard({
   return (
     <GlassCard elevation="low" style={cardStyle}>
       {/* Main row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 20 }}>{emojiForCategory(recurrence.category)}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+        <span style={{ fontSize: typography.subhead.fontSize }}>{emojiForCategory(recurrence.category)}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             color: "var(--text)",
             margin: 0,
             overflow: "hidden",
@@ -356,14 +357,14 @@ function RecurrenceCard({
           }}>
             {recurrence.label}
           </p>
-          <p style={{ fontSize: 12, color: "var(--muted)", margin: 0, marginTop: 2 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: 0, marginTop: 2 }}>
             {frequencyLabel(recurrence.frequency)} · Next: {formatDateShort(recurrence.nextOccurrence)}
           </p>
         </div>
         <div style={{ textAlign: "right" }}>
           <p style={{
-            fontSize: 14,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             color: "var(--text)",
             margin: 0,
             fontVariantNumeric: "tabular-nums",
@@ -371,7 +372,7 @@ function RecurrenceCard({
             ~${recurrence.predictedAmount.toFixed(0)}
           </p>
           {recurrence.amountTolerance > 0 && (
-            <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, marginTop: 1 }}>
+            <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", margin: 0, marginTop: 1 }}>
               ±${recurrence.amountTolerance.toFixed(0)}
             </p>
           )}
@@ -379,18 +380,18 @@ function RecurrenceCard({
       </div>
 
       {/* Confidence badge */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: spacing.xs }}>
         <span style={{
-          fontSize: 11,
-          fontWeight: 500,
+          fontSize: typography.caption.fontSize,
+          fontWeight: fontWeights.medium,
           color: badge.color,
           background: `${badge.color}15`,
           padding: "2px 8px",
-          borderRadius: 10,
+          borderRadius: radius.control,
         }}>
           {badge.label}
         </span>
-        <span style={{ fontSize: 11, color: "var(--muted)" }}>
+        <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)" }}>
           {recurrence.occurrenceCount} occurrences
         </span>
       </div>
@@ -398,9 +399,9 @@ function RecurrenceCard({
       {/* Discovery copy */}
       {showDiscoveryCopy && recurrence.discoveryCopy && (
         <p style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
-          marginTop: 8,
+          marginTop: spacing.xs,
           lineHeight: 1.4,
           fontStyle: "italic",
         }}>
@@ -409,7 +410,7 @@ function RecurrenceCard({
       )}
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+      <div style={{ display: "flex", gap: spacing.xs, marginTop: 10 }}>
         {onConfirm && (
           <motion.button
             onClick={onConfirm}
@@ -417,9 +418,9 @@ function RecurrenceCard({
             transition={springs.snappy}
             style={{
               ...actionBtnStyle,
-              background: "var(--accent, #a78bfa)",
-              borderColor: "var(--accent, #a78bfa)",
-              color: "#fff",
+              background: "var(--accent)",
+              borderColor: "var(--accent)",
+              color: "var(--text)",
             }}
             aria-label={`Confirm ${recurrence.label} as recurring`}
           >
@@ -455,9 +456,9 @@ function RecurrenceCard({
             transition={springs.snappy}
             style={{
               ...actionBtnStyle,
-              background: "var(--accent, #a78bfa)",
-              borderColor: "var(--accent, #a78bfa)",
-              color: "#fff",
+              background: "var(--accent)",
+              borderColor: "var(--accent)",
+              color: "var(--text)",
             }}
             aria-label={`Resume tracking ${recurrence.label}`}
           >

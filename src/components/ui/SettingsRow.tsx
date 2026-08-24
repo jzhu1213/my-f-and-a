@@ -14,6 +14,7 @@
 
 import type { CSSProperties, ReactNode } from "react"
 import { FONT_FAMILY, pxToRem } from "@/styles/typography"
+import { fills } from "@/styles/shared"
 
 export interface SettingsRowProps {
   /** Primary label text */
@@ -43,7 +44,7 @@ export function SettingsRow({
         alignItems: "center",
         padding: "12px 0",
         borderBottom: separator
-          ? "1px solid rgba(255, 255, 255, 0.06)"
+          ? `1px solid ${fills[6]}`
           : "none",
         ...style,
       }}

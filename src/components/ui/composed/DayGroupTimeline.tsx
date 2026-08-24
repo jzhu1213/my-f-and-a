@@ -25,7 +25,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { TransactionRow } from "@/components/ui/composed/TransactionRow"
 import { SwipeRevealActions } from "@/components/ui/composed/SwipeRevealActions"
 import { UndoToast } from "@/components/ui/composed/UndoToast"
-import { typography, FONT_FAMILY, TABULAR_NUMS } from "@/styles/typography"
+import { typography, FONT_FAMILY, TABULAR_NUMS, fontWeights } from '@/styles/typography'
 import { textColors } from "@/styles/colors"
 import { spacingScale } from "@/styles/layout"
 import { elevations } from "@/styles/surfaces"
@@ -194,7 +194,7 @@ const subtotalStyle: React.CSSProperties = {
   ...TABULAR_NUMS,
   fontFamily: FONT_FAMILY,
   fontSize: typography["body-sm"].fontSize,
-  fontWeight: 600,
+  fontWeight: fontWeights.semibold,
   lineHeight: typography["body-sm"].lineHeight,
   color: textColors.muted,
 }

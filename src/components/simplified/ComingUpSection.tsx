@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { sectionHeader } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { getCategoryEmoji } from "@/lib/vocabulary"
 import {
   getComingUpCollapsed,
@@ -112,7 +113,7 @@ export function ComingUpSection({
       animate={{ opacity: 1, y: 0 }}
       transition={springs.gentle}
       aria-label="Coming up — upcoming predicted expenses"
-      style={{ marginBottom: 16 }}
+      style={{ marginBottom: spacing.md }}
     >
       {/* Section header with collapse toggle */}
       <button
@@ -134,17 +135,17 @@ export function ComingUpSection({
           justifyContent: "space-between",
           width: "100%",
           marginBottom: isCollapsed ? 0 : 10,
-          borderRadius: 4,
+          borderRadius: radius.min,
         }}
       >
         <h3 style={{ ...sectionHeader, margin: 0 }}>
           Coming up
         </h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
           {hasSuggestions && suggestedEntriesTotal != null && suggestedEntriesTotal > 0 && (
             <span
               style={{
-                fontSize: 11,
+                fontSize: typography.caption.fontSize,
                 color: "var(--muted)",
                 fontFamily: FONT_FAMILY,
               }}
@@ -156,7 +157,7 @@ export function ComingUpSection({
             animate={{ rotate: isCollapsed ? -90 : 0 }}
             transition={springs.snappy}
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
               opacity: 0.7,
               display: "inline-block",
@@ -244,13 +245,13 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 8,
-        padding: "8px 0",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
+        gap: spacing.xs,
+        padding: `${spacing.xs}px 0`,
+        borderBottom: "1px solid var(--fill-04)",
       }}
     >
       {/* Emoji */}
-      <span style={{ fontSize: 14, flexShrink: 0 }} aria-hidden="true">
+      <span style={{ fontSize: typography.body.fontSize, flexShrink: 0 }} aria-hidden="true">
         {emoji}
       </span>
 
@@ -258,10 +259,10 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
       <span
         style={{
           flex: 1,
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--text)",
           fontFamily: FONT_FAMILY,
-          fontWeight: 400,
+          fontWeight: fontWeights.regular,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -273,7 +274,7 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
       {/* Amount */}
       <span
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
           fontFamily: FONT_FAMILY,
           fontVariantNumeric: "tabular-nums",
@@ -286,7 +287,7 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
       {/* Days until */}
       <span
         style={{
-          fontSize: 11,
+          fontSize: typography.caption.fontSize,
           color: "var(--muted)",
           fontFamily: FONT_FAMILY,
           flexShrink: 0,
@@ -304,14 +305,14 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
           onClick={() => onPreLog(item)}
           aria-label={`Pre-log ${item.label} for ~$${Math.round(item.predictedAmount)}`}
           style={{
-            background: "rgba(74, 222, 128, 0.1)",
+            background: "var(--success-100)",
             border: "none",
             padding: "2px 6px",
             margin: 0,
             font: "inherit",
             cursor: "pointer",
-            fontSize: 14,
-            borderRadius: 4,
+            fontSize: typography.body.fontSize,
+            borderRadius: radius.min,
             color: "var(--success)",
             lineHeight: 1,
           }}
@@ -323,14 +324,14 @@ function ComingUpRow({ item, onPreLog, onDismiss }: ComingUpRowProps) {
           onClick={() => onDismiss(item.id)}
           aria-label={`Dismiss ${item.label} from upcoming`}
           style={{
-            background: "rgba(255, 255, 255, 0.04)",
+            background: "var(--fill-04)",
             border: "none",
             padding: "2px 6px",
             margin: 0,
             font: "inherit",
             cursor: "pointer",
-            fontSize: 14,
-            borderRadius: 4,
+            fontSize: typography.body.fontSize,
+            borderRadius: radius.min,
             color: "var(--muted)",
             lineHeight: 1,
           }}

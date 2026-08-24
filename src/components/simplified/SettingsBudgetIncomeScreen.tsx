@@ -13,9 +13,10 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { spacingScale } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, fontWeights } from '@/styles/typography'
 import { textColors, colorRamp } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
+import { ListRow } from "@/components/ui/primitives/ListRow"
 import { SettingsSubScreen } from "./SettingsSubScreen"
 import { SettingsTermScheduleScreen } from "./SettingsTermScheduleScreen"
 import { SettingsSpendDownPlansScreen } from "./SettingsSpendDownPlansScreen"
@@ -66,7 +67,7 @@ function SectionHeading({ children, id }: { children: string; id?: string }) {
         color: textColors.muted,
         margin: 0,
         marginBottom: spacingScale["12"],
-        fontWeight: 500,
+        fontWeight: fontWeights.medium,
       }}
     >
       {children}
@@ -75,7 +76,7 @@ function SectionHeading({ children, id }: { children: string; id?: string }) {
 }
 
 // ============================================================================
-// Link row
+// Link row (uses ListRow primitive)
 // ============================================================================
 
 interface LinkRowProps {
@@ -86,44 +87,37 @@ interface LinkRowProps {
 
 function LinkRow({ label, badge, onPress }: LinkRowProps) {
   return (
-    <button
-      type="button"
-      onClick={onPress}
+    <ListRow
+      variant="dense"
+      onPress={onPress}
+      aria-label={label}
       style={{
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
         background: elevations.resting.fill,
         border: `1px solid ${elevations.resting.border}`,
         borderRadius: radius.control,
-        cursor: "pointer",
-        textAlign: "left",
       }}
     >
-      <span style={{ ...typography.body, color: textColors.text }}>
+      <span style={{ flex: 1, ...typography.body, color: textColors.text }}>
         {label}
       </span>
-      <span style={{ display: "flex", alignItems: "center", gap: spacingScale["8"] }}>
-        {badge !== undefined && (
-          <span
-            style={{
-              ...typography.caption,
-              color: textColors.text,
-              background: colorRamp.accent[50],
-              border: `1px solid ${colorRamp.accent[300]}`,
-              borderRadius: "999px",
-              padding: `2px ${spacingScale["8"]}`,
-              fontWeight: 500,
-            }}
-          >
-            {badge}
-          </span>
-        )}
-        <span style={{ ...typography.body, color: textColors.muted }}>›</span>
-      </span>
-    </button>
+      {badge !== undefined && (
+        <span
+          style={{
+            ...typography.caption,
+            color: textColors.text,
+            background: colorRamp.accent[50],
+            border: `1px solid ${colorRamp.accent[300]}`,
+            borderRadius: "999px",
+            padding: `2px ${spacingScale["8"]}`,
+            fontWeight: fontWeights.medium,
+            flexShrink: 0,
+          }}
+        >
+          {badge}
+        </span>
+      )}
+      <span aria-hidden="true" style={{ ...typography.body, color: textColors.muted, flexShrink: 0 }}>›</span>
+    </ListRow>
   )
 }
 
@@ -216,7 +210,7 @@ export function SettingsBudgetIncomeScreen({
             padding: 0,
             ...typography["body-sm"],
             color: colorRamp.accent[400],
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
           }}
         >
           Manage limits →

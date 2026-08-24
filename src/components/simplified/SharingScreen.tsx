@@ -18,7 +18,7 @@ import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -166,9 +166,9 @@ export function SharingScreen({
           background: "none",
           border: "none",
           color: "var(--sub)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           cursor: "pointer",
-          marginBottom: 16,
+          marginBottom: spacing.md,
           padding: "8px 0",
           fontFamily: FONT_FAMILY,
         }}
@@ -180,19 +180,19 @@ export function SharingScreen({
       {/* Title */}
       <h2
         style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: typography.headline.fontSize,
+          fontWeight: fontWeights.bold,
           color: "var(--text)",
-          marginBottom: 8,
+          marginBottom: spacing.xs,
         }}
       >
         Sharing
       </h2>
       <p
         style={{
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           color: "var(--sub)",
-          marginBottom: 24,
+          marginBottom: spacing.lg,
           lineHeight: 1.5,
         }}
       >
@@ -201,10 +201,10 @@ export function SharingScreen({
       </p>
 
       {/* Info card */}
-      <GlassCard elevation="low" style={{ padding: "16px 18px", marginBottom: 20 }}>
-        <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.6 }}>
-          <span style={{ fontSize: 15 }} aria-hidden="true">🔒</span>{" "}
-          <strong style={{ color: "var(--text)", fontWeight: 500 }}>You&apos;re in control:</strong>{" "}
+      <GlassCard elevation="low" style={{ padding: "16px 18px", marginBottom: HORIZONTAL_PADDING }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.6 }}>
+          <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">🔒</span>{" "}
+          <strong style={{ color: "var(--text)", fontWeight: fontWeights.medium }}>You&apos;re in control:</strong>{" "}
           links are read-only, you pick exactly what they show, they expire on
           your schedule, and you can revoke any of them anytime. No individual
           purchases or amounts are ever shared.
@@ -213,7 +213,7 @@ export function SharingScreen({
 
       {/* Active share links */}
       {activeLinks.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={{ ...sectionHeader }}>Active links</p>
           {activeLinks.map((link, idx) => (
             <div
@@ -232,8 +232,8 @@ export function SharingScreen({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
                   style={{
-                    fontSize: 14,
-                    fontWeight: 500,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.medium,
                     color: "var(--text)",
                     marginBottom: 2,
                   }}
@@ -242,7 +242,7 @@ export function SharingScreen({
                 </p>
                 <p
                   style={{
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     color: "var(--muted)",
                   }}
                 >
@@ -253,7 +253,7 @@ export function SharingScreen({
                 </p>
                 <p
                   style={{
-                    fontSize: 11,
+                    fontSize: typography.caption.fontSize,
                     color: "var(--muted)",
                     marginTop: 2,
                   }}
@@ -265,25 +265,25 @@ export function SharingScreen({
                 </p>
               </div>
 
-              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: spacing.xs, flexShrink: 0 }}>
                 {/* Copy button */}
                 <motion.button
                   onClick={() => handleCopy(link.token)}
-                  whileTap={{ scale: 0.92 }}
+                  whileTap={{ scale: 0.95 }}
                   transition={springs.snappy}
                   style={{
                     padding: "6px 12px",
                     borderRadius: borderRadius.full,
                     background: copiedToken === link.token
-                      ? "rgba(6, 214, 160, 0.15)"
-                      : "rgba(255, 255, 255, 0.06)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                      ? "var(--success-200)"
+                      : "var(--fill-06)",
+                    border: "1px solid var(--fill-10)",
                     color: copiedToken === link.token
                       ? "var(--success)"
                       : "var(--sub)",
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     fontFamily: FONT_FAMILY,
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                     cursor: "pointer",
                   }}
                   aria-label={`Copy link for ${link.label}`}
@@ -294,17 +294,17 @@ export function SharingScreen({
                 {/* Revoke button */}
                 <motion.button
                   onClick={() => handleRevoke(link.id)}
-                  whileTap={{ scale: 0.92 }}
+                  whileTap={{ scale: 0.95 }}
                   transition={springs.snappy}
                   style={{
                     padding: "6px 12px",
                     borderRadius: borderRadius.full,
-                    background: "rgba(248, 113, 113, 0.08)",
-                    border: "1px solid rgba(248, 113, 113, 0.2)",
+                    background: "var(--error-100)",
+                    border: "1px solid var(--error-200)",
                     color: "var(--error)",
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     fontFamily: FONT_FAMILY,
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                     cursor: "pointer",
                   }}
                   aria-label={`Revoke link for ${link.label}`}
@@ -318,13 +318,13 @@ export function SharingScreen({
       )}
 
       {/* Create new link */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
         <p style={{ ...sectionHeader }}>
           {activeLinks.length > 0 ? "Share with someone else" : "Create a share link"}
         </p>
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             marginBottom: 14,
             lineHeight: 1.5,
@@ -340,7 +340,7 @@ export function SharingScreen({
             <label
               htmlFor="share-label-input"
               style={{
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--sub)",
                 display: "block",
                 marginBottom: 6,
@@ -363,9 +363,9 @@ export function SharingScreen({
                 width: "100%",
                 background: "transparent",
                 border: "none",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
+                borderBottom: "1px solid var(--fill-15)",
                 outline: "none",
-                fontSize: 14,
+                fontSize: typography.body.fontSize,
                 fontFamily: FONT_FAMILY,
                 color: "var(--text)",
                 padding: "8px 0",
@@ -377,15 +377,15 @@ export function SharingScreen({
             <fieldset style={{ border: "none", padding: 0, margin: "0 0 18px" }}>
               <legend
                 style={{
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   color: "var(--sub)",
-                  marginBottom: 8,
+                  marginBottom: spacing.xs,
                   padding: 0,
                 }}
               >
                 When should it expire?
               </legend>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: spacing.xs }}>
                 {EXPIRY_OPTIONS.map(opt => {
                   const selected = expiryDays === opt.days
                   return (
@@ -400,15 +400,15 @@ export function SharingScreen({
                         padding: "7px 14px",
                         borderRadius: borderRadius.full,
                         background: selected
-                          ? "rgba(129, 140, 248, 0.8)"
-                          : "rgba(255, 255, 255, 0.06)",
+                          ? "var(--accent-500)"
+                          : "var(--fill-06)",
                         border: selected
-                          ? "1px solid rgba(129, 140, 248, 0.9)"
-                          : "1px solid rgba(255, 255, 255, 0.1)",
+                          ? "1px solid var(--accent-500)"
+                          : "1px solid var(--fill-10)",
                         color: selected ? "var(--text)" : "var(--sub)",
-                        fontSize: 12,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
-                        fontWeight: 500,
+                        fontWeight: fontWeights.medium,
                         cursor: "pointer",
                       }}
                     >
@@ -423,15 +423,15 @@ export function SharingScreen({
             <fieldset style={{ border: "none", padding: 0, margin: "0 0 18px" }}>
               <legend
                 style={{
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   color: "var(--sub)",
-                  marginBottom: 8,
+                  marginBottom: spacing.xs,
                   padding: 0,
                 }}
               >
                 What can they see?
               </legend>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
                 {ALL_SHARE_SECTIONS.map(section => {
                   const checked = scopeSections.includes(section)
                   const meta = SECTION_META[section]
@@ -441,7 +441,7 @@ export function SharingScreen({
                       style={{
                         display: "flex",
                         alignItems: "flex-start",
-                        gap: 10,
+                        gap: spacing.sm,
                         cursor: "pointer",
                       }}
                     >
@@ -451,7 +451,7 @@ export function SharingScreen({
                         onChange={() => toggleSection(section)}
                         style={{
                           marginTop: 2,
-                          accentColor: "rgba(129, 140, 248, 1)",
+                          accentColor: "var(--accent-500)",
                           width: 16,
                           height: 16,
                           cursor: "pointer",
@@ -460,7 +460,7 @@ export function SharingScreen({
                       <span>
                         <span
                           style={{
-                            fontSize: 13,
+                            fontSize: typography['body-sm'].fontSize,
                             color: "var(--text)",
                             fontFamily: FONT_FAMILY,
                             display: "block",
@@ -470,7 +470,7 @@ export function SharingScreen({
                         </span>
                         <span
                           style={{
-                            fontSize: 11,
+                            fontSize: typography.caption.fontSize,
                             color: "var(--muted)",
                             fontFamily: FONT_FAMILY,
                           }}
@@ -485,9 +485,9 @@ export function SharingScreen({
               {scopeSections.length === 0 && (
                 <p
                   style={{
-                    fontSize: 11,
+                    fontSize: typography.caption.fontSize,
                     color: "var(--error)",
-                    marginTop: 8,
+                    marginTop: spacing.xs,
                     fontFamily: FONT_FAMILY,
                   }}
                 >
@@ -496,7 +496,7 @@ export function SharingScreen({
               )}
             </fieldset>
 
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: spacing.xs }}>
               <motion.button
                 onClick={handleCreate}
                 disabled={!newLabel.trim() || scopeSections.length === 0}
@@ -506,13 +506,13 @@ export function SharingScreen({
                   padding: "10px 20px",
                   borderRadius: borderRadius.full,
                   background: newLabel.trim() && scopeSections.length > 0
-                    ? "rgba(129, 140, 248, 0.8)"
-                    : "rgba(255, 255, 255, 0.08)",
+                    ? "var(--accent-500)"
+                    : "var(--fill-08)",
                   border: "none",
                   color: newLabel.trim() && scopeSections.length > 0 ? "var(--text)" : "var(--muted)",
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   cursor: newLabel.trim() && scopeSections.length > 0 ? "pointer" : "not-allowed",
                 }}
               >
@@ -526,7 +526,7 @@ export function SharingScreen({
                   background: "transparent",
                   border: "none",
                   color: "var(--muted)",
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                 }}
@@ -552,10 +552,10 @@ export function SharingScreen({
       {expiredLinks.length > 0 && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
             textAlign: "center",
-            marginTop: 8,
+            marginTop: spacing.xs,
           }}
         >
           {expiredLinks.length} expired{" "}
@@ -567,10 +567,10 @@ export function SharingScreen({
       {links.filter(l => !l.isActive).length > 0 && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
             textAlign: "center",
-            marginTop: 8,
+            marginTop: spacing.xs,
           }}
         >
           {links.filter(l => !l.isActive).length} revoked{" "}

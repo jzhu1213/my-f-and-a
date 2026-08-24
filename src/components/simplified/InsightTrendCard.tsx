@@ -11,7 +11,8 @@ import {
 } from "@/lib/spendingInsights"
 import type { MonthOverMonthTrend, CategoryComparison } from "@/lib/spendingInsights"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 
 export interface InsightTrendCardProps {
   transactions: Transaction[]
@@ -81,16 +82,16 @@ export function InsightTrendCard({ transactions }: InsightTrendCardProps) {
           transition={prefersReducedMotion ? { duration: 0 } : timings.normal}
         >
           <GlassCard elevation="low" style={{ padding: "14px 18px", borderRadius: 14 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-              <span style={{ fontSize: 18, lineHeight: 1.4 }} aria-hidden="true">
+            <div style={{ display: "flex", alignItems: "flex-start", gap: spacing.sm }}>
+              <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.4 }} aria-hidden="true">
                 {trendEmoji}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {/* Overall trend message */}
                 <p
                   style={{
-                    fontSize: 13,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     color: toneColor,
                     fontFamily: FONT_FAMILY,
                     lineHeight: 1.4,
@@ -105,7 +106,7 @@ export function InsightTrendCard({ transactions }: InsightTrendCardProps) {
                 {topMovers.length > 0 && (
                   <div
                     style={{
-                      marginTop: 8,
+                      marginTop: spacing.xs,
                       display: "flex",
                       flexDirection: "column",
                       gap: 4,
@@ -115,7 +116,7 @@ export function InsightTrendCard({ transactions }: InsightTrendCardProps) {
                       <p
                         key={cat.category}
                         style={{
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           color: "var(--sub)",
                           fontFamily: FONT_FAMILY,
                           lineHeight: 1.4,
@@ -131,9 +132,10 @@ export function InsightTrendCard({ transactions }: InsightTrendCardProps) {
                 {/* Comparison amounts */}
                 <p
                   style={{
-                    fontSize: 11,
+                    fontSize: typography.caption.fontSize,
                     color: "var(--sub)",
                     fontFamily: FONT_FAMILY,
+                    fontVariantNumeric: "tabular-nums",
                     marginTop: 6,
                     opacity: 0.7,
                   }}
@@ -152,7 +154,7 @@ export function InsightTrendCard({ transactions }: InsightTrendCardProps) {
                   border: "none",
                   padding: 4,
                   cursor: "pointer",
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   color: "var(--sub)",
                   opacity: 0.6,
                   lineHeight: 1,

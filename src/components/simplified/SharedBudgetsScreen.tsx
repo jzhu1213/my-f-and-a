@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback } from "react"
 import { SectionHeader, ListRow, Card } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import { contentColumn, spacingScale } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, spacing, fontWeights } from '@/styles/typography'
 import { textColors, colorRamp } from "@/styles/colors"
 import { radius } from "@/styles/surfaces"
 import {
@@ -228,7 +228,7 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
           gap: 6,
           marginBottom: spacingScale["16"],
           padding: 0,
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: "inherit",
         }}
         aria-label="Go back"
@@ -312,12 +312,12 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
               marginTop: spacingScale["20"],
               width: "100%",
               padding: "14px 0",
-              borderRadius: 8,
+              borderRadius: radius.control,
               border: "none",
               background: colorRamp.accent[500],
-              color: "#fff",
-              fontSize: 15,
-              fontWeight: 600,
+              color: "var(--text)",
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               cursor: "pointer",
               fontFamily: "inherit",
             }}
@@ -344,12 +344,12 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
               marginTop: spacingScale["8"],
               width: "100%",
               padding: "14px 0",
-              borderRadius: 8,
+              borderRadius: radius.control,
               border: "none",
               background: saving ? colorRamp.accent[300] : colorRamp.accent[500],
-              color: "#fff",
-              fontSize: 15,
-              fontWeight: 600,
+              color: "var(--text)",
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               cursor: saving ? "not-allowed" : "pointer",
               fontFamily: "inherit",
             }}
@@ -386,12 +386,12 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
               style={{
                 flex: 1,
                 padding: "14px 0",
-                borderRadius: 8,
+                borderRadius: radius.control,
                 border: "none",
                 background: saving ? colorRamp.accent[300] : colorRamp.accent[500],
-                color: "#fff",
-                fontSize: 15,
-                fontWeight: 600,
+                color: "var(--text)",
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 cursor: saving ? "not-allowed" : "pointer",
                 fontFamily: "inherit",
               }}
@@ -404,12 +404,12 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
               style={{
                 flex: 1,
                 padding: "14px 0",
-                borderRadius: 8,
+                borderRadius: radius.control,
                 border: `1px solid ${colorRamp.accent[500]}`,
                 background: "transparent",
                 color: colorRamp.accent[500],
-                fontSize: 15,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
@@ -425,11 +425,11 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
               marginTop: spacingScale["8"],
               width: "100%",
               padding: "12px 0",
-              borderRadius: 8,
+              borderRadius: radius.control,
               border: "none",
               background: "transparent",
               color: textColors.muted,
-              fontSize: 14,
+              fontSize: typography.body.fontSize,
               cursor: "pointer",
               fontFamily: "inherit",
             }}
@@ -463,9 +463,9 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 10,
+                          gap: spacing.sm,
                           padding: "10px 12px",
-                          borderRadius: 8,
+                          borderRadius: radius.control,
                           border: isSelected ? `2px solid ${colorRamp.accent[500]}` : "1px solid var(--border, #333)",
                           background: isSelected ? colorRamp.accent[50] : "transparent",
                           cursor: "pointer",
@@ -498,12 +498,12 @@ export function SharedBudgetsScreen({ onBack }: SharedBudgetsScreenProps) {
                 style={{
                   width: "100%",
                   padding: "14px 0",
-                  borderRadius: 8,
+                  borderRadius: radius.control,
                   border: "none",
                   background: inviting ? colorRamp.accent[300] : colorRamp.accent[500],
-                  color: "#fff",
-                  fontSize: 15,
-                  fontWeight: 600,
+                  color: "var(--text)",
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.semibold,
                   cursor: inviting ? "not-allowed" : "pointer",
                   fontFamily: "inherit",
                 }}
@@ -554,11 +554,11 @@ function FormField({
         style={{
           width: "100%",
           padding: "12px 14px",
-          borderRadius: 8,
+          borderRadius: radius.control,
           border: "1px solid var(--border, #333)",
-          background: "var(--surface, #1a1a2e)",
-          color: "var(--text, #fff)",
-          fontSize: 15,
+          background: "var(--surface)",
+          color: "var(--text)",
+          fontSize: typography.body.fontSize,
           fontFamily: "inherit",
           outline: "none",
         }}

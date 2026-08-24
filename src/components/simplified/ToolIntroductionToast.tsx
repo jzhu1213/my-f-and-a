@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings } from '@/lib/animations'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { spacingScale } from '@/styles/layout'
 import { textColors, colorRamp } from '@/styles/colors'
 import { radius } from '@/styles/surfaces'
@@ -99,7 +99,7 @@ export function ToolIntroductionToast({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
+              gap: spacing.sm,
               width: '100%',
               padding: '14px 16px',
               background: colorRamp.accent[100],
@@ -107,12 +107,12 @@ export function ToolIntroductionToast({
               borderRadius: radius.card,
               cursor: 'pointer',
               textAlign: 'left',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+              boxShadow: 'var(--shadow-lg)',
             }}
           >
             {/* Emoji */}
             <span
-              style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}
+              style={{ fontSize: typography.subhead.fontSize, flexShrink: 0, lineHeight: 1 }}
               aria-hidden="true"
             >
               {introduction.emoji}
@@ -122,8 +122,8 @@ export function ToolIntroductionToast({
             <span
               style={{
                 flex: 1,
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 color: textColors.text,
                 fontFamily: FONT_FAMILY,
                 lineHeight: 1.4,
@@ -145,11 +145,11 @@ export function ToolIntroductionToast({
                 border: 'none',
                 cursor: 'pointer',
                 padding: '4px 6px',
-                fontSize: 14,
+                fontSize: typography.body.fontSize,
                 color: textColors.muted,
                 lineHeight: 1,
                 flexShrink: 0,
-                borderRadius: 4,
+                borderRadius: radius.min,
               }}
             >
               ×

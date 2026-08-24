@@ -141,7 +141,7 @@ function CompletedRow({ challenge }: { challenge: Challenge }) {
         padding: `${spacingScale["6"]} 0`,
       }}
     >
-      <span style={{ fontSize: 14, lineHeight: 1 }}>✓</span>
+      <span style={{ fontSize: typography.body.fontSize, lineHeight: 1 }}>✓</span>
       <span style={{ ...typography["body-sm"], color: textColors.sub, flex: 1 }}>
         {challenge.title}
       </span>
@@ -161,7 +161,7 @@ function ExpiredRow({ challenge, onRetry }: { challenge: Challenge; onRetry: (c:
         padding: `${spacingScale["6"]} 0`,
       }}
     >
-      <span style={{ fontSize: 14, lineHeight: 1 }}>○</span>
+      <span style={{ fontSize: typography.body.fontSize, lineHeight: 1 }}>○</span>
       <span style={{ ...typography["body-sm"], color: textColors.muted, flex: 1 }}>
         {challenge.title}
       </span>

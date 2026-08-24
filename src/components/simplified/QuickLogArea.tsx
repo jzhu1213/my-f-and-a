@@ -12,8 +12,9 @@ import { useTranslation } from "@/contexts/I18nContext"
 import { springs, timings, STAGGER_STEP, useReducedMotion } from "@/lib/animations"
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import type { IconName } from "@/lib/icons"
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius, getCategoryAccent } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { getCategoryAccent } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 import { getTravelCurrency } from '@/lib/travelMode'
 import { formatCurrency as formatCurrencyUtil } from '@/lib/currencyUtils'
 import { getRate } from '@/lib/exchangeRates'
@@ -193,8 +194,8 @@ function CategoryButton({
         {/* Label beneath — subtle, smaller text */}
         <span
           style={{
-            fontSize: 10,
-            fontWeight: 500,
+            fontSize: typography.caption.fontSize,
+            fontWeight: fontWeights.medium,
             color: isSelected ? "var(--text)" : "var(--sub)",
             letterSpacing: "0.02em",
             maxWidth: 60,
@@ -289,7 +290,7 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion, travel
         justifyContent: "center",
         gap: 4,
         padding: "12px 20px",
-        borderRadius: borderRadius.full,
+        borderRadius: radius.full,
       }}
       onClick={onTap}
       onPointerDown={handlePointerDown}
@@ -316,8 +317,8 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion, travel
         style={{
           position: "relative",
           zIndex: 3,
-          fontSize: 16,
-          fontWeight: 600,
+          fontSize: typography.body.fontSize,
+          fontWeight: fontWeights.semibold,
           color: "var(--text)",
           fontVariantNumeric: "tabular-nums",
           fontFamily: FONT_FAMILY,
@@ -330,7 +331,7 @@ function SuggestionChip({ suggestion, onTap, rippleActive, reducedMotion, travel
           style={{
             position: "relative",
             zIndex: 3,
-            fontSize: 11,
+            fontSize: typography.caption.fontSize,
             color: "var(--muted)",
             maxWidth: 88,
             overflow: "hidden",
@@ -385,12 +386,12 @@ function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: E
       transition={springs.snappy}
       style={{
         display: "flex",
-        gap: 8,
+        gap: spacing.xs,
         alignItems: "center",
         padding: "10px 12px",
-        background: "rgba(255, 255, 255, 0.04)",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-        borderRadius: borderRadius.md,
+        background: "var(--fill-04)",
+        border: "1px solid var(--fill-10)",
+        borderRadius: radius.control,
       }}
       aria-label={`Edit ${label} category`}
     >
@@ -401,11 +402,11 @@ function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: E
         style={{
           width: 36,
           height: 36,
-          fontSize: 20,
+          fontSize: typography.subhead.fontSize,
           textAlign: "center",
-          background: "rgba(255, 255, 255, 0.06)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          borderRadius: borderRadius.sm,
+          background: "var(--fill-06)",
+          border: "1px solid var(--fill-10)",
+          borderRadius: radius.control,
           color: "var(--text)",
           padding: 0,
         }}
@@ -420,11 +421,11 @@ function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: E
         style={{
           flex: 1,
           height: 36,
-          fontSize: 13,
-          fontWeight: 500,
-          background: "rgba(255, 255, 255, 0.06)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          borderRadius: borderRadius.sm,
+          fontSize: typography['body-sm'].fontSize,
+          fontWeight: fontWeights.medium,
+          background: "var(--fill-06)",
+          border: "1px solid var(--fill-10)",
+          borderRadius: radius.control,
           color: "var(--text)",
           padding: "0 10px",
           fontFamily: FONT_FAMILY,
@@ -437,11 +438,11 @@ function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: E
         style={{
           height: 36,
           padding: "0 12px",
-          fontSize: 12,
-          fontWeight: 500,
-          background: "rgba(167, 139, 250, 0.2)",
-          border: "1px solid rgba(167, 139, 250, 0.4)",
-          borderRadius: borderRadius.sm,
+          fontSize: typography['body-sm'].fontSize,
+          fontWeight: fontWeights.medium,
+          background: "var(--accent-200)",
+          border: "1px solid var(--accent-400)",
+          borderRadius: radius.control,
           color: "var(--text)",
           cursor: "pointer",
           fontFamily: FONT_FAMILY,
@@ -456,11 +457,11 @@ function EditCategoryInline({ emoji, label, onSave, onCancel, reducedMotion }: E
         style={{
           height: 36,
           padding: "0 10px",
-          fontSize: 12,
-          fontWeight: 500,
+          fontSize: typography['body-sm'].fontSize,
+          fontWeight: fontWeights.medium,
           background: "none",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          borderRadius: borderRadius.sm,
+          border: "1px solid var(--fill-10)",
+          borderRadius: radius.control,
           color: "var(--muted)",
           cursor: "pointer",
           fontFamily: FONT_FAMILY,
@@ -551,7 +552,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
     >
       <div className="flex items-center gap-2">
         <CategoryIcon category={category} size={28} />
-        <span style={{ fontSize: 14, color: "var(--sub)", fontWeight: 500 }}>
+        <span style={{ fontSize: typography.body.fontSize, color: "var(--sub)", fontWeight: fontWeights.medium }}>
           {categoryInfo?.label ?? category}
         </span>
       </div>
@@ -567,7 +568,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
             border: error ? "1px solid var(--error)" : "1px solid var(--border)",
           }}
         >
-          <span style={{ color: "var(--sub)", fontSize: 18, fontWeight: 500 }}>$</span>
+          <span style={{ color: "var(--sub)", fontSize: typography.subhead.fontSize, fontWeight: fontWeights.medium }}>$</span>
           <input
             ref={inputRef}
             type="number"
@@ -579,7 +580,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
             onChange={handleAmountChange}
             placeholder="0.00"
             className="t-input"
-            style={{ border: "none", padding: "14px 0", fontSize: 18, fontWeight: 500 }}
+            style={{ border: "none", padding: "14px 0", fontSize: typography.subhead.fontSize, fontWeight: fontWeights.medium }}
             aria-label="Amount"
             aria-describedby={error ? "amount-error" : undefined}
             autoFocus
@@ -589,7 +590,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
           <p
             id="amount-error"
             role="alert"
-            style={{ fontSize: 12, color: "var(--error)", marginTop: 2 }}
+            style={{ fontSize: typography['body-sm'].fontSize, color: "var(--error)", marginTop: 2 }}
           >
             {error}
           </p>
@@ -605,17 +606,17 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
         className="t-input"
         maxLength={MAX_NOTE_LENGTH}
         aria-label={t('quicklog.notePlaceholderShort')}
-        style={{ fontSize: 14 }}
+        style={{ fontSize: typography.body.fontSize }}
       />
       {note.length >= MAX_NOTE_LENGTH - 5 && (
-        <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "right" }}>
+        <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", textAlign: "right" }}>
           {note.length}/{MAX_NOTE_LENGTH}
         </p>
       )}
 
       {/* Merchant context message (task 340.1) */}
       {merchantContext && (
-        <p style={{ fontSize: 12, color: "var(--sub)", margin: 0, fontFamily: FONT_FAMILY }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", margin: 0, fontFamily: FONT_FAMILY }}>
           {merchantContext}
         </p>
       )}
@@ -628,12 +629,12 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
           style={{
             alignSelf: "flex-start",
             padding: "6px 12px",
-            fontSize: 12,
-            fontWeight: 500,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
-            background: "rgba(167, 139, 250, 0.1)",
-            border: "1px solid rgba(167, 139, 250, 0.25)",
-            borderRadius: borderRadius.full,
+            background: "var(--accent-100)",
+            border: "1px solid var(--accent-300)",
+            borderRadius: radius.full,
             color: "var(--text)",
             cursor: "pointer",
           }}
@@ -648,7 +649,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
         <button
           type="button"
           className="btn-ghost"
-          style={{ flex: 1, height: 48, fontSize: 13 }}
+          style={{ flex: 1, height: 48, fontSize: typography['body-sm'].fontSize }}
           onClick={onCancel}
         >
           {t('quicklog.cancel')}
@@ -656,7 +657,7 @@ function CustomAmountPanel({ category, onSubmit, onCancel, reducedMotion }: Cust
         <button
           type="submit"
           className="btn-primary"
-          style={{ flex: 2, height: 48, fontSize: 13 }}
+          style={{ flex: 2, height: 48, fontSize: typography['body-sm'].fontSize }}
         >
           {t('quicklog.logExpense')}
         </button>
@@ -1041,14 +1042,14 @@ export function QuickLogArea({
   return (
     <section
       aria-label="Quick log expense"
-      style={{ display: "flex", flexDirection: "column", gap: 12 }}
+      style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}
     >
       {/* Section header */}
       <div className="flex items-center justify-between" style={{ marginBottom: 2 }}>
         <span
           style={{
-            fontSize: 13,
-            fontWeight: 500,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
             color: "var(--sub)",
             letterSpacing: "0.02em",
           }}
@@ -1061,12 +1062,12 @@ export function QuickLogArea({
               type="button"
               onClick={handleDoneCustomize}
               style={{
-                fontSize: 12,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 color: "var(--text)",
-                background: "rgba(167, 139, 250, 0.2)",
-                border: "1px solid rgba(167, 139, 250, 0.4)",
-                borderRadius: borderRadius.full,
+                background: "var(--accent-200)",
+                border: "1px solid var(--accent-400)",
+                borderRadius: radius.full,
                 padding: "5px 12px",
                 cursor: "pointer",
                 fontFamily: FONT_FAMILY,
@@ -1085,11 +1086,11 @@ export function QuickLogArea({
                     type="button"
                     onClick={handleToggleSortMode}
                     style={{
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       color: sortMode === 'auto' ? "var(--text)" : "var(--muted)",
-                      background: sortMode === 'auto' ? "rgba(167, 139, 250, 0.15)" : "none",
-                      border: sortMode === 'auto' ? "1px solid rgba(167, 139, 250, 0.3)" : "1px solid transparent",
-                      borderRadius: borderRadius.full,
+                      background: sortMode === 'auto' ? "var(--accent-200)" : "none",
+                      border: sortMode === 'auto' ? "1px solid var(--accent-300)" : "1px solid transparent",
+                      borderRadius: radius.full,
                       cursor: "pointer",
                       padding: "5px 10px",
                       fontFamily: FONT_FAMILY,
@@ -1108,7 +1109,7 @@ export function QuickLogArea({
                       type="button"
                       onClick={handleStartCustomize}
                       style={{
-                        fontSize: 12,
+                        fontSize: typography['body-sm'].fontSize,
                         color: "var(--muted)",
                         background: "none",
                         border: "none",
@@ -1132,14 +1133,14 @@ export function QuickLogArea({
                   onClick={() => setShowCustomInput(true)}
                   className="chip--glass"
                   style={{
-                    fontSize: 12,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     color: "var(--text)",
-                    background: "rgba(129, 140, 248, 0.06)",
-                    border: "0.5px solid rgba(129, 140, 248, 0.18)",
+                    background: "var(--accent-100)",
+                    border: "0.5px solid var(--accent-200)",
                     cursor: "pointer",
                     padding: "5px 14px",
-                    borderRadius: borderRadius.full,
+                    borderRadius: radius.full,
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 4,
@@ -1155,7 +1156,7 @@ export function QuickLogArea({
                     aria-hidden="true"
                     animate={{ y: [0, 3, 0] }}
                     transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
-                    style={{ display: "inline-block", fontSize: 11 }}
+                    style={{ display: "inline-block", fontSize: typography.caption.fontSize }}
                   >
                     ↓
                   </motion.span>
@@ -1169,14 +1170,14 @@ export function QuickLogArea({
       {/* ── Category grid (Requirement 3.1) ── */}
       {isCustomizing ? (
         /* ── Customize mode: drag-to-reorder (Task 133.1) ── */
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
           <Reorder.Group
             axis="x"
             values={customizedCategories}
             onReorder={handleReorder}
             style={{
               display: "flex",
-              gap: 8,
+              gap: spacing.xs,
               listStyle: "none",
               padding: 0,
               margin: 0,
@@ -1190,7 +1191,7 @@ export function QuickLogArea({
                 key={cat.category}
                 value={cat}
                 style={{ cursor: "grab", touchAction: "none" }}
-                whileDrag={prefersReducedMotion ? undefined : { scale: 1.05, boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }}
+                whileDrag={prefersReducedMotion ? undefined : { scale: 1.05, boxShadow: 'var(--shadow-md)' }}
                 dragListener={editingCategoryId !== cat.category}
               >
                 <motion.button
@@ -1201,7 +1202,7 @@ export function QuickLogArea({
                     minWidth: 48,
                     position: "relative",
                     border: editingCategoryId === cat.category
-                      ? "1.5px solid rgba(167, 139, 250, 0.6)"
+                      ? "1.5px solid var(--accent-400)"
                       : undefined,
                   }}
                   onClick={() =>
@@ -1209,7 +1210,7 @@ export function QuickLogArea({
                       editingCategoryId === cat.category ? null : cat.category
                     )
                   }
-                  whileTap={prefersReducedMotion ? undefined : { scale: 0.94 }}
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
                   aria-label={`Edit ${cat.label} category. Drag to reorder.`}
                 >
                   {/* Drag handle indicator */}
@@ -1223,7 +1224,7 @@ export function QuickLogArea({
                       width: 16,
                       height: 3,
                       borderRadius: 2,
-                      background: "rgba(255, 255, 255, 0.2)",
+                      background: "var(--fill-15)",
                     }}
                   />
                   <span
@@ -1233,17 +1234,17 @@ export function QuickLogArea({
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      gap: 8,
+                      gap: spacing.xs,
                       paddingTop: 6,
                     }}
                   >
-                    <span style={{ fontSize: 24 }} aria-hidden="true">
+                    <span style={{ fontSize: typography.headline.fontSize }} aria-hidden="true">
                       {cat.emoji}
                     </span>
                     <span
                       style={{
-                        fontSize: 11,
-                        fontWeight: 500,
+                        fontSize: typography.caption.fontSize,
+                        fontWeight: fontWeights.medium,
                         color: "var(--sub)",
                         letterSpacing: "0.03em",
                         maxWidth: 60,
@@ -1276,7 +1277,7 @@ export function QuickLogArea({
 
           <p
             style={{
-              fontSize: 11,
+              fontSize: typography.caption.fontSize,
               color: "var(--muted)",
               textAlign: "center",
               marginTop: 2,
@@ -1356,7 +1357,7 @@ export function QuickLogArea({
           animate={{ opacity: 1 }}
           transition={timings.normal}
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
             textAlign: "center",
             padding: "4px 0",
@@ -1377,12 +1378,12 @@ export function QuickLogArea({
             initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
             animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
             exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            transition={timings.fast}
             style={{
               display: "block",
               width: "100%",
               textAlign: "center",
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
               color: "var(--muted)",
               background: "none",
@@ -1420,9 +1421,9 @@ export function QuickLogArea({
             {suggestions.every((s) => s.source === "preset") && (
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   color: "var(--muted)",
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                   marginBottom: 6,
                   fontFamily: FONT_FAMILY,
                 }}
@@ -1456,10 +1457,10 @@ export function QuickLogArea({
             {/* Swipe hint — styled as a subtle animated pill */}
             <motion.p
               style={{
-                fontSize: 11,
+                fontSize: typography.caption.fontSize,
                 color: "var(--muted)",
                 textAlign: "center",
-                marginTop: 8,
+                marginTop: spacing.xs,
                 userSelect: "none",
                 display: "flex",
                 alignItems: "center",
@@ -1469,7 +1470,7 @@ export function QuickLogArea({
               aria-hidden="true"
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.7 }}
-              transition={{ delay: 0.6, duration: 0.4 }}
+              transition={{ delay: 0.6, ...timings.slow }}
             >
               <span
                 style={{
@@ -1477,9 +1478,9 @@ export function QuickLogArea({
                   alignItems: "center",
                   gap: 4,
                   padding: "3px 10px",
-                  borderRadius: borderRadius.full,
-                  background: "rgba(129, 140, 248, 0.04)",
-                  border: "0.5px solid rgba(129, 140, 248, 0.1)",
+                  borderRadius: radius.full,
+                  background: "var(--accent-50)",
+                  border: "0.5px solid var(--accent-100)",
                 }}
               >
                 Swipe down for custom
@@ -1505,7 +1506,7 @@ export function QuickLogArea({
             transition={timings.fast}
             style={{ textAlign: "center", padding: "8px 0" }}
           >
-            <p style={{ fontSize: 13, color: "var(--muted)" }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)" }}>
               No suggestions yet — enter a custom amount.
             </p>
           </motion.div>
@@ -1523,7 +1524,7 @@ export function QuickLogArea({
             style={{
               background: "var(--surface)",
               borderRadius: "var(--radius-md)",
-              padding: 16,
+              padding: spacing.md,
               overflow: "hidden",
             }}
           >

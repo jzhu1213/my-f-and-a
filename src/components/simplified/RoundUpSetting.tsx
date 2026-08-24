@@ -11,8 +11,9 @@ import {
   getRoundUpTargetGoal,
   setRoundUpTargetGoal,
 } from "@/lib/roundUpSavings"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { sectionHeader, shadows } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import type { Transaction, Goal } from "@/types"
 
 // ============================================================================
@@ -71,10 +72,10 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
       {/* Description */}
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
           lineHeight: 1.5,
-          marginBottom: 16,
+          marginBottom: spacing.md,
         }}
       >
         Round expenses to the nearest dollar. The difference goes to your savings.
@@ -91,8 +92,8 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
       >
         <span
           style={{
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             color: "var(--text)",
             fontFamily: FONT_FAMILY,
           }}
@@ -112,12 +113,12 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
             position: "relative",
             width: 48,
             height: 28,
-            borderRadius: 14,
+            borderRadius: radius.control,
             border: "none",
             cursor: "pointer",
             background: enabled
               ? "var(--success)"
-              : "rgba(255, 255, 255, 0.12)",
+              : "var(--fill-12)",
             transition: "background 0.2s",
             padding: 0,
           }}
@@ -132,7 +133,7 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
               left: 0,
               width: 24,
               height: 24,
-              borderRadius: 12,
+              borderRadius: radius.control,
               background: "var(--text)",
               boxShadow: shadows.sm,
             }}
@@ -146,7 +147,7 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
           <label
             htmlFor="round-up-target-goal"
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
               display: "block",
               marginBottom: 6,
@@ -162,11 +163,11 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
             style={{
               width: "100%",
               padding: "10px 12px",
-              borderRadius: 10,
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              background: "rgba(255, 255, 255, 0.06)",
+              borderRadius: radius.control,
+              border: "1px solid var(--fill-10)",
+              background: "var(--fill-06)",
               color: "var(--text)",
-              fontSize: 14,
+              fontSize: typography.body.fontSize,
               fontFamily: FONT_FAMILY,
               appearance: "none",
               WebkitAppearance: "none",
@@ -196,21 +197,21 @@ export function RoundUpSetting({ transactions = [], goals = [] }: RoundUpSetting
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: spacing.xs,
             padding: "10px 14px",
-            borderRadius: 10,
-            background: "rgba(6, 214, 160, 0.08)",
-            border: "1px solid rgba(6, 214, 160, 0.2)",
+            borderRadius: radius.control,
+            background: "var(--success-100)",
+            border: "1px solid var(--success-200)",
           }}
         >
-          <span style={{ fontSize: 16 }} aria-hidden="true">
+          <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">
             🪙
           </span>
           <span
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--success)",
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
             }}
           >

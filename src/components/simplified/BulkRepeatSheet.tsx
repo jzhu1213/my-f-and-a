@@ -7,8 +7,8 @@ import { BottomSheet } from '@/components/ui/BottomSheet'
 import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { TransactionCategory } from '@/types'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 
 interface BulkRepeatSheetProps {
@@ -168,32 +168,32 @@ export function BulkRepeatSheet({
         padding: '0 24px 32px', 
         display: 'flex', 
         flexDirection: 'column',
-        gap: 24
+        gap: spacing.lg
       }}>
         {/* Header: Transaction summary */}
         <div style={{ textAlign: 'center' }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
+            gap: spacing.xs,
             padding: '12px 20px',
-            background: 'rgba(129, 140, 248, 0.08)',
-            border: '1px solid rgba(129, 140, 248, 0.2)',
-            borderRadius: borderRadius.md,
+            background: 'var(--accent-100)',
+            border: '1px solid var(--accent-200)',
+            borderRadius: radius.control,
           }}>
-            <span style={{ fontSize: 24 }} aria-hidden="true">{categoryEmoji}</span>
+            <span style={{ fontSize: typography.headline.fontSize }} aria-hidden="true">{categoryEmoji}</span>
             <div style={{ textAlign: 'left' }}>
               <div style={{
-                fontSize: 18,
+                fontSize: typography.subhead.fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 600,
+                fontWeight: fontWeights.semibold,
                 color: 'var(--text)',
               }}>
                 {amountStr}
               </div>
               {transaction.note && (
                 <div style={{
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--muted)',
                 }}>
@@ -204,10 +204,10 @@ export function BulkRepeatSheet({
           </div>
           
           <p style={{
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--sub)',
-            marginTop: 12,
+            marginTop: spacing.sm,
           }}>
             Select the dates you want to log this expense
           </p>
@@ -217,9 +217,9 @@ export function BulkRepeatSheet({
         <div>
           <label style={{
             display: 'block',
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
             color: 'var(--sub)',
             marginBottom: 10,
           }}>
@@ -228,7 +228,7 @@ export function BulkRepeatSheet({
           
           <div style={{
             display: 'flex',
-            gap: 8,
+            gap: spacing.xs,
             flexWrap: 'wrap',
           }}>
             {[3, 5, 7].map(days => (
@@ -241,16 +241,16 @@ export function BulkRepeatSheet({
                 style={{
                   padding: '8px 16px',
                   background: dateRangePreset === days 
-                    ? 'rgba(129, 140, 248, 0.15)' 
-                    : 'rgba(255, 255, 255, 0.04)',
+                    ? 'var(--accent-200)' 
+                    : 'var(--fill-04)',
                   border: dateRangePreset === days
-                    ? '1px solid rgba(129, 140, 248, 0.4)'
-                    : '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: borderRadius.full,
+                    ? '1px solid var(--accent-400)'
+                    : '1px solid var(--fill-10)',
+                  borderRadius: radius.full,
                   cursor: 'pointer',
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                   color: dateRangePreset === days ? 'var(--text)' : 'var(--sub)',
                 }}
               >
@@ -265,12 +265,12 @@ export function BulkRepeatSheet({
               style={{
                 padding: '8px 16px',
                 background: 'transparent',
-                border: '1px dashed rgba(255, 255, 255, 0.15)',
-                borderRadius: borderRadius.full,
+                border: '1px dashed var(--fill-15)',
+                borderRadius: radius.full,
                 cursor: 'pointer',
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: 'var(--muted)',
               }}
             >
@@ -283,9 +283,9 @@ export function BulkRepeatSheet({
         <div>
           <label style={{
             display: 'block',
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
             color: 'var(--sub)',
             marginBottom: 10,
           }}>
@@ -295,7 +295,7 @@ export function BulkRepeatSheet({
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-            gap: 8,
+            gap: spacing.xs,
             maxHeight: 300,
             overflowY: 'auto',
             padding: 2,
@@ -315,15 +315,15 @@ export function BulkRepeatSheet({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
+                    gap: spacing.xs,
                     padding: '10px 12px',
                     background: isSelected 
-                      ? 'rgba(129, 140, 248, 0.12)' 
-                      : 'rgba(255, 255, 255, 0.04)',
+                      ? 'var(--accent-200)' 
+                      : 'var(--fill-04)',
                     border: isSelected
-                      ? '1.5px solid rgba(129, 140, 248, 0.5)'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: borderRadius.md,
+                      ? '1.5px solid var(--accent-400)'
+                      : '1px solid var(--fill-10)',
+                    borderRadius: radius.control,
                     cursor: 'pointer',
                     textAlign: 'left',
                   }}
@@ -331,11 +331,11 @@ export function BulkRepeatSheet({
                   <div style={{
                     width: 18,
                     height: 18,
-                    borderRadius: 4,
+                    borderRadius: radius.min,
                     border: isSelected 
-                      ? '2px solid rgba(129, 140, 248, 1)' 
-                      : '2px solid rgba(255, 255, 255, 0.2)',
-                    background: isSelected ? 'rgba(129, 140, 248, 1)' : 'transparent',
+                      ? '2px solid var(--accent-500)' 
+                      : '2px solid var(--fill-15)',
+                    background: isSelected ? 'var(--accent-500)' : 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -356,16 +356,16 @@ export function BulkRepeatSheet({
                   
                   <div style={{ flex: 1 }}>
                     <div style={{
-                      fontSize: 13,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       color: 'var(--text)',
                     }}>
                       {formatDateLabel(dateStr)}
                     </div>
                     {isToday && (
                       <div style={{
-                        fontSize: 11,
+                        fontSize: typography.caption.fontSize,
                         fontFamily: FONT_FAMILY,
                         color: 'var(--muted)',
                       }}>
@@ -390,24 +390,24 @@ export function BulkRepeatSheet({
               style={{
                 textAlign: 'center',
                 padding: 12,
-                background: 'rgba(62, 207, 110, 0.08)',
-                border: '1px solid rgba(62, 207, 110, 0.2)',
-                borderRadius: borderRadius.md,
+                background: 'var(--success-100)',
+                border: '1px solid var(--success-200)',
+                borderRadius: radius.control,
               }}
             >
               <span style={{
-                fontSize: 14,
+                fontSize: typography.body.fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 color: 'var(--text)',
               }}>
                 {selectedDates.size} {selectedDates.size === 1 ? 'day' : 'days'} selected
               </span>
               <span style={{
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--muted)',
-                marginLeft: 8,
+                marginLeft: spacing.xs,
               }}>
                 · Total: ${(transaction.amount * selectedDates.size).toFixed(2)}
               </span>
@@ -424,14 +424,14 @@ export function BulkRepeatSheet({
           style={{
             padding: '14px 24px',
             background: canSubmit 
-              ? 'rgba(129, 140, 248, 1)' 
-              : 'rgba(255, 255, 255, 0.08)',
+              ? 'var(--accent-500)' 
+              : 'var(--fill-08)',
             border: 'none',
-            borderRadius: borderRadius.md,
+            borderRadius: radius.control,
             cursor: canSubmit ? 'pointer' : 'not-allowed',
-            fontSize: 15,
+            fontSize: typography.body.fontSize,
             fontFamily: FONT_FAMILY,
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             color: canSubmit ? 'var(--text)' : 'var(--muted)',
             opacity: canSubmit ? 1 : 0.5,
           }}

@@ -232,7 +232,7 @@ export function SharedActivityView() {
               cursor: "pointer",
               flexShrink: 0,
               transition: "background 0.15s ease",
-              fontSize: "16px",
+              fontSize: typography.body.fontSize,
               lineHeight: 1,
             }}
             onMouseEnter={(e) => {
@@ -279,7 +279,7 @@ export function SharedActivityView() {
                   flexShrink: 0,
                   borderRadius: radius.control,
                   background: colorRamp.accent[50],
-                  fontSize: "14px",
+                  fontSize: typography.body.fontSize,
                 }}
               >
                 {event.emoji}

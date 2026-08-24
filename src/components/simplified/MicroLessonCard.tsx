@@ -3,7 +3,8 @@
 import { motion } from "framer-motion"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { useReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import type { MicroLesson } from "@/lib/microLessons"
 
 interface MicroLessonCardProps {
@@ -34,17 +35,17 @@ export function MicroLessonCard({ lesson, onLearnMore, onDismiss }: MicroLessonC
       transition={{ duration: 0.25, ease: "easeOut" }}
       style={{ minWidth: 240, maxWidth: 280, flex: "0 0 auto" }}
     >
-      <GlassCard elevation="medium" glow="rgba(99, 179, 237, 0.3)">
+      <GlassCard elevation="medium" glow="var(--blue-300)">
         <div style={{ padding: 16 }}>
           {/* Header: emoji + title */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: 20 }} role="img" aria-hidden="true">
+          <div style={{ display: "flex", alignItems: "center", gap: spacing.xs, marginBottom: 8 }}>
+            <span style={{ fontSize: typography.subhead.fontSize }} role="img" aria-hidden="true">
               {lesson.emoji}
             </span>
             <span
               style={{
-                fontSize: 14,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--text)",
                 fontFamily: FONT_FAMILY,
               }}
@@ -56,18 +57,18 @@ export function MicroLessonCard({ lesson, onLearnMore, onDismiss }: MicroLessonC
           {/* Content (1-2 sentences) */}
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               lineHeight: 1.5,
               color: "var(--sub)",
               fontFamily: FONT_FAMILY,
-              marginBottom: 12,
+              marginBottom: spacing.sm,
             }}
           >
             {lesson.content}
           </p>
 
           {/* Actions: "Learn more →" and "Got it" */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
             <button
               type="button"
               onClick={() => onLearnMore(lesson.relatedLessonId)}
@@ -75,8 +76,8 @@ export function MicroLessonCard({ lesson, onLearnMore, onDismiss }: MicroLessonC
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 color: "var(--accent)",
                 fontFamily: FONT_FAMILY,
                 padding: 0,
@@ -89,12 +90,12 @@ export function MicroLessonCard({ lesson, onLearnMore, onDismiss }: MicroLessonC
               type="button"
               onClick={() => onDismiss(lesson.id)}
               style={{
-                background: "rgba(255, 255, 255, 0.06)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 6,
+                background: "var(--fill-06)",
+                border: "1px solid var(--fill-08)",
+                borderRadius: radius.min,
                 cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 color: "var(--muted)",
                 fontFamily: FONT_FAMILY,
                 padding: "4px 10px",

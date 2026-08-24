@@ -3,8 +3,10 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import type { OnboardingPath } from '@/types'
+import { HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -173,7 +175,7 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div className="flex flex-col items-center text-center flex-1">
       <motion.span
-        style={{ fontSize: 40, marginBottom: 12 }}
+        style={{ fontSize: 40, marginBottom: spacing.sm }}
         initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
         animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
         transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
@@ -183,8 +185,8 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
       </motion.span>
       <h2
         style={{
-          fontSize: 20,
-          fontWeight: 700,
+          fontSize: typography.subhead.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
           marginBottom: 6,
@@ -194,12 +196,12 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
       </h2>
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
           lineHeight: 1.5,
-          marginBottom: 20,
+          marginBottom: HORIZONTAL_PADDING,
         }}
       >
         Three things that make budgeting feel easy.
@@ -216,17 +218,17 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
         <div
           style={{
             padding: '16px',
-            borderRadius: 12,
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: radius.control,
+            background: 'var(--fill-04)',
+            border: '1px solid var(--fill-08)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <span style={{ fontSize: 20 }} aria-hidden="true">✨</span>
+            <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">✨</span>
             <span
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
@@ -238,7 +240,7 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
             <span
               style={{
                 fontSize: 28,
-                fontWeight: 700,
+                fontWeight: fontWeights.bold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--success)',
                 fontVariantNumeric: 'tabular-nums',
@@ -248,7 +250,7 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
             </span>
             <span
               style={{
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--sub)',
               }}
@@ -262,17 +264,17 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
         <div
           style={{
             padding: '16px',
-            borderRadius: 12,
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: radius.control,
+            background: 'var(--fill-04)',
+            border: '1px solid var(--fill-08)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <span style={{ fontSize: 20 }} aria-hidden="true">💸</span>
+            <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">💸</span>
             <span
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
@@ -290,10 +292,10 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
                 key={cat.label}
                 style={{
                   padding: '8px 12px',
-                  borderRadius: 20,
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  fontSize: 12,
+                  borderRadius: radius.card,
+                  background: 'var(--fill-06)',
+                  border: '1px solid var(--fill-10)',
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--sub)',
                   display: 'flex',
@@ -308,8 +310,8 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
           </div>
           <p
             style={{
-              marginTop: 8,
-              fontSize: 11,
+              marginTop: spacing.xs,
+              fontSize: typography.caption.fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--muted)',
             }}
@@ -322,17 +324,17 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
         <div
           style={{
             padding: '16px',
-            borderRadius: 12,
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: radius.control,
+            background: 'var(--fill-04)',
+            border: '1px solid var(--fill-08)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <span style={{ fontSize: 20 }} aria-hidden="true">📊</span>
+            <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">📊</span>
             <span
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
@@ -341,13 +343,13 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span style={{ fontSize: 22 }}>🍕</span>
+            <span style={{ fontSize: typography.headline.fontSize }}>🍕</span>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
                 <span
                   style={{
-                    fontSize: 13,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
                   }}
@@ -356,7 +358,7 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
                 </span>
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: typography.caption.fontSize,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--sub)',
                   }}
@@ -369,7 +371,7 @@ function CondensedPreviewInline({ onDismiss }: { onDismiss: () => void }) {
                   width: '100%',
                   height: 5,
                   borderRadius: 3,
-                  background: 'rgba(255, 255, 255, 0.08)',
+                  background: 'var(--fill-08)',
                   overflow: 'hidden',
                 }}
               >
@@ -548,7 +550,7 @@ export function OnboardingTutorial({
               style={{
                 width: idx === currentIndex ? 24 : 8,
                 height: 8,
-                borderRadius: 4,
+                borderRadius: radius.min,
                 background: idx === currentIndex ? 'var(--accent)' : 'var(--line)',
               }}
               aria-hidden="true"
@@ -583,7 +585,7 @@ export function OnboardingTutorial({
                   ) : (
                     <>
                       <motion.span
-                        style={{ fontSize: 48, marginBottom: 16 }}
+                        style={{ fontSize: 48, marginBottom: spacing.md }}
                         initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
                         animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
                         transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
@@ -593,23 +595,23 @@ export function OnboardingTutorial({
                       </motion.span>
                       <h2
                         style={{
-                          fontSize: 22,
-                          fontWeight: 700,
+                          fontSize: typography.headline.fontSize,
+                          fontWeight: fontWeights.bold,
                           fontFamily: FONT_FAMILY,
                           color: 'var(--text)',
-                          marginBottom: 8,
+                          marginBottom: spacing.xs,
                         }}
                       >
                         {currentStep.title}
                       </h2>
                       <p
                         style={{
-                          fontSize: 14,
+                          fontSize: typography.body.fontSize,
                           fontFamily: FONT_FAMILY,
                           color: 'var(--sub)',
                           maxWidth: 280,
                           lineHeight: 1.5,
-                          marginBottom: 24,
+                          marginBottom: spacing.lg,
                         }}
                       >
                         {currentStep.subtitle}

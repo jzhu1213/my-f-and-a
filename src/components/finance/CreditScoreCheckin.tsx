@@ -10,7 +10,7 @@ import {
   isValidCreditScore,
 } from '@/lib/creditScoreCheckin'
 import type { CreditScoreEntry } from '@/lib/creditScoreCheckin'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -18,6 +18,7 @@ import {
   sectionHeader,
   borderRadius,
 } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // CreditScoreCheckin
@@ -82,10 +83,10 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
           alignItems: 'center',
           gap: 6,
           color: 'var(--sub)',
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
           cursor: 'pointer',
-          marginBottom: 20,
+          marginBottom: HORIZONTAL_PADDING,
         }}
         aria-label="Back to Lessons"
       >
@@ -96,10 +97,10 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
       </button>
 
       {/* Header */}
-      <h2 style={{ fontSize: 22, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY, marginBottom: 8 }}>
+      <h2 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', fontFamily: FONT_FAMILY, marginBottom: spacing.xs }}>
         Credit Score Check-In
       </h2>
-      <p style={{ fontSize: 14, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginBottom: 24, lineHeight: 1.5 }}>
+      <p style={{ fontSize: typography.body.fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginBottom: spacing.lg, lineHeight: 1.5 }}>
         Track your credit score over time. No bureau connection needed — just log it here whenever you check.
       </p>
 
@@ -107,12 +108,12 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
       {latest && (
         <GlassCard elevation="high" glow="healthy">
           <div style={{ padding: 24, textAlign: 'center' }}>
-            <p style={{ ...sectionHeader, marginBottom: 8 }}>Your latest score</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
+            <p style={{ ...sectionHeader, marginBottom: spacing.xs }}>Your latest score</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: spacing.xs }}>
               <span
                 style={{
                   fontSize: 48,
-                  fontWeight: 300,
+                  fontWeight: fontWeights.light,
                   color: getScoreColor(latest.score),
                   fontFamily: FONT_FAMILY,
                   fontVariantNumeric: 'tabular-nums',
@@ -120,15 +121,15 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
               >
                 {latest.score}
               </span>
-              <span style={{ fontSize: 14, color: 'var(--sub)', fontFamily: FONT_FAMILY }}>
+              <span style={{ fontSize: typography.body.fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY }}>
                 {getScoreRangeLabel(latest.score)}
               </span>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: 8 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginTop: spacing.xs }}>
               Logged {formatDate(latest.date)}
             </p>
             {latest.note && (
-              <p style={{ fontSize: 12, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginTop: 4, fontStyle: 'italic' }}>
+              <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginTop: 4, fontStyle: 'italic' }}>
                 &ldquo;{latest.note}&rdquo;
               </p>
             )}
@@ -137,19 +138,19 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
       )}
 
       {/* Score Entry Form */}
-      <div style={{ marginTop: 24 }}>
+      <div style={{ marginTop: spacing.lg }}>
         <GlassCard elevation="medium">
           <form onSubmit={handleSubmit} style={{ padding: 20 }}>
-            <p style={{ ...sectionHeader, marginBottom: 12 }}>
+            <p style={{ ...sectionHeader, marginBottom: spacing.sm }}>
               {latest ? 'Update your score' : 'Log your first score'}
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {/* Score input */}
               <div>
                 <label
                   htmlFor="credit-score-input"
-                  style={{ display: 'block', fontSize: 12, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginBottom: 4 }}
+                  style={{ display: 'block', fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginBottom: 4 }}
                 >
                   Credit score (300–850)
                 </label>
@@ -164,11 +165,11 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
                   style={{
                     width: '100%',
                     padding: '12px 14px',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: error ? '1px solid rgba(248, 113, 113, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'var(--fill-04)',
+                    border: error ? '1px solid var(--error-400)' : '1px solid var(--fill-10)',
                     borderRadius: borderRadius.sm,
                     color: 'var(--text)',
-                    fontSize: 16,
+                    fontSize: typography.body.fontSize,
                     fontFamily: FONT_FAMILY,
                     fontVariantNumeric: 'tabular-nums',
                     outline: 'none',
@@ -181,7 +182,7 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
               <div>
                 <label
                   htmlFor="credit-score-note"
-                  style={{ display: 'block', fontSize: 12, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginBottom: 4 }}
+                  style={{ display: 'block', fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, marginBottom: 4 }}
                 >
                   Note (optional)
                 </label>
@@ -195,11 +196,11 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
                   style={{
                     width: '100%',
                     padding: '12px 14px',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'var(--fill-04)',
+                    border: '1px solid var(--fill-10)',
                     borderRadius: borderRadius.sm,
                     color: 'var(--text)',
-                    fontSize: 14,
+                    fontSize: typography.body.fontSize,
                     fontFamily: FONT_FAMILY,
                     outline: 'none',
                   }}
@@ -208,14 +209,14 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
 
               {/* Error message */}
               {error && (
-                <p id="score-error" role="alert" style={{ fontSize: 12, color: 'rgba(248, 113, 113, 0.9)', fontFamily: FONT_FAMILY }}>
+                <p id="score-error" role="alert" style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--error)', fontFamily: FONT_FAMILY }}>
                   {error}
                 </p>
               )}
 
               {/* Success message */}
               {showSuccess && (
-                <p role="status" style={{ fontSize: 12, color: 'var(--success)', fontFamily: FONT_FAMILY }}>
+                <p role="status" style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--success)', fontFamily: FONT_FAMILY }}>
                   ✓ Score saved!
                 </p>
               )}
@@ -226,12 +227,12 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
                 style={{
                   width: '100%',
                   padding: '12px 20px',
-                  background: 'rgba(6, 214, 160, 0.15)',
-                  border: '1px solid rgba(6, 214, 160, 0.3)',
+                  background: 'var(--success-200)',
+                  border: '1px solid var(--success-300)',
                   borderRadius: borderRadius.sm,
                   color: 'var(--success)',
-                  fontSize: 14,
-                  fontWeight: 500,
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   cursor: 'pointer',
                 }}
@@ -244,24 +245,24 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
       </div>
 
       {/* Score Range Guide */}
-      <div style={{ marginTop: 24 }}>
+      <div style={{ marginTop: spacing.lg }}>
         <GlassCard elevation="low">
           <div style={{ padding: 16 }}>
-            <p style={{ ...sectionHeader, marginBottom: 12 }}>Score ranges</p>
+            <p style={{ ...sectionHeader, marginBottom: spacing.sm }}>Score ranges</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
                 { label: 'Excellent', range: '800–850', color: 'var(--success)' },
                 { label: 'Very Good', range: '740–799', color: 'var(--success)' },
-                { label: 'Good', range: '670–739', color: 'rgba(6, 214, 160, 0.7)' },
+                { label: 'Good', range: '670–739', color: 'var(--success)' },
                 { label: 'Fair', range: '580–669', color: 'var(--warning)' },
-                { label: 'Building', range: '300–579', color: 'rgba(245, 158, 11, 0.7)' },
+                { label: 'Building', range: '300–579', color: 'var(--warning)' },
               ].map(tier => (
                 <div key={tier.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 99, background: tier.color }} />
-                    <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: FONT_FAMILY }}>{tier.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                    <div style={{ width: 8, height: 8, borderRadius: radius.full, background: tier.color }} />
+                    <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--text)', fontFamily: FONT_FAMILY }}>{tier.label}</span>
                   </div>
-                  <span style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, fontVariantNumeric: 'tabular-nums' }}>
                     {tier.range}
                   </span>
                 </div>
@@ -273,8 +274,8 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
 
       {/* History */}
       {history.length > 1 && (
-        <div style={{ marginTop: 24 }}>
-          <p style={{ ...sectionHeader, marginBottom: 12 }}>History</p>
+        <div style={{ marginTop: spacing.lg }}>
+          <p style={{ ...sectionHeader, marginBottom: spacing.sm }}>History</p>
           <GlassCard elevation="low">
             <div style={{ padding: 16 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -286,30 +287,30 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '10px 0',
-                      borderTop: i > 0 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
+                      borderTop: i > 0 ? '1px solid var(--fill-06)' : 'none',
                     }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                      <span style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                         {formatDate(entry.date)}
                       </span>
                       {entry.note && (
-                        <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: FONT_FAMILY, fontStyle: 'italic' }}>
+                        <span style={{ fontSize: typography.caption.fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, fontStyle: 'italic' }}>
                           {entry.note}
                         </span>
                       )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                       <span style={{
-                        fontSize: 16,
-                        fontWeight: 500,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.medium,
                         color: getScoreColor(entry.score),
                         fontFamily: FONT_FAMILY,
                         fontVariantNumeric: 'tabular-nums',
                       }}>
                         {entry.score}
                       </span>
-                      <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
+                      <span style={{ fontSize: typography.caption.fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY }}>
                         {getScoreRangeLabel(entry.score)}
                       </span>
                     </div>
@@ -322,8 +323,8 @@ export function CreditScoreCheckin({ onBack }: CreditScoreCheckinProps) {
       )}
 
       {/* Encouragement */}
-      <div style={{ marginTop: 24, textAlign: 'center' }}>
-        <p style={{ fontSize: 12, color: 'var(--muted)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
+      <div style={{ marginTop: spacing.lg, textAlign: 'center' }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
           Tip: Check your score for free through your bank app or Credit Karma. Checking your own score never hurts it.
         </p>
       </div>

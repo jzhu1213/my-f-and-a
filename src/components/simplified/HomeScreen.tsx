@@ -32,7 +32,7 @@ import { getInsightsEnabled, getSavingsRateBadgeEnabled } from "@/lib/uiPreferen
 import { getPaceIndicatorEnabled } from "@/lib/paceIndicatorPreferences"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, STAGGER_STEP, layoutTransition, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY, spacing } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import type { SpendingMode } from "@/lib/spendingModes"
 import {
   CONTENT_MAX_WIDTH,
@@ -46,6 +46,7 @@ import {
   progressTrack,
   getCategoryAccent,
   colorRamp,
+  shadows,
 } from "@/styles/shared"
 import { DailyAllowanceHero } from "./DailyAllowanceHero"
 import { useToast } from "@/contexts/ToastContext"
@@ -974,7 +975,7 @@ export const HomeScreen = memo(function HomeScreen({
                 right: 4,
                 display: "flex",
                 alignItems: "center",
-                gap: 4,
+                gap: spacing.xxs,
                 zIndex: 2,
               }}
             >
@@ -990,7 +991,7 @@ export const HomeScreen = memo(function HomeScreen({
               />
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: typography.caption.fontSize,
                   color: "var(--sub)",
                   opacity: 0.7,
                   fontFamily: FONT_FAMILY,
@@ -1094,11 +1095,11 @@ export const HomeScreen = memo(function HomeScreen({
                 padding: "20px 28px",
                 color: "var(--text)",
                 fontSize: 17,
-                fontWeight: 600,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 cursor: "pointer",
                 textAlign: "center",
-                boxShadow: "0 6px 24px rgba(124, 58, 237, 0.35)",
+                boxShadow: shadows.glowAccentStrong,
               }}
               aria-label="Log your first expense"
             >
@@ -1106,7 +1107,7 @@ export const HomeScreen = memo(function HomeScreen({
             </motion.button>
           ) : (
           <>
-          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: spacing.sm, alignItems: "center" }}>
             {/* Primary: Log expense — larger pill with warm gradient */}
             <motion.button
               type="button"
@@ -1120,12 +1121,12 @@ export const HomeScreen = memo(function HomeScreen({
                 borderRadius: borderRadius.full,
                 padding: "18px 24px",
                 color: "var(--text)",
-                fontSize: 16,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 cursor: "pointer",
                 textAlign: "center",
-                boxShadow: "0 4px 20px rgba(124, 58, 237, 0.3)",
+                boxShadow: shadows.glowAccent,
               }}
             >
               {t('home.logExpense')}
@@ -1144,8 +1145,8 @@ export const HomeScreen = memo(function HomeScreen({
                 borderRadius: borderRadius.full,
                 padding: "16px 20px",
                 color: "var(--success)",
-                fontSize: 15,
-                fontWeight: 500,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 cursor: "pointer",
                 textAlign: "center",
@@ -1189,7 +1190,7 @@ export const HomeScreen = memo(function HomeScreen({
               width: 40,
               height: 3,
               borderRadius: 2,
-              background: 'rgba(255, 255, 255, 0.08)',
+              background: 'var(--fill-08)',
             }}
           />
         </div>
@@ -1200,10 +1201,10 @@ export const HomeScreen = memo(function HomeScreen({
             <div
               style={{
                 display: "flex",
-                gap: 10,
+                gap: spacing.sm,
                 overflowX: "auto",
                 flexWrap: "nowrap",
-                paddingBottom: 4,
+                paddingBottom: spacing.xxs,
                 scrollbarWidth: "none",
               }}
             >
@@ -1274,7 +1275,7 @@ export const HomeScreen = memo(function HomeScreen({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 12,
+              marginBottom: spacing.sm,
             }}
           >
             <h2 style={sectionHeader}>
@@ -1286,7 +1287,7 @@ export const HomeScreen = memo(function HomeScreen({
                 onClick={() => onOpenBudgetSettings?.()}
                 style={{
                   ...linkButton,
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   opacity: 0.7,
                 }}
                 aria-label="See all categories"
@@ -1313,7 +1314,7 @@ export const HomeScreen = memo(function HomeScreen({
               </GlassCard>
             </motion.div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacing.sm }}>
               {categoryRows.slice(0, 4).map((row) => {
                 const barColor = row.overWeekly
                   ? "var(--error)"
@@ -1350,7 +1351,7 @@ export const HomeScreen = memo(function HomeScreen({
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
-                        gap: 6,
+                        gap: spacing.xxs,
                       }}
                     >
                       {/* Category icon chip */}
@@ -1359,8 +1360,8 @@ export const HomeScreen = memo(function HomeScreen({
                       {/* Category name */}
                       <span
                         style={{
-                          fontSize: 12,
-                          fontWeight: 500,
+                          fontSize: typography['body-sm'].fontSize,
+                          fontWeight: fontWeights.medium,
                           color: "var(--text)",
                           fontFamily: FONT_FAMILY,
                           maxWidth: "100%",
@@ -1395,10 +1396,10 @@ export const HomeScreen = memo(function HomeScreen({
                           </div>
                           <span
                             style={{
-                              fontSize: 11,
+                              fontSize: typography.caption.fontSize,
                               color: barColor,
                               fontFamily: FONT_FAMILY,
-                              fontWeight: 500,
+                              fontWeight: fontWeights.medium,
                             }}
                           >
                             {row.overWeekly
@@ -1410,7 +1411,7 @@ export const HomeScreen = memo(function HomeScreen({
                         <>
                           <span
                             style={{
-                              fontSize: 11,
+                              fontSize: typography.caption.fontSize,
                               color: "var(--sub)",
                               opacity: 0.6,
                               fontFamily: FONT_FAMILY,
@@ -1422,7 +1423,7 @@ export const HomeScreen = memo(function HomeScreen({
                           {row.weeklySpent > 0 && (
                             <span
                               style={{
-                                fontSize: 11,
+                                fontSize: typography.caption.fontSize,
                                 color: "var(--sub)",
                                 fontFamily: FONT_FAMILY,
                               }}
@@ -1450,7 +1451,7 @@ export const HomeScreen = memo(function HomeScreen({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 12,
+              marginBottom: spacing.sm,
             }}
           >
             <h2 style={sectionHeader}>
@@ -1462,7 +1463,7 @@ export const HomeScreen = memo(function HomeScreen({
                 onClick={onViewAllHistory}
                 style={{
                   ...linkButton,
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   opacity: 0.7,
                 }}
                 aria-label="See all transactions"
@@ -1485,8 +1486,8 @@ export const HomeScreen = memo(function HomeScreen({
                     <span style={{ fontSize: 28 }} aria-hidden="true">✨</span>
                     <p
                       style={{
-                        fontSize: 14,
-                        fontWeight: 500,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.medium,
                         color: 'var(--text)',
                         fontFamily: FONT_FAMILY,
                         margin: 0,
@@ -1496,7 +1497,7 @@ export const HomeScreen = memo(function HomeScreen({
                     </p>
                     <p
                       style={{
-                        fontSize: 12,
+                        fontSize: typography['body-sm'].fontSize,
                         color: 'var(--sub)',
                         fontFamily: FONT_FAMILY,
                         margin: 0,
@@ -1562,8 +1563,8 @@ export const HomeScreen = memo(function HomeScreen({
                     >
                       <p
                         style={{
-                          fontSize: 11,
-                          fontWeight: 500,
+                          fontSize: typography.caption.fontSize,
+                          fontWeight: fontWeights.medium,
                           color: "var(--sub)",
                           fontFamily: FONT_FAMILY,
                           opacity: 0.7,
@@ -1577,8 +1578,8 @@ export const HomeScreen = memo(function HomeScreen({
                       {dayExpenseTotal > 0 && (
                         <p
                           style={{
-                            fontSize: 11,
-                            fontWeight: 500,
+                            fontSize: typography.caption.fontSize,
+                            fontWeight: fontWeights.medium,
                             color: "var(--muted)",
                             fontFamily: FONT_FAMILY,
                             fontVariantNumeric: "tabular-nums",
@@ -1593,7 +1594,7 @@ export const HomeScreen = memo(function HomeScreen({
                     <div
                       style={{
                         position: "relative",
-                        paddingLeft: 16,
+                        paddingLeft: spacing.md,
                       }}
                     >
                       {/* Vertical timeline accent line */}
@@ -1670,18 +1671,19 @@ export const HomeScreen = memo(function HomeScreen({
                                     height: 7,
                                     borderRadius: "50%",
                                     background: accent,
+                                    // Dynamic per-category glow — color varies at runtime, no static token available
                                     boxShadow: `0 0 4px ${accent}40`,
                                     flexShrink: 0,
                                   }}
                                 />
                                 <span
                                   style={{
-                                    fontSize: 14,
+                                    fontSize: typography.body.fontSize,
                                     color: "var(--text)",
                                     fontFamily: FONT_FAMILY,
                                     display: "flex",
                                     alignItems: "center",
-                                    gap: 8,
+                                    gap: spacing.xs,
                                     flex: 1,
                                     minWidth: 0,
                                     overflow: "hidden",
@@ -1694,7 +1696,7 @@ export const HomeScreen = memo(function HomeScreen({
                                   {splitTransactionIds?.has(tx.id) && (
                                     <span
                                       style={{
-                                        fontSize: 11,
+                                        fontSize: typography.caption.fontSize,
                                         opacity: 0.6,
                                         marginLeft: 2,
                                         flexShrink: 0,
@@ -1708,8 +1710,8 @@ export const HomeScreen = memo(function HomeScreen({
                                 </span>
                                 <span
                                   style={{
-                                    fontSize: 14,
-                                    fontWeight: 500,
+                                    fontSize: typography.body.fontSize,
+                                    fontWeight: fontWeights.medium,
                                     fontFamily: FONT_FAMILY,
                                     fontVariantNumeric: "tabular-nums",
                                     flexShrink: 0,
@@ -1810,7 +1812,7 @@ export const HomeScreen = memo(function HomeScreen({
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(0, 0, 0, 0.5)",
+                background: "var(--color-canvas)",
                 zIndex: 999,
               }}
               aria-hidden
@@ -1844,7 +1846,7 @@ export const HomeScreen = memo(function HomeScreen({
                   width: 36,
                   height: 4,
                   borderRadius: 2,
-                  background: "rgba(255, 255, 255, 0.15)",
+                  background: "var(--fill-15)",
                   margin: "0 auto 20px",
                 }}
                 aria-hidden

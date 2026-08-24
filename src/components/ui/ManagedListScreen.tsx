@@ -1,16 +1,17 @@
-"use client"
+﻿"use client"
 
 import { useState, useCallback, type ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { EmptyState } from "@/components/ui/EmptyState"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
   borderRadius,
+  fills,
 } from "@/styles/shared"
 
 // ============================================================================
@@ -49,14 +50,14 @@ export interface ItemRenderContext<T extends ManagedItem> {
 /**
  * Props for the ManagedListScreen scaffold.
  *
- * Generic over `T` — any type with an `id: string` field.
+ * Generic over `T` â€” any type with an `id: string` field.
  */
 export interface ManagedListScreenProps<T extends ManagedItem> {
-  // ── Data ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   /** The list of items to display. */
   items: T[]
 
-  // ── Labels ───────────────────────────────────────────────────────────────
+  // â”€â”€ Labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   /** Screen title displayed in the header (e.g. "Recurring Bills"). */
   title: string
   /** Label for the add button (e.g. "+ Add bill"). */
@@ -68,13 +69,13 @@ export interface ManagedListScreenProps<T extends ManagedItem> {
   /** Empty state subtitle / description. */
   emptySubtitle?: string
 
-  // ── Callbacks ────────────────────────────────────────────────────────────
+  // â”€â”€ Callbacks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   /** Navigate back / close the screen. */
   onBack: () => void
   /** Delete an item by id. */
   onDelete: (id: string) => Promise<void> | void
 
-  // ── Render props ─────────────────────────────────────────────────────────
+  // â”€â”€ Render props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   /**
    * Render a single list row. Receives the item + context with edit/delete
    * actions. The consumer is responsible for its own inline display layout.
@@ -97,7 +98,7 @@ export interface ManagedListScreenProps<T extends ManagedItem> {
    */
   renderSummary?: (items: T[]) => ReactNode
 
-  // ── Layout options ───────────────────────────────────────────────────────
+  // â”€â”€ Layout options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   /**
    * Whether to wrap the list in a single GlassCard container (inline style)
    * or render each item as a separate card.
@@ -111,7 +112,7 @@ export interface ManagedListScreenProps<T extends ManagedItem> {
 // ============================================================================
 
 /**
- * ManagedListScreen — a reusable scaffold for CRUD list screens.
+ * ManagedListScreen â€” a reusable scaffold for CRUD list screens.
  *
  * Provides:
  * - Standard page layout (max-width, padding, header with back button)
@@ -129,7 +130,7 @@ export function ManagedListScreen<T extends ManagedItem>({
   items,
   title,
   addLabel,
-  emptyEmoji: _emptyEmoji = "📋",
+  emptyEmoji: _emptyEmoji = "ðŸ“‹",
   emptyTitle = "Nothing here yet",
   emptySubtitle = "Add your first item to get started.",
   onBack,
@@ -140,12 +141,12 @@ export function ManagedListScreen<T extends ManagedItem>({
   listLayout = "single-card",
 }: ManagedListScreenProps<T>) {
   const { prefersReducedMotion } = useReducedMotion()
-  // ── State ──────────────────────────────────────────────────────────────────
+  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const openAddForm = useCallback(() => {
     setEditingId(null)
     setConfirmDeleteId(null)
@@ -182,7 +183,7 @@ export function ManagedListScreen<T extends ManagedItem>({
     [onDelete, editingId]
   )
 
-  // ── Build item context ─────────────────────────────────────────────────────
+  // â”€â”€ Build item context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function buildContext(item: T): ItemRenderContext<T> {
     return {
       item,
@@ -195,7 +196,7 @@ export function ManagedListScreen<T extends ManagedItem>({
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const isFormVisible = showAddForm || editingId !== null
   const showAddButton = !showAddForm && editingId === null
 
@@ -222,7 +223,7 @@ export function ManagedListScreen<T extends ManagedItem>({
         ))}
       </AnimatePresence>
 
-      {/* ── Inline Add Form ────────────────────────────────────────────── */}
+      {/* â”€â”€ Inline Add Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {showAddForm && (
           <motion.div
@@ -230,7 +231,7 @@ export function ManagedListScreen<T extends ManagedItem>({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={springs.gentle}
-            style={{ overflow: "hidden", marginTop: 12 }}
+            style={{ overflow: "hidden", marginTop: spacing.sm }}
           >
             {renderForm({
               item: null,
@@ -241,22 +242,22 @@ export function ManagedListScreen<T extends ManagedItem>({
         )}
       </AnimatePresence>
 
-      {/* ── Add Button ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ Add Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showAddButton && (
         <motion.button
           onClick={openAddForm}
           whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
           transition={springs.snappy}
           style={{
-            marginTop: 14,
+            marginTop: spacing.md,
             width: "100%",
-            padding: "12px 0",
-            background: "rgba(255,255,255,0.04)",
+            padding: `${spacing.sm}px 0`,
+            background: fills[4],
             border: "1.5px dashed var(--border)",
             borderRadius: borderRadius.md,
             color: "var(--sub)",
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             cursor: "pointer",
           }}
@@ -277,21 +278,21 @@ export function ManagedListScreen<T extends ManagedItem>({
         fontFamily: FONT_FAMILY,
       }}
     >
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 12,
-          marginBottom: 20,
+          gap: spacing.sm,
+          marginBottom: HORIZONTAL_PADDING,
         }}
       >
         <motion.button
           onClick={onBack}
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.92 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
           transition={springs.snappy}
           style={{
-            background: "rgba(255,255,255,0.06)",
+            background: fills[6],
             border: "1px solid var(--border)",
             borderRadius: borderRadius.full,
             width: 36,
@@ -300,17 +301,17 @@ export function ManagedListScreen<T extends ManagedItem>({
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
-            fontSize: 18,
+            fontSize: typography.subhead.fontSize,
             color: "var(--text)",
           }}
           aria-label="Go back"
         >
-          ←
+          â†
         </motion.button>
         <h2
           style={{
-            fontSize: 22,
-            fontWeight: 700,
+            fontSize: typography.headline.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             margin: 0,
           }}
@@ -319,10 +320,10 @@ export function ManagedListScreen<T extends ManagedItem>({
         </h2>
       </div>
 
-      {/* ── Summary (optional) ─────────────────────────────────────────────── */}
+      {/* â”€â”€ Summary (optional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {renderSummary && renderSummary(items)}
 
-      {/* ── List or Empty State ────────────────────────────────────────────── */}
+      {/* â”€â”€ List or Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {items.length === 0 && !isFormVisible ? (
         <div style={{ padding: "4px 0" }}>
           <EmptyState
@@ -335,11 +336,11 @@ export function ManagedListScreen<T extends ManagedItem>({
           />
         </div>
       ) : listLayout === "single-card" ? (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
           {listContent}
         </GlassCard>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
           {listContent}
         </div>
       )}

@@ -16,12 +16,14 @@ import {
   getContributionHistory,
   type SavingsContributionEntry,
 } from "@/lib/savingsContributionHistory"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   sectionHeader,
   listRow,
   borderRadius,
+  HORIZONTAL_PADDING,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -89,18 +91,18 @@ function formatEntryTimestamp(iso: string): string {
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   background: "var(--color-sunken)",
   border: "1px solid var(--border)",
-  borderRadius: 10,
+  borderRadius: radius.control,
   outline: "none",
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 500,
+  fontSize: typography['body-sm'].fontSize,
+  fontWeight: fontWeights.medium,
   color: "var(--sub)",
   marginBottom: 4,
   fontFamily: FONT_FAMILY,
@@ -162,12 +164,12 @@ export function ManageSavingsAccountsScreen({
   function renderSummary(items: SavingsAccount[]) {
     if (items.length === 0) return null
     return (
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
         <p style={sectionHeader}>Total Savings &amp; Investments</p>
         <p
           style={{
-            fontSize: 22,
-            fontWeight: 700,
+            fontSize: typography.headline.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             margin: 0,
             fontVariantNumeric: "tabular-nums",
@@ -175,7 +177,7 @@ export function ManageSavingsAccountsScreen({
         >
           {formatDollars(totalBalance)}
         </p>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 4 }}>
           {monthlyContributions > 0
             ? `${formatDollars(monthlyContributions)}/mo contributions across ${items.length} account${items.length !== 1 ? "s" : ""}`
             : `${items.length} account${items.length !== 1 ? "s" : ""} tracked`}
@@ -200,7 +202,7 @@ export function ManageSavingsAccountsScreen({
         }}
       >
         <div
-          style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}
+          style={{ display: "flex", alignItems: "center", gap: spacing.sm, flex: 1 }}
           onClick={context.startEdit}
           role="button"
           tabIndex={0}
@@ -209,12 +211,12 @@ export function ManageSavingsAccountsScreen({
             if (e.key === "Enter" || e.key === " ") context.startEdit()
           }}
         >
-          <span style={{ fontSize: 18 }} aria-hidden="true">{meta.emoji}</span>
+          <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">{meta.emoji}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 14, color: "var(--text)", margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: typography.body.fontSize, color: "var(--text)", margin: 0, fontWeight: fontWeights.medium }}>
               {account.name}
             </p>
-            <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: 0 }}>
               {meta.label}
               {account.monthlyContribution > 0
                 ? ` · ${formatDollars(account.monthlyContribution)}/mo`
@@ -223,8 +225,8 @@ export function ManageSavingsAccountsScreen({
           </div>
           <span
             style={{
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--text)",
               fontVariantNumeric: "tabular-nums",
             }}
@@ -241,14 +243,14 @@ export function ManageSavingsAccountsScreen({
               return next
             })
           }
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
           transition={springs.snappy}
           style={{
             background: "none",
             border: "none",
             padding: "4px 8px",
             cursor: "pointer",
-            fontSize: 15,
+            fontSize: typography.body.fontSize,
             color: isBalanceUpdateOpen ? "var(--text)" : "var(--sub)",
             marginLeft: 4,
           }}
@@ -266,14 +268,14 @@ export function ManageSavingsAccountsScreen({
               return next
             })
           }
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
           transition={springs.snappy}
           style={{
             background: "none",
             border: "none",
             padding: "4px 8px",
             cursor: "pointer",
-            fontSize: 15,
+            fontSize: typography.body.fontSize,
             color: isHistoryOpen ? "var(--text)" : "var(--sub)",
             marginLeft: 4,
           }}
@@ -283,20 +285,20 @@ export function ManageSavingsAccountsScreen({
           🕘
         </motion.button>
         {isConfirmingDelete ? (
-          <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+          <div style={{ display: "flex", gap: 4, marginLeft: spacing.xs }}>
             <motion.button
               onClick={confirmDelete}
-              whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
               transition={springs.snappy}
               style={{
-                background: "rgba(239, 68, 68, 0.15)",
+                background: "var(--error-200)",
                 border: "none",
                 padding: "4px 8px",
                 cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--error)",
-                borderRadius: 6,
+                borderRadius: radius.min,
                 fontFamily: FONT_FAMILY,
               }}
               aria-label={`Confirm delete ${account.name}`}
@@ -305,14 +307,14 @@ export function ManageSavingsAccountsScreen({
             </motion.button>
             <motion.button
               onClick={cancelDelete}
-              whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
               transition={springs.snappy}
               style={{
                 background: "none",
                 border: "none",
                 padding: "4px 8px",
                 cursor: "pointer",
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--sub)",
               }}
               aria-label="Cancel delete"
@@ -323,16 +325,16 @@ export function ManageSavingsAccountsScreen({
         ) : (
           <motion.button
             onClick={requestDelete}
-            whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
             transition={springs.snappy}
             style={{
               background: "none",
               border: "none",
               padding: "4px 8px",
               cursor: "pointer",
-              fontSize: 16,
+              fontSize: typography.body.fontSize,
               color: "var(--error)",
-              marginLeft: 8,
+              marginLeft: spacing.xs,
             }}
             aria-label={`Delete ${account.name}`}
           >
@@ -439,8 +441,8 @@ function ContributionHistoryPanel({ accountId }: ContributionHistoryPanelProps) 
       >
         <p
           style={{
-            fontSize: 11,
-            fontWeight: 600,
+            fontSize: typography.caption.fontSize,
+            fontWeight: fontWeights.semibold,
             color: "var(--muted)",
             letterSpacing: "0.02em",
             textTransform: "uppercase",
@@ -453,7 +455,7 @@ function ContributionHistoryPanel({ accountId }: ContributionHistoryPanelProps) 
         {entries.length === 0 ? (
           <p
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
               margin: 0,
               lineHeight: 1.5,
@@ -474,29 +476,29 @@ function ContributionHistoryPanel({ accountId }: ContributionHistoryPanelProps) 
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    gap: 12,
+                    gap: spacing.sm,
                     padding: "8px 0",
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
                     <p
                       style={{
-                        fontSize: 13,
+                        fontSize: typography['body-sm'].fontSize,
                         color: "var(--text)",
                         margin: 0,
-                        fontWeight: 500,
+                        fontWeight: fontWeights.medium,
                       }}
                     >
                       {formatEntryTimestamp(entry.timestamp)}
                     </p>
-                    <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>
+                    <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", margin: 0 }}>
                       Balance: {formatDollars(entry.resultingBalance)}
                     </p>
                   </div>
                   <span
                     style={{
-                      fontSize: 14,
-                      fontWeight: 600,
+                      fontSize: typography.body.fontSize,
+                      fontWeight: fontWeights.semibold,
                       color: isPositive ? "var(--success)" : "var(--error)",
                       fontVariantNumeric: "tabular-nums",
                       whiteSpace: "nowrap",
@@ -566,8 +568,8 @@ function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelP
       <div style={{ padding: "12px 0 14px", borderBottom: "1px solid var(--border)" }}>
         <p
           style={{
-            fontSize: 11,
-            fontWeight: 600,
+            fontSize: typography.caption.fontSize,
+            fontWeight: fontWeights.semibold,
             color: "var(--muted)",
             letterSpacing: "0.02em",
             textTransform: "uppercase",
@@ -577,7 +579,7 @@ function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelP
           Update balance
         </p>
 
-        <p style={{ fontSize: 12, color: "var(--sub)", margin: "0 0 8px", lineHeight: 1.5 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", margin: "0 0 8px", lineHeight: 1.5 }}>
           Current balance: {formatDollars(account.balance)}. Enter the latest
           total — we&apos;ll log the change so you can watch it grow over time.
         </p>
@@ -605,8 +607,8 @@ function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelP
         {hasValidNumber && !isUnchanged && (
           <p
             style={{
-              fontSize: 13,
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               margin: "8px 0 0",
               color: delta >= 0 ? "var(--success)" : "var(--muted)",
               fontVariantNumeric: "tabular-nums",
@@ -620,7 +622,7 @@ function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelP
         )}
 
         {/* Actions */}
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <div style={{ display: "flex", gap: spacing.xs, marginTop: 12 }}>
           <motion.button
             onClick={onCancel}
             whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
@@ -628,11 +630,11 @@ function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelP
             style={{
               flex: 1,
               padding: "10px 16px",
-              fontSize: 14,
-              fontWeight: 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
               color: "var(--text)",
-              background: "rgba(255, 255, 255, 0.06)",
+              background: "var(--fill-06)",
               border: "1px solid var(--border)",
               borderRadius: borderRadius.full,
               cursor: "pointer",
@@ -649,11 +651,11 @@ function UpdateBalancePanel({ account, onSubmit, onCancel }: UpdateBalancePanelP
             style={{
               flex: 1,
               padding: "10px 16px",
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               fontFamily: FONT_FAMILY,
               color: "var(--text)",
-              background: canSave ? "var(--success)" : "rgba(255,255,255,0.06)",
+              background: canSave ? "var(--success)" : "var(--fill-06)",
               border: "none",
               borderRadius: borderRadius.full,
               cursor: canSave ? "pointer" : "not-allowed",
@@ -761,8 +763,8 @@ function SavingsAccountFormWrapper({
     <div
       style={{
         padding: 14,
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.03)",
+        borderRadius: radius.control,
+        background: "var(--fill-03)",
         border: "1px solid var(--border)",
       }}
     >
@@ -844,7 +846,7 @@ function SavingsAccountFormWrapper({
       </div>
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: spacing.xs }}>
         <motion.button
           onClick={onCancel}
           whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
@@ -852,11 +854,11 @@ function SavingsAccountFormWrapper({
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
-            background: "rgba(255, 255, 255, 0.06)",
+            background: "var(--fill-06)",
             border: "1px solid var(--border)",
             borderRadius: borderRadius.full,
             cursor: "pointer",
@@ -873,11 +875,11 @@ function SavingsAccountFormWrapper({
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
-            background: canSave ? "var(--success)" : "rgba(255,255,255,0.06)",
+            background: canSave ? "var(--success)" : "var(--fill-06)",
             border: "none",
             borderRadius: borderRadius.full,
             cursor: canSave ? "pointer" : "not-allowed",

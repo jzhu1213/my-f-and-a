@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings } from '@/lib/animations'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { Icon } from '@/components/ui/Icon'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius, chipButton } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { chipButton, HORIZONTAL_PADDING } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 import type { TransactionCategory } from '@/types'
 
 // ============================================================================
@@ -270,24 +271,24 @@ export function BackfillSheet({
               transition={timings.normal}
             >
               <h3 style={{
-                fontSize: 18,
-                fontWeight: 700,
+                fontSize: typography.subhead.fontSize,
+                fontWeight: fontWeights.bold,
                 color: 'var(--text)',
                 marginBottom: 6,
               }}>
                 When were you last paid?
               </h3>
               <p style={{
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 color: 'var(--sub)',
-                marginBottom: 20,
+                marginBottom: HORIZONTAL_PADDING,
                 lineHeight: 1.5,
               }}>
                 We&apos;ll log your paycheck on that date so your budget starts right.
               </p>
 
               {/* Date shortcuts */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.xs, marginBottom: 16 }}>
                 <motion.button
                   type="button"
                   whileTap={{ scale: 0.95 }}
@@ -296,11 +297,11 @@ export function BackfillSheet({
                   style={{
                     ...chipButton,
                     background: paydayDate === lastFridayStr && !showDateInput
-                      ? 'rgba(167, 139, 250, 0.15)'
-                      : 'rgba(255, 255, 255, 0.06)',
+                      ? 'var(--accent-200)'
+                      : 'var(--fill-06)',
                     border: paydayDate === lastFridayStr && !showDateInput
-                      ? '1px solid rgba(167, 139, 250, 0.4)'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
+                      ? '1px solid var(--accent-400)'
+                      : '1px solid var(--fill-10)',
                   }}
                 >
                   Last Friday
@@ -314,11 +315,11 @@ export function BackfillSheet({
                   style={{
                     ...chipButton,
                     background: paydayDate === twoWeeksAgoStr && !showDateInput
-                      ? 'rgba(167, 139, 250, 0.15)'
-                      : 'rgba(255, 255, 255, 0.06)',
+                      ? 'var(--accent-200)'
+                      : 'var(--fill-06)',
                     border: paydayDate === twoWeeksAgoStr && !showDateInput
-                      ? '1px solid rgba(167, 139, 250, 0.4)'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
+                      ? '1px solid var(--accent-400)'
+                      : '1px solid var(--fill-10)',
                   }}
                 >
                   2 weeks ago
@@ -332,11 +333,11 @@ export function BackfillSheet({
                   style={{
                     ...chipButton,
                     background: showDateInput
-                      ? 'rgba(167, 139, 250, 0.15)'
-                      : 'rgba(255, 255, 255, 0.06)',
+                      ? 'var(--accent-200)'
+                      : 'var(--fill-06)',
                     border: showDateInput
-                      ? '1px solid rgba(167, 139, 250, 0.4)'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
+                      ? '1px solid var(--accent-400)'
+                      : '1px solid var(--fill-10)',
                   }}
                 >
                   Pick a date
@@ -353,13 +354,13 @@ export function BackfillSheet({
                   style={{
                     width: '100%',
                     padding: '12px 14px',
-                    marginBottom: 16,
-                    fontSize: 14,
+                    marginBottom: spacing.md,
+                    fontSize: typography.body.fontSize,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
-                    background: 'rgba(255, 255, 255, 0.04)',
+                    background: 'var(--fill-04)',
                     border: '1px solid var(--border)',
-                    borderRadius: borderRadius.sm,
+                    borderRadius: radius.control,
                     outline: 'none',
                   }}
                   aria-label="Select payday date"
@@ -367,23 +368,23 @@ export function BackfillSheet({
               )}
 
               {/* Selected date display */}
-              <p style={{ fontSize: 13, color: 'var(--sub)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <p style={{ fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="breakdown:scheduled" size={14} /> Payday: {getRelativeDateLabel(paydayDate)}
               </p>
 
               {/* Amount input */}
-              <label style={{ display: 'block', fontSize: 13, color: 'var(--sub)', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', marginBottom: 6 }}>
                 How much was the paycheck?
               </label>
-              <div style={{ position: 'relative', marginBottom: 20 }}>
+              <div style={{ position: 'relative', marginBottom: HORIZONTAL_PADDING }}>
                 <span style={{
                   position: 'absolute',
                   left: 14,
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  fontSize: 18,
+                  fontSize: typography.subhead.fontSize,
                   color: 'var(--sub)',
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                 }}>
                   $
                 </span>
@@ -397,13 +398,13 @@ export function BackfillSheet({
                   style={{
                     width: '100%',
                     padding: '14px 14px 14px 32px',
-                    fontSize: 22,
-                    fontWeight: 600,
+                    fontSize: typography.headline.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
-                    background: 'rgba(255, 255, 255, 0.04)',
+                    background: 'var(--fill-04)',
                     border: '1px solid var(--border)',
-                    borderRadius: borderRadius.sm,
+                    borderRadius: radius.control,
                     outline: 'none',
                     fontVariantNumeric: 'tabular-nums',
                   }}
@@ -412,7 +413,7 @@ export function BackfillSheet({
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
                 <motion.button
                   type="button"
                   whileTap={{ scale: 0.97 }}
@@ -422,15 +423,15 @@ export function BackfillSheet({
                   style={{
                     width: '100%',
                     padding: '14px 0',
-                    fontSize: 15,
-                    fontWeight: 600,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
                     background: paycheckAmount && parseFloat(paycheckAmount) > 0
-                      ? 'rgba(167, 139, 250, 0.7)'
-                      : 'rgba(167, 139, 250, 0.3)',
+                      ? 'var(--accent-500)'
+                      : 'var(--accent-300)',
                     border: 'none',
-                    borderRadius: borderRadius.sm,
+                    borderRadius: radius.control,
                     cursor: paycheckAmount && parseFloat(paycheckAmount) > 0 ? 'pointer' : 'not-allowed',
                     opacity: isSubmitting ? 0.6 : 1,
                   }}
@@ -447,8 +448,8 @@ export function BackfillSheet({
                   style={{
                     width: '100%',
                     padding: '12px 0',
-                    fontSize: 14,
-                    fontWeight: 500,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.medium,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--sub)',
                     background: 'none',
@@ -477,11 +478,11 @@ export function BackfillSheet({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: 16,
+                marginBottom: spacing.md,
               }}>
                 <h3 style={{
-                  fontSize: 16,
-                  fontWeight: 700,
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.bold,
                   color: 'var(--text)',
                   margin: 0,
                 }}>
@@ -492,22 +493,22 @@ export function BackfillSheet({
                   alignItems: 'center',
                   gap: 6,
                   padding: '5px 12px',
-                  background: 'rgba(248, 113, 113, 0.08)',
-                  borderRadius: borderRadius.full,
-                  fontSize: 13,
-                  fontWeight: 600,
+                  background: 'var(--error-100)',
+                  borderRadius: radius.full,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.semibold,
                   color: 'var(--error)',
                   fontVariantNumeric: 'tabular-nums',
                 }}>
                   <span>−${totalSpent.toFixed(0)}</span>
-                  <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--sub)' }}>
+                  <span style={{ fontSize: typography.caption.fontSize, fontWeight: fontWeights.regular, color: 'var(--sub)' }}>
                     ({expenseCount})
                   </span>
                 </div>
               </div>
 
               <p style={{
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 color: 'var(--sub)',
                 marginBottom: 14,
                 lineHeight: 1.5,
@@ -533,17 +534,17 @@ export function BackfillSheet({
                     style={{
                       flexShrink: 0,
                       padding: '6px 12px',
-                      fontSize: 12,
-                      fontWeight: 500,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       fontFamily: FONT_FAMILY,
                       color: selectedDate === chip.date ? 'var(--text)' : 'var(--sub)',
                       background: selectedDate === chip.date
-                        ? 'rgba(167, 139, 250, 0.15)'
-                        : 'rgba(255, 255, 255, 0.04)',
+                        ? 'var(--accent-200)'
+                        : 'var(--fill-04)',
                       border: selectedDate === chip.date
-                        ? '1px solid rgba(167, 139, 250, 0.4)'
-                        : '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: borderRadius.full,
+                        ? '1px solid var(--accent-400)'
+                        : '1px solid var(--fill-08)',
+                      borderRadius: radius.full,
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                     }}
@@ -559,14 +560,14 @@ export function BackfillSheet({
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 8,
+                gap: spacing.xs,
                 marginBottom: 14,
               }}>
                 {EXPENSE_CATEGORIES.map(cat => (
                   <motion.button
                     key={cat.category}
                     type="button"
-                    whileTap={{ scale: 0.93 }}
+                    whileTap={{ scale: 0.95 }}
                     transition={springs.snappy}
                     onClick={() => setSelectedCategory(cat.category)}
                     style={{
@@ -575,23 +576,23 @@ export function BackfillSheet({
                       alignItems: 'center',
                       gap: 4,
                       padding: '12px 8px',
-                      fontSize: 12,
-                      fontWeight: 500,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       fontFamily: FONT_FAMILY,
                       color: selectedCategory === cat.category ? 'var(--text)' : 'var(--sub)',
                       background: selectedCategory === cat.category
-                        ? 'rgba(167, 139, 250, 0.12)'
-                        : 'rgba(255, 255, 255, 0.03)',
+                        ? 'var(--accent-200)'
+                        : 'var(--fill-03)',
                       border: selectedCategory === cat.category
-                        ? '1px solid rgba(167, 139, 250, 0.35)'
-                        : '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: borderRadius.md,
+                        ? '1px solid var(--accent-300)'
+                        : '1px solid var(--fill-08)',
+                      borderRadius: radius.control,
                       cursor: 'pointer',
                     }}
                     aria-label={`Select category ${cat.label}`}
                     aria-pressed={selectedCategory === cat.category}
                   >
-                    <span style={{ fontSize: 20 }} aria-hidden="true">{cat.emoji}</span>
+                    <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">{cat.emoji}</span>
                     <span>{cat.label}</span>
                   </motion.button>
                 ))}
@@ -604,9 +605,9 @@ export function BackfillSheet({
                   left: 14,
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  fontSize: 18,
+                  fontSize: typography.subhead.fontSize,
                   color: 'var(--sub)',
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                 }}>
                   $
                 </span>
@@ -619,13 +620,13 @@ export function BackfillSheet({
                   style={{
                     width: '100%',
                     padding: '12px 14px 12px 32px',
-                    fontSize: 20,
-                    fontWeight: 600,
+                    fontSize: typography.subhead.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
-                    background: 'rgba(255, 255, 255, 0.04)',
+                    background: 'var(--fill-04)',
                     border: '1px solid var(--border)',
-                    borderRadius: borderRadius.sm,
+                    borderRadius: radius.control,
                     outline: 'none',
                     fontVariantNumeric: 'tabular-nums',
                   }}
@@ -634,7 +635,7 @@ export function BackfillSheet({
               </div>
 
               {/* Action row: Log + Repeat Last */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              <div style={{ display: 'flex', gap: spacing.xs, marginBottom: 14 }}>
                 <motion.button
                   type="button"
                   whileTap={{ scale: 0.97 }}
@@ -644,15 +645,15 @@ export function BackfillSheet({
                   style={{
                     flex: 1,
                     padding: '12px 0',
-                    fontSize: 14,
-                    fontWeight: 600,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
                     background: selectedCategory && expenseAmount && parseFloat(expenseAmount) > 0
-                      ? 'rgba(167, 139, 250, 0.7)'
-                      : 'rgba(167, 139, 250, 0.3)',
+                      ? 'var(--accent-500)'
+                      : 'var(--accent-300)',
                     border: 'none',
-                    borderRadius: borderRadius.sm,
+                    borderRadius: radius.control,
                     cursor: selectedCategory && expenseAmount && parseFloat(expenseAmount) > 0
                       ? 'pointer'
                       : 'not-allowed',
@@ -692,13 +693,13 @@ export function BackfillSheet({
                 style={{
                   width: '100%',
                   padding: '12px 0',
-                  fontSize: 14,
-                  fontWeight: 500,
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--sub)',
                   background: 'none',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: borderRadius.sm,
+                  border: '1px solid var(--fill-10)',
+                  borderRadius: radius.control,
                   cursor: 'pointer',
                 }}
                 aria-label="Finish adding expenses"
@@ -718,17 +719,17 @@ export function BackfillSheet({
               transition={timings.normal}
               style={{ textAlign: 'center', padding: '20px 0' }}
             >
-              <p style={{ fontSize: 32, marginBottom: 12 }} aria-hidden="true">✨</p>
+              <p style={{ fontSize: typography.title.fontSize, marginBottom: spacing.sm }} aria-hidden="true">✨</p>
               <h3 style={{
-                fontSize: 18,
-                fontWeight: 700,
+                fontSize: typography.subhead.fontSize,
+                fontWeight: fontWeights.bold,
                 color: 'var(--text)',
-                marginBottom: 8,
+                marginBottom: spacing.xs,
               }}>
                 All caught up!
               </h3>
               <p style={{
-                fontSize: 14,
+                fontSize: typography.body.fontSize,
                 color: 'var(--sub)',
                 marginBottom: 6,
                 lineHeight: 1.5,
@@ -738,9 +739,9 @@ export function BackfillSheet({
                   : 'You\'re starting fresh — your daily budget is ready.'}
               </p>
               <p style={{
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 color: 'var(--muted)',
-                marginBottom: 24,
+                marginBottom: spacing.lg,
               }}>
                 Your daily allowance will now reflect this history.
               </p>
@@ -753,13 +754,13 @@ export function BackfillSheet({
                 style={{
                   width: '100%',
                   padding: '14px 0',
-                  fontSize: 15,
-                  fontWeight: 600,
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.semibold,
                   fontFamily: FONT_FAMILY,
                   color: 'var(--text)',
-                  background: 'rgba(167, 139, 250, 0.7)',
+                  background: 'var(--accent-500)',
                   border: 'none',
-                  borderRadius: borderRadius.sm,
+                  borderRadius: radius.control,
                   cursor: 'pointer',
                 }}
                 aria-label="Close and return to home"

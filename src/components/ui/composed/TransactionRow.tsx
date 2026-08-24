@@ -17,7 +17,7 @@ import { Icon } from "@/components/ui/Icon"
 import { getCategoryIconName } from "@/lib/icons"
 import { textColors, colorRamp } from "@/styles/colors"
 import { spacingScale } from "@/styles/layout"
-import { typography, FONT_FAMILY, TABULAR_NUMS } from "@/styles/typography"
+import { typography, FONT_FAMILY, TABULAR_NUMS, fontWeights } from '@/styles/typography'
 import { radius } from "@/styles/surfaces"
 import type { TransactionCategory } from "@/types"
 
@@ -123,7 +123,7 @@ export function TransactionRow({
     ...TABULAR_NUMS,
     fontFamily: FONT_FAMILY,
     fontSize: typography.body.fontSize,
-    fontWeight: 600,
+    fontWeight: fontWeights.semibold,
     lineHeight: typography.body.lineHeight,
     color: getAmountColor(amount),
     flexShrink: 0,

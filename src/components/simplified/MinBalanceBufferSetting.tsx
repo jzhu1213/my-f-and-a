@@ -6,8 +6,9 @@ import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { getMinBalanceBuffer, setMinBalanceBuffer } from "@/lib/minBalanceBuffer"
 import { DEFAULT_MIN_BALANCE_BUFFER } from "@/lib/paySchedule"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { sectionHeader } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Constants
@@ -58,10 +59,10 @@ export function MinBalanceBufferSetting() {
       {/* Description */}
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
           lineHeight: 1.5,
-          marginBottom: 16,
+          marginBottom: spacing.md,
         }}
       >
         We&rsquo;ll give you a gentle heads-up if your balance looks like it might dip
@@ -73,7 +74,7 @@ export function MinBalanceBufferSetting() {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: spacing.sm,
         }}
       >
         <motion.button
@@ -87,13 +88,13 @@ export function MinBalanceBufferSetting() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: buffer > MIN ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+            background: buffer > MIN ? "var(--fill-06)" : "var(--fill-02)",
             border: "1px solid var(--border)",
-            borderRadius: 10,
+            borderRadius: radius.control,
             cursor: buffer > MIN ? "pointer" : "not-allowed",
             color: buffer > MIN ? "var(--text)" : "var(--muted)",
-            fontSize: 20,
-            fontWeight: 600,
+            fontSize: typography.subhead.fontSize,
+            fontWeight: fontWeights.semibold,
           }}
           aria-label={`Decrease buffer by $${STEP}`}
         >
@@ -109,7 +110,7 @@ export function MinBalanceBufferSetting() {
             gap: 2,
           }}
         >
-          <span style={{ fontSize: 22, fontWeight: 700, color: "var(--sub)" }}>$</span>
+          <span style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--sub)" }}>$</span>
           <input
             type="number"
             inputMode="numeric"
@@ -123,8 +124,8 @@ export function MinBalanceBufferSetting() {
             style={{
               width: 90,
               textAlign: "center",
-              fontSize: 24,
-              fontWeight: 700,
+              fontSize: typography.headline.fontSize,
+              fontWeight: fontWeights.bold,
               color: "var(--text)",
               fontFamily: FONT_FAMILY,
               fontVariantNumeric: "tabular-nums",
@@ -149,13 +150,13 @@ export function MinBalanceBufferSetting() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: buffer < MAX ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+            background: buffer < MAX ? "var(--fill-06)" : "var(--fill-02)",
             border: "1px solid var(--border)",
-            borderRadius: 10,
+            borderRadius: radius.control,
             cursor: buffer < MAX ? "pointer" : "not-allowed",
             color: buffer < MAX ? "var(--text)" : "var(--muted)",
-            fontSize: 20,
-            fontWeight: 600,
+            fontSize: typography.subhead.fontSize,
+            fontWeight: fontWeights.semibold,
           }}
           aria-label={`Increase buffer by $${STEP}`}
         >

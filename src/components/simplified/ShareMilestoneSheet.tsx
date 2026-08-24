@@ -15,8 +15,9 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import {
   renderMilestoneCardImage,
   type MilestoneCardData,
@@ -140,7 +141,7 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(0, 0, 0, 0.6)",
+              background: "var(--color-canvas)",
               zIndex: 1000,
             }}
             aria-hidden="true"
@@ -162,9 +163,9 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
               left: 0,
               right: 0,
               zIndex: 1001,
-              background: "#1a1a2e",
-              borderTopLeftRadius: borderRadius.lg,
-              borderTopRightRadius: borderRadius.lg,
+              background: "var(--color-surface)",
+              borderTopLeftRadius: radius.sheet,
+              borderTopRightRadius: radius.sheet,
               padding: "24px 20px 40px",
               maxHeight: "80vh",
               overflow: "auto",
@@ -177,7 +178,7 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
                 width: 36,
                 height: 4,
                 borderRadius: 2,
-                background: "rgba(255, 255, 255, 0.2)",
+                background: "var(--fill-15)",
                 margin: "0 auto 20px",
               }}
             />
@@ -185,9 +186,9 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
             {/* Title */}
             <h2
               style={{
-                fontSize: 20,
-                fontWeight: 700,
-                color: "var(--text, #fff)",
+                fontSize: typography.subhead.fontSize,
+                fontWeight: fontWeights.bold,
+                color: "var(--text)",
                 textAlign: "center",
                 marginBottom: 4,
               }}
@@ -197,10 +198,10 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
 
             <p
               style={{
-                fontSize: 14,
-                color: "var(--sub, rgba(255,255,255,0.6))",
+                fontSize: typography.body.fontSize,
+                color: "var(--sub)",
                 textAlign: "center",
-                marginBottom: 20,
+                marginBottom: HORIZONTAL_PADDING,
               }}
             >
               Let the world know about your progress
@@ -211,7 +212,7 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
               style={{
                 display: "flex",
                 justifyContent: "center",
-                marginBottom: 24,
+                marginBottom: spacing.lg,
               }}
             >
               {state === "rendering" && (
@@ -219,13 +220,13 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
                   style={{
                     width: 240,
                     height: 240,
-                    borderRadius: borderRadius.md,
-                    background: "rgba(255, 255, 255, 0.04)",
+                    borderRadius: radius.control,
+                    background: "var(--fill-04)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "var(--sub, rgba(255,255,255,0.5))",
-                    fontSize: 14,
+                    color: "var(--sub)",
+                    fontSize: typography.body.fontSize,
                   }}
                 >
                   Creating your card…
@@ -238,28 +239,28 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
                   style={{
                     width: 240,
                     height: 240,
-                    borderRadius: borderRadius.md,
+                    borderRadius: radius.control,
                     objectFit: "cover",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    border: "1px solid var(--fill-08)",
                   }}
                 />
               )}
             </div>
 
             {/* Actions */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
               <button
                 onClick={handleShare}
                 disabled={state === "rendering" || state === "sharing"}
                 style={{
                   width: "100%",
                   padding: "14px 0",
-                  borderRadius: 9999,
+                  borderRadius: radius.full,
                   border: "none",
-                  background: "linear-gradient(135deg, #818cf8, #a78bfa)",
-                  color: "#fff",
-                  fontSize: 15,
-                  fontWeight: 600,
+                  background: "var(--gradient-action)",
+                  color: "var(--text)",
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.semibold,
                   fontFamily: FONT_FAMILY,
                   cursor: state === "rendering" || state === "sharing" ? "not-allowed" : "pointer",
                   opacity: state === "rendering" || state === "sharing" ? 0.6 : 1,
@@ -274,12 +275,12 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
                 style={{
                   width: "100%",
                   padding: "14px 0",
-                  borderRadius: 9999,
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  borderRadius: radius.full,
+                  border: "1px solid var(--fill-12)",
                   background: "transparent",
-                  color: "var(--sub, rgba(255,255,255,0.6))",
-                  fontSize: 14,
-                  fontWeight: 500,
+                  color: "var(--sub)",
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                 }}
@@ -291,10 +292,10 @@ export function ShareMilestoneSheet({ open, milestone, onDismiss }: ShareMilesto
             {state === "error" && (
               <p
                 style={{
-                  fontSize: 13,
-                  color: "var(--error, #f87171)",
+                  fontSize: typography['body-sm'].fontSize,
+                  color: "var(--error)",
                   textAlign: "center",
-                  marginTop: 12,
+                  marginTop: spacing.sm,
                 }}
               >
                 Something went wrong. Try again?

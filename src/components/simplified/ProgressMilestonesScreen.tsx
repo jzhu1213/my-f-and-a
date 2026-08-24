@@ -15,7 +15,7 @@ import { useState } from "react"
 import { MilestoneGallery } from "./MilestoneGallery"
 import { ActivityHeatmap } from "./ActivityHeatmap"
 import { ProgressGarden } from "./ProgressGarden"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, typography, fontWeights } from '@/styles/typography'
 import {
   segmentedControl,
   segmentedButtonBase,
@@ -86,7 +86,7 @@ export function ProgressMilestonesScreen({
             background: "none",
             border: "none",
             color: "var(--text)",
-            fontSize: 16,
+            fontSize: typography.body.fontSize,
             cursor: "pointer",
             fontFamily: FONT_FAMILY,
             padding: 0,
@@ -98,7 +98,7 @@ export function ProgressMilestonesScreen({
         <h2
           style={{
             fontSize: 17,
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             color: "var(--text)",
             fontFamily: FONT_FAMILY,
             margin: 0,

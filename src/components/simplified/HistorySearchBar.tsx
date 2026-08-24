@@ -16,8 +16,9 @@
 
 import { useState, useEffect, useRef, useCallback, useId } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius, fills } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { fills, shadows } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 import { springs } from '@/lib/animations'
 import {
   getRecentSearches,
@@ -78,7 +79,7 @@ export function HighlightText({ text, query }: { text: string; query: string }) 
           <mark
             key={i}
             style={{
-              background: 'rgba(129, 140, 248, 0.25)',
+              background: 'var(--accent-300)',
               borderRadius: 3,
               padding: '0 2px',
               color: 'inherit',
@@ -238,11 +239,11 @@ export function HistorySearchBar({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: spacing.sm,
           padding: '12px 16px',
           background: fills[4],
-          border: `1px solid ${isFocused ? 'rgba(129, 140, 248, 0.4)' : fills[8]}`,
-          borderRadius: borderRadius.md,
+          border: `1px solid ${isFocused ? 'var(--accent-400)' : fills[8]}`,
+          borderRadius: radius.control,
           transition: 'border-color 0.2s',
         }}
       >
@@ -280,7 +281,7 @@ export function HistorySearchBar({
             background: 'transparent',
             border: 'none',
             outline: 'none',
-            fontSize: 15,
+            fontSize: typography.body.fontSize,
             fontFamily: FONT_FAMILY,
             color: 'var(--text)',
             padding: 0,
@@ -291,9 +292,9 @@ export function HistorySearchBar({
         {hasResults && (
           <span
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
               color: 'var(--sub)',
               whiteSpace: 'nowrap',
               fontVariantNumeric: 'tabular-nums',
@@ -308,7 +309,7 @@ export function HistorySearchBar({
           <motion.button
             type="button"
             onClick={handleClear}
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.95 }}
             transition={springs.snappy}
             aria-label="Clear search"
             style={{
@@ -360,28 +361,28 @@ export function HistorySearchBar({
               marginTop: 6,
               background: 'var(--surface)',
               border: `1px solid ${fills[8]}`,
-              borderRadius: borderRadius.md,
+              borderRadius: radius.control,
               padding: '12px 0',
               zIndex: 50,
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+              boxShadow: shadows.lg,
             }}
           >
             {/* Recent searches */}
             {recentSearches.length > 0 && (
-              <div style={{ padding: '0 14px', marginBottom: 12 }}>
+              <div style={{ padding: '0 14px', marginBottom: spacing.sm }}>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginBottom: 8,
+                    marginBottom: spacing.xs,
                   }}
                 >
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: typography.caption.fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 600,
+                      fontWeight: fontWeights.semibold,
                       color: 'var(--muted)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
@@ -397,9 +398,9 @@ export function HistorySearchBar({
                       background: 'none',
                       border: 'none',
                       padding: '2px 6px',
-                      fontSize: 11,
+                      fontSize: typography.caption.fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       color: 'var(--sub)',
                       cursor: 'pointer',
                     }}
@@ -418,11 +419,11 @@ export function HistorySearchBar({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 8,
+                        gap: spacing.xs,
                         padding: '8px 8px',
                         background: 'transparent',
                         border: 'none',
-                        borderRadius: 8,
+                        borderRadius: radius.control,
                         cursor: 'pointer',
                         textAlign: 'left',
                         width: '100%',
@@ -450,10 +451,10 @@ export function HistorySearchBar({
                       </svg>
                       <span
                         style={{
-                          fontSize: 13,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
                           color: 'var(--text)',
-                          fontWeight: 400,
+                          fontWeight: fontWeights.regular,
                         }}
                       >
                         {search}
@@ -469,18 +470,18 @@ export function HistorySearchBar({
               <span
                 style={{
                   display: 'block',
-                  fontSize: 11,
+                  fontSize: typography.caption.fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   color: 'var(--muted)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
-                  marginBottom: 8,
+                  marginBottom: spacing.xs,
                 }}
               >
                 Quick filters
               </span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.xs }}>
                 {QUICK_FILTERS.map((filter) => (
                   <motion.button
                     key={filter.label}
@@ -490,13 +491,13 @@ export function HistorySearchBar({
                     transition={springs.snappy}
                     style={{
                       padding: '7px 14px',
-                      fontSize: 13,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       color: 'var(--text)',
                       background: fills[6],
                       border: `1px solid ${fills[10]}`,
-                      borderRadius: 99,
+                      borderRadius: radius.full,
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                     }}

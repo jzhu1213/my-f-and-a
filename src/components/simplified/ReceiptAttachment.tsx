@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { triggerHaptic } from "@/lib/haptics"
 import { uploadReceipt, deleteReceipt, getReceiptUrl } from "@/lib/receiptStorage"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 
 interface ReceiptAttachmentProps {
   /** Transaction ID for storage key */
@@ -111,12 +111,12 @@ export function ReceiptAttachment({
           aria-label="Attach receipt photo"
           style={{
             background: "transparent",
-            border: "1px dashed rgba(255, 255, 255, 0.15)",
-            borderRadius: borderRadius.md,
+            border: "1px dashed var(--fill-15)",
+            borderRadius: radius.control,
             padding: compact ? "6px 12px" : "8px 14px",
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
-            fontWeight: 400,
+            fontWeight: fontWeights.regular,
             color: "var(--sub)",
             cursor: isUploading ? "wait" : "pointer",
             display: "inline-flex",
@@ -125,7 +125,7 @@ export function ReceiptAttachment({
             opacity: isUploading ? 0.6 : 1,
           }}
         >
-          <span style={{ fontSize: 14 }} aria-hidden="true">📷</span>
+          <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">📷</span>
           {isUploading ? "Uploading..." : "Add receipt"}
         </button>
       </div>
@@ -141,11 +141,11 @@ export function ReceiptAttachment({
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 10,
+          gap: spacing.sm,
           padding: "8px 12px",
-          background: "rgba(255, 255, 255, 0.04)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          borderRadius: borderRadius.md,
+          background: "var(--fill-04)",
+          border: "1px solid var(--fill-10)",
+          borderRadius: radius.control,
         }}
       >
         {/* Thumbnail */}
@@ -156,9 +156,9 @@ export function ReceiptAttachment({
           style={{
             width: 40,
             height: 40,
-            borderRadius: 6,
+            borderRadius: radius.min,
             overflow: "hidden",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            border: "1px solid var(--fill-10)",
             cursor: "pointer",
             padding: 0,
             background: "transparent",
@@ -179,7 +179,7 @@ export function ReceiptAttachment({
 
         <span
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
             color: "var(--sub)",
           }}
@@ -196,7 +196,7 @@ export function ReceiptAttachment({
             background: "transparent",
             border: "none",
             cursor: "pointer",
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             color: "var(--muted)",
             padding: "4px",
             lineHeight: 1,
@@ -220,11 +220,11 @@ export function ReceiptAttachment({
               position: "fixed",
               inset: 0,
               zIndex: 9999,
-              background: "rgba(14, 14, 26, 0.95)",
+              background: "var(--color-canvas)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: 24,
+              padding: spacing.lg,
               cursor: "pointer",
             }}
             role="dialog"
@@ -238,7 +238,7 @@ export function ReceiptAttachment({
                 maxWidth: "100%",
                 maxHeight: "100%",
                 objectFit: "contain",
-                borderRadius: 8,
+                borderRadius: radius.control,
               }}
             />
             <button
@@ -249,7 +249,7 @@ export function ReceiptAttachment({
                 position: "absolute",
                 top: 20,
                 right: 20,
-                background: "rgba(255, 255, 255, 0.1)",
+                background: "var(--fill-10)",
                 border: "none",
                 borderRadius: "50%",
                 width: 36,
@@ -258,7 +258,7 @@ export function ReceiptAttachment({
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                fontSize: 18,
+                fontSize: typography.subhead.fontSize,
                 color: "var(--text)",
               }}
             >

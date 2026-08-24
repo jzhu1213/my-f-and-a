@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { sectionHeader } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import {
   REGION_LIST,
   getRegion,
@@ -46,11 +47,11 @@ export function RegionSettings() {
   }
 
   return (
-    <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
+    <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.md }}>
       <p style={{ ...sectionHeader, marginBottom: 4 }}>Region</p>
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
           lineHeight: 1.5,
           marginBottom: 14,
@@ -72,20 +73,20 @@ export function RegionSettings() {
           justifyContent: "space-between",
           width: "100%",
           padding: "12px 14px",
-          background: "rgba(255,255,255,0.04)",
+          background: "var(--fill-04)",
           border: "1px solid var(--border)",
-          borderRadius: 10,
+          borderRadius: radius.control,
           cursor: "pointer",
           fontFamily: FONT_FAMILY,
         }}
       >
-        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 20 }} aria-hidden="true">{current.flag}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+          <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">{current.flag}</span>
           <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+            <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
               {current.name}
             </span>
-            <span style={{ fontSize: 12, color: "var(--sub)" }}>
+            <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
               {current.currency} ({getRegionCurrencySymbol(region)})
               {currencyMeta ? ` · ${currencyMeta.name}` : ""}
             </span>
@@ -94,7 +95,7 @@ export function RegionSettings() {
         <motion.span
           animate={{ rotate: expanded ? 180 : 0 }}
           transition={springs.snappy}
-          style={{ color: "var(--sub)", fontSize: 14 }}
+          style={{ color: "var(--sub)", fontSize: typography.body.fontSize }}
           aria-hidden="true"
         >
           ▾
@@ -129,36 +130,36 @@ export function RegionSettings() {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 10,
+                      gap: spacing.sm,
                       width: "100%",
                       padding: "11px 12px",
-                      background: isActive ? "rgba(167, 139, 250, 0.12)" : "transparent",
+                      background: isActive ? "var(--accent-200)" : "transparent",
                       border: "none",
-                      borderRadius: 8,
+                      borderRadius: radius.control,
                       cursor: "pointer",
                       textAlign: "left",
                       fontFamily: FONT_FAMILY,
                     }}
                     aria-label={`Set region to ${r.name}`}
                   >
-                    <span style={{ fontSize: 18 }} aria-hidden="true">{r.flag}</span>
+                    <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">{r.flag}</span>
                     <span style={{ flex: 1 }}>
                       <span
                         style={{
                           display: "block",
-                          fontSize: 14,
+                          fontSize: typography.body.fontSize,
                           fontWeight: isActive ? 600 : 400,
                           color: isActive ? "var(--text)" : "var(--sub)",
                         }}
                       >
                         {r.name}
                       </span>
-                      <span style={{ display: "block", fontSize: 12, color: "var(--muted)" }}>
+                      <span style={{ display: "block", fontSize: typography['body-sm'].fontSize, color: "var(--muted)" }}>
                         {r.currency} ({getRegionCurrencySymbol(r.code)})
                       </span>
                     </span>
                     {isActive && (
-                      <span style={{ color: "rgba(167, 139, 250, 0.95)", fontSize: 15 }} aria-hidden="true">
+                      <span style={{ color: "var(--accent-500)", fontSize: typography.body.fontSize }} aria-hidden="true">
                         ✓
                       </span>
                     )}

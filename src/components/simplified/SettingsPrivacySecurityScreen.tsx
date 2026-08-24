@@ -12,8 +12,10 @@
 
 import { spacingScale } from "@/styles/layout"
 import { typography } from "@/styles/typography"
+import { radius } from '@/styles/surfaces'
 import { textColors } from "@/styles/colors"
 import { SettingsSubScreen } from "./SettingsSubScreen"
+import { ListRow } from "@/components/ui/primitives/ListRow"
 import { AppLockSetting } from "./AppLockSetting"
 import { SessionsSetting } from "./SessionsSetting"
 
@@ -40,29 +42,23 @@ export function SettingsPrivacySecurityScreen({ onBack, onOpenPrivacyDashboard }
       </div>
 
       <div style={{ marginTop: spacingScale['32'] }}>
-        <button
-          type="button"
-          onClick={onOpenPrivacyDashboard}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            padding: '14px 16px',
-            borderRadius: 12,
-            border: '1px solid rgba(167, 139, 250, 0.15)',
-            background: 'rgba(255,255,255,0.03)',
-            cursor: 'pointer',
-          }}
+        <ListRow
+          variant="dense"
+          onPress={onOpenPrivacyDashboard}
           aria-label="Open privacy dashboard"
+          style={{
+            borderRadius: radius.control,
+            border: '1px solid var(--accent-200)',
+            background: 'var(--fill-03)',
+          }}
         >
-          <span style={{ ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
+          <span style={{ flex: 1, ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
             Privacy dashboard
           </span>
-          <span style={{ fontSize: 14, color: textColors.sub }} aria-hidden="true">
+          <span style={{ fontSize: typography.body.fontSize, color: textColors.sub, flexShrink: 0 }} aria-hidden="true">
             ›
           </span>
-        </button>
+        </ListRow>
       </div>
     </SettingsSubScreen>
   )

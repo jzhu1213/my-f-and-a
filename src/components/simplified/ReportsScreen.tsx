@@ -1,25 +1,25 @@
-"use client"
+﻿"use client"
 
 /**
- * ReportsScreen — filtered, exportable spending reports (Task 185.1)
+ * ReportsScreen â€” filtered, exportable spending reports (Task 185.1)
  *
  * Builds on the CSV export (Phase 2 task 116.1) with a formatted PDF report and
  * filters by tag, merchant, or category (reusing the tag + search infrastructure
- * from Phase 3 task 129.x). Lives behind Settings → Data via progressive
- * disclosure — never on the home screen.
+ * from Phase 3 task 129.x). Lives behind Settings â†’ Data via progressive
+ * disclosure â€” never on the home screen.
  *
  * Guardrails:
- *   • Warm, shame-free copy ("where it went", never "you overspent").
- *   • Soft purple theme; prefers-reduced-motion honored.
- *   • Accessible: labelled controls, keyboard-operable chips, live status.
- *   • Free — no paywall, no bank linking.
+ *   â€¢ Warm, shame-free copy ("where it went", never "you overspent").
+ *   â€¢ Soft purple theme; prefers-reduced-motion honored.
+ *   â€¢ Accessible: labelled controls, keyboard-operable chips, live status.
+ *   â€¢ Free â€” no paywall, no bank linking.
  */
 
 import { useMemo, useState, useCallback } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -46,9 +46,9 @@ export interface ReportsScreenProps {
   onBack: () => void
   /** Optional toast surface for success/error feedback. */
   onNotify?: (message: string, kind?: "success" | "error") => void
-  /** User goals — used for period summary PDF. */
+  /** User goals â€” used for period summary PDF. */
   goals?: Goal[]
-  /** User budgets — used for period summary PDF. */
+  /** User budgets â€” used for period summary PDF. */
   budgets?: Budget[]
 }
 
@@ -78,7 +78,7 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
   const [isExporting, setIsExporting] = useState(false)
   const [isSummaryExporting, setIsSummaryExporting] = useState(false)
 
-  // Date range state — defaults to current month
+  // Date range state â€” defaults to current month
   const today = new Date()
   const defaultStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
   const defaultEnd = today.toISOString().split('T')[0]
@@ -115,7 +115,7 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
     try {
       const count = await exportReportPDF(dateFilteredTransactions, filters)
       onNotify?.(
-        `Report ready — ${count} ${count === 1 ? "transaction" : "transactions"} 📄`,
+        `Report ready â€” ${count} ${count === 1 ? "transaction" : "transactions"} ðŸ“„`,
         "success"
       )
     } catch {
@@ -147,7 +147,7 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
         budgets,
       })
       onNotify?.(
-        `Period summary ready — ${count} ${count === 1 ? "transaction" : "transactions"} 📄`,
+        `Period summary ready â€” ${count} ${count === 1 ? "transaction" : "transactions"} ðŸ“„`,
         "success"
       )
     } catch {
@@ -164,15 +164,15 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
     fontFamily: FONT_FAMILY,
   } as const
 
-  // ── Reusable chip styling ────────────────────────────────────────────────
+  // â”€â”€ Reusable chip styling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const chip = (active: boolean) =>
     ({
       padding: "8px 14px",
       borderRadius: borderRadius.full,
-      border: active ? "1.5px solid rgba(129, 140, 248, 0.9)" : "1px solid var(--border)",
-      background: active ? "rgba(129, 140, 248, 0.18)" : "rgba(255,255,255,0.03)",
+      border: active ? "1.5px solid var(--accent-500)" : "1px solid var(--border)",
+      background: active ? "var(--accent-200)" : "var(--fill-03)",
       color: active ? "var(--text)" : "var(--sub)",
-      fontSize: 13,
+      fontSize: typography['body-sm'].fontSize,
       fontWeight: active ? 600 : 500,
       fontFamily: FONT_FAMILY,
       cursor: "pointer",
@@ -187,33 +187,33 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
           background: "none",
           border: "none",
           color: "var(--sub)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           cursor: "pointer",
-          marginBottom: 16,
+          marginBottom: spacing.md,
           padding: "8px 0",
           fontFamily: FONT_FAMILY,
         }}
         aria-label="Go back"
       >
-        ← Back
+        â† Back
       </button>
 
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+      <h2 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", marginBottom: 6 }}>
         Reports
       </h2>
-      <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>
-        Filter your history, then save a tidy PDF or spreadsheet — just for you.
+      <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}>
+        Filter your history, then save a tidy PDF or spreadsheet â€” just for you.
       </p>
 
-      {/* ── Date range ─────────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
+      {/* â”€â”€ Date range â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.md }}>
         <label
-          style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.02em" }}
+          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", letterSpacing: "0.02em" }}
         >
           Date range
         </label>
         <div
-          style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "center" }}
+          style={{ display: "flex", gap: spacing.sm, marginTop: spacing.sm, alignItems: "center" }}
         >
           <input
             type="date"
@@ -225,14 +225,14 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
               padding: "10px 12px",
               borderRadius: borderRadius.sm,
               border: "1px solid var(--border)",
-              background: "rgba(255,255,255,0.03)",
+              background: "var(--fill-03)",
               color: "var(--text)",
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
               outline: "none",
             }}
           />
-          <span style={{ fontSize: 13, color: "var(--sub)" }}>to</span>
+          <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>to</span>
           <input
             type="date"
             aria-label="End date"
@@ -243,9 +243,9 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
               padding: "10px 12px",
               borderRadius: borderRadius.sm,
               border: "1px solid var(--border)",
-              background: "rgba(255,255,255,0.03)",
+              background: "var(--fill-03)",
               color: "var(--text)",
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
               outline: "none",
             }}
@@ -253,17 +253,17 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
         </div>
       </GlassCard>
 
-      {/* ── Category filter ──────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
+      {/* â”€â”€ Category filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.md }}>
         <label
-          style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.02em" }}
+          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", letterSpacing: "0.02em" }}
         >
           Category
         </label>
         <div
           role="group"
           aria-label="Filter by category"
-          style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}
+          style={{ display: "flex", flexWrap: "wrap", gap: spacing.xs, marginTop: 12 }}
         >
           <button
             type="button"
@@ -287,18 +287,18 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
         </div>
       </GlassCard>
 
-      {/* ── Tag filter ───────────────────────────────────────────────────── */}
+      {/* â”€â”€ Tag filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {recentTags.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.md }}>
           <label
-            style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.02em" }}
+            style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", letterSpacing: "0.02em" }}
           >
             Tag
           </label>
           <div
             role="group"
             aria-label="Filter by tag"
-            style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}
+            style={{ display: "flex", flexWrap: "wrap", gap: spacing.xs, marginTop: 12 }}
           >
             <button
               type="button"
@@ -323,11 +323,11 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
         </GlassCard>
       )}
 
-      {/* ── Merchant filter ──────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
+      {/* â”€â”€ Merchant filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.md }}>
         <label
           htmlFor="report-merchant"
-          style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.02em" }}
+          style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", letterSpacing: "0.02em" }}
         >
           Merchant or note
         </label>
@@ -340,32 +340,32 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
           placeholder="e.g. Chipotle, coffee, textbooks"
           style={{
             width: "100%",
-            marginTop: 12,
+            marginTop: spacing.sm,
             padding: "12px 14px",
             borderRadius: borderRadius.sm,
             border: "1px solid var(--border)",
-            background: "rgba(255,255,255,0.03)",
+            background: "var(--fill-03)",
             color: "var(--text)",
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             fontFamily: FONT_FAMILY,
             outline: "none",
           }}
         />
       </GlassCard>
 
-      {/* ── Live preview ─────────────────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 16 }}>
+      {/* â”€â”€ Live preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: spacing.md }}>
         <div
           role="status"
           aria-live="polite"
           style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}
         >
-          <span style={{ fontSize: 14, color: "var(--text)", fontWeight: 600 }}>
+          <span style={{ fontSize: typography.body.fontSize, color: "var(--text)", fontWeight: fontWeights.semibold }}>
             {summary.count} {summary.count === 1 ? "transaction" : "transactions"}
           </span>
           <span
             style={{
-              fontSize: 14,
+              fontSize: typography.body.fontSize,
               color: "var(--sub)",
               fontVariantNumeric: "tabular-nums",
             }}
@@ -374,7 +374,7 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
           </span>
         </div>
         {summary.categoryTotals.length > 0 && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: spacing.sm }}>
             {summary.categoryTotals.slice(0, 4).map((c) => (
               <div
                 key={c.category}
@@ -382,7 +382,7 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
                   display: "flex",
                   justifyContent: "space-between",
                   padding: "5px 0",
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   color: "var(--sub)",
                 }}
               >
@@ -396,7 +396,7 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
         )}
       </GlassCard>
 
-      {/* ── Export actions ───────────────────────────────────────────────── */}
+      {/* â”€â”€ Export actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.button
         onClick={handleExportPDF}
         disabled={!hasResults || isExporting}
@@ -406,19 +406,19 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
           width: "100%",
           padding: "14px 20px",
           borderRadius: borderRadius.full,
-          background: hasResults ? "rgba(129, 140, 248, 0.85)" : "rgba(129, 140, 248, 0.25)",
+          background: hasResults ? "var(--accent-500)" : "var(--accent-300)",
           border: "none",
           color: "var(--text)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
-          fontWeight: 600,
+          fontWeight: fontWeights.semibold,
           cursor: !hasResults ? "not-allowed" : isExporting ? "wait" : "pointer",
           opacity: isExporting ? 0.7 : 1,
-          marginBottom: 12,
+          marginBottom: spacing.sm,
         }}
         aria-label="Download a formatted PDF report of the filtered transactions"
       >
-        {isExporting ? "Building report…" : "📄 Download PDF report"}
+        {isExporting ? "Building reportâ€¦" : "ðŸ“„ Download PDF report"}
       </motion.button>
 
       <motion.button
@@ -430,18 +430,18 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
           width: "100%",
           padding: "14px 20px",
           borderRadius: borderRadius.full,
-          background: "rgba(255,255,255,0.04)",
+          background: "var(--fill-04)",
           border: "1px solid var(--border)",
           color: "var(--text)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
-          fontWeight: 600,
+          fontWeight: fontWeights.semibold,
           cursor: hasResults ? "pointer" : "not-allowed",
           opacity: hasResults ? 1 : 0.5,
         }}
         aria-label="Export the filtered transactions as a CSV spreadsheet"
       >
-        ⬇ Export filtered CSV
+        â¬‡ Export filtered CSV
       </motion.button>
 
       <motion.button
@@ -453,32 +453,32 @@ export function ReportsScreen({ transactions, onBack, onNotify, goals = [], budg
           width: "100%",
           padding: "14px 20px",
           borderRadius: borderRadius.full,
-          background: "rgba(255,255,255,0.04)",
+          background: "var(--fill-04)",
           border: "1px solid var(--border)",
           color: "var(--text)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           fontFamily: FONT_FAMILY,
-          fontWeight: 600,
+          fontWeight: fontWeights.semibold,
           cursor: isSummaryExporting ? "wait" : "pointer",
           opacity: isSummaryExporting ? 0.7 : 1,
-          marginTop: 12,
+          marginTop: spacing.sm,
         }}
         aria-label="Download a branded period summary PDF with income, spending breakdown, allowance trend, and goal progress"
       >
-        {isSummaryExporting ? "Building summary…" : "📊 Download period summary PDF"}
+        {isSummaryExporting ? "Building summaryâ€¦" : "ðŸ“Š Download period summary PDF"}
       </motion.button>
 
       {!hasResults && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
             textAlign: "center",
-            marginTop: 12,
+            marginTop: spacing.sm,
             lineHeight: 1.5,
           }}
         >
-          Nothing matches these filters yet — try widening them.
+          Nothing matches these filters yet â€” try widening them.
         </p>
       )}
     </div>

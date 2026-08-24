@@ -8,7 +8,7 @@ import { triggerHaptic } from '@/lib/haptics'
 import { useToast } from '@/contexts/ToastContext'
 import type { Transaction, TransactionCategory } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
-import { FONT_FAMILY, spacing, pxToRem } from '@/styles/typography'
+import { FONT_FAMILY, spacing, pxToRem, typography, fontWeights } from '@/styles/typography'
 import { shadows, fills, colorRamp } from '@/styles/shared'
 import { gradients } from '@/styles/colors'
 import { DatePickerChips, getRelativeDateLabel } from '@/components/ui/DatePickerChips'
@@ -189,7 +189,7 @@ export function EditTransactionSheet({
                 <p style={{
                   fontSize: pxToRem(18),
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 700,
+                  fontWeight: fontWeights.bold,
                   color: 'var(--text)',
                 }}>
                   Edit transaction
@@ -224,7 +224,7 @@ export function EditTransactionSheet({
                   <span style={{
                     fontSize: 28,
                     fontFamily: FONT_FAMILY,
-                    fontWeight: 300,
+                    fontWeight: fontWeights.light,
                     color: transaction.type === 'income' ? 'var(--success)' : 'var(--muted)',
                   }}>
                     $
@@ -251,7 +251,7 @@ export function EditTransactionSheet({
                       outline: 'none',
                       fontSize: 48,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 600,
+                      fontWeight: fontWeights.semibold,
                       fontVariantNumeric: 'tabular-nums',
                       color: 'var(--text)',
                       textAlign: 'center',
@@ -300,7 +300,7 @@ export function EditTransactionSheet({
                         onClick={() => { setCategory(cat.category); triggerHaptic('light') }}
                         aria-label={`Category: ${cat.label}`}
                         aria-pressed={selected}
-                        whileTap={prefersReducedMotion ? {} : { scale: 0.94 }}
+                        whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
                         transition={springs.snappy}
                         style={{
                           minHeight: 72,
@@ -323,13 +323,13 @@ export function EditTransactionSheet({
                               }),
                         }}
                       >
-                        <span style={{ fontSize: 24, lineHeight: 1 }} aria-hidden="true">
+                        <span style={{ fontSize: typography.headline.fontSize, lineHeight: 1 }} aria-hidden="true">
                           {cat.emoji}
                         </span>
                         <span style={{
                           fontFamily: FONT_FAMILY,
                           fontSize: pxToRem(12),
-                          fontWeight: 500,
+                          fontWeight: fontWeights.medium,
                           color: selected ? 'var(--text)' : 'var(--sub)',
                         }}>
                           {cat.label}
@@ -348,14 +348,14 @@ export function EditTransactionSheet({
                     onClick={() => setShowNoteField(true)}
                     aria-label="Add a note"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: 'var(--fill-04)',
+                      border: '1px solid var(--fill-08)',
                       borderRadius: 'var(--radius-md)',
                       padding: `${spacing.sm}px ${spacing.md}px`,
                       minHeight: 44,
                       fontSize: pxToRem(13),
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 400,
+                      fontWeight: fontWeights.regular,
                       color: 'var(--sub)',
                       cursor: 'pointer',
                       display: 'inline-flex',
@@ -363,7 +363,7 @@ export function EditTransactionSheet({
                       gap: 6,
                     }}
                   >
-                    <span style={{ fontSize: 16 }}>+</span> Add a note
+                    <span style={{ fontSize: typography.body.fontSize }}>+</span> Add a note
                   </button>
                 </div>
               ) : (
@@ -399,7 +399,7 @@ export function EditTransactionSheet({
                         bottom: 14,
                         fontSize: pxToRem(11),
                         fontFamily: FONT_FAMILY,
-                        fontWeight: 400,
+                        fontWeight: fontWeights.regular,
                         color: 'var(--muted)',
                       }}>
                         {note.length}/60
@@ -426,7 +426,7 @@ export function EditTransactionSheet({
                   color: canSubmit && hasChanges ? 'var(--color-canvas)' : 'var(--muted)',
                   fontFamily: FONT_FAMILY,
                   fontSize: pxToRem(16),
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   borderRadius: 'var(--radius-md)',
                   border: 'none',
                   cursor: canSubmit && hasChanges ? 'pointer' : 'not-allowed',
@@ -451,7 +451,7 @@ export function EditTransactionSheet({
                       cursor: 'pointer',
                       fontSize: pxToRem(13),
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       color: 'var(--success)',
                       padding: `${spacing.xs}px ${spacing.md}px`,
                       minHeight: 44,

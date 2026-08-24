@@ -24,7 +24,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { spacingScale, safeArea } from "@/styles/layout"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, fontWeights } from '@/styles/typography'
 import { textColors, colorRamp } from "@/styles/colors"
 import { radius, elevations } from "@/styles/surfaces"
 import type { CelebrationEvent } from "@/types/folio"
@@ -207,7 +207,7 @@ function UndoToast({
   const buttonStyle: React.CSSProperties = {
     fontFamily: FONT_FAMILY,
     fontSize: typography.body.fontSize,
-    fontWeight: 600,
+    fontWeight: fontWeights.semibold,
     lineHeight: typography.body.lineHeight,
     color: colorRamp.accent[400],
     background: "transparent",
@@ -373,7 +373,7 @@ function OverBudgetStatus({
   const statusTextStyle: React.CSSProperties = {
     fontFamily: FONT_FAMILY,
     fontSize: typography.body.fontSize,
-    fontWeight: 600,
+    fontWeight: fontWeights.semibold,
     lineHeight: typography.body.lineHeight,
     color: colorRamp.error[700],
     margin: 0,

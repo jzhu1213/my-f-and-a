@@ -25,8 +25,9 @@ import {
   getParticipantBreakdown,
   isGoalShared,
 } from "@/lib/sharedGoalUtils"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -189,7 +190,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(14, 14, 26, 0.6)",
+              background: "var(--color-canvas)",
               zIndex: 1000,
             }}
           />
@@ -221,19 +222,19 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                 width: 36,
                 height: 4,
                 borderRadius: 2,
-                background: "rgba(255,255,255,0.15)",
+                background: "var(--fill-15)",
                 margin: "0 auto 20px",
               }}
             />
 
             {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-              <span style={{ fontSize: 24 }}>{goal.emoji}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, marginBottom: HORIZONTAL_PADDING }}>
+              <span style={{ fontSize: typography.headline.fontSize }}>{goal.emoji}</span>
               <div>
-                <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--text)" }}>
+                <h3 style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
                   {goal.name}
                 </h3>
-                <p style={{ fontSize: 13, color: "var(--sub)" }}>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
                   Shared goal settings
                 </p>
               </div>
@@ -241,12 +242,12 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
 
             {/* Enable/Disable sharing */}
             {!isShared ? (
-              <GlassCard elevation="low" style={{ padding: "20px", marginBottom: 16, textAlign: "center" }}>
+              <GlassCard elevation="low" style={{ padding: "20px", marginBottom: spacing.md, textAlign: "center" }}>
                 <p style={{ fontSize: 28, marginBottom: 10 }} aria-hidden="true">👥</p>
-                <p style={{ fontSize: 15, color: "var(--text)", marginBottom: 6, fontWeight: 500 }}>
+                <p style={{ fontSize: typography.body.fontSize, color: "var(--text)", marginBottom: 6, fontWeight: fontWeights.medium }}>
                   Save together
                 </p>
-                <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, marginBottom: 16 }}>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, marginBottom: spacing.md }}>
                   Invite friends or family to contribute toward this goal. Everyone can see progress and chip in.
                 </p>
                 <motion.button
@@ -256,13 +257,13 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                   disabled={loading}
                   style={{
                     padding: "12px 24px",
-                    fontSize: 14,
-                    fontWeight: 600,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: "var(--text)",
                     background: "var(--accent)",
                     border: "none",
-                    borderRadius: 10,
+                    borderRadius: radius.control,
                     cursor: loading ? "wait" : "pointer",
                     opacity: loading ? 0.7 : 1,
                   }}
@@ -274,23 +275,23 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
               <>
                 {/* Share link */}
                 {shareUrl && (
-                  <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: 16 }}>
-                    <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, fontWeight: 600 }}>
+                  <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: spacing.md }}>
+                    <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginBottom: spacing.xs, fontWeight: fontWeights.semibold }}>
                       Invite link
                     </p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
                       <input
                         readOnly
                         value={shareUrl}
                         style={{
                           flex: 1,
                           padding: "8px 10px",
-                          fontSize: 12,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
                           color: "var(--sub)",
-                          background: "rgba(255,255,255,0.04)",
+                          background: "var(--fill-04)",
                           border: "1px solid var(--border)",
-                          borderRadius: 6,
+                          borderRadius: radius.min,
                           outline: "none",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -302,13 +303,13 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                         whileTap={{ scale: 0.95 }}
                         style={{
                           padding: "8px 14px",
-                          fontSize: 12,
-                          fontWeight: 600,
+                          fontSize: typography['body-sm'].fontSize,
+                          fontWeight: fontWeights.semibold,
                           fontFamily: FONT_FAMILY,
                           color: copied ? "var(--success)" : "var(--accent)",
-                          background: copied ? "rgba(6, 214, 160, 0.1)" : "var(--accent-muted)",
+                          background: copied ? "var(--success-100)" : "var(--accent-muted)",
                           border: "none",
-                          borderRadius: 6,
+                          borderRadius: radius.min,
                           cursor: "pointer",
                           whiteSpace: "nowrap",
                         }}
@@ -320,13 +321,13 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                 )}
 
                 {/* Participant list */}
-                <div style={{ marginBottom: 16 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 10 }}>
+                <div style={{ marginBottom: spacing.md }}>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", marginBottom: 10 }}>
                     Contributors ({participants.length})
                   </p>
 
                   {participants.length === 0 && (
-                    <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 12 }}>
+                    <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: spacing.sm }}>
                       No one has joined yet. Share the link above to invite people.
                     </p>
                   )}
@@ -335,21 +336,21 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                     <GlassCard
                       key={p.id}
                       elevation="low"
-                      style={{ padding: "12px 14px", marginBottom: 8 }}
+                      style={{ padding: "12px 14px", marginBottom: spacing.xs }}
                     >
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div>
-                          <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text)" }}>
+                          <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, color: "var(--text)" }}>
                             {p.name}
                           </p>
-                          <p style={{ fontSize: 12, color: "var(--sub)", fontVariantNumeric: "tabular-nums" }}>
+                          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", fontVariantNumeric: "tabular-nums" }}>
                             ${p.contributedAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })} contributed
                           </p>
                         </div>
                         <div style={{ display: "flex", gap: 6 }}>
                           {contributeId === p.id ? (
                             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                              <span style={{ fontSize: 12, color: "var(--muted)" }}>$</span>
+                              <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)" }}>$</span>
                               <input
                                 type="number"
                                 min="1"
@@ -364,12 +365,12 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                                 style={{
                                   width: 54,
                                   padding: "4px 6px",
-                                  fontSize: 12,
+                                  fontSize: typography['body-sm'].fontSize,
                                   fontFamily: FONT_FAMILY,
                                   color: "var(--text)",
-                                  background: "rgba(255,255,255,0.06)",
+                                  background: "var(--fill-06)",
                                   border: "1px solid var(--border)",
-                                  borderRadius: 4,
+                                  borderRadius: radius.min,
                                   outline: "none",
                                 }}
                                 autoFocus
@@ -379,13 +380,13 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                                 onClick={handleContribute}
                                 style={{
                                   padding: "4px 8px",
-                                  fontSize: 11,
-                                  fontWeight: 600,
+                                  fontSize: typography.caption.fontSize,
+                                  fontWeight: fontWeights.semibold,
                                   fontFamily: FONT_FAMILY,
                                   color: "var(--text)",
                                   background: "var(--accent)",
                                   border: "none",
-                                  borderRadius: 4,
+                                  borderRadius: radius.min,
                                   cursor: "pointer",
                                 }}
                               >
@@ -402,12 +403,12 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                                 aria-label={`Record contribution for ${p.name}`}
                                 style={{
                                   padding: "4px 10px",
-                                  fontSize: 11,
+                                  fontSize: typography.caption.fontSize,
                                   fontFamily: FONT_FAMILY,
                                   color: "var(--accent)",
                                   background: "var(--accent-muted)",
                                   border: "none",
-                                  borderRadius: 4,
+                                  borderRadius: radius.min,
                                   cursor: "pointer",
                                 }}
                               >
@@ -418,7 +419,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                                 aria-label={`Remove ${p.name}`}
                                 style={{
                                   padding: "4px 6px",
-                                  fontSize: 11,
+                                  fontSize: typography.caption.fontSize,
                                   fontFamily: FONT_FAMILY,
                                   color: "var(--error)",
                                   background: "transparent",
@@ -436,7 +437,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                   ))}
 
                   {/* Add participant form */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: spacing.xs, marginTop: 10 }}>
                     <input
                       type="text"
                       value={newName}
@@ -448,12 +449,12 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                       style={{
                         flex: 1,
                         padding: "10px 12px",
-                        fontSize: 13,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
                         color: "var(--text)",
-                        background: "rgba(255,255,255,0.04)",
+                        background: "var(--fill-04)",
                         border: "1px solid var(--border)",
-                        borderRadius: 8,
+                        borderRadius: radius.control,
                         outline: "none",
                       }}
                       aria-label="New participant name"
@@ -464,13 +465,13 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                       disabled={!newName.trim()}
                       style={{
                         padding: "10px 14px",
-                        fontSize: 13,
-                        fontWeight: 600,
+                        fontSize: typography['body-sm'].fontSize,
+                        fontWeight: fontWeights.semibold,
                         fontFamily: FONT_FAMILY,
                         color: newName.trim() ? "var(--accent)" : "var(--muted)",
                         background: "var(--accent-muted)",
                         border: "none",
-                        borderRadius: 8,
+                        borderRadius: radius.control,
                         cursor: newName.trim() ? "pointer" : "default",
                         opacity: newName.trim() ? 1 : 0.5,
                       }}
@@ -482,8 +483,8 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
 
                 {/* Contribution summary */}
                 {participants.length > 0 && (
-                  <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: 16 }}>
-                    <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, fontWeight: 600 }}>
+                  <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: spacing.md }}>
+                    <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginBottom: spacing.xs, fontWeight: fontWeights.semibold }}>
                       Contribution breakdown
                     </p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -492,16 +493,16 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                           ? Math.min((p.contributedAmount / goal.targetAmount) * 100, 100)
                           : 0
                         return (
-                          <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span style={{ fontSize: 12, color: "var(--text)", minWidth: 70 }}>
+                          <div key={p.id} style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+                            <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", minWidth: 70 }}>
                               {p.name}
                             </span>
                             <div
                               style={{
                                 flex: 1,
                                 height: 6,
-                                borderRadius: borderRadius.full,
-                                background: "rgba(255,255,255,0.06)",
+                                borderRadius: radius.full,
+                                background: "var(--fill-06)",
                                 overflow: "hidden",
                               }}
                             >
@@ -509,7 +510,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                                 style={{
                                   width: `${pct}%`,
                                   height: "100%",
-                                  borderRadius: borderRadius.full,
+                                  borderRadius: radius.full,
                                   background: "var(--accent)",
                                   transition: "width 0.3s ease",
                                 }}
@@ -517,7 +518,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                             </div>
                             <span
                               style={{
-                                fontSize: 11,
+                                fontSize: typography.caption.fontSize,
                                 color: "var(--sub)",
                                 fontVariantNumeric: "tabular-nums",
                                 minWidth: 40,
@@ -532,7 +533,7 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                     </div>
                     <p
                       style={{
-                        fontSize: 12,
+                        fontSize: typography['body-sm'].fontSize,
                         color: "var(--muted)",
                         marginTop: 10,
                         fontVariantNumeric: "tabular-nums",
@@ -553,13 +554,13 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
                   style={{
                     width: "100%",
                     padding: "12px",
-                    fontSize: 13,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     fontFamily: FONT_FAMILY,
                     color: "var(--error)",
-                    background: "rgba(239, 68, 68, 0.06)",
-                    border: "1px solid rgba(239, 68, 68, 0.15)",
-                    borderRadius: 10,
+                    background: "var(--error-100)",
+                    border: "1px solid var(--error-200)",
+                    borderRadius: radius.control,
                     cursor: loading ? "wait" : "pointer",
                     opacity: loading ? 0.7 : 1,
                   }}
@@ -577,14 +578,14 @@ export function SharedGoalSheet({ isOpen, goal, onClose, onGoalUpdated, userId }
               style={{
                 width: "100%",
                 padding: "14px",
-                marginTop: 16,
-                fontSize: 14,
-                fontWeight: 500,
+                marginTop: spacing.md,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 color: "var(--sub)",
-                background: "rgba(255,255,255,0.04)",
+                background: "var(--fill-04)",
                 border: "1px solid var(--border)",
-                borderRadius: 10,
+                borderRadius: radius.control,
                 cursor: "pointer",
               }}
             >

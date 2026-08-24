@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { EmptyState } from "@/components/ui/EmptyState"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -15,6 +15,7 @@ import {
   listRow,
   shadows,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import type { Reimbursement, ReimbursementDirection, SettleUpEntry } from "@/lib/reimbursements"
 import { getNetBalance, getNetSummary, validateReimbursement, computeSettleUpLedger, generateReminder } from "@/lib/reimbursements"
 import type { FundingSource } from "@/lib/fundingSources"
@@ -240,7 +241,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, marginBottom: HORIZONTAL_PADDING }}>
         {onBack && (
           <motion.button
             onClick={onBack}
@@ -250,7 +251,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
               background: "none",
               border: "none",
               padding: 0,
-              fontSize: 18,
+              fontSize: typography.subhead.fontSize,
               color: "var(--sub)",
               cursor: "pointer",
             }}
@@ -259,33 +260,33 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
             ←
           </motion.button>
         )}
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+        <h2 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", margin: 0 }}>
           IOUs & Reimbursements
         </h2>
       </div>
 
       {/* Net Summary Card */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
         <p style={{ ...sectionHeader }}>Net Summary</p>
-        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: HORIZONTAL_PADDING, flexWrap: "wrap" }}>
           <div>
-            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>Coming your way</p>
-            <p style={{ fontSize: 20, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: 2 }}>Coming your way</p>
+            <p style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
               {formatCurrency(summary.totalOwedToMe, getHomeCurrency())}
             </p>
           </div>
           <div>
-            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>Headed out</p>
-            <p style={{ fontSize: 20, fontWeight: 700, color: "var(--error)", fontVariantNumeric: "tabular-nums" }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: 2 }}>Headed out</p>
+            <p style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, color: "var(--error)", fontVariantNumeric: "tabular-nums" }}>
               {formatCurrency(summary.totalOwedByMe, getHomeCurrency())}
             </p>
           </div>
           <div>
-            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 2 }}>Net</p>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: 2 }}>Net</p>
             <p
               style={{
-                fontSize: 20,
-                fontWeight: 700,
+                fontSize: typography.subhead.fontSize,
+                fontWeight: fontWeights.bold,
                 color: summary.net >= 0 ? "var(--success)" : "var(--error)",
                 fontVariantNumeric: "tabular-nums",
               }}
@@ -302,10 +303,10 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
           display: "flex",
           gap: 6,
           padding: 4,
-          borderRadius: 12,
-          background: "rgba(255, 255, 255, 0.04)",
+          borderRadius: radius.control,
+          background: "var(--fill-04)",
           border: "1px solid var(--border)",
-          marginBottom: 20,
+          marginBottom: HORIZONTAL_PADDING,
         }}
       >
         {([['ious', 'IOUs'], ['settle', 'Settle Up']] as const).map(([tab, label]) => (
@@ -317,14 +318,14 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
             style={{
               flex: 1,
               padding: "10px 0",
-              borderRadius: 9,
+              borderRadius: radius.control,
               border: "none",
-              fontSize: 13,
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
               cursor: "pointer",
               color: activeTab === tab ? "var(--text)" : "var(--muted)",
-              background: activeTab === tab ? "rgba(255,255,255,0.08)" : "transparent",
+              background: activeTab === tab ? "var(--fill-08)" : "transparent",
               boxShadow: activeTab === tab ? shadows.sm : "none",
               transition: "background 0.2s, color 0.2s",
             }}
@@ -348,7 +349,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
           )}
 
           {settleUpLedger.length > 0 && (
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
               <p style={{ ...sectionHeader }}>Settle-Up Summary</p>
               {settleUpLedger.map(entry => (
                 <SettleUpRow
@@ -373,7 +374,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                 style={{
                   position: "fixed",
                   inset: 0,
-                  background: "rgba(14, 14, 26, 0.7)",
+                  background: "var(--color-canvas)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -397,10 +398,10 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                     border: "1px solid var(--border)",
                   }}
                 >
-                  <p style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>
+                  <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", marginBottom: 4 }}>
                     Settle with {settlingPerson.personName}
                   </p>
-                  <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 16 }}>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: spacing.md }}>
                     {settlingPerson.iouCount} IOU{settlingPerson.iouCount !== 1 ? 's' : ''} · {formatCurrency(Math.abs(settlingPerson.netAmount), getHomeCurrency())} net
                   </p>
 
@@ -415,14 +416,14 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                     style={{
                       width: "100%",
                       padding: "12px 14px",
-                      marginBottom: 8,
-                      fontSize: 14,
-                      fontWeight: 500,
+                      marginBottom: spacing.xs,
+                      fontSize: typography.body.fontSize,
+                      fontWeight: fontWeights.medium,
                       fontFamily: FONT_FAMILY,
                       color: "var(--text)",
-                      background: "rgba(255,255,255,0.04)",
+                      background: "var(--fill-04)",
                       border: "1px solid var(--border)",
-                      borderRadius: 10,
+                      borderRadius: radius.control,
                       cursor: settling ? "not-allowed" : "pointer",
                       textAlign: "left",
                       opacity: settling ? 0.6 : 1,
@@ -443,22 +444,22 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                         width: "100%",
                         padding: "12px 14px",
                         marginBottom: 6,
-                        fontSize: 14,
-                        fontWeight: 500,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.medium,
                         fontFamily: FONT_FAMILY,
                         color: "var(--text)",
-                        background: "rgba(255,255,255,0.04)",
+                        background: "var(--fill-04)",
                         border: "1px solid var(--border)",
-                        borderRadius: 10,
+                        borderRadius: radius.control,
                         cursor: settling ? "not-allowed" : "pointer",
                         textAlign: "left",
                         display: "flex",
                         alignItems: "center",
-                        gap: 10,
+                        gap: spacing.sm,
                         opacity: settling ? 0.6 : 1,
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>{source.emoji}</span>
+                      <span style={{ fontSize: typography.subhead.fontSize }}>{source.emoji}</span>
                       <span>{source.label}</span>
                     </motion.button>
                   ))}
@@ -471,9 +472,9 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                     style={{
                       width: "100%",
                       padding: "10px 14px",
-                      marginTop: 8,
-                      fontSize: 13,
-                      fontWeight: 500,
+                      marginTop: spacing.xs,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       fontFamily: FONT_FAMILY,
                       color: "var(--muted)",
                       background: "none",
@@ -502,14 +503,14 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
           style={{
             width: "100%",
             padding: "12px 20px",
-            marginBottom: 20,
-            fontSize: 14,
-            fontWeight: 500,
+            marginBottom: HORIZONTAL_PADDING,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--success)",
-            background: "rgba(74, 222, 128, 0.08)",
-            border: "1.5px solid rgba(74, 222, 128, 0.3)",
-            borderRadius: 12,
+            background: "var(--success-100)",
+            border: "1.5px solid var(--success-300)",
+            borderRadius: radius.control,
             cursor: "pointer",
           }}
           aria-label="Add new IOU"
@@ -527,7 +528,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
             exit={{ opacity: 0, height: 0 }}
             transition={springs.gentle}
           >
-            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+            <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
               <p style={{ ...sectionHeader }}>New IOU</p>
 
               {/* Direction toggle */}
@@ -541,14 +542,14 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                     style={{
                       flex: 1,
                       padding: "10px 0",
-                      borderRadius: 9,
+                      borderRadius: radius.control,
                       border: "none",
-                      fontSize: 13,
-                      fontWeight: 500,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       fontFamily: FONT_FAMILY,
                       cursor: "pointer",
                       color: direction === d ? "var(--text)" : "var(--muted)",
-                      background: direction === d ? "rgba(255,255,255,0.08)" : "transparent",
+                      background: direction === d ? "var(--fill-08)" : "transparent",
                     }}
                     aria-pressed={direction === d}
                   >
@@ -590,13 +591,13 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
               />
 
               {formError && (
-                <p style={{ fontSize: 12, color: "var(--error)", marginTop: 8 }}>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--error)", marginTop: spacing.xs }}>
                   {formError}
                 </p>
               )}
 
               {/* Actions */}
-              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <div style={{ display: "flex", gap: spacing.xs, marginTop: 14 }}>
                 <motion.button
                   onClick={() => {
                     setShowForm(false)
@@ -607,13 +608,13 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                   style={{
                     flex: 1,
                     padding: "10px 16px",
-                    fontSize: 14,
-                    fontWeight: 500,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.medium,
                     fontFamily: FONT_FAMILY,
                     color: "var(--text)",
-                    background: "rgba(255, 255, 255, 0.06)",
+                    background: "var(--fill-06)",
                     border: "1px solid var(--border)",
-                    borderRadius: 8,
+                    borderRadius: radius.control,
                     cursor: "pointer",
                   }}
                 >
@@ -627,13 +628,13 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
                   style={{
                     flex: 1,
                     padding: "10px 16px",
-                    fontSize: 14,
-                    fontWeight: 600,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: "var(--text)",
                     background: "var(--success)",
                     border: "none",
-                    borderRadius: 8,
+                    borderRadius: radius.control,
                     cursor: submitting ? "not-allowed" : "pointer",
                     opacity: submitting ? 0.6 : 1,
                   }}
@@ -648,15 +649,15 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
 
       {/* Per-person breakdown */}
       {balances.size > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={{ ...sectionHeader }}>By Person</p>
           {Array.from(balances.entries()).map(([person, net]) => (
             <div key={person} style={listRow}>
-              <span style={{ fontSize: 14, color: "var(--text)" }}>{person}</span>
+              <span style={{ fontSize: typography.body.fontSize, color: "var(--text)" }}>{person}</span>
               <span
                 style={{
-                  fontSize: 14,
-                  fontWeight: 600,
+                  fontSize: typography.body.fontSize,
+                  fontWeight: fontWeights.semibold,
                   color: net >= 0 ? "var(--success)" : "var(--error)",
                   fontVariantNumeric: "tabular-nums",
                 }}
@@ -670,7 +671,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
 
       {/* Unsettled IOUs */}
       {unsettled.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={{ ...sectionHeader }}>Open IOUs</p>
           {unsettled.map(r => (
             <IOURow
@@ -685,7 +686,7 @@ export function ReimbursementLedger({ userId, onBack }: ReimbursementLedgerProps
 
       {/* Settled IOUs */}
       {settled.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={{ ...sectionHeader }}>Settled</p>
           {settled.slice(0, 10).map(r => (
             <IOURow
@@ -734,9 +735,9 @@ function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowPro
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
+        gap: spacing.sm,
         padding: "10px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.04)",
+        borderBottom: "1px solid var(--fill-04)",
       }}
     >
       {/* Direction indicator */}
@@ -748,11 +749,11 @@ function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowPro
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 13,
-          fontWeight: 600,
+          fontSize: typography['body-sm'].fontSize,
+          fontWeight: fontWeights.semibold,
           background: entry.direction === 'they_owe'
-            ? "rgba(74, 222, 128, 0.12)"
-            : "rgba(248, 113, 113, 0.12)",
+            ? "var(--success-200)"
+            : "var(--error-200)",
           color: entry.direction === 'they_owe' ? "var(--success)" : "var(--error)",
         }}
         aria-hidden="true"
@@ -762,10 +763,10 @@ function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowPro
 
       {/* Person and details */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+        <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, color: "var(--text)", margin: 0 }}>
           {entry.personName}
         </p>
-        <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: 0 }}>
           {entry.iouCount} IOU{entry.iouCount !== 1 ? 's' : ''} · {entry.direction === 'they_owe' ? 'coming your way' : 'headed their way'}
         </p>
       </div>
@@ -773,8 +774,8 @@ function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowPro
       {/* Net amount */}
       <span
         style={{
-          fontSize: 15,
-          fontWeight: 600,
+          fontSize: typography.body.fontSize,
+          fontWeight: fontWeights.semibold,
           fontVariantNumeric: "tabular-nums",
           color: entry.direction === 'they_owe' ? "var(--success)" : "var(--error)",
           marginRight: 6,
@@ -787,17 +788,17 @@ function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowPro
       <div style={{ display: "flex", gap: 4 }}>
         <motion.button
           onClick={onRemind}
-          whileTap={{ scale: 0.93 }}
+          whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           style={{
             padding: "5px 9px",
-            fontSize: 11,
-            fontWeight: 500,
+            fontSize: typography.caption.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: isCopied ? "var(--success)" : "var(--sub)",
-            background: isCopied ? "rgba(74, 222, 128, 0.1)" : "rgba(255,255,255,0.04)",
-            border: `1px solid ${isCopied ? "rgba(74, 222, 128, 0.25)" : "var(--border)"}`,
-            borderRadius: 6,
+            background: isCopied ? "var(--success-100)" : "var(--fill-04)",
+            border: `1px solid ${isCopied ? "var(--success-300)" : "var(--border)"}`,
+            borderRadius: radius.min,
             cursor: "pointer",
             whiteSpace: "nowrap",
           }}
@@ -808,17 +809,17 @@ function SettleUpRow({ entry, copiedPerson, onRemind, onSettle }: SettleUpRowPro
         </motion.button>
         <motion.button
           onClick={onSettle}
-          whileTap={{ scale: 0.93 }}
+          whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           style={{
             padding: "5px 9px",
-            fontSize: 11,
-            fontWeight: 500,
+            fontSize: typography.caption.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--success)",
-            background: "rgba(74, 222, 128, 0.1)",
-            border: "1px solid rgba(74, 222, 128, 0.25)",
-            borderRadius: 6,
+            background: "var(--success-100)",
+            border: "1px solid var(--success-300)",
+            borderRadius: radius.min,
             cursor: "pointer",
             whiteSpace: "nowrap",
           }}
@@ -853,14 +854,14 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
+        gap: spacing.sm,
         padding: "8px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.04)",
+        borderBottom: "1px solid var(--fill-04)",
       }}
     >
       {/* Direction icon */}
       <span
-        style={{ fontSize: 16, opacity: 0.7 }}
+        style={{ fontSize: typography.body.fontSize, opacity: 0.7 }}
         aria-hidden="true"
         title={r.direction === "owed_to_me" ? "Coming your way" : "Headed their way"}
       >
@@ -871,8 +872,8 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
           style={{
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             color: r.settled ? "var(--muted)" : "var(--text)",
             textDecoration: r.settled ? "line-through" : "none",
             margin: 0,
@@ -881,7 +882,7 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
           {r.personName}
         </p>
         {r.note && (
-          <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: 0 }}>
             {r.note}
           </p>
         )}
@@ -895,8 +896,8 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
             <span
               style={{
                 display: "block",
-                fontSize: 14,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontVariantNumeric: "tabular-nums",
                 color: r.settled
                   ? "var(--muted)"
@@ -911,7 +912,7 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
             <span
               style={{
                 display: "block",
-                fontSize: 11,
+                fontSize: typography.caption.fontSize,
                 fontVariantNumeric: "tabular-nums",
                 color: "var(--muted)",
                 marginTop: 1,
@@ -923,8 +924,8 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
         ) : (
           <span
             style={{
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               fontVariantNumeric: "tabular-nums",
               color: r.settled
                 ? "var(--muted)"
@@ -942,17 +943,17 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
       {!r.settled && onSettle && (
         <motion.button
           onClick={onSettle}
-          whileTap={{ scale: 0.93 }}
+          whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           style={{
             padding: "4px 10px",
-            fontSize: 12,
-            fontWeight: 500,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--success)",
-            background: "rgba(74, 222, 128, 0.1)",
-            border: "1px solid rgba(74, 222, 128, 0.25)",
-            borderRadius: 6,
+            background: "var(--success-100)",
+            border: "1px solid var(--success-300)",
+            borderRadius: radius.min,
             cursor: "pointer",
           }}
           aria-label={`Settle IOU with ${r.personName}`}
@@ -963,17 +964,17 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
       {r.settled && onUnsettle && (
         <motion.button
           onClick={onUnsettle}
-          whileTap={{ scale: 0.93 }}
+          whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           style={{
             padding: "4px 10px",
-            fontSize: 12,
-            fontWeight: 500,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--sub)",
-            background: "rgba(255,255,255,0.04)",
+            background: "var(--fill-04)",
             border: "1px solid var(--border)",
-            borderRadius: 6,
+            borderRadius: radius.min,
             cursor: "pointer",
           }}
           aria-label={`Undo settle for IOU with ${r.personName}`}
@@ -984,11 +985,11 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
       {onDelete && (
         <motion.button
           onClick={onDelete}
-          whileTap={{ scale: 0.93 }}
+          whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           style={{
             padding: "4px 8px",
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             fontFamily: FONT_FAMILY,
             color: "var(--muted)",
             background: "none",
@@ -1011,11 +1012,11 @@ function IOURow({ reimbursement: r, onSettle, onUnsettle, onDelete }: IOURowProp
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   background: "var(--color-sunken)",
   border: "1px solid var(--border)",
-  borderRadius: 8,
+  borderRadius: radius.control,
   outline: "none",
 }

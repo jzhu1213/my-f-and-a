@@ -4,7 +4,7 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
 import { Icon } from '@/components/ui/Icon'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, typography, fontWeights } from '@/styles/typography'
 
 // ============================================================================
 // SyncIndicator — premium glass-card sync status (warm, on-brand)
@@ -43,18 +43,18 @@ const cardVariantsReduced = {
 
 /** Glass card inline styles matching the Toast component's aesthetic */
 const glassCardStyle: React.CSSProperties = {
-  background: 'rgba(26, 26, 46, 0.85)',
+  background: 'var(--color-surface)',
   backdropFilter: 'blur(16px)',
   WebkitBackdropFilter: 'blur(16px)',
   border: '1px solid var(--line)',
   borderRadius: 'var(--radius-md, 12px)',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0.5px 0 rgba(255,255,255,0.06)',
+  boxShadow: 'var(--shadow-lg)',
 }
 
 const pillButtonStyle: React.CSSProperties = {
   fontFamily: FONT_FAMILY,
-  fontSize: '11px',
-  fontWeight: 600,
+  fontSize: typography.caption.fontSize,
+  fontWeight: fontWeights.semibold,
   letterSpacing: '0.04em',
   textTransform: 'uppercase',
   padding: '4px 10px',
@@ -110,7 +110,7 @@ export function SyncIndicator({
             style={{
               color: 'var(--text)',
               fontFamily: FONT_FAMILY,
-              fontWeight: 400,
+              fontWeight: fontWeights.regular,
             }}
           >
             All caught up ✓
@@ -140,7 +140,7 @@ export function SyncIndicator({
             style={{
               color: 'var(--text)',
               fontFamily: FONT_FAMILY,
-              fontWeight: 400,
+              fontWeight: fontWeights.regular,
             }}
           >
             Some changes couldn&apos;t sync — we&apos;ll keep trying
@@ -151,7 +151,7 @@ export function SyncIndicator({
               style={{ ...pillButtonStyle, color: 'var(--text)' }}
               onMouseEnter={e => {
                 e.currentTarget.style.borderColor = 'var(--accent)'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                e.currentTarget.style.background = 'var(--fill-04)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.borderColor = 'var(--line)'
@@ -166,7 +166,7 @@ export function SyncIndicator({
                 style={{ ...pillButtonStyle, color: 'var(--sub)' }}
                 onMouseEnter={e => {
                   e.currentTarget.style.borderColor = 'var(--line)'
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                  e.currentTarget.style.background = 'var(--fill-04)'
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.borderColor = 'var(--line)'
@@ -208,7 +208,7 @@ export function SyncIndicator({
             style={{
               color: 'var(--text)',
               fontFamily: FONT_FAMILY,
-              fontWeight: 400,
+              fontWeight: fontWeights.regular,
             }}
           >
             {!isOnline

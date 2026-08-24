@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from "react"
 import { spacingScale } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, fontWeights } from '@/styles/typography'
 import { textColors, semanticColors } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
 import { SettingsSubScreen } from "./SettingsSubScreen"
@@ -74,7 +74,7 @@ function SectionHeading({ children, id }: { children: string; id?: string }) {
         color: textColors.muted,
         margin: 0,
         marginBottom: spacingScale["12"],
-        fontWeight: 500,
+        fontWeight: fontWeights.medium,
       }}
     >
       {children}

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useMemo } from "react"
 import { motion } from "framer-motion"
@@ -6,7 +6,7 @@ import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { ChartFrame } from "@/components/ui/primitives/ChartFrame"
 import { Icon } from "@/components/ui/Icon"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -63,10 +63,10 @@ const CHART_PADDING_BOTTOM = chartDimensions.paddingBottom
 // ============================================================================
 
 /**
- * CashFlowForecastScreen — "Your money through [date]"
+ * CashFlowForecastScreen â€” "Your money through [date]"
  *
  * A full-screen overlay showing a forward-looking projected balance curve.
- * Warm, encouraging framing — helps users see their near-future cash position
+ * Warm, encouraging framing â€” helps users see their near-future cash position
  * without shame or anxiety.
  */
 export function CashFlowForecastScreen({
@@ -167,12 +167,12 @@ export function CashFlowForecastScreen({
   // Summary message
   const summaryMessage = useMemo(() => {
     if (forecast.summary.willGoNegative) {
-      return "Heads up — your balance might dip below zero. Consider adjusting upcoming spending."
+      return "Heads up â€” your balance might dip below zero. Consider adjusting upcoming spending."
     }
     if (forecast.summary.lowestBalance < 50) {
-      return `You'll get a bit tight (down to $${Math.round(forecast.summary.lowestBalance)}) — keep an eye on bigger purchases.`
+      return `You'll get a bit tight (down to $${Math.round(forecast.summary.lowestBalance)}) â€” keep an eye on bigger purchases.`
     }
-    return `You'll stay above $${Math.round(forecast.summary.lowestBalance)} — looking good!`
+    return `You'll stay above $${Math.round(forecast.summary.lowestBalance)} â€” looking good!`
   }, [forecast.summary])
 
   const summaryColor = forecast.summary.willGoNegative
@@ -190,35 +190,35 @@ export function CashFlowForecastScreen({
         fontFamily: FONT_FAMILY,
       }}
     >
-      {/* ── Back button ────────────────────────────────────────────── */}
+      {/* â”€â”€ Back button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <button
         onClick={onBack}
         style={{
           background: "none",
           border: "none",
           color: "var(--sub)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           cursor: "pointer",
-          marginBottom: 20,
+          marginBottom: HORIZONTAL_PADDING,
           padding: "8px 0",
           fontFamily: FONT_FAMILY,
         }}
         aria-label="Go back"
       >
-        ← Back
+        â† Back
       </button>
 
-      {/* ── Title ──────────────────────────────────────────────────── */}
+      {/* â”€â”€ Title â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springs.gentle}
-        style={{ marginBottom: 20 }}
+        style={{ marginBottom: HORIZONTAL_PADDING }}
       >
         <h1
           style={{
-            fontSize: 22,
-            fontWeight: 700,
+            fontSize: typography.headline.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             marginBottom: 6,
           }}
@@ -227,7 +227,7 @@ export function CashFlowForecastScreen({
         </h1>
         <p
           style={{
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
             color: summaryColor,
             lineHeight: 1.5,
           }}
@@ -236,24 +236,24 @@ export function CashFlowForecastScreen({
         </p>
       </motion.div>
 
-      {/* ── Income confidence note (irregular / aid income) ────────── */}
+      {/* â”€â”€ Income confidence note (irregular / aid income) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {incomeValidation.confidence !== "high" && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springs.gentle, delay: 0.05 }}
-          style={{ marginBottom: 16 }}
+          style={{ marginBottom: spacing.md }}
         >
           <GlassCard elevation="low" style={{ padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: spacing.sm }}>
               <span style={{ lineHeight: 1.3, flexShrink: 0, display: "inline-flex", opacity: 0.8 }} aria-hidden="true">
                 <Icon name={incomeValidation.hasAidIncome ? "category:school" : "status:tracking"} size={16} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
                   style={{
-                    fontSize: 12,
-                    fontWeight: 600,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.semibold,
                     color: "var(--sub)",
                     textTransform: "uppercase",
                     letterSpacing: "0.04em",
@@ -264,7 +264,7 @@ export function CashFlowForecastScreen({
                     ? "Income not projected"
                     : "Estimated income"}
                 </p>
-                <p style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", lineHeight: 1.5 }}>
                   {incomeValidation.note}
                 </p>
               </div>
@@ -273,7 +273,7 @@ export function CashFlowForecastScreen({
         </motion.div>
       )}
 
-      {/* ── Balance Chart ──────────────────────────────────────────── */}
+      {/* â”€â”€ Balance Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -292,7 +292,7 @@ export function CashFlowForecastScreen({
           aria-describedby="cashflow-chart-summary"
         >
           <div style={{ padding: "20px 16px" }}>
-            <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+            <div style={{ marginBottom: spacing.xs, display: "flex", justifyContent: "space-between" }}>
               <span style={chartLabel}>Today</span>
               <span style={chartLabel}>{forecast.summary.endDateLabel}</span>
             </div>
@@ -318,7 +318,7 @@ export function CashFlowForecastScreen({
                 fill={`url(#${CHART_GRADIENT_PREFIX}-cashflow)`}
                 stroke="none"
               />
-              {/* Line — uses dashed pattern for CVD differentiation (secondary series) */}
+              {/* Line â€” uses dashed pattern for CVD differentiation (secondary series) */}
               <path
                 d={chartPath}
                 fill="none"
@@ -335,14 +335,14 @@ export function CashFlowForecastScreen({
             </svg>
 
             {/* Start/end balance labels */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-              <span style={{ ...chartValueLabel, fontWeight: 600, color: "var(--text)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: spacing.xs }}>
+              <span style={{ ...chartValueLabel, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
                 ${Math.round(currentBalance).toLocaleString("en-US")}
               </span>
               <span
                 style={{
                   ...chartValueLabel,
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   color: forecast.days.length > 0
                     ? forecast.days[forecast.days.length - 1].projectedBalance < 0
                       ? "var(--error)"
@@ -357,7 +357,7 @@ export function CashFlowForecastScreen({
         </ChartFrame>
       </motion.div>
 
-      {/* ── Key Events Timeline ────────────────────────────────────── */}
+      {/* â”€â”€ Key Events Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {keyEvents.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -365,30 +365,30 @@ export function CashFlowForecastScreen({
           transition={{ ...springs.gentle, delay: 0.2 }}
         >
           <GlassCard elevation="low" style={{ padding: "16px 18px" }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", marginBottom: spacing.sm }}>
               Upcoming events
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
               {keyEvents.map((event, i) => (
                 <div
                   key={`${event.date}-${event.label}-${i}`}
-                  style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  style={{ display: "flex", alignItems: "center", gap: spacing.sm }}
                 >
                   <span style={{ flexShrink: 0, display: "inline-flex", opacity: 0.8 }} aria-hidden="true">
                     <Icon name={event.type === "income" ? "category:income" : event.type === "bill" ? "breakdown:scheduled" : "action:edit"} size={16} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {event.label}
                     </p>
-                    <p style={{ fontSize: 11, color: "var(--sub)" }}>
+                    <p style={{ fontSize: typography.caption.fontSize, color: "var(--sub)" }}>
                       {formatEventDate(event.date)}
                     </p>
                   </div>
                   <span
                     style={{
-                      fontSize: 13,
-                      fontWeight: 600,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.semibold,
                       fontVariantNumeric: "tabular-nums",
                       color: event.amount >= 0 ? "var(--success)" : "var(--text)",
                       flexShrink: 0,

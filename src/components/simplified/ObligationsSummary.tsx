@@ -2,8 +2,9 @@
 
 import { GlassCard } from "@/components/ui/GlassCard"
 import { Icon } from "@/components/ui/Icon"
-import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeader, borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { sectionHeader } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import type { NetObligations } from "@/lib/obligationsUtils"
 
 // ============================================================================
@@ -43,7 +44,7 @@ function ObligationIconChip({
         width: 32,
         height: 32,
         flexShrink: 0,
-        borderRadius: borderRadius.sm,
+        borderRadius: radius.control,
         background: bgColor,
         color,
       }}
@@ -75,23 +76,23 @@ export function ObligationsSummary({ obligations }: ObligationsSummaryProps) {
   if (youOwe === 0 && youreOwed === 0) return null
 
   return (
-    <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: 12 }}>
+    <GlassCard elevation="low" style={{ padding: "14px 16px", marginBottom: spacing.sm }}>
       <p style={{ ...sectionHeader, marginBottom: 10 }}>
         Net Obligations
       </p>
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: spacing.sm }}>
         {youOwe > 0 && (
           <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
               <ObligationIconChip variant="owe" />
               <div>
-                <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2, fontFamily: FONT_FAMILY }}>
+                <p style={{ fontSize: typography.caption.fontSize, color: "var(--sub)", marginBottom: 2, fontFamily: FONT_FAMILY }}>
                   You owe
                 </p>
                 <p
                   style={{
-                    fontSize: 18,
-                    fontWeight: 700,
+                    fontSize: typography.subhead.fontSize,
+                    fontWeight: fontWeights.bold,
                     color: "var(--warning, var(--error))",
                     fontVariantNumeric: "tabular-nums",
                     fontFamily: FONT_FAMILY,
@@ -105,16 +106,16 @@ export function ObligationsSummary({ obligations }: ObligationsSummaryProps) {
         )}
         {youreOwed > 0 && (
           <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
               <ObligationIconChip variant="owed" />
               <div>
-                <p style={{ fontSize: 11, color: "var(--sub)", marginBottom: 2, fontFamily: FONT_FAMILY }}>
+                <p style={{ fontSize: typography.caption.fontSize, color: "var(--sub)", marginBottom: 2, fontFamily: FONT_FAMILY }}>
                   You&apos;re owed
                 </p>
                 <p
                   style={{
-                    fontSize: 18,
-                    fontWeight: 700,
+                    fontSize: typography.subhead.fontSize,
+                    fontWeight: fontWeights.bold,
                     color: "var(--success)",
                     fontVariantNumeric: "tabular-nums",
                     fontFamily: FONT_FAMILY,

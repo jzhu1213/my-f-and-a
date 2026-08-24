@@ -142,7 +142,7 @@ export const Chip: React.FC<ChipProps> = ({
       role="option"
       className="focus-ring"
       style={baseStyles}
-      whileTap={isDisabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.98 })}
+      whileTap={isDisabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.95 })}
       transition={springs.snappy}
     >
       {children}

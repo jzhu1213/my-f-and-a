@@ -1,6 +1,6 @@
 "use client"
 
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography } from '@/styles/typography'
 import type { PeriodContext } from "@/lib/budgetPeriod"
 
 // ============================================================================
@@ -40,12 +40,12 @@ export function PeriodContextIndicator({ periodContext }: PeriodContextIndicator
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
-        marginTop: 8,
+        marginTop: spacing.xs,
       }}
     >
       <span
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
           fontFamily: FONT_FAMILY,
           fontVariantNumeric: "tabular-nums",

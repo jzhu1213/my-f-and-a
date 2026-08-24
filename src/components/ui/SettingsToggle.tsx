@@ -16,9 +16,10 @@
 
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
-import { shadows } from "@/styles/shared"
+import { shadows, fills, colorRamp } from "@/styles/shared"
 import { textColors } from "@/styles/colors"
 import { opacity } from "@/styles/tokens"
+import { radius } from "@/styles/surfaces"
 
 export interface SettingsToggleProps {
   /** Whether the toggle is on/checked */
@@ -47,18 +48,18 @@ export function SettingsToggle({
       aria-label={ariaLabel}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      whileTap={prefersReducedMotion ? undefined : { scale: disabled ? 1 : 0.92 }}
+      whileTap={prefersReducedMotion ? undefined : { scale: disabled ? 1 : 0.95 }}
       transition={springs.snappy}
       style={{
         flexShrink: 0,
         width: 44,
         height: 26,
-        borderRadius: 13,
+        borderRadius: radius.full,
         border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
         background: checked
-          ? "rgba(167, 139, 250, 0.6)"
-          : "rgba(255, 255, 255, 0.1)",
+          ? colorRamp.accent[400]
+          : fills[10],
         position: "relative",
         transition: "background 0.2s ease",
         opacity: disabled ? 0.5 : 1,
@@ -74,8 +75,8 @@ export function SettingsToggle({
           left: checked ? 21 : 3,
           width: 20,
           height: 20,
-          borderRadius: "50%",
-          background: checked ? "var(--text)" : "rgba(255, 255, 255, 0.4)",
+          borderRadius: radius.full,
+          background: checked ? textColors.text : "var(--sub)",
           transition: "left 0.2s ease, background 0.2s ease",
           boxShadow: shadows.sm,
         }}

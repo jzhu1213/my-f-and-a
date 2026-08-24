@@ -173,7 +173,7 @@ export const Button: React.FC<ButtonProps> = ({
       aria-busy={loading}
       className="focus-ring"
       style={baseStyles}
-      whileTap={isDisabled ? undefined : { scale: 0.98 }}
+      whileTap={isDisabled ? undefined : { scale: 0.96 }}
       transition={{
         type: 'spring',
         stiffness: springPresets.snappy.stiffness,

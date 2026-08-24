@@ -2,8 +2,9 @@
 
 import { useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, colorRamp } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { colorRamp } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { timings, springs, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
 import type { StreakData } from "@/lib/streaks"
 import { formatDateLocal, subtractDaysLocal } from "@/lib/dateUtils"
@@ -110,7 +111,7 @@ function CalendarHeatmap({ days, streakData }: { days: CalendarDay[]; streakData
         <span
           key={`header-${idx}`}
           style={{
-            fontSize: 10,
+            fontSize: typography.caption.fontSize,
             color: "var(--sub)",
             fontFamily: FONT_FAMILY,
             textAlign: "center",
@@ -137,11 +138,11 @@ function CalendarHeatmap({ days, streakData }: { days: CalendarDay[]; streakData
           day.status === "active"
             ? colorRamp.success[400]
             : day.status === "grace"
-            ? "rgba(251, 191, 36, 0.5)"
-            : "rgba(255, 255, 255, 0.06)"
+            ? "var(--warning-400)"
+            : "var(--fill-06)"
         const borderColor =
           day.status === "grace"
-            ? "rgba(251, 191, 36, 0.4)"
+            ? "var(--warning-400)"
             : "transparent"
 
         return (
@@ -151,7 +152,7 @@ function CalendarHeatmap({ days, streakData }: { days: CalendarDay[]; streakData
             style={{
               width: "100%",
               aspectRatio: "1",
-              borderRadius: 4,
+              borderRadius: radius.min,
               background: bgColor,
               border: `1px solid ${borderColor}`,
               display: "flex",
@@ -164,9 +165,9 @@ function CalendarHeatmap({ days, streakData }: { days: CalendarDay[]; streakData
                 fontSize: 9,
                 color:
                   day.status === "active"
-                    ? "#fff"
+                    ? "var(--text)"
                     : day.status === "grace"
-                    ? "rgba(251, 191, 36, 1)"
+                    ? "var(--warning)"
                     : "var(--sub)",
                 fontFamily: FONT_FAMILY,
                 fontVariantNumeric: "tabular-nums",
@@ -222,7 +223,7 @@ export function StreakDetailView({
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(0, 0, 0, 0.5)",
+              background: "var(--color-canvas)",
               zIndex: 999,
             }}
             aria-hidden
@@ -265,7 +266,7 @@ export function StreakDetailView({
                 width: 36,
                 height: 4,
                 borderRadius: 2,
-                background: "rgba(255, 255, 255, 0.15)",
+                background: "var(--fill-15)",
                 margin: "0 auto 20px",
               }}
               aria-hidden
@@ -275,8 +276,8 @@ export function StreakDetailView({
             <h2
               style={{
                 margin: "0 0 20px",
-                fontSize: 18,
-                fontWeight: 600,
+                fontSize: typography.subhead.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: "var(--text)",
                 textAlign: "center",
@@ -290,8 +291,8 @@ export function StreakDetailView({
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr 1fr",
-                gap: 12,
-                marginBottom: 24,
+                gap: spacing.sm,
+                marginBottom: spacing.lg,
               }}
             >
               <StatCard
@@ -313,12 +314,12 @@ export function StreakDetailView({
             </div>
 
             {/* Calendar heatmap */}
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: spacing.md }}>
               <p
                 style={{
                   margin: "0 0 10px",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   color: "var(--sub)",
                 }}
@@ -332,34 +333,34 @@ export function StreakDetailView({
             <div
               style={{
                 display: "flex",
-                gap: 16,
+                gap: spacing.md,
                 justifyContent: "center",
-                marginTop: 12,
+                marginTop: spacing.sm,
               }}
             >
               <LegendItem color={colorRamp.success[400]} label="Active" />
-              <LegendItem color="rgba(251, 191, 36, 0.5)" label="Grace day" />
-              <LegendItem color="rgba(255, 255, 255, 0.06)" label="Missed" />
+              <LegendItem color="var(--warning-400)" label="Grace day" />
+              <LegendItem color="var(--fill-06)" label="Missed" />
             </div>
 
             {/* Grace day message (task 485.2 — moved from home screen) */}
             {graceDayMessage && (
               <div
                 style={{
-                  marginTop: 16,
+                  marginTop: spacing.md,
                   padding: "10px 14px",
-                  background: "rgba(251, 191, 36, 0.06)",
-                  border: "1px solid rgba(251, 191, 36, 0.12)",
-                  borderRadius: borderRadius.md,
+                  background: "var(--warning-100)",
+                  border: "1px solid var(--warning-200)",
+                  borderRadius: radius.control,
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: spacing.xs,
                 }}
               >
-                <span style={{ fontSize: 13 }} aria-hidden>🔥</span>
+                <span style={{ fontSize: typography['body-sm'].fontSize }} aria-hidden>🔥</span>
                 <span
                   style={{
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     color: "var(--sub)",
                     fontFamily: FONT_FAMILY,
                     lineHeight: 1.4,
@@ -380,13 +381,13 @@ export function StreakDetailView({
                   display: "block",
                   margin: "16px auto 0",
                   padding: "10px 20px",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   color: "var(--accent)",
-                  background: "rgba(139, 92, 246, 0.08)",
-                  border: "1px solid rgba(139, 92, 246, 0.2)",
-                  borderRadius: borderRadius.full,
+                  background: "var(--accent-100)",
+                  border: "1px solid var(--accent-200)",
+                  borderRadius: radius.full,
                   cursor: "pointer",
                 }}
               >
@@ -402,13 +403,13 @@ export function StreakDetailView({
                 display: "block",
                 margin: "24px auto 0",
                 padding: "10px 24px",
-                fontSize: 14,
-                fontWeight: 500,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 color: "var(--sub)",
-                background: "rgba(255, 255, 255, 0.06)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                borderRadius: borderRadius.full,
+                background: "var(--fill-06)",
+                border: "1px solid var(--fill-10)",
+                borderRadius: radius.full,
                 cursor: "pointer",
               }}
             >
@@ -445,18 +446,18 @@ function StatCard({
         alignItems: "center",
         padding: "14px 8px",
         background: accent
-          ? "rgba(139, 92, 246, 0.1)"
-          : "rgba(255, 255, 255, 0.04)",
+          ? "var(--accent-100)"
+          : "var(--fill-04)",
         border: `1px solid ${
-          accent ? "rgba(139, 92, 246, 0.2)" : "rgba(255, 255, 255, 0.08)"
+          accent ? "var(--accent-200)" : "var(--fill-08)"
         }`,
-        borderRadius: borderRadius.md,
+        borderRadius: radius.control,
       }}
     >
       <span
         style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: typography.headline.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: accent ? "var(--accent)" : "var(--text)",
           fontVariantNumeric: "tabular-nums",
@@ -467,7 +468,7 @@ function StatCard({
       </span>
       <span
         style={{
-          fontSize: 11,
+          fontSize: typography.caption.fontSize,
           color: "var(--sub)",
           fontFamily: FONT_FAMILY,
           marginTop: 2,
@@ -477,7 +478,7 @@ function StatCard({
       </span>
       <span
         style={{
-          fontSize: 10,
+          fontSize: typography.caption.fontSize,
           color: "var(--sub)",
           fontFamily: FONT_FAMILY,
           opacity: 0.7,
@@ -504,7 +505,7 @@ function LegendItem({ color, label }: { color: string; label: string }) {
       />
       <span
         style={{
-          fontSize: 11,
+          fontSize: typography.caption.fontSize,
           color: "var(--sub)",
           fontFamily: FONT_FAMILY,
         }}

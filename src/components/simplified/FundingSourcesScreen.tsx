@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
 import { EmptyState } from "@/components/ui/EmptyState"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -17,6 +17,7 @@ import {
   fills,
   colorRamp,
 } from "@/styles/shared"
+import { radius } from "@/styles/surfaces"
 import type { FundingSource, FundingSourceKind } from "@/lib/fundingSources"
 
 // ============================================================================
@@ -167,8 +168,8 @@ export function FundingSourcesScreen({
         style={{
           display: "flex",
           alignItems: "center",
-          marginBottom: 20,
-          gap: 12,
+          marginBottom: HORIZONTAL_PADDING,
+          gap: spacing.sm,
         }}
       >
         {onBack && (
@@ -179,7 +180,7 @@ export function FundingSourcesScreen({
               background: "none",
               border: "none",
               padding: 4,
-              fontSize: 18,
+              fontSize: typography.subhead.fontSize,
               color: "var(--sub)",
               cursor: "pointer",
               fontFamily: FONT_FAMILY,
@@ -192,15 +193,15 @@ export function FundingSourcesScreen({
         <div style={{ flex: 1 }}>
           <h1
             style={{
-              fontSize: 22,
-              fontWeight: 700,
+              fontSize: typography.headline.fontSize,
+              fontWeight: fontWeights.bold,
               color: "var(--text)",
               marginBottom: 4,
             }}
           >
             Payment Methods
           </h1>
-          <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.4 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.4 }}>
             Manage how you pay for things
           </p>
         </div>
@@ -211,13 +212,13 @@ export function FundingSourcesScreen({
             style={{
               background: fills[6],
               border: `1px solid ${fills[10]}`,
-              borderRadius: 9999,
+              borderRadius: radius.full,
               width: 36,
               height: 36,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 20,
+              fontSize: typography.subhead.fontSize,
               color: "var(--text)",
               cursor: "pointer",
               fontFamily: FONT_FAMILY,
@@ -230,11 +231,11 @@ export function FundingSourcesScreen({
 
       {/* ── Add/Edit Form ────────────────────────────────────────────── */}
       {showForm && (
-        <div style={{ background: fills[4], border: `1px solid ${fills[8]}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        <Card style={{ padding: spacing.md, marginBottom: HORIZONTAL_PADDING }}>
           <p
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--muted)",
               letterSpacing: "0.02em",
               marginBottom: 14,
@@ -245,7 +246,7 @@ export function FundingSourcesScreen({
 
           {/* Emoji picker */}
           <div style={{ marginBottom: 14 }}>
-            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 8 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: spacing.xs }}>
               Icon
             </p>
             <div
@@ -263,16 +264,16 @@ export function FundingSourcesScreen({
                   style={{
                     width: 36,
                     height: 36,
-                    borderRadius: 8,
+                    borderRadius: radius.control,
                     border:
                       form.emoji === emoji
                         ? "1.5px solid var(--success)"
                         : `1px solid ${fills[8]}`,
                     background:
                       form.emoji === emoji
-                        ? "rgba(6, 214, 160, 0.1)"
+                        ? "var(--success-100)"
                         : "transparent",
-                    fontSize: 18,
+                    fontSize: typography.subhead.fontSize,
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
@@ -289,7 +290,7 @@ export function FundingSourcesScreen({
           <div style={{ marginBottom: 14 }}>
             <label
               htmlFor="funding-source-label"
-              style={{ fontSize: 12, color: "var(--sub)", display: "block", marginBottom: 6 }}
+              style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", display: "block", marginBottom: 6 }}
             >
               Label
             </label>
@@ -302,11 +303,11 @@ export function FundingSourcesScreen({
               style={{
                 width: "100%",
                 padding: "10px 12px",
-                borderRadius: 8,
+                borderRadius: radius.control,
                 border: `1px solid ${fills[10]}`,
                 background: fills[4],
                 color: "var(--text)",
-                fontSize: 14,
+                fontSize: typography.body.fontSize,
                 fontFamily: FONT_FAMILY,
                 outline: "none",
               }}
@@ -315,7 +316,7 @@ export function FundingSourcesScreen({
 
           {/* Kind selector */}
           <div style={{ marginBottom: 14 }}>
-            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 6 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: 6 }}>
               Type
             </p>
             <div style={segmentedControl} role="radiogroup" aria-label="Source type">
@@ -340,14 +341,14 @@ export function FundingSourcesScreen({
           </div>
 
           {/* Settlement toggle */}
-          <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 12, color: "var(--sub)", marginBottom: 6 }}>
+          <div style={{ marginBottom: spacing.md }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: 6 }}>
               Settlement
             </p>
             <div
               style={{
                 display: "flex",
-                gap: 8,
+                gap: spacing.xs,
               }}
               role="radiogroup"
               aria-label="Settlement timing"
@@ -360,16 +361,16 @@ export function FundingSourcesScreen({
                 style={{
                   flex: 1,
                   padding: "10px 12px",
-                  borderRadius: 8,
+                  borderRadius: radius.control,
                   border: form.reducesBalanceNow
                     ? "1.5px solid var(--success)"
                     : `1px solid ${fills[8]}`,
                   background: form.reducesBalanceNow
-                    ? "rgba(6, 214, 160, 0.08)"
+                    ? "var(--success-100)"
                     : "transparent",
                   color: form.reducesBalanceNow ? "var(--success)" : "var(--muted)",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                   textAlign: "center",
@@ -385,18 +386,18 @@ export function FundingSourcesScreen({
                 style={{
                   flex: 1,
                   padding: "10px 12px",
-                  borderRadius: 8,
+                  borderRadius: radius.control,
                   border: !form.reducesBalanceNow
                     ? "1.5px solid var(--warning)"
                     : `1px solid ${fills[8]}`,
                   background: !form.reducesBalanceNow
-                    ? "rgba(245, 158, 11, 0.08)"
+                    ? "var(--warning-100)"
                     : "transparent",
                   color: !form.reducesBalanceNow
                     ? "var(--warning)"
                     : "var(--muted)",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                   textAlign: "center",
@@ -408,19 +409,19 @@ export function FundingSourcesScreen({
           </div>
 
           {/* Save / Cancel */}
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: spacing.sm }}>
             <button
               onClick={handleCancel}
               aria-label="Cancel"
               style={{
                 flex: 1,
                 padding: "10px 0",
-                borderRadius: 8,
+                borderRadius: radius.control,
                 border: `1px solid ${fills[10]}`,
                 background: "transparent",
                 color: "var(--sub)",
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 cursor: "pointer",
               }}
@@ -434,14 +435,14 @@ export function FundingSourcesScreen({
               style={{
                 flex: 1,
                 padding: "10px 0",
-                borderRadius: 8,
+                borderRadius: radius.control,
                 border: "none",
                 background: form.label.trim()
                   ? "var(--success)"
                   : fills[6],
                 color: form.label.trim() ? "var(--color-canvas)" : "var(--muted)",
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 cursor: form.label.trim() ? "pointer" : "not-allowed",
                 opacity: form.label.trim() ? 1 : 0.5,
@@ -450,7 +451,7 @@ export function FundingSourcesScreen({
               {editingId ? "Save" : "Add"}
             </button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ── Source Cards ──────────────────────────────────────────────── */}
@@ -464,7 +465,7 @@ export function FundingSourcesScreen({
           actionColor="success"
         />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
           {fundingSources.map((source) => (
             <motion.div
               key={source.id}
@@ -476,12 +477,12 @@ export function FundingSourcesScreen({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 12,
+                    gap: spacing.sm,
                   }}
                 >
                   {/* Emoji */}
                   <span
-                    style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}
+                    style={{ fontSize: typography.headline.fontSize, lineHeight: 1, flexShrink: 0 }}
                     aria-hidden="true"
                   >
                     {source.emoji}
@@ -491,8 +492,8 @@ export function FundingSourcesScreen({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p
                       style={{
-                        fontSize: 15,
-                        fontWeight: 600,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.semibold,
                         color: "var(--text)",
                         marginBottom: 4,
                         whiteSpace: "nowrap",
@@ -514,10 +515,10 @@ export function FundingSourcesScreen({
                       <span
                         aria-label={`Type: ${KIND_DISPLAY[source.kind]}`}
                         style={{
-                          fontSize: 11,
-                          fontWeight: 500,
+                          fontSize: typography.caption.fontSize,
+                          fontWeight: fontWeights.medium,
                           padding: "2px 8px",
-                          borderRadius: 9999,
+                          borderRadius: radius.full,
                           background: fills[6],
                           border: `1px solid ${fills[8]}`,
                           color: "var(--sub)",
@@ -535,13 +536,13 @@ export function FundingSourcesScreen({
                             : "Deferred settlement"
                         }
                         style={{
-                          fontSize: 11,
-                          fontWeight: 500,
+                          fontSize: typography.caption.fontSize,
+                          fontWeight: fontWeights.medium,
                           padding: "2px 8px",
-                          borderRadius: 9999,
+                          borderRadius: radius.full,
                           background: source.reducesBalanceNow
-                            ? "rgba(6, 214, 160, 0.1)"
-                            : "rgba(245, 158, 11, 0.1)",
+                            ? "var(--success-100)"
+                            : "var(--warning-100)",
                           color: source.reducesBalanceNow
                             ? "var(--success)"
                             : "var(--warning)",
@@ -568,11 +569,11 @@ export function FundingSourcesScreen({
                       style={{
                         width: 30,
                         height: 30,
-                        borderRadius: 8,
+                        borderRadius: radius.control,
                         border: "none",
                         background: "transparent",
                         color: "var(--sub)",
-                        fontSize: 14,
+                        fontSize: typography.body.fontSize,
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
@@ -591,17 +592,17 @@ export function FundingSourcesScreen({
                       style={{
                         width: 30,
                         height: 30,
-                        borderRadius: 8,
+                        borderRadius: radius.control,
                         border: "none",
                         background:
                           confirmDeleteId === source.id
-                            ? "rgba(239, 68, 68, 0.15)"
+                            ? "var(--error-200)"
                             : "transparent",
                         color:
                           confirmDeleteId === source.id
                             ? "var(--error)"
                             : "var(--sub)",
-                        fontSize: 14,
+                        fontSize: typography.body.fontSize,
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",

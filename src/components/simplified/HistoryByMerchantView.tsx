@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import type { Transaction } from "@/types"
 import { BUDGET_CATEGORIES } from "@/types"
 import { GlassCard } from "@/components/ui/GlassCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { springs, useReducedMotion } from "@/lib/animations"
-import { borderRadius, fills } from "@/styles/shared"
-import { FONT_FAMILY } from "@/styles/typography"
+import { fills } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 
 // ============================================================================
 // Types
@@ -122,12 +124,12 @@ export function HistoryByMerchantView({
 
   if (transactions.length === 0) {
     return (
-      <GlassCard elevation="low" style={{ padding: "32px 20px", borderRadius: borderRadius.lg }}>
-        <div style={{ textAlign: "center" }}>
-          <p style={{ fontSize: 14, color: "var(--sub)", fontFamily: FONT_FAMILY }}>
-            No transactions to group
-          </p>
-        </div>
+      <GlassCard elevation="low" style={{ padding: "4px 0", borderRadius: radius.control }}>
+        <EmptyState
+          illustration="transactions"
+          title="No merchants yet"
+          subtitle="Log some expenses and they'll be grouped by merchant here."
+        />
       </GlassCard>
     )
   }
@@ -137,7 +139,7 @@ export function HistoryByMerchantView({
       variants={listContainer}
       initial="hidden"
       animate="visible"
-      style={{ display: "flex", flexDirection: "column", gap: 12 }}
+      style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}
     >
       {merchantGroups.map(group => {
         const isExpanded = expandedMerchant === group.merchant
@@ -146,7 +148,7 @@ export function HistoryByMerchantView({
           <motion.div key={group.merchant} variants={listItem}>
             <GlassCard
               elevation="low"
-              style={{ borderRadius: borderRadius.lg, overflow: "hidden" }}
+              style={{ borderRadius: radius.control, overflow: "hidden" }}
             >
               {/* Merchant header — tap to expand/collapse */}
               <button
@@ -160,7 +162,7 @@ export function HistoryByMerchantView({
                   width: "100%",
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
+                  gap: spacing.sm,
                   padding: "16px 20px",
                   background: "transparent",
                   border: "none",
@@ -173,12 +175,12 @@ export function HistoryByMerchantView({
                   style={{
                     width: 40,
                     height: 40,
-                    borderRadius: borderRadius.sm,
+                    borderRadius: radius.control,
                     background: fills[6],
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 20,
+                    fontSize: typography.subhead.fontSize,
                     flexShrink: 0,
                   }}
                 >
@@ -189,8 +191,8 @@ export function HistoryByMerchantView({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p
                     style={{
-                      fontSize: 15,
-                      fontWeight: 600,
+                      fontSize: typography.body.fontSize,
+                      fontWeight: fontWeights.semibold,
                       color: "var(--text)",
                       fontFamily: FONT_FAMILY,
                       margin: 0,
@@ -203,7 +205,7 @@ export function HistoryByMerchantView({
                   </p>
                   <p
                     style={{
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       color: "var(--muted)",
                       fontFamily: FONT_FAMILY,
                       margin: 0,
@@ -217,8 +219,8 @@ export function HistoryByMerchantView({
                 {/* Total spend */}
                 <span
                   style={{
-                    fontSize: 15,
-                    fontWeight: 600,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.semibold,
                     color: "var(--text)",
                     fontFamily: FONT_FAMILY,
                     fontVariantNumeric: "tabular-nums",
@@ -233,7 +235,7 @@ export function HistoryByMerchantView({
                   animate={{ rotate: isExpanded ? 180 : 0 }}
                   transition={springs.snappy}
                   style={{
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     color: "var(--muted)",
                     flexShrink: 0,
                     marginLeft: 4,
@@ -283,8 +285,8 @@ export function HistoryByMerchantView({
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <p
                               style={{
-                                fontSize: 14,
-                                fontWeight: 500,
+                                fontSize: typography.body.fontSize,
+                                fontWeight: fontWeights.medium,
                                 color: "var(--text)",
                                 fontFamily: FONT_FAMILY,
                                 margin: 0,
@@ -297,7 +299,7 @@ export function HistoryByMerchantView({
                             </p>
                             <p
                               style={{
-                                fontSize: 12,
+                                fontSize: typography['body-sm'].fontSize,
                                 color: "var(--muted)",
                                 fontFamily: FONT_FAMILY,
                                 margin: 0,
@@ -309,13 +311,13 @@ export function HistoryByMerchantView({
                           </div>
                           <span
                             style={{
-                              fontSize: 14,
-                              fontWeight: 500,
+                              fontSize: typography.body.fontSize,
+                              fontWeight: fontWeights.medium,
                               color: tx.type === "income" ? "var(--success)" : "var(--text)",
                               fontFamily: FONT_FAMILY,
                               fontVariantNumeric: "tabular-nums",
                               flexShrink: 0,
-                              marginLeft: 12,
+                              marginLeft: spacing.sm,
                             }}
                           >
                             {tx.type === "income" ? "+" : "-"}

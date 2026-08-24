@@ -23,7 +23,7 @@ import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/lib/icons"
 import { useRovingTabindex } from "@/hooks/useRovingTabindex"
 import { contentColumn, spacingScale, CONTENT_MAX_WIDTH, HORIZONTAL_PADDING } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, fontWeights } from '@/styles/typography'
 import { textColors, colorRamp } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
 import { safeAreaBottom } from "@/styles/layout"
@@ -615,7 +615,7 @@ export function ToolsScreen({
                         ...typography.caption,
                         color: textColors.muted,
                         marginLeft: spacingScale["6"],
-                        fontWeight: 400,
+                        fontWeight: fontWeights.regular,
                         textTransform: "none",
                         letterSpacing: "normal",
                       }}
@@ -721,7 +721,7 @@ export function ToolsScreen({
                               appearance: "none",
                               WebkitAppearance: "none",
                               background: peerContextEnabled ? colorRamp.accent[400] : colorRamp.accent[100],
-                              borderRadius: 11,
+                              borderRadius: radius.full,
                               position: "relative",
                               cursor: "pointer",
                               transition: "background 200ms ease",
@@ -738,7 +738,7 @@ export function ToolsScreen({
                               width: 16,
                               height: 16,
                               borderRadius: "50%",
-                              background: "#fff",
+                              background: "var(--text)",
                               transition: "left 200ms ease",
                               pointerEvents: "none",
                             }}

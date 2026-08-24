@@ -29,6 +29,7 @@ import {
   type SeasonPalette,
 } from "@/lib/gardenProgress"
 import { FONT_FAMILY } from "@/styles/typography"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Props
@@ -283,7 +284,7 @@ export function ProgressGarden({ metrics, compact = false }: ProgressGardenProps
       style={{
         maxWidth: compact ? 180 : 320,
         display: 'block',
-        borderRadius: 12,
+        borderRadius: radius.control,
         background: palette.sky,
       }}
     >

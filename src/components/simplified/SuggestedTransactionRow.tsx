@@ -3,8 +3,9 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, fills } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { fills } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { BUDGET_CATEGORIES } from "@/types"
 import type { TransactionCategory } from "@/types"
 import type { SuggestedEntry } from "@/lib/suggestedEntries"
@@ -39,11 +40,11 @@ function emojiForCategory(category: TransactionCategory): string {
 const rowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 12,
+  gap: spacing.sm,
   padding: "12px 16px",
-  borderRadius: borderRadius.md,
-  border: "1.5px dashed rgba(167, 139, 250, 0.4)",
-  background: "rgba(167, 139, 250, 0.04)",
+  borderRadius: radius.control,
+  border: "1.5px dashed var(--accent-400)",
+  background: "var(--accent-50)",
   position: "relative",
   overflow: "hidden",
 }
@@ -54,8 +55,8 @@ const labelContainerStyle: React.CSSProperties = {
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 500,
+  fontSize: typography.body.fontSize,
+  fontWeight: fontWeights.medium,
   color: "var(--text)",
   fontFamily: FONT_FAMILY,
   margin: 0,
@@ -65,7 +66,7 @@ const labelStyle: React.CSSProperties = {
 }
 
 const subtitleStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: typography['body-sm'].fontSize,
   color: "var(--muted)",
   fontFamily: FONT_FAMILY,
   margin: 0,
@@ -73,12 +74,12 @@ const subtitleStyle: React.CSSProperties = {
 }
 
 const amountStyle: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 600,
+  fontSize: typography.body.fontSize,
+  fontWeight: fontWeights.semibold,
   color: "var(--text)",
   fontFamily: FONT_FAMILY,
   fontVariantNumeric: "tabular-nums",
-  marginRight: 8,
+  marginRight: spacing.xs,
 }
 
 const actionsStyle: React.CSSProperties = {
@@ -96,21 +97,21 @@ const actionBtnBase: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   transition: "background 0.15s",
 }
 
 const confirmBtnStyle: React.CSSProperties = {
   ...actionBtnBase,
-  background: "rgba(74, 222, 128, 0.15)",
+  background: "var(--success-200)",
   color: "var(--success, #4ade80)",
 }
 
 const dismissBtnStyle: React.CSSProperties = {
   ...actionBtnBase,
-  background: "rgba(248, 113, 113, 0.12)",
-  color: "var(--error, #f87171)",
+  background: "var(--error-200)",
+  color: "var(--error)",
 }
 
 const editBtnStyle: React.CSSProperties = {
@@ -120,12 +121,12 @@ const editBtnStyle: React.CSSProperties = {
 }
 
 const badgeStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 500,
-  color: "var(--accent, #a78bfa)",
-  background: "rgba(167, 139, 250, 0.12)",
+  fontSize: typography.caption.fontSize,
+  fontWeight: fontWeights.medium,
+  color: "var(--accent)",
+  background: "var(--accent-200)",
   padding: "2px 6px",
-  borderRadius: 6,
+  borderRadius: radius.min,
   fontFamily: FONT_FAMILY,
   letterSpacing: "0.03em",
 }
@@ -176,11 +177,11 @@ export function SuggestedTransactionRow({
             y: 0,
             scale: 1,
             borderColor: isConfirming
-              ? "rgba(74, 222, 128, 0.5)"
-              : "rgba(167, 139, 250, 0.4)",
+              ? "var(--success-400)"
+              : "var(--accent-400)",
             background: isConfirming
-              ? "rgba(74, 222, 128, 0.06)"
-              : "rgba(167, 139, 250, 0.04)",
+              ? "var(--success-100)"
+              : "var(--accent-50)",
           }}
           exit={{
             opacity: 0,
@@ -192,14 +193,14 @@ export function SuggestedTransactionRow({
           transition={springs.gentle}
           style={{
             ...rowStyle,
-            marginBottom: 8,
+            marginBottom: spacing.xs,
           }}
           role="listitem"
           aria-roledescription="suggested transaction"
           aria-label={`Suggested: ${entry.label}, $${entry.amount.toFixed(2)}. Confirm, dismiss, or edit.`}
         >
           {/* Category emoji */}
-          <span style={{ fontSize: 20, flexShrink: 0 }} aria-hidden>
+          <span style={{ fontSize: typography.subhead.fontSize, flexShrink: 0 }} aria-hidden>
             {emojiForCategory(entry.category)}
           </span>
 
@@ -223,7 +224,7 @@ export function SuggestedTransactionRow({
           <div style={actionsStyle}>
             <motion.button
               onClick={handleConfirm}
-              whileTap={{ scale: 0.85 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               style={confirmBtnStyle}
               aria-label={`Confirm ${entry.label}`}
@@ -233,7 +234,7 @@ export function SuggestedTransactionRow({
             </motion.button>
             <motion.button
               onClick={() => onEdit(entry)}
-              whileTap={{ scale: 0.85 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               style={editBtnStyle}
               aria-label={`Edit ${entry.label}`}
@@ -243,7 +244,7 @@ export function SuggestedTransactionRow({
             </motion.button>
             <motion.button
               onClick={handleDismiss}
-              whileTap={{ scale: 0.85 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               style={dismissBtnStyle}
               aria-label={`Dismiss ${entry.label}`}

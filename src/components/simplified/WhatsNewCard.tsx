@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import { getUnseenWhatsNew, dismissWhatsNew } from "@/lib/whatsNew"
 import type { WhatsNewItem } from "@/lib/whatsNew"
 
@@ -72,16 +73,16 @@ export function WhatsNewCard({ onNavigate }: WhatsNewCardProps) {
             width: "100%",
             display: "flex",
             alignItems: "flex-start",
-            gap: 10,
+            gap: spacing.sm,
             padding: "12px 16px",
-            background: "rgba(96, 165, 250, 0.06)",
-            border: "1px solid rgba(96, 165, 250, 0.18)",
-            borderRadius: 12,
+            background: "var(--blue-100)",
+            border: "1px solid var(--blue-200)",
+            borderRadius: radius.control,
             textAlign: "left",
           }}
         >
           {/* Emoji */}
-          <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }} aria-hidden="true">
+          <span style={{ fontSize: typography.subhead.fontSize, flexShrink: 0, marginTop: 1 }} aria-hidden="true">
             {item.emoji}
           </span>
 
@@ -89,8 +90,8 @@ export function WhatsNewCard({ onNavigate }: WhatsNewCardProps) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--text)",
                 fontFamily: FONT_FAMILY,
                 lineHeight: 1.3,
@@ -101,7 +102,7 @@ export function WhatsNewCard({ onNavigate }: WhatsNewCardProps) {
             </div>
             <div
               style={{
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--muted)",
                 fontFamily: FONT_FAMILY,
                 lineHeight: 1.4,
@@ -118,13 +119,13 @@ export function WhatsNewCard({ onNavigate }: WhatsNewCardProps) {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 3,
+                  gap: spacing.xxs,
                   marginTop: 6,
                   padding: 0,
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 500,
-                  color: "rgba(96, 165, 250, 1)",
+                  fontWeight: fontWeights.medium,
+                  color: "var(--blue-500)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
@@ -154,7 +155,7 @@ export function WhatsNewCard({ onNavigate }: WhatsNewCardProps) {
           >
             <span
               style={{
-                fontSize: 11,
+                fontSize: typography.caption.fontSize,
                 color: "var(--muted)",
                 fontFamily: FONT_FAMILY,
               }}

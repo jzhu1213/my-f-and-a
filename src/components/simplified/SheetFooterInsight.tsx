@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion"
 import { useReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -42,24 +42,24 @@ export function SheetFooterInsight({ insight, emoji = '💡', onLearnMore }: She
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: spacing.xs,
         padding: '10px 14px',
-        background: 'rgba(99, 179, 237, 0.06)',
-        border: '1px solid rgba(99, 179, 237, 0.12)',
-        borderRadius: borderRadius.sm,
+        background: 'var(--blue-100)',
+        border: '1px solid var(--blue-200)',
+        borderRadius: radius.control,
         cursor: onLearnMore ? 'pointer' : 'default',
       }}
       onClick={onLearnMore}
       role={onLearnMore ? 'button' : undefined}
       aria-label={onLearnMore ? `Learn more: ${insight}` : undefined}
     >
-      <span style={{ fontSize: 14, flexShrink: 0 }} aria-hidden="true">
+      <span style={{ fontSize: typography.body.fontSize, flexShrink: 0 }} aria-hidden="true">
         {emoji}
       </span>
       <p
         style={{
           margin: 0,
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           lineHeight: 1.4,
           color: 'var(--sub)',
           fontFamily: FONT_FAMILY,
@@ -71,10 +71,10 @@ export function SheetFooterInsight({ insight, emoji = '💡', onLearnMore }: She
       {onLearnMore && (
         <span
           style={{
-            fontSize: 11,
+            fontSize: typography.caption.fontSize,
             color: 'var(--accent)',
             fontFamily: FONT_FAMILY,
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
             flexShrink: 0,
             whiteSpace: 'nowrap',
           }}

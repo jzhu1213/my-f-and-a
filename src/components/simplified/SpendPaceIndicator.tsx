@@ -6,6 +6,7 @@ import { computeSpendVelocity, velocityToPath } from "@/lib/spendVelocity"
 import { motion } from "framer-motion"
 import { timings, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
 import { chartLinePatterns } from "@/styles/chartTokens"
+import { spacing } from "@/styles/typography"
 
 // ============================================================================
 // SpendPaceIndicator — subtle sparkline showing today's spend pace vs. typical
@@ -57,7 +58,7 @@ export function SpendPaceIndicator({ transactions, todayStr }: SpendPaceIndicato
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 8,
+        marginTop: spacing.xs,
       }}
     >
       <svg

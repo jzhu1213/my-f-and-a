@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   sectionHeader,
   borderRadius,
@@ -13,7 +13,9 @@ import {
   segmentedButtonActive,
   segmentedButtonInactive,
   shadows,
+  HORIZONTAL_PADDING,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { SocialNotificationsPanel } from "./SocialNotificationsPanel"
 import {
   getReminderPreferences,
@@ -98,7 +100,7 @@ function NudgeToggle({
   children?: React.ReactNode
 }) {
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: spacing.md }}>
       <div
         style={{
           display: "flex",
@@ -107,13 +109,13 @@ function NudgeToggle({
           marginBottom: description ? 4 : children && enabled ? 10 : 0,
         }}
       >
-        <span style={{ fontSize: 14, color: "var(--text)", fontFamily: FONT_FAMILY }}>
+        <span style={{ fontSize: typography.body.fontSize, color: "var(--text)", fontFamily: FONT_FAMILY }}>
           {label}
         </span>
         <motion.button
           type="button"
           onClick={onToggle}
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           role="switch"
           aria-checked={enabled}
@@ -121,13 +123,13 @@ function NudgeToggle({
           style={{
             width: 48,
             height: 28,
-            borderRadius: 14,
+            borderRadius: radius.control,
             border: "none",
             padding: 3,
             cursor: "pointer",
             background: enabled
-              ? "rgba(74, 222, 128, 0.5)"
-              : "rgba(255, 255, 255, 0.1)",
+              ? "var(--success-400)"
+              : "var(--fill-10)",
             display: "flex",
             alignItems: "center",
             justifyContent: enabled ? "flex-end" : "flex-start",
@@ -141,7 +143,7 @@ function NudgeToggle({
               width: 22,
               height: 22,
               borderRadius: borderRadius.md,
-              background: enabled ? "var(--text)" : "rgba(255, 255, 255, 0.5)",
+              background: enabled ? "var(--text)" : "var(--fill-15)",
               boxShadow: shadows.sm,
             }}
           />
@@ -150,7 +152,7 @@ function NudgeToggle({
       {description && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
             lineHeight: 1.4,
             marginBottom: children && enabled ? 10 : 0,
@@ -359,13 +361,13 @@ export function NotificationCenter() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+    <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
       <p style={{ ...sectionHeader, marginBottom: 6 }}>
         Notifications
       </p>
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--sub)",
           marginBottom: 18,
           lineHeight: 1.5,
@@ -385,9 +387,9 @@ export function NotificationCenter() {
         <div>
           <p
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--muted)",
-              marginBottom: 8,
+              marginBottom: spacing.xs,
               fontFamily: FONT_FAMILY,
             }}
           >
@@ -407,7 +409,7 @@ export function NotificationCenter() {
                     ...segmentedButtonBase,
                     ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
                     padding: "9px 6px",
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     lineHeight: 1.3,
                   }}
                   aria-pressed={isActive}
@@ -436,9 +438,9 @@ export function NotificationCenter() {
         <div>
           <p
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--muted)",
-              marginBottom: 8,
+              marginBottom: spacing.xs,
               fontFamily: FONT_FAMILY,
             }}
           >
@@ -458,7 +460,7 @@ export function NotificationCenter() {
                     ...segmentedButtonBase,
                     ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
                     padding: "9px 6px",
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     lineHeight: 1.3,
                   }}
                   aria-pressed={isActive}
@@ -477,7 +479,7 @@ export function NotificationCenter() {
                 ...segmentedButtonBase,
                 ...(showCustomInput ? segmentedButtonActive : segmentedButtonInactive),
                 padding: "9px 6px",
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 lineHeight: 1.3,
               }}
               aria-pressed={showCustomInput}
@@ -487,8 +489,8 @@ export function NotificationCenter() {
             </motion.button>
           </div>
           {showCustomInput && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 14, color: "var(--text)", fontFamily: FONT_FAMILY }}>$</span>
+            <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
+              <span style={{ fontSize: typography.body.fontSize, color: "var(--text)", fontFamily: FONT_FAMILY }}>$</span>
               <input
                 type="number"
                 min="1"
@@ -503,11 +505,11 @@ export function NotificationCenter() {
                 style={{
                   width: 80,
                   padding: "6px 10px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.04)",
+                  borderRadius: radius.control,
+                  border: "1px solid var(--fill-12)",
+                  background: "var(--fill-04)",
                   color: "var(--text)",
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   fontFamily: FONT_FAMILY,
                   outline: "none",
                 }}
@@ -532,9 +534,9 @@ export function NotificationCenter() {
         <div>
           <p
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--muted)",
-              marginBottom: 8,
+              marginBottom: spacing.xs,
               fontFamily: FONT_FAMILY,
             }}
           >
@@ -554,7 +556,7 @@ export function NotificationCenter() {
                     ...segmentedButtonBase,
                     ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
                     padding: "9px 6px",
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     lineHeight: 1.3,
                   }}
                   aria-pressed={isActive}
@@ -610,17 +612,17 @@ export function NotificationCenter() {
       {/* ── 7. Pattern-Based Nudges (task 346.3) ──────────────────────── */}
       <div
         style={{
-          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-          marginTop: 16,
+          borderTop: "1px solid var(--fill-06)",
+          marginTop: spacing.md,
           paddingTop: 16,
-          marginBottom: 12,
+          marginBottom: spacing.sm,
         }}
       >
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             marginBottom: 4,
           }}
@@ -629,7 +631,7 @@ export function NotificationCenter() {
         </p>
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
             lineHeight: 1.4,
             marginBottom: 14,
@@ -676,20 +678,20 @@ export function NotificationCenter() {
 
         {/* Do Not Disturb hours */}
         {(patternPrefs.spendingRemindersEnabled || patternPrefs.billAlertsEnabled || patternPrefs.streaksEnabled) && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: spacing.sm }}>
             <p
               style={{
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--muted)",
-                marginBottom: 8,
+                marginBottom: spacing.xs,
                 fontFamily: FONT_FAMILY,
               }}
             >
               Do not disturb
             </p>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: spacing.xs, flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 120 }}>
-                <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>From</p>
+                <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginBottom: 4 }}>From</p>
                 <div style={segmentedControl}>
                   {DND_START_OPTIONS.map((opt) => {
                     const isActive = patternPrefs.dndStartHour === opt.value
@@ -704,7 +706,7 @@ export function NotificationCenter() {
                           ...segmentedButtonBase,
                           ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
                           padding: "7px 4px",
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           lineHeight: 1.3,
                         }}
                         aria-pressed={isActive}
@@ -717,7 +719,7 @@ export function NotificationCenter() {
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 120 }}>
-                <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>Until</p>
+                <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginBottom: 4 }}>Until</p>
                 <div style={segmentedControl}>
                   {DND_END_OPTIONS.map((opt) => {
                     const isActive = patternPrefs.dndEndHour === opt.value
@@ -732,7 +734,7 @@ export function NotificationCenter() {
                           ...segmentedButtonBase,
                           ...(isActive ? segmentedButtonActive : segmentedButtonInactive),
                           padding: "7px 4px",
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           lineHeight: 1.3,
                         }}
                         aria-pressed={isActive}
@@ -752,17 +754,17 @@ export function NotificationCenter() {
       {/* ── 8. Social Activity ──────────────────────────────────────── */}
       <div
         style={{
-          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-          marginTop: 16,
+          borderTop: "1px solid var(--fill-06)",
+          marginTop: spacing.md,
           paddingTop: 16,
-          marginBottom: 12,
+          marginBottom: spacing.sm,
         }}
       >
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             marginBottom: 10,
           }}
@@ -782,12 +784,12 @@ export function NotificationCenter() {
           style={{
             width: "100%",
             padding: "10px 16px",
-            borderRadius: 10,
-            border: "1px solid rgba(167, 139, 250, 0.3)",
-            background: "rgba(167, 139, 250, 0.08)",
+            borderRadius: radius.control,
+            border: "1px solid var(--accent-300)",
+            background: "var(--accent-100)",
             color: "var(--accent)",
-            fontSize: 13,
-            fontWeight: 500,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             cursor: "pointer",
             textAlign: "center",
@@ -802,11 +804,11 @@ export function NotificationCenter() {
       {permissionDenied && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             lineHeight: 1.5,
             padding: "8px 12px",
-            background: "rgba(255,255,255,0.03)",
+            background: "var(--fill-03)",
             borderRadius: borderRadius.sm,
             marginTop: 4,
           }}
@@ -818,7 +820,7 @@ export function NotificationCenter() {
       {anyEnabled && permissionStatus === "granted" && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--success)",
             opacity: 0.8,
             marginTop: 4,

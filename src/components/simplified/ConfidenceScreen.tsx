@@ -19,7 +19,7 @@ import { useReducedMotion } from "@/lib/animations"
 import { SectionHeader, Card } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import { contentColumn, spacingScale } from "@/styles/layout"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, spacing } from "@/styles/typography"
 import { textColors, colorRamp } from "@/styles/colors"
 import { radius } from "@/styles/surfaces"
 import { safeAreaBottom } from "@/styles/layout"
@@ -98,7 +98,7 @@ function ScoreRing({ score, tier }: { score: number; tier: ConfidenceTier }) {
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="var(--surface, #1a1a2e)"
+          stroke="var(--surface)"
           strokeWidth={strokeWidth}
         />
         {/* Progress ring */}
@@ -130,7 +130,7 @@ function ScoreRing({ score, tier }: { score: number; tier: ConfidenceTier }) {
         <span
           style={{
             ...typography.display,
-            fontSize: "2rem",
+            fontSize: typography.title.fontSize,
             color: textColors.text,
             fontVariantNumeric: "tabular-nums",
             lineHeight: 1,
@@ -217,7 +217,7 @@ function FactorBar({ label, value }: { label: string; value: number }) {
         style={{
           height: 4,
           borderRadius: 2,
-          background: "var(--surface, #1a1a2e)",
+          background: "var(--surface)",
           overflow: "hidden",
         }}
       >
@@ -270,7 +270,7 @@ export function ConfidenceScreen({ onBack }: ConfidenceScreenProps) {
   }, [enabled])
 
   const trendLabel = trend === "up" ? "↑ Trending up" : trend === "down" ? "↓ Trending down" : "→ Stable"
-  const trendColor = trend === "up" ? "var(--success, #34d399)" : trend === "down" ? "var(--warning, #f59e0b)" : textColors.sub
+  const trendColor = trend === "up" ? "var(--success)" : trend === "down" ? "var(--warning)" : textColors.sub
 
   return (
     <div
@@ -296,7 +296,7 @@ export function ConfidenceScreen({ onBack }: ConfidenceScreenProps) {
             marginBottom: spacingScale["16"],
             padding: 0,
             fontFamily: FONT_FAMILY,
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
           }}
         >
           ← Back
@@ -328,10 +328,10 @@ export function ConfidenceScreen({ onBack }: ConfidenceScreenProps) {
             style={{
               width: 48,
               height: 28,
-              borderRadius: 14,
+              borderRadius: radius.control,
               border: "none",
               cursor: "pointer",
-              background: enabled ? colorRamp.accent[500] : "var(--surface, #1a1a2e)",
+              background: enabled ? colorRamp.accent[500] : "var(--surface)",
               position: "relative",
               transition: "background 0.2s ease",
               flexShrink: 0,
@@ -345,8 +345,8 @@ export function ConfidenceScreen({ onBack }: ConfidenceScreenProps) {
                 left: enabled ? 23 : 3,
                 width: 22,
                 height: 22,
-                borderRadius: 11,
-                background: "var(--text, #fff)",
+                borderRadius: radius.full,
+                background: "var(--text)",
                 transition: "left 0.2s ease",
               }}
             />
@@ -366,7 +366,7 @@ export function ConfidenceScreen({ onBack }: ConfidenceScreenProps) {
             <p style={{ ...typography.subhead, color: TIER_COLORS[lastScore.tier], margin: 0 }}>
               {lastScore.tier}
             </p>
-            <p style={{ ...typography["body-sm"], color: textColors.sub, marginTop: 8, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>
+            <p style={{ ...typography["body-sm"], color: textColors.sub, marginTop: spacing.xs, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>
               {TIER_COPY[lastScore.tier]}
             </p>
           </div>
@@ -404,8 +404,8 @@ export function ConfidenceScreen({ onBack }: ConfidenceScreenProps) {
           {/* Strongest habit callout */}
           {strongestFactor && (
             <Card style={{ padding: spacingScale["16"], marginBottom: spacingScale["24"] }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 18 }} aria-hidden="true">✨</span>
+              <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+                <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">✨</span>
                 <p style={{ ...typography.body, color: textColors.text, margin: 0 }}>
                   {FACTOR_ENCOURAGEMENT[strongestFactor]}
                 </p>
@@ -421,7 +421,7 @@ export function ConfidenceScreen({ onBack }: ConfidenceScreenProps) {
           <p style={{ ...typography.body, color: textColors.sub, margin: 0 }}>
             Your confidence score will appear after your first week of activity.
           </p>
-          <p style={{ ...typography["body-sm"], color: textColors.muted, marginTop: 8, margin: "8px 0 0" }}>
+          <p style={{ ...typography["body-sm"], color: textColors.muted, marginTop: spacing.xs, margin: "8px 0 0" }}>
             Just keep logging and using the app — we'll do the rest.
           </p>
         </Card>
@@ -433,7 +433,7 @@ export function ConfidenceScreen({ onBack }: ConfidenceScreenProps) {
           <p style={{ ...typography.body, color: textColors.sub, margin: 0 }}>
             Your confidence score is private and optional.
           </p>
-          <p style={{ ...typography["body-sm"], color: textColors.muted, marginTop: 8, margin: "8px 0 0" }}>
+          <p style={{ ...typography["body-sm"], color: textColors.muted, marginTop: spacing.xs, margin: "8px 0 0" }}>
             Enable it above to see how your habits are building over time.
             It'll never appear in notifications unless you turn it on.
           </p>

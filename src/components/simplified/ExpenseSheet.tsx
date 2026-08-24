@@ -26,8 +26,9 @@ import { mergeCategories } from '@/lib/customCategories'
 import { getCategoryEmoji } from '@/lib/vocabulary'
 import { Icon } from '@/components/ui/Icon'
 import { CUSTOM_CATEGORY_ICON_CHOICES, type IconName } from '@/lib/icons'
-import { FONT_FAMILY, spacing, pxToRem } from '@/styles/typography'
-import { borderRadius, roundButton, shadows, fills, colorRamp } from '@/styles/shared'
+import { FONT_FAMILY, spacing, pxToRem, typography, fontWeights } from '@/styles/typography'
+import { roundButton, shadows, fills, colorRamp, HORIZONTAL_PADDING } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 import { TagInput } from './TagInput'
 import { getRecentTags } from '@/lib/tagUtils'
 import type { FundingSource } from '@/lib/fundingSources'
@@ -753,9 +754,9 @@ export function ExpenseSheet({
                 <div
                   style={{
                     display: 'flex',
-                    gap: 8,
+                    gap: spacing.xs,
                     flexWrap: 'wrap',
-                    marginBottom: 20,
+                    marginBottom: HORIZONTAL_PADDING,
                     paddingTop: 4,
                   }}
                   aria-label="Quick log habits"
@@ -787,18 +788,18 @@ export function ExpenseSheet({
                         alignItems: 'center',
                         gap: 6,
                         padding: '10px 14px',
-                        background: 'rgba(129, 140, 248, 0.06)',
-                        border: '1px solid rgba(129, 140, 248, 0.2)',
-                        borderRadius: borderRadius.full,
+                        background: 'var(--accent-100)',
+                        border: '1px solid var(--accent-200)',
+                        borderRadius: radius.full,
                         cursor: 'pointer',
-                        fontSize: 13,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
-                        fontWeight: 500,
+                        fontWeight: fontWeights.medium,
                         color: 'var(--text)',
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      <span style={{ fontSize: 14 }} aria-hidden="true">⚡</span>
+                      <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">⚡</span>
                       <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {chip.label}
                       </span>
@@ -812,14 +813,14 @@ export function ExpenseSheet({
                 <div
                   style={{
                     textAlign: 'center',
-                    marginBottom: 12,
+                    marginBottom: spacing.sm,
                   }}
                 >
                   <span
                     style={{
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 400,
+                      fontWeight: fontWeights.regular,
                       color: 'var(--muted)',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -843,10 +844,10 @@ export function ExpenseSheet({
                     transition={springs.snappy}
                     style={{
                       display: 'flex',
-                      gap: 8,
+                      gap: spacing.xs,
                       flexWrap: 'wrap',
                       justifyContent: 'center',
-                      marginBottom: 16,
+                      marginBottom: spacing.md,
                     }}
                     aria-label="Suggested amounts"
                   >
@@ -881,15 +882,15 @@ export function ExpenseSheet({
                             padding: '8px 14px',
                             background: fills[6],
                             border: `1px solid ${fills[10]}`,
-                            borderRadius: borderRadius.full,
+                            borderRadius: radius.full,
                             cursor: 'pointer',
                           }}
                         >
-                          <span style={{ fontSize: 14, fontWeight: 500, fontFamily: FONT_FAMILY, color: 'var(--text)' }}>
+                          <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, fontFamily: FONT_FAMILY, color: 'var(--text)' }}>
                             {amountStr}
                           </span>
                           {s.label && (
-                            <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: FONT_FAMILY, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: typography.caption.fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {s.label}
                             </span>
                           )}
@@ -913,14 +914,14 @@ export function ExpenseSheet({
                           padding: '8px 14px',
                           background: fills[6],
                           border: `1px solid ${colorRamp.success[400]}40`,
-                          borderRadius: borderRadius.full,
+                          borderRadius: radius.full,
                           cursor: 'pointer',
                         }}
                       >
-                        <span style={{ fontSize: 14, fontWeight: 500, fontFamily: FONT_FAMILY, color: colorRamp.success[400] }}>
+                        <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.medium, fontFamily: FONT_FAMILY, color: colorRamp.success[400] }}>
                           {merchantAvg.amount % 1 === 0 ? `$${merchantAvg.amount}` : `$${merchantAvg.amount.toFixed(2)}`}
                         </span>
-                        <span style={{ fontSize: 10, color: 'var(--sub)', fontFamily: FONT_FAMILY, whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: typography.caption.fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, whiteSpace: 'nowrap' }}>
                           avg
                         </span>
                       </button>
@@ -934,11 +935,11 @@ export function ExpenseSheet({
                         padding: '8px 14px',
                         background: 'transparent',
                         border: `1px dashed ${fills[15]}`,
-                        borderRadius: borderRadius.full,
+                        borderRadius: radius.full,
                         cursor: 'pointer',
-                        fontSize: 13,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
-                        fontWeight: 500,
+                        fontWeight: fontWeights.medium,
                         color: 'var(--sub)',
                       }}
                     >
@@ -962,7 +963,7 @@ export function ExpenseSheet({
                     style={{
                       fontSize: 28,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 300,
+                      fontWeight: fontWeights.light,
                       color: 'var(--muted)',
                     }}
                   >
@@ -988,7 +989,7 @@ export function ExpenseSheet({
                       outline: 'none',
                       fontSize: 48,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 600,
+                      fontWeight: fontWeights.semibold,
                       fontVariantNumeric: 'tabular-nums',
                       color: 'var(--text)',
                       textAlign: 'center',
@@ -1012,7 +1013,7 @@ export function ExpenseSheet({
 
                 {/* ── Currency Selector (task 422.1) — only shown when travel mode is active ── */}
                 {isTravelModeActive() && (
-                  <div style={{ marginTop: 8 }}>
+                  <div style={{ marginTop: spacing.xs }}>
                     <CurrencySelector
                       selectedCurrency={selectedCurrency}
                       onCurrencyChange={setSelectedCurrency}
@@ -1026,11 +1027,11 @@ export function ExpenseSheet({
                 {dailyAllowanceAmount != null && dailyAllowanceAmount > 0 && parseFloat(amount) > 0 && (
                   <p
                     style={{
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       color: (dailyAllowanceAmount - parseFloat(amount)) >= 0 ? 'var(--success)' : 'var(--error)',
                       marginTop: 6,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       fontVariantNumeric: 'tabular-nums',
                       opacity: 0.85,
                     }}
@@ -1044,7 +1045,7 @@ export function ExpenseSheet({
 
                 {/* ── Source Chip (optional, task 81.1) ────────────────── */}
                 {fundingSources.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
+                  <div style={{ marginTop: spacing.sm }}>
                     <button
                       type="button"
                       onClick={() => {
@@ -1063,15 +1064,15 @@ export function ExpenseSheet({
                         padding: '6px 12px',
                         background: fills[4],
                         border: `1px solid ${fills[10]}`,
-                        borderRadius: borderRadius.full,
+                        borderRadius: radius.full,
                         cursor: 'pointer',
-                        fontSize: 13,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
-                        fontWeight: 500,
+                        fontWeight: fontWeights.medium,
                         color: 'var(--sub)',
                       }}
                     >
-                      <span style={{ fontSize: 14 }} aria-hidden="true">
+                      <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">
                         {selectedSourceId
                           ? fundingSources.find(s => s.id === selectedSourceId)?.emoji ?? '💳'
                           : '💳'}
@@ -1100,7 +1101,7 @@ export function ExpenseSheet({
                             borderRadius: 'var(--radius-md)',
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                            gap: 8,
+                            gap: spacing.xs,
                           }}
                         >
                           {fundingSources.map((source) => (
@@ -1121,20 +1122,20 @@ export function ExpenseSheet({
                                 gap: 4,
                                 padding: '10px 8px',
                                 background: selectedSourceId === source.id
-                                  ? 'rgba(129, 140, 248, 0.12)'
+                                  ? 'var(--accent-200)'
                                   : 'transparent',
                                 border: selectedSourceId === source.id
-                                  ? '1px solid rgba(129, 140, 248, 0.4)'
+                                  ? '1px solid var(--accent-400)'
                                   : '1px solid transparent',
                                 borderRadius: 'var(--radius-sm)',
                                 cursor: 'pointer',
-                                fontSize: 11,
+                                fontSize: typography.caption.fontSize,
                                 fontFamily: FONT_FAMILY,
-                                fontWeight: 500,
+                                fontWeight: fontWeights.medium,
                                 color: selectedSourceId === source.id ? 'var(--text)' : 'var(--sub)',
                               }}
                             >
-                              <span style={{ fontSize: 20 }} aria-hidden="true">
+                              <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">
                                 {source.emoji}
                               </span>
                               <span style={{ textAlign: 'center', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1194,9 +1195,9 @@ export function ExpenseSheet({
                   <div
                     style={{
                       gridColumn: '1 / -1',
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 400,
+                      fontWeight: fontWeights.regular,
                       color: 'var(--muted)',
                       marginBottom: 2,
                     }}
@@ -1226,7 +1227,7 @@ export function ExpenseSheet({
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 8,
+                      gap: spacing.xs,
                       cursor: 'pointer',
                       position: 'relative',
                       overflow: 'hidden',
@@ -1245,7 +1246,7 @@ export function ExpenseSheet({
                     }}
                   >
                     <motion.span
-                      style={{ fontSize: 24, lineHeight: 1, display: 'inline-block' }}
+                      style={{ fontSize: typography.headline.fontSize, lineHeight: 1, display: 'inline-block' }}
                       variants={iconBounceVariants}
                       transition={ICON_BOUNCE_SPRING}
                       aria-hidden="true"
@@ -1255,8 +1256,8 @@ export function ExpenseSheet({
                     <span
                       style={{
                         fontFamily: FONT_FAMILY,
-                        fontSize: 12,
-                        fontWeight: 500,
+                        fontSize: typography['body-sm'].fontSize,
+                        fontWeight: fontWeights.medium,
                         color: category === null ? 'var(--text)' : 'var(--sub)',
                       }}
                     >
@@ -1296,7 +1297,7 @@ export function ExpenseSheet({
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 8,
+                        gap: spacing.xs,
                         cursor: 'pointer',
                         position: 'relative',
                         overflow: 'hidden',
@@ -1317,7 +1318,7 @@ export function ExpenseSheet({
                     >
                       {/* Emoji icon with bounce micro-interaction */}
                       <motion.span
-                        style={{ fontSize: 24, lineHeight: 1, display: 'inline-block' }}
+                        style={{ fontSize: typography.headline.fontSize, lineHeight: 1, display: 'inline-block' }}
                         variants={iconBounceVariants}
                         transition={ICON_BOUNCE_SPRING}
                         aria-hidden="true"
@@ -1327,8 +1328,8 @@ export function ExpenseSheet({
                       <span
                         style={{
                           fontFamily: FONT_FAMILY,
-                          fontSize: 12,
-                          fontWeight: 500,
+                          fontSize: typography['body-sm'].fontSize,
+                          fontWeight: fontWeights.medium,
                           color: selected ? 'var(--text)' : 'var(--sub)',
                         }}
                       >
@@ -1345,7 +1346,7 @@ export function ExpenseSheet({
                     onClick={() => { setShowAddCategoryForm(true); triggerHaptic('light') }}
                     aria-label="Add a custom category"
                     tabIndex={-1}
-                    whileTap={prefersReducedMotion ? undefined : { scale: 0.94 }}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
                     transition={springs.snappy}
                     style={{
                       minHeight: 72,
@@ -1354,18 +1355,18 @@ export function ExpenseSheet({
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 8,
+                      gap: spacing.xs,
                       cursor: 'pointer',
                       background: 'transparent',
-                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                      border: '1px dashed var(--fill-15)',
                     }}
                   >
-                    <span style={{ fontSize: 20, lineHeight: 1 }} aria-hidden="true">+</span>
+                    <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1 }} aria-hidden="true">+</span>
                     <span
                       style={{
                         fontFamily: FONT_FAMILY,
-                        fontSize: 12,
-                        fontWeight: 500,
+                        fontSize: typography['body-sm'].fontSize,
+                        fontWeight: fontWeights.medium,
                         color: 'var(--muted)',
                       }}
                     >
@@ -1386,9 +1387,9 @@ export function ExpenseSheet({
                     transition={springs.gentle}
                     style={{
                       overflow: 'hidden',
-                      marginBottom: 16,
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      marginBottom: spacing.md,
+                      background: 'var(--fill-03)',
+                      border: '1px solid var(--fill-08)',
                       borderRadius: 'var(--radius-md)',
                       padding: '14px 14px 12px',
                     }}
@@ -1400,7 +1401,7 @@ export function ExpenseSheet({
                         display: 'flex',
                         flexWrap: 'wrap',
                         gap: 6,
-                        marginBottom: 12,
+                        marginBottom: spacing.sm,
                       }}
                       role="group"
                       aria-label="Choose an icon for your category"
@@ -1419,10 +1420,10 @@ export function ExpenseSheet({
                               height: 36,
                               borderRadius: 'var(--radius-sm)',
                               border: isSelected
-                                ? '1.5px solid rgba(129, 140, 248, 0.6)'
-                                : '1px solid rgba(255, 255, 255, 0.08)',
+                                ? '1.5px solid var(--accent-400)'
+                                : '1px solid var(--fill-08)',
                               background: isSelected
-                                ? 'rgba(129, 140, 248, 0.1)'
+                                ? 'var(--accent-100)'
                                 : 'transparent',
                               color: isSelected ? 'var(--accent)' : 'var(--sub)',
                               cursor: 'pointer',
@@ -1438,7 +1439,7 @@ export function ExpenseSheet({
                     </div>
 
                     {/* Label input + action row */}
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: spacing.xs, alignItems: 'center' }}>
                       <span
                         style={{
                           flexShrink: 0,
@@ -1467,9 +1468,9 @@ export function ExpenseSheet({
                           flex: 1,
                           background: 'transparent',
                           border: 'none',
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderBottom: '1px solid var(--fill-15)',
                           outline: 'none',
-                          fontSize: 14,
+                          fontSize: typography.body.fontSize,
                           fontFamily: FONT_FAMILY,
                           color: 'var(--text)',
                           padding: '6px 0',
@@ -1485,15 +1486,15 @@ export function ExpenseSheet({
                         style={{
                           flexShrink: 0,
                           padding: '6px 14px',
-                          borderRadius: borderRadius.full,
+                          borderRadius: radius.full,
                           background: newCategoryLabel.trim()
-                            ? 'rgba(129, 140, 248, 0.8)'
-                            : 'rgba(255, 255, 255, 0.08)',
+                            ? 'var(--accent-500)'
+                            : 'var(--fill-08)',
                           border: 'none',
                           color: newCategoryLabel.trim() ? 'var(--text)' : 'var(--muted)',
-                          fontSize: 13,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
-                          fontWeight: 600,
+                          fontWeight: fontWeights.semibold,
                           cursor: newCategoryLabel.trim() ? 'pointer' : 'not-allowed',
                           opacity: isAddingCategory ? 0.6 : 1,
                         }}
@@ -1507,11 +1508,11 @@ export function ExpenseSheet({
                         style={{
                           flexShrink: 0,
                           padding: '6px 10px',
-                          borderRadius: borderRadius.full,
+                          borderRadius: radius.full,
                           background: 'transparent',
                           border: 'none',
                           color: 'var(--muted)',
-                          fontSize: 13,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
                           cursor: 'pointer',
                         }}
@@ -1529,14 +1530,14 @@ export function ExpenseSheet({
                   style={{
                     textAlign: 'center',
                     marginTop: -16,
-                    marginBottom: 16,
+                    marginBottom: spacing.md,
                   }}
                 >
                   <span
                     style={{
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 400,
+                      fontWeight: fontWeights.regular,
                       color: 'var(--muted)',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1556,7 +1557,7 @@ export function ExpenseSheet({
                   style={{
                     textAlign: 'center',
                     marginTop: -8,
-                    marginBottom: 16,
+                    marginBottom: spacing.md,
                   }}
                 >
                   <button
@@ -1570,10 +1571,10 @@ export function ExpenseSheet({
                       background: 'transparent',
                       border: 'none',
                       padding: 0,
-                      fontSize: 12,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
-                      color: 'rgba(167, 139, 250, 0.8)',
+                      fontWeight: fontWeights.medium,
+                      color: 'var(--accent-500)',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1593,14 +1594,14 @@ export function ExpenseSheet({
                     onClick={() => setShowNoteField(true)}
                     aria-label="Add a note"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: 'var(--fill-04)',
+                      border: '1px solid var(--fill-08)',
                       borderRadius: 'var(--radius-md)',
                       padding: `${spacing.sm}px ${spacing.md}px`,
                       minHeight: 44,
                       fontSize: pxToRem(13),
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 400,
+                      fontWeight: fontWeights.regular,
                       color: 'var(--sub)',
                       cursor: 'pointer',
                       display: 'inline-flex',
@@ -1608,7 +1609,7 @@ export function ExpenseSheet({
                       gap: 6,
                     }}
                   >
-                    <span style={{ fontSize: 16 }}>+</span> Add a note
+                    <span style={{ fontSize: typography.body.fontSize }}>+</span> Add a note
                   </button>
                 </div>
               ) : (
@@ -1644,9 +1645,9 @@ export function ExpenseSheet({
                           position: 'absolute',
                           right: 0,
                           bottom: 14,
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           fontFamily: FONT_FAMILY,
-                          fontWeight: 400,
+                          fontWeight: fontWeights.regular,
                           color: 'var(--muted)',
                         }}
                       >
@@ -1660,9 +1661,9 @@ export function ExpenseSheet({
                           position: 'absolute',
                           right: 0,
                           bottom: 14,
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           fontFamily: FONT_FAMILY,
-                          fontWeight: 400,
+                          fontWeight: fontWeights.regular,
                           color: colorRamp.success[400],
                         }}
                       >
@@ -1675,9 +1676,9 @@ export function ExpenseSheet({
                   {merchantContextMsg && merchantMatched && (
                     <p
                       style={{
-                        fontSize: 12,
+                        fontSize: typography['body-sm'].fontSize,
                         fontFamily: FONT_FAMILY,
-                        fontWeight: 400,
+                        fontWeight: fontWeights.regular,
                         color: 'var(--sub)',
                         marginTop: 4,
                         marginBottom: 0,
@@ -1693,7 +1694,7 @@ export function ExpenseSheet({
                       style={{
                         display: 'flex',
                         flexWrap: 'wrap',
-                        gap: 8,
+                        gap: spacing.xs,
                         marginTop: 10,
                       }}
                     >
@@ -1707,13 +1708,13 @@ export function ExpenseSheet({
                           }}
                           aria-label={`Use note: ${recentNote}`}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
-                            borderRadius: borderRadius.full,
+                            background: 'var(--fill-04)',
+                            border: '1px solid var(--fill-08)',
+                            borderRadius: radius.full,
                             padding: '5px 12px',
-                            fontSize: 12,
+                            fontSize: typography['body-sm'].fontSize,
                             fontFamily: FONT_FAMILY,
-                            fontWeight: 400,
+                            fontWeight: fontWeights.regular,
                             color: 'var(--sub)',
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
@@ -1730,7 +1731,7 @@ export function ExpenseSheet({
               )}
 
               {/* ── Tags (optional, progressive disclosure) ─────────────────────── */}
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: HORIZONTAL_PADDING }}>
                 <TagInput
                   tags={tags}
                   onChange={setTags}
@@ -1740,7 +1741,7 @@ export function ExpenseSheet({
               </div>
 
               {/* ── Date Picker (optional, task 87.1) ─────────────────────────────── */}
-              <div style={{ marginBottom: 20, textAlign: 'center' }}>
+              <div style={{ marginBottom: HORIZONTAL_PADDING, textAlign: 'center' }}>
                 {!showDatePicker ? (
                   <button
                     type="button"
@@ -1755,20 +1756,20 @@ export function ExpenseSheet({
                       gap: 6,
                       padding: '6px 14px',
                       background: selectedDate === new Date().toISOString().slice(0, 10)
-                        ? 'rgba(255, 255, 255, 0.04)'
-                        : 'rgba(129, 140, 248, 0.12)',
+                        ? 'var(--fill-04)'
+                        : 'var(--accent-200)',
                       border: selectedDate === new Date().toISOString().slice(0, 10)
-                        ? '1px solid rgba(255, 255, 255, 0.1)'
-                        : '1px solid rgba(129, 140, 248, 0.4)',
-                      borderRadius: borderRadius.full,
+                        ? '1px solid var(--fill-10)'
+                        : '1px solid var(--accent-400)',
+                      borderRadius: radius.full,
                       cursor: 'pointer',
-                      fontSize: 13,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       color: 'var(--sub)',
                     }}
                   >
-                    <span style={{ fontSize: 13 }} aria-hidden="true">📅</span>
+                    <span style={{ fontSize: typography['body-sm'].fontSize }} aria-hidden="true">📅</span>
                     <span>{getRelativeDateLabel(selectedDate)}</span>
                   </button>
                 ) : (
@@ -1784,7 +1785,7 @@ export function ExpenseSheet({
                       <div
                         style={{
                           display: 'flex',
-                          gap: 8,
+                          gap: spacing.xs,
                           flexWrap: 'wrap',
                           justifyContent: 'center',
                           paddingTop: 4,
@@ -1805,16 +1806,16 @@ export function ExpenseSheet({
                           style={{
                             padding: '7px 14px',
                             background: selectedDate === new Date().toISOString().slice(0, 10)
-                              ? 'rgba(129, 140, 248, 0.12)'
-                              : 'rgba(255, 255, 255, 0.04)',
+                              ? 'var(--accent-200)'
+                              : 'var(--fill-04)',
                             border: selectedDate === new Date().toISOString().slice(0, 10)
-                              ? '1px solid rgba(129, 140, 248, 0.4)'
-                              : '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: borderRadius.full,
+                              ? '1px solid var(--accent-400)'
+                              : '1px solid var(--fill-10)',
+                            borderRadius: radius.full,
                             cursor: 'pointer',
-                            fontSize: 13,
+                            fontSize: typography['body-sm'].fontSize,
                             fontFamily: FONT_FAMILY,
-                            fontWeight: 500,
+                            fontWeight: fontWeights.medium,
                             color: selectedDate === new Date().toISOString().slice(0, 10) ? 'var(--text)' : 'var(--sub)',
                           }}
                         >
@@ -1839,16 +1840,16 @@ export function ExpenseSheet({
                               style={{
                                 padding: '7px 14px',
                                 background: selectedDate === yesterdayStr
-                                  ? 'rgba(129, 140, 248, 0.12)'
-                                  : 'rgba(255, 255, 255, 0.04)',
+                                  ? 'var(--accent-200)'
+                                  : 'var(--fill-04)',
                                 border: selectedDate === yesterdayStr
-                                  ? '1px solid rgba(129, 140, 248, 0.4)'
-                                  : '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: borderRadius.full,
+                                  ? '1px solid var(--accent-400)'
+                                  : '1px solid var(--fill-10)',
+                                borderRadius: radius.full,
                                 cursor: 'pointer',
-                                fontSize: 13,
+                                fontSize: typography['body-sm'].fontSize,
                                 fontFamily: FONT_FAMILY,
-                                fontWeight: 500,
+                                fontWeight: fontWeights.medium,
                                 color: selectedDate === yesterdayStr ? 'var(--text)' : 'var(--sub)',
                               }}
                             >
@@ -1873,16 +1874,16 @@ export function ExpenseSheet({
                               style={{
                                 padding: '7px 14px',
                                 background: selectedDate === lastFriStr
-                                  ? 'rgba(129, 140, 248, 0.12)'
-                                  : 'rgba(255, 255, 255, 0.04)',
+                                  ? 'var(--accent-200)'
+                                  : 'var(--fill-04)',
                                 border: selectedDate === lastFriStr
-                                  ? '1px solid rgba(129, 140, 248, 0.4)'
-                                  : '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: borderRadius.full,
+                                  ? '1px solid var(--accent-400)'
+                                  : '1px solid var(--fill-10)',
+                                borderRadius: radius.full,
                                 cursor: 'pointer',
-                                fontSize: 13,
+                                fontSize: typography['body-sm'].fontSize,
                                 fontFamily: FONT_FAMILY,
-                                fontWeight: 500,
+                                fontWeight: fontWeights.medium,
                                 color: selectedDate === lastFriStr ? 'var(--text)' : 'var(--sub)',
                               }}
                             >
@@ -1907,16 +1908,16 @@ export function ExpenseSheet({
                               style={{
                                 padding: '7px 14px',
                                 background: selectedDate === nextMonStr
-                                  ? 'rgba(129, 140, 248, 0.12)'
-                                  : 'rgba(255, 255, 255, 0.04)',
+                                  ? 'var(--accent-200)'
+                                  : 'var(--fill-04)',
                                 border: selectedDate === nextMonStr
-                                  ? '1px solid rgba(129, 140, 248, 0.4)'
-                                  : '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: borderRadius.full,
+                                  ? '1px solid var(--accent-400)'
+                                  : '1px solid var(--fill-10)',
+                                borderRadius: radius.full,
                                 cursor: 'pointer',
-                                fontSize: 13,
+                                fontSize: typography['body-sm'].fontSize,
                                 fontFamily: FONT_FAMILY,
-                                fontWeight: 500,
+                                fontWeight: fontWeights.medium,
                                 color: selectedDate === nextMonStr ? 'var(--text)' : 'var(--sub)',
                               }}
                             >
@@ -1936,16 +1937,16 @@ export function ExpenseSheet({
                           style={{
                             padding: '7px 14px',
                             background: showDateInput
-                              ? 'rgba(129, 140, 248, 0.12)'
-                              : 'rgba(255, 255, 255, 0.04)',
+                              ? 'var(--accent-200)'
+                              : 'var(--fill-04)',
                             border: showDateInput
-                              ? '1px solid rgba(129, 140, 248, 0.4)'
-                              : '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: borderRadius.full,
+                              ? '1px solid var(--accent-400)'
+                              : '1px solid var(--fill-10)',
+                            borderRadius: radius.full,
                             cursor: 'pointer',
-                            fontSize: 13,
+                            fontSize: typography['body-sm'].fontSize,
                             fontFamily: FONT_FAMILY,
-                            fontWeight: 500,
+                            fontWeight: fontWeights.medium,
                             color: showDateInput ? 'var(--text)' : 'var(--sub)',
                           }}
                         >
@@ -1976,11 +1977,11 @@ export function ExpenseSheet({
                               }}
                               aria-label="Pick a date"
                               style={{
-                                background: 'rgba(255, 255, 255, 0.04)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: borderRadius.md,
+                                background: 'var(--fill-04)',
+                                border: '1px solid var(--fill-10)',
+                                borderRadius: radius.control,
                                 padding: '8px 14px',
-                                fontSize: 14,
+                                fontSize: typography.body.fontSize,
                                 fontFamily: FONT_FAMILY,
                                 color: 'var(--text)',
                                 colorScheme: 'dark',
@@ -1998,7 +1999,7 @@ export function ExpenseSheet({
               {isFutureDate(selectedDate) && (
                 <div
                   style={{
-                    marginBottom: 16,
+                    marginBottom: spacing.md,
                     textAlign: 'center',
                   }}
                 >
@@ -2008,13 +2009,13 @@ export function ExpenseSheet({
                       alignItems: 'center',
                       gap: 6,
                       padding: '6px 14px',
-                      background: 'rgba(129, 140, 248, 0.08)',
-                      border: '1px solid rgba(129, 140, 248, 0.25)',
-                      borderRadius: borderRadius.full,
-                      fontSize: 12,
+                      background: 'var(--accent-100)',
+                      border: '1px solid var(--accent-300)',
+                      borderRadius: radius.full,
+                      fontSize: typography['body-sm'].fontSize,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 500,
-                      color: 'rgba(129, 140, 248, 0.9)',
+                      fontWeight: fontWeights.medium,
+                      color: 'var(--accent-500)',
                     }}
                     role="status"
                     aria-label={`This expense is scheduled for ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
@@ -2026,7 +2027,7 @@ export function ExpenseSheet({
               )}
 
               {/* ── Split Toggle (optional, between note and Log button) ────── */}
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: HORIZONTAL_PADDING }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -2038,15 +2039,15 @@ export function ExpenseSheet({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
+                    gap: spacing.sm,
                     width: '100%',
                     padding: '12px 14px',
                     background: splitEnabled
-                      ? 'rgba(129, 140, 248, 0.06)'
+                      ? 'var(--accent-100)'
                       : 'transparent',
                     border: splitEnabled
-                      ? '1px solid rgba(129, 140, 248, 0.3)'
-                      : '1px solid rgba(255, 255, 255, 0.08)',
+                      ? '1px solid var(--accent-300)'
+                      : '1px solid var(--fill-08)',
                     borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
@@ -2057,10 +2058,10 @@ export function ExpenseSheet({
                     style={{
                       width: 36,
                       height: 20,
-                      borderRadius: 10,
+                      borderRadius: radius.full,
                       background: splitEnabled
-                        ? 'rgba(129, 140, 248, 0.8)'
-                        : 'rgba(255, 255, 255, 0.12)',
+                        ? 'var(--accent-500)'
+                        : 'var(--fill-12)',
                       position: 'relative',
                       flexShrink: 0,
                       transition: 'background 0.15s ease',
@@ -2077,15 +2078,15 @@ export function ExpenseSheet({
                         borderRadius: '50%',
                         background: 'var(--text)',
                         transition: 'left 0.15s ease',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                        boxShadow: shadows.sm,
                       }}
                     />
                   </span>
                   <span
                     style={{
                       fontFamily: FONT_FAMILY,
-                      fontSize: 14,
-                      fontWeight: 500,
+                      fontSize: typography.body.fontSize,
+                      fontWeight: fontWeights.medium,
                       color: splitEnabled ? 'var(--text)' : 'var(--sub)',
                     }}
                   >
@@ -2124,17 +2125,17 @@ export function ExpenseSheet({
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 4,
-                                  background: p.userId ? 'rgba(129, 140, 248, 0.12)' : 'rgba(129, 140, 248, 0.08)',
-                                  border: p.userId ? '1px solid rgba(129, 140, 248, 0.3)' : '1px solid rgba(129, 140, 248, 0.2)',
-                                  borderRadius: borderRadius.full,
+                                  background: p.userId ? 'var(--accent-200)' : 'var(--accent-100)',
+                                  border: p.userId ? '1px solid var(--accent-300)' : '1px solid var(--accent-200)',
+                                  borderRadius: radius.full,
                                   padding: '5px 10px',
-                                  fontSize: 12,
+                                  fontSize: typography['body-sm'].fontSize,
                                   fontFamily: FONT_FAMILY,
-                                  fontWeight: 500,
+                                  fontWeight: fontWeights.medium,
                                   color: 'var(--text)',
                                 }}
                               >
-                                {p.userId && <span style={{ fontSize: 10, opacity: 0.7 }}>👤</span>}
+                                {p.userId && <span style={{ fontSize: typography.caption.fontSize, opacity: 0.7 }}>👤</span>}
                                 {p.name}
                                 <button
                                   type="button"
@@ -2150,7 +2151,7 @@ export function ExpenseSheet({
                                     padding: '0 2px',
                                     cursor: 'pointer',
                                     color: 'var(--muted)',
-                                    fontSize: 14,
+                                    fontSize: typography.body.fontSize,
                                     lineHeight: 1,
                                   }}
                                 >
@@ -2167,7 +2168,7 @@ export function ExpenseSheet({
                             <span
                               style={{
                                 fontFamily: FONT_FAMILY,
-                                fontSize: 11,
+                                fontSize: typography.caption.fontSize,
                                 color: 'var(--muted)',
                                 display: 'block',
                                 marginBottom: 6,
@@ -2205,20 +2206,20 @@ export function ExpenseSheet({
                                     style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: 5,
-                                      background: 'rgba(129, 140, 248, 0.06)',
-                                      border: '1px solid rgba(129, 140, 248, 0.2)',
-                                      borderRadius: borderRadius.full,
+                                      gap: spacing.xxs,
+                                      background: 'var(--accent-100)',
+                                      border: '1px solid var(--accent-200)',
+                                      borderRadius: radius.full,
                                       padding: '6px 12px',
-                                      fontSize: 12,
+                                      fontSize: typography['body-sm'].fontSize,
                                       fontFamily: FONT_FAMILY,
-                                      fontWeight: 500,
+                                      fontWeight: fontWeights.medium,
                                       color: 'var(--sub)',
                                       cursor: 'pointer',
                                       whiteSpace: 'nowrap',
                                     }}
                                   >
-                                    <span style={{ fontSize: 10 }}>👤</span>
+                                    <span style={{ fontSize: typography.caption.fontSize }}>👤</span>
                                     {friend.name}
                                   </button>
                                 ))}
@@ -2227,7 +2228,7 @@ export function ExpenseSheet({
                         )}
 
                         {friendsLoading && (
-                          <span style={{ fontFamily: FONT_FAMILY, fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>
+                          <span style={{ fontFamily: FONT_FAMILY, fontSize: typography.caption.fontSize, color: 'var(--muted)', display: 'block', marginBottom: spacing.xs }}>
                             Loading friends…
                           </span>
                         )}
@@ -2243,9 +2244,9 @@ export function ExpenseSheet({
                               padding: '4px 0',
                               cursor: 'pointer',
                               fontFamily: FONT_FAMILY,
-                              fontSize: 12,
-                              fontWeight: 500,
-                              color: 'rgba(129, 140, 248, 0.8)',
+                              fontSize: typography['body-sm'].fontSize,
+                              fontWeight: fontWeights.medium,
+                              color: 'var(--accent-500)',
                               marginBottom: 4,
                             }}
                             aria-label="Type a name instead"
@@ -2284,11 +2285,11 @@ export function ExpenseSheet({
                               aria-label="Friend's name to split with"
                               style={{
                                 width: '100%',
-                                background: 'rgba(255, 255, 255, 0.04)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: borderRadius.md,
+                                background: 'var(--fill-04)',
+                                border: '1px solid var(--fill-10)',
+                                borderRadius: radius.control,
                                 outline: 'none',
-                                fontSize: 14,
+                                fontSize: typography.body.fontSize,
                                 fontFamily: FONT_FAMILY,
                                 color: 'var(--text)',
                                 padding: '10px 14px',
@@ -2298,7 +2299,7 @@ export function ExpenseSheet({
                             <span
                               style={{
                                 fontFamily: FONT_FAMILY,
-                                fontSize: 11,
+                                fontSize: typography.caption.fontSize,
                                 color: 'var(--muted)',
                                 marginTop: 4,
                                 display: 'block',
@@ -2314,7 +2315,7 @@ export function ExpenseSheet({
                           <div
                             style={{
                               display: 'flex',
-                              gap: 8,
+                              gap: spacing.xs,
                               flexWrap: 'wrap',
                               marginTop: 10,
                             }}
@@ -2324,7 +2325,7 @@ export function ExpenseSheet({
                               <span
                                 style={{
                                   fontFamily: FONT_FAMILY,
-                                  fontSize: 11,
+                                  fontSize: typography.caption.fontSize,
                                   color: 'var(--muted)',
                                   alignSelf: 'center',
                                 }}
@@ -2348,13 +2349,13 @@ export function ExpenseSheet({
                                 }}
                                 aria-label={`Split with ${name}`}
                                 style={{
-                                  background: 'rgba(129, 140, 248, 0.06)',
-                                  border: '1px solid rgba(129, 140, 248, 0.2)',
-                                  borderRadius: borderRadius.full,
+                                  background: 'var(--accent-100)',
+                                  border: '1px solid var(--accent-200)',
+                                  borderRadius: radius.full,
                                   padding: '6px 12px',
-                                  fontSize: 12,
+                                  fontSize: typography['body-sm'].fontSize,
                                   fontFamily: FONT_FAMILY,
-                                  fontWeight: 500,
+                                  fontWeight: fontWeights.medium,
                                   color: 'var(--sub)',
                                   cursor: 'pointer',
                                   whiteSpace: 'nowrap',
@@ -2382,16 +2383,16 @@ export function ExpenseSheet({
                             style={{
                               flex: 1,
                               padding: '8px 0',
-                              borderRadius: 9,
+                              borderRadius: radius.control,
                               border: 'none',
-                              fontSize: 13,
-                              fontWeight: 500,
+                              fontSize: typography['body-sm'].fontSize,
+                              fontWeight: fontWeights.medium,
                               fontFamily: FONT_FAMILY,
                               cursor: 'pointer',
                               transition: 'background 0.15s, color 0.15s',
                               textAlign: 'center',
                               color: splitMode === 'even' ? 'var(--text)' : 'var(--muted)',
-                              background: splitMode === 'even' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                              background: splitMode === 'even' ? 'var(--accent-200)' : 'transparent',
                             }}
                           >
                             Even
@@ -2403,16 +2404,16 @@ export function ExpenseSheet({
                             style={{
                               flex: 1,
                               padding: '8px 0',
-                              borderRadius: 9,
+                              borderRadius: radius.control,
                               border: 'none',
-                              fontSize: 13,
-                              fontWeight: 500,
+                              fontSize: typography['body-sm'].fontSize,
+                              fontWeight: fontWeights.medium,
                               fontFamily: FONT_FAMILY,
                               cursor: 'pointer',
                               transition: 'background 0.15s, color 0.15s',
                               textAlign: 'center',
                               color: splitMode === 'custom' ? 'var(--text)' : 'var(--muted)',
-                              background: splitMode === 'custom' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                              background: splitMode === 'custom' ? 'var(--accent-200)' : 'transparent',
                             }}
                           >
                             Custom
@@ -2423,10 +2424,10 @@ export function ExpenseSheet({
                               onClick={() => { setShowAdvancedSplit(true); triggerHaptic('light') }}
                               style={{
                                 padding: '8px 12px',
-                                borderRadius: 9,
+                                borderRadius: radius.control,
                                 border: 'none',
-                                fontSize: 13,
-                                fontWeight: 500,
+                                fontSize: typography['body-sm'].fontSize,
+                                fontWeight: fontWeights.medium,
                                 fontFamily: FONT_FAMILY,
                                 cursor: 'pointer',
                                 color: 'var(--muted)',
@@ -2458,16 +2459,16 @@ export function ExpenseSheet({
                                   style={{
                                     flex: 1,
                                     padding: '8px 0',
-                                    borderRadius: 9,
+                                    borderRadius: radius.control,
                                     border: 'none',
-                                    fontSize: 13,
-                                    fontWeight: 500,
+                                    fontSize: typography['body-sm'].fontSize,
+                                    fontWeight: fontWeights.medium,
                                     fontFamily: FONT_FAMILY,
                                     cursor: 'pointer',
                                     transition: 'background 0.15s, color 0.15s',
                                     textAlign: 'center',
                                     color: splitMode === 'percent' ? 'var(--text)' : 'var(--muted)',
-                                    background: splitMode === 'percent' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                                    background: splitMode === 'percent' ? 'var(--accent-200)' : 'transparent',
                                   }}
                                 >
                                   By %
@@ -2479,16 +2480,16 @@ export function ExpenseSheet({
                                   style={{
                                     flex: 1,
                                     padding: '8px 0',
-                                    borderRadius: 9,
+                                    borderRadius: radius.control,
                                     border: 'none',
-                                    fontSize: 13,
-                                    fontWeight: 500,
+                                    fontSize: typography['body-sm'].fontSize,
+                                    fontWeight: fontWeights.medium,
                                     fontFamily: FONT_FAMILY,
                                     cursor: 'pointer',
                                     transition: 'background 0.15s, color 0.15s',
                                     textAlign: 'center',
                                     color: splitMode === 'shares' ? 'var(--text)' : 'var(--muted)',
-                                    background: splitMode === 'shares' ? 'rgba(129, 140, 248, 0.12)' : 'transparent',
+                                    background: splitMode === 'shares' ? 'var(--accent-200)' : 'transparent',
                                   }}
                                 >
                                   By shares
@@ -2507,19 +2508,19 @@ export function ExpenseSheet({
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '14px 4px 4px',
-                            gap: 12,
+                            gap: spacing.sm,
                           }}
                         >
                           <span
                             style={{
                               fontFamily: FONT_FAMILY,
-                              fontSize: 13,
+                              fontSize: typography['body-sm'].fontSize,
                               color: 'var(--sub)',
                             }}
                           >
                             Split between
                           </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
                             <button
                               type="button"
                               onClick={() => setSplitCount((c) => Math.max(2, c - 1))}
@@ -2537,8 +2538,8 @@ export function ExpenseSheet({
                             <span
                               style={{
                                 fontFamily: FONT_FAMILY,
-                                fontSize: 18,
-                                fontWeight: 600,
+                                fontSize: typography.subhead.fontSize,
+                                fontWeight: fontWeights.semibold,
                                 color: 'var(--text)',
                                 minWidth: 50,
                                 textAlign: 'center',
@@ -2572,7 +2573,7 @@ export function ExpenseSheet({
                           <label
                             style={{
                               fontFamily: FONT_FAMILY,
-                              fontSize: 13,
+                              fontSize: typography['body-sm'].fontSize,
                               color: 'var(--sub)',
                               display: 'block',
                               marginBottom: 6,
@@ -2588,7 +2589,7 @@ export function ExpenseSheet({
                                 top: '50%',
                                 transform: 'translateY(-50%)',
                                 fontFamily: FONT_FAMILY,
-                                fontSize: 14,
+                                fontSize: typography.body.fontSize,
                                 color: 'var(--muted)',
                                 pointerEvents: 'none',
                               }}
@@ -2610,11 +2611,11 @@ export function ExpenseSheet({
                               aria-label="Your custom share amount"
                               style={{
                                 width: '100%',
-                                background: 'rgba(255, 255, 255, 0.04)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: borderRadius.md,
+                                background: 'var(--fill-04)',
+                                border: '1px solid var(--fill-10)',
+                                borderRadius: radius.control,
                                 outline: 'none',
-                                fontSize: 14,
+                                fontSize: typography.body.fontSize,
                                 fontFamily: FONT_FAMILY,
                                 color: 'var(--text)',
                                 padding: '10px 14px 10px 24px',
@@ -2628,12 +2629,12 @@ export function ExpenseSheet({
                       {/* Percent inputs — only in percent mode (task 284.1) */}
                       {splitMode === 'percent' && splitParticipants.length > 0 && (
                         <div style={{ padding: '14px 4px 4px' }}>
-                          <label style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--sub)', display: 'block', marginBottom: 8 }}>
+                          <label style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', display: 'block', marginBottom: spacing.xs }}>
                             Percentage per person (must total 100%)
                           </label>
                           {/* You (the payer) */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                            <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--text)', minWidth: 60 }}>You</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: 6 }}>
+                            <span style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--text)', minWidth: 60 }}>You</span>
                             <input
                               type="number"
                               inputMode="numeric"
@@ -2644,21 +2645,21 @@ export function ExpenseSheet({
                               aria-label="Your percentage"
                               style={{
                                 width: 60,
-                                background: 'rgba(255, 255, 255, 0.04)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: borderRadius.sm,
-                                fontSize: 13,
+                                background: 'var(--fill-04)',
+                                border: '1px solid var(--fill-10)',
+                                borderRadius: radius.control,
+                                fontSize: typography['body-sm'].fontSize,
                                 fontFamily: FONT_FAMILY,
                                 color: 'var(--muted)',
                                 padding: '6px 8px',
                                 textAlign: 'center',
                               }}
                             />
-                            <span style={{ fontFamily: FONT_FAMILY, fontSize: 12, color: 'var(--muted)' }}>%</span>
+                            <span style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--muted)' }}>%</span>
                           </div>
                           {splitParticipants.map((p, i) => (
-                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                              <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--text)', minWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: 6 }}>
+                              <span style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--text)', minWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                               <input
                                 type="number"
                                 inputMode="numeric"
@@ -2672,23 +2673,23 @@ export function ExpenseSheet({
                                 aria-label={`${p.name}'s percentage`}
                                 style={{
                                   width: 60,
-                                  background: 'rgba(255, 255, 255, 0.04)',
-                                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                                  borderRadius: borderRadius.sm,
-                                  fontSize: 13,
+                                  background: 'var(--fill-04)',
+                                  border: '1px solid var(--fill-10)',
+                                  borderRadius: radius.control,
+                                  fontSize: typography['body-sm'].fontSize,
                                   fontFamily: FONT_FAMILY,
                                   color: 'var(--text)',
                                   padding: '6px 8px',
                                   textAlign: 'center',
                                 }}
                               />
-                              <span style={{ fontFamily: FONT_FAMILY, fontSize: 12, color: 'var(--muted)' }}>%</span>
+                              <span style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--muted)' }}>%</span>
                             </div>
                           ))}
                           {(() => {
                             const totalPct = percentInputs.reduce((s, v) => s + v, 0)
                             if (totalPct > 100) return (
-                              <span style={{ fontFamily: FONT_FAMILY, fontSize: 11, color: 'var(--warning)' }}>Total exceeds 100%</span>
+                              <span style={{ fontFamily: FONT_FAMILY, fontSize: typography.caption.fontSize, color: 'var(--warning)' }}>Total exceeds 100%</span>
                             )
                             return null
                           })()}
@@ -2698,32 +2699,32 @@ export function ExpenseSheet({
                       {/* Shares inputs — only in shares mode (task 284.1) */}
                       {splitMode === 'shares' && splitParticipants.length > 0 && (
                         <div style={{ padding: '14px 4px 4px' }}>
-                          <label style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--sub)', display: 'block', marginBottom: 8 }}>
+                          <label style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', display: 'block', marginBottom: spacing.xs }}>
                             Shares per person (proportional)
                           </label>
                           {/* You (the payer) — always 1 share by default */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                            <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--text)', minWidth: 60 }}>You</span>
-                            <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--muted)' }}>1 share</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: 6 }}>
+                            <span style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--text)', minWidth: 60 }}>You</span>
+                            <span style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--muted)' }}>1 share</span>
                           </div>
                           {splitParticipants.map((p, i) => (
-                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                              <span style={{ fontFamily: FONT_FAMILY, fontSize: 13, color: 'var(--text)', minWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, marginBottom: 6 }}>
+                              <span style={{ fontFamily: FONT_FAMILY, fontSize: typography['body-sm'].fontSize, color: 'var(--text)', minWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <button
                                   type="button"
                                   onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.max(1, (next[i] ?? 1) - 1); return next })}
                                   disabled={(shareInputs[i] ?? 1) <= 1}
                                   aria-label={`Decrease ${p.name}'s shares`}
-                                  style={{ ...roundButton, width: 26, height: 26, fontSize: 14, opacity: (shareInputs[i] ?? 1) <= 1 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) <= 1 ? 'not-allowed' : 'pointer' }}
+                                  style={{ ...roundButton, width: 26, height: 26, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) <= 1 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) <= 1 ? 'not-allowed' : 'pointer' }}
                                 >−</button>
-                                <span style={{ fontFamily: FONT_FAMILY, fontSize: 14, fontWeight: 600, color: 'var(--text)', minWidth: 24, textAlign: 'center' }}>{shareInputs[i] ?? 1}</span>
+                                <span style={{ fontFamily: FONT_FAMILY, fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: 'var(--text)', minWidth: 24, textAlign: 'center' }}>{shareInputs[i] ?? 1}</span>
                                 <button
                                   type="button"
                                   onClick={() => setShareInputs((prev) => { const next = [...prev]; next[i] = Math.min(10, (next[i] ?? 1) + 1); return next })}
                                   disabled={(shareInputs[i] ?? 1) >= 10}
                                   aria-label={`Increase ${p.name}'s shares`}
-                                  style={{ ...roundButton, width: 26, height: 26, fontSize: 14, opacity: (shareInputs[i] ?? 1) >= 10 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) >= 10 ? 'not-allowed' : 'pointer' }}
+                                  style={{ ...roundButton, width: 26, height: 26, fontSize: typography.body.fontSize, opacity: (shareInputs[i] ?? 1) >= 10 ? 0.4 : 1, cursor: (shareInputs[i] ?? 1) >= 10 ? 'not-allowed' : 'pointer' }}
                                 >+</button>
                               </div>
                             </div>
@@ -2780,14 +2781,14 @@ export function ExpenseSheet({
                               padding: '14px 4px 4px',
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: 8,
+                              gap: spacing.xs,
                             }}
                           >
                             {/* Total */}
                             <div
                               style={{
                                 fontFamily: FONT_FAMILY,
-                                fontSize: 13,
+                                fontSize: typography['body-sm'].fontSize,
                                 color: 'var(--sub)',
                                 textAlign: 'center',
                               }}
@@ -2800,12 +2801,12 @@ export function ExpenseSheet({
                               <span
                                 style={{
                                   fontFamily: FONT_FAMILY,
-                                  fontSize: 14,
-                                  fontWeight: 500,
+                                  fontSize: typography.body.fontSize,
+                                  fontWeight: fontWeights.medium,
                                   color: 'var(--text)',
-                                  background: 'rgba(129, 140, 248, 0.08)',
-                                  border: '1px solid rgba(129, 140, 248, 0.2)',
-                                  borderRadius: borderRadius.full,
+                                  background: 'var(--accent-100)',
+                                  border: '1px solid var(--accent-200)',
+                                  borderRadius: radius.full,
                                   padding: '6px 14px',
                                   display: 'inline-block',
                                 }}
@@ -2832,8 +2833,8 @@ export function ExpenseSheet({
                                       key={name}
                                       style={{
                                         fontFamily: FONT_FAMILY,
-                                        fontSize: 13,
-                                        fontWeight: 500,
+                                        fontSize: typography['body-sm'].fontSize,
+                                        fontWeight: fontWeights.medium,
                                         color: 'var(--success)',
                                         opacity: 0.9,
                                       }}
@@ -2858,9 +2859,9 @@ export function ExpenseSheet({
                                     padding: '4px 0',
                                     cursor: 'pointer',
                                     fontFamily: FONT_FAMILY,
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    color: 'rgba(129, 140, 248, 0.8)',
+                                    fontSize: typography['body-sm'].fontSize,
+                                    fontWeight: fontWeights.medium,
+                                    color: 'var(--accent-500)',
                                   }}
                                   aria-label="View settle-up ledger"
                                 >
@@ -2885,7 +2886,7 @@ export function ExpenseSheet({
                     animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
                     exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
                     transition={springs.snappy}
-                    style={{ overflow: 'hidden', marginBottom: 20 }}
+                    style={{ overflow: 'hidden', marginBottom: HORIZONTAL_PADDING }}
                   >
                     <button
                       type="button"
@@ -2898,7 +2899,7 @@ export function ExpenseSheet({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 10,
+                        gap: spacing.sm,
                         width: '100%',
                         padding: '12px 14px',
                         background: trackAsIOU
@@ -2917,9 +2918,9 @@ export function ExpenseSheet({
                         style={{
                           width: 36,
                           height: 20,
-                          borderRadius: 10,
+                          borderRadius: radius.full,
                           background: trackAsIOU
-                            ? 'rgba(251, 191, 36, 0.8)'
+                            ? 'var(--warning-500)'
                             : fills[12],
                           position: 'relative',
                           flexShrink: 0,
@@ -2937,7 +2938,7 @@ export function ExpenseSheet({
                             borderRadius: '50%',
                             background: 'var(--text)',
                             transition: 'left 0.15s ease',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                            boxShadow: shadows.sm,
                           }}
                         />
                       </span>
@@ -2945,8 +2946,8 @@ export function ExpenseSheet({
                         <span
                           style={{
                             fontFamily: FONT_FAMILY,
-                            fontSize: 14,
-                            fontWeight: 500,
+                            fontSize: typography.body.fontSize,
+                            fontWeight: fontWeights.medium,
                             color: trackAsIOU ? 'var(--text)' : 'var(--sub)',
                           }}
                         >
@@ -2955,8 +2956,8 @@ export function ExpenseSheet({
                         <span
                           style={{
                             fontFamily: FONT_FAMILY,
-                            fontSize: 11,
-                            fontWeight: 400,
+                            fontSize: typography.caption.fontSize,
+                            fontWeight: fontWeights.regular,
                             color: 'var(--muted)',
                           }}
                         >
@@ -2977,7 +2978,7 @@ export function ExpenseSheet({
                     animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
                     exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
                     transition={springs.snappy}
-                    style={{ overflow: 'hidden', marginBottom: 20 }}
+                    style={{ overflow: 'hidden', marginBottom: HORIZONTAL_PADDING }}
                   >
                     <button
                       type="button"
@@ -2990,7 +2991,7 @@ export function ExpenseSheet({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 10,
+                        gap: spacing.sm,
                         width: '100%',
                         padding: '12px 14px',
                         background: logToSharedBudget
@@ -3004,7 +3005,7 @@ export function ExpenseSheet({
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <span style={{ fontSize: 16 }} aria-hidden="true">🤝</span>
+                      <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">🤝</span>
                       <span style={{ fontFamily: FONT_FAMILY, fontSize: pxToRem(14), color: logToSharedBudget ? colorRamp.accent[700] : 'var(--sub)', fontWeight: logToSharedBudget ? 600 : 400 }}>
                         Log to shared "{matchingSharedBudget.name}"
                       </span>
@@ -3028,12 +3029,12 @@ export function ExpenseSheet({
                   justifyContent: 'center',
                   marginTop: 'auto',
                   background: canSubmit
-                    ? 'linear-gradient(135deg, rgba(129, 140, 248, 1) 0%, rgba(99, 102, 241, 1) 100%)'
+                    ? 'linear-gradient(135deg, var(--accent-500) 0%, var(--accent-600) 100%)'
                     : 'var(--dim)',
                   color: canSubmit ? 'var(--text)' : 'var(--muted)',
                   fontFamily: FONT_FAMILY,
                   fontSize: pxToRem(17),
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   borderRadius: 'var(--radius-md)',
                   border: 'none',
                   cursor: canSubmit ? 'pointer' : 'not-allowed',

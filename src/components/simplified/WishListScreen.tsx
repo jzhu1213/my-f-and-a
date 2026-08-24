@@ -257,7 +257,7 @@ export function WishListScreen({
           alignItems: "center",
           gap: spacingScale["8"],
           background: colorRamp.accent[500],
-          color: "#fff",
+          color: "var(--text)",
           border: "none",
           borderRadius: radius.control,
           padding: `${spacingScale["8"]} ${spacingScale["16"]}`,
@@ -375,7 +375,7 @@ export function WishListScreen({
                   border: "none",
                   borderRadius: radius.control,
                   padding: `${spacingScale["8"]} ${spacingScale["16"]}`,
-                  color: "#fff",
+                  color: "var(--text)",
                   cursor: "pointer",
                 }}
               >
@@ -406,7 +406,7 @@ export function WishListScreen({
             style={{
               ...typography.body,
               background: colorRamp.accent[500],
-              color: "#fff",
+              color: "var(--text)",
               border: "none",
               borderRadius: radius.control,
               padding: `${spacingScale["8"]} ${spacingScale["24"]}`,

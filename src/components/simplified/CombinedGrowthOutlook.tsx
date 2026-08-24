@@ -2,12 +2,14 @@
 
 import { useMemo } from "react"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   computeCombinedSavingsInputs,
   computeCombinedProjectionHorizons,
 } from "@/lib/savingsAccountUtils"
 import type { SavingsAccount } from "@/types/folio"
+import { HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -82,7 +84,7 @@ export function CombinedGrowthOutlook({ accounts }: CombinedGrowthOutlookProps) 
     <GlassCard
       elevation="medium"
       glow="celebration"
-      style={{ padding: "18px 18px 16px", marginBottom: 20 }}
+      style={{ padding: "18px 18px 16px", marginBottom: HORIZONTAL_PADDING }}
       aria-label="Combined growth outlook"
       aria-describedby="combined-growth-summary"
     >
@@ -96,13 +98,13 @@ export function CombinedGrowthOutlook({ accounts }: CombinedGrowthOutlookProps) 
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 12,
+          marginBottom: spacing.sm,
         }}
       >
         <p
           style={{
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.semibold,
             color: "var(--sub)",
             textTransform: "uppercase",
             letterSpacing: "0.05em",
@@ -113,8 +115,8 @@ export function CombinedGrowthOutlook({ accounts }: CombinedGrowthOutlookProps) 
         </p>
         <span
           style={{
-            fontSize: 11,
-            fontWeight: 500,
+            fontSize: typography.caption.fontSize,
+            fontWeight: fontWeights.medium,
             color: "var(--muted)",
             fontFamily: FONT_FAMILY,
             fontVariantNumeric: "tabular-nums",
@@ -132,7 +134,7 @@ export function CombinedGrowthOutlook({ accounts }: CombinedGrowthOutlookProps) 
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 8,
+          gap: spacing.xs,
           marginBottom: hasContributions ? 14 : 0,
         }}
       >
@@ -144,14 +146,14 @@ export function CombinedGrowthOutlook({ accounts }: CombinedGrowthOutlookProps) 
             style={{
               textAlign: "center",
               padding: "10px 4px",
-              borderRadius: 10,
-              background: "rgba(255, 255, 255, 0.04)",
+              borderRadius: radius.control,
+              background: "var(--fill-04)",
             }}
           >
             <p
               style={{
-                fontSize: 11,
-                fontWeight: 500,
+                fontSize: typography.caption.fontSize,
+                fontWeight: fontWeights.medium,
                 color: "var(--muted)",
                 fontFamily: FONT_FAMILY,
                 marginBottom: 4,
@@ -162,8 +164,8 @@ export function CombinedGrowthOutlook({ accounts }: CombinedGrowthOutlookProps) 
             </p>
             <p
               style={{
-                fontSize: 14,
-                fontWeight: 700,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.bold,
                 color: "var(--success)",
                 fontFamily: FONT_FAMILY,
                 fontVariantNumeric: "tabular-nums",
@@ -179,18 +181,18 @@ export function CombinedGrowthOutlook({ accounts }: CombinedGrowthOutlookProps) 
       {hasContributions && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--sub)",
             fontFamily: FONT_FAMILY,
             lineHeight: 1.45,
           }}
         >
           Together you&apos;re adding{" "}
-          <span style={{ color: "var(--text)", fontWeight: 500 }}>
+          <span style={{ color: "var(--text)", fontWeight: fontWeights.medium }}>
             {formatFull(inputs.totalMonthlyContribution)}/mo
           </span>{" "}
           across every account — on this path that&apos;s about{" "}
-          <span style={{ color: "var(--success)", fontWeight: 600 }}>
+          <span style={{ color: "var(--success)", fontWeight: fontWeights.semibold }}>
             {formatCurrency(tenYear)}
           </span>{" "}
           in 10 years. Every bit adds up.

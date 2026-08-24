@@ -11,7 +11,8 @@ import {
 } from "@/lib/spendingInsights"
 import type { LargestExpense, CategoryBreakdownRow } from "@/lib/spendingInsights"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 
 export interface InsightBreakdownCardProps {
   transactions: Transaction[]
@@ -85,20 +86,20 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
             <span id="insight-breakdown-summary" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0 }}>
               {textSummary}
             </span>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-              <span style={{ fontSize: 18, lineHeight: 1.4 }} aria-hidden="true">
+            <div style={{ display: "flex", alignItems: "flex-start", gap: spacing.sm }}>
+              <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.4 }} aria-hidden="true">
                 💸
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {/* Section title */}
                 <p
                   style={{
-                    fontSize: 13,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     color: "var(--text)",
                     fontFamily: FONT_FAMILY,
                     lineHeight: 1.4,
-                    marginBottom: 8,
+                    marginBottom: spacing.xs,
                   }}
                 >
                   Here&rsquo;s where it went this month
@@ -123,12 +124,12 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
                           gap: 6,
                         }}
                       >
-                        <span style={{ fontSize: 12 }} aria-hidden="true">
+                        <span style={{ fontSize: typography['body-sm'].fontSize }} aria-hidden="true">
                           {exp.emoji}
                         </span>
                         <span
                           style={{
-                            fontSize: 12,
+                            fontSize: typography['body-sm'].fontSize,
                             color: "var(--sub)",
                             fontFamily: FONT_FAMILY,
                             flex: 1,
@@ -141,10 +142,10 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
                         </span>
                         <span
                           style={{
-                            fontSize: 12,
+                            fontSize: typography['body-sm'].fontSize,
                             color: "var(--text)",
                             fontFamily: FONT_FAMILY,
-                            fontWeight: 600,
+                            fontWeight: fontWeights.semibold,
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
@@ -161,8 +162,8 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
                     style={{
                       display: "flex",
                       flexDirection: "column",
-                      gap: 3,
-                      borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                      gap: spacing.xxs,
+                      borderTop: "1px solid var(--fill-06)",
                       paddingTop: 8,
                     }}
                   >
@@ -170,7 +171,7 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
                       <p
                         key={row.category}
                         style={{
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           color: "var(--sub)",
                           fontFamily: FONT_FAMILY,
                           lineHeight: 1.4,
@@ -193,7 +194,7 @@ export function InsightBreakdownCard({ transactions }: InsightBreakdownCardProps
                   border: "none",
                   padding: 4,
                   cursor: "pointer",
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   color: "var(--sub)",
                   opacity: 0.6,
                   lineHeight: 1,

@@ -13,7 +13,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { spacingScale } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, fontWeights } from '@/styles/typography'
 import { textColors, semanticColors, colorRamp } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
 import { SettingsSubScreen } from "./SettingsSubScreen"
@@ -43,7 +43,7 @@ function SectionHeading({ children, id }: { children: string; id?: string }) {
         color: textColors.muted,
         margin: 0,
         marginBottom: spacingScale["12"],
-        fontWeight: 500,
+        fontWeight: fontWeights.medium,
       }}
     >
       {children}
@@ -197,7 +197,7 @@ export function SettingsTermScheduleScreen({
                   gap: spacingScale["4"],
                 }}
               >
-                <span style={{ fontSize: "20px" }}>{preset.emoji}</span>
+                <span style={{ fontSize: typography.subhead.fontSize }}>{preset.emoji}</span>
                 <span style={{ ...typography["body-sm"], color: textColors.text, fontWeight: isSelected ? 500 : 400 }}>
                   {preset.label}
                 </span>
@@ -250,12 +250,12 @@ export function SettingsTermScheduleScreen({
               width: "100%",
               padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
               background: startDate ? colorRamp.accent[400] : elevations.sunken.fill,
-              color: startDate ? "#fff" : textColors.muted,
+              color: startDate ? "var(--text)" : textColors.muted,
               border: "none",
               borderRadius: radius.control,
               cursor: startDate ? "pointer" : "not-allowed",
               ...typography.body,
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
             }}
           >
             Set term

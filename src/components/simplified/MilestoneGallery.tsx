@@ -197,7 +197,7 @@ function MilestoneTile({ milestone, prefersReducedMotion }: MilestoneTileProps) 
         {/* Emoji badge */}
         <span
           style={{
-            fontSize: '2rem',
+            fontSize: typography.title.fontSize,
             lineHeight: 1,
             filter: isEarned ? 'none' : 'grayscale(1)',
           }}

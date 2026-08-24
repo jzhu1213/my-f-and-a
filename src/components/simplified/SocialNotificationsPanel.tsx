@@ -2,8 +2,8 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import { useSocialNotifications } from "@/hooks/useSocialNotifications"
 import type { SocialNotification, NotificationType } from "@/lib/social/notifications"
 
@@ -118,12 +118,12 @@ function NotificationItem({
       style={{
         display: "flex",
         alignItems: "flex-start",
-        gap: 10,
+        gap: spacing.sm,
         padding: "10px 12px",
-        borderRadius: borderRadius.sm,
+        borderRadius: radius.control,
         background: notification.read
           ? "transparent"
-          : "rgba(167, 139, 250, 0.06)",
+          : "var(--accent-100)",
         cursor: notification.read ? "default" : "pointer",
         transition: "background 0.2s ease",
         position: "relative",
@@ -139,7 +139,7 @@ function NotificationItem({
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: "var(--accent, rgba(167, 139, 250, 0.8))",
+            background: "var(--accent, var(--accent-500))",
           }}
           aria-hidden="true"
         />
@@ -147,7 +147,7 @@ function NotificationItem({
 
       {/* Emoji */}
       <span
-        style={{ fontSize: 18, lineHeight: 1.3, marginLeft: notification.read ? 0 : 8 }}
+        style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3, marginLeft: notification.read ? 0 : 8 }}
         aria-hidden="true"
       >
         {meta.emoji}
@@ -157,7 +157,7 @@ function NotificationItem({
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--text)",
             fontFamily: FONT_FAMILY,
             fontWeight: notification.read ? 400 : 500,
@@ -169,7 +169,7 @@ function NotificationItem({
         </p>
         <p
           style={{
-            fontSize: 11,
+            fontSize: typography.caption.fontSize,
             color: "var(--muted)",
             fontFamily: FONT_FAMILY,
             marginTop: 2,
@@ -189,7 +189,7 @@ function NotificationItem({
           e.stopPropagation()
           onDelete(notification.id)
         }}
-        whileTap={{ scale: 0.9 }}
+        whileTap={{ scale: 0.95 }}
         transition={springs.snappy}
         aria-label="Remove notification"
         style={{
@@ -198,7 +198,7 @@ function NotificationItem({
           padding: 4,
           cursor: "pointer",
           color: "var(--muted)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           lineHeight: 1,
           opacity: 0.6,
           flexShrink: 0,
@@ -240,7 +240,7 @@ export function SocialNotificationsPanel() {
       <div style={{ padding: "12px 0" }}>
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
             fontFamily: FONT_FAMILY,
             textAlign: "center",
@@ -263,7 +263,7 @@ export function SocialNotificationsPanel() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 8,
+          marginBottom: spacing.xs,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -276,11 +276,11 @@ export function SocialNotificationsPanel() {
                 minWidth: 18,
                 height: 18,
                 padding: "0 5px",
-                borderRadius: 9,
-                background: "rgba(167, 139, 250, 0.25)",
-                color: "var(--accent, rgba(167, 139, 250, 1))",
-                fontSize: 11,
-                fontWeight: 600,
+                borderRadius: radius.control,
+                background: "var(--accent-300)",
+                color: "var(--accent, var(--accent-500))",
+                fontSize: typography.caption.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
               }}
               aria-label={`${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`}
@@ -301,10 +301,10 @@ export function SocialNotificationsPanel() {
               border: "none",
               padding: "4px 8px",
               cursor: "pointer",
-              color: "var(--accent, rgba(167, 139, 250, 0.9))",
-              fontSize: 12,
+              color: "var(--accent, var(--accent-500))",
+              fontSize: typography['body-sm'].fontSize,
               fontFamily: FONT_FAMILY,
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
             }}
             aria-label="Mark all notifications as read"
           >
@@ -317,7 +317,7 @@ export function SocialNotificationsPanel() {
       {loading && notifications.length === 0 && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
             fontFamily: FONT_FAMILY,
             textAlign: "center",

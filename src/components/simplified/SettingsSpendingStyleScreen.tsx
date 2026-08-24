@@ -14,7 +14,7 @@
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { spacingScale } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, fontWeights } from '@/styles/typography'
 import { textColors, semanticColors, colorRamp } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
 import { SettingsSubScreen } from "./SettingsSubScreen"
@@ -85,7 +85,7 @@ function SectionHeading({ children, id }: { children: string; id?: string }) {
         color: textColors.muted,
         margin: 0,
         marginBottom: spacingScale["12"],
-        fontWeight: 500,
+        fontWeight: fontWeights.medium,
       }}
     >
       {children}
@@ -284,12 +284,12 @@ export function SettingsSpendingStyleScreen({
               style={{
                 padding: `${spacingScale["8"]} ${spacingScale["12"]}`,
                 background: colorRamp.error[500],
-                color: "#fff",
+                color: "var(--text)",
                 border: "none",
                 borderRadius: radius.control,
                 cursor: "pointer",
                 ...typography["body-sm"],
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
               }}
             >
               End trip

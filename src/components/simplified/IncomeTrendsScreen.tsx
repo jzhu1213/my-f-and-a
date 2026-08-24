@@ -20,7 +20,7 @@ import { GlassCard } from "@/components/ui/GlassCard"
 import { SectionHeader, Card } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import { contentColumn, spacingScale } from "@/styles/layout"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, fontWeights } from '@/styles/typography'
 import { textColors, colorRamp } from "@/styles/colors"
 import {
   chartColors,
@@ -267,7 +267,7 @@ export function IncomeTrendsScreen({ transactions, onBack }: IncomeTrendsScreenP
           color: textColors.sub,
           fontFamily: FONT_FAMILY,
           fontSize: typography["body-sm"].fontSize,
-          fontWeight: 500,
+          fontWeight: fontWeights.medium,
         }}
         aria-label="Go back"
       >

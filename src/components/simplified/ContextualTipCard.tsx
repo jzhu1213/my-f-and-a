@@ -5,7 +5,7 @@ import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motio
 import { GlassCard, type GlassGlow } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import { getTipIconName } from "@/lib/icons"
-import { borderRadius } from "@/styles/shared"
+import { radius } from "@/styles/surfaces"
 import { FONT_FAMILY } from "@/styles/typography"
 import { colorRamp } from "@/styles/colors"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
@@ -41,12 +41,12 @@ const TIP_STYLES: Record<
     accentTo: colorRamp.warning[600],
   },
   did_you_know: {
-    glow: "rgba(99, 179, 237, 0.35)",
+    glow: "var(--blue-300)",
     accentFrom: colorRamp.blue[400],
     accentTo: colorRamp.blue[600],
   },
   smart_suggestion: {
-    glow: "rgba(99, 179, 237, 0.35)",
+    glow: "var(--blue-300)",
     accentFrom: colorRamp.blue[400],
     accentTo: colorRamp.blue[600],
   },
@@ -211,7 +211,7 @@ export function ContextualTipCard({
                 justifyContent: "center",
                 width: 40,
                 height: 40,
-                borderRadius: borderRadius.md,
+                borderRadius: radius.control,
                 background: `color-mix(in srgb, ${style.accentFrom} 16%, transparent)`,
                 color: style.accentFrom,
               }}

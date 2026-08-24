@@ -4,11 +4,11 @@ import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
 import { triggerHaptic } from '@/lib/haptics'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import { Icon } from '@/components/ui/Icon'
 
-// ── Date helper utilities ────────────────────────────────────────────────────
+// â”€â”€ Date helper utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Returns YYYY-MM-DD of the most recent Friday (or today if today is Friday). */
 function getLastFriday(today: Date): string {
@@ -19,7 +19,7 @@ function getLastFriday(today: Date): string {
   return lastFri.toISOString().slice(0, 10)
 }
 
-/** Returns YYYY-MM-DD of the next Monday (task 90.1 — future date chip). */
+/** Returns YYYY-MM-DD of the next Monday (task 90.1 â€” future date chip). */
 function getNextMonday(today: Date): string {
   const day = today.getDay() // 0=Sun, 1=Mon
   const diff = day === 0 ? 1 : 8 - day // days forward to next Monday
@@ -39,7 +39,7 @@ export function getRelativeDateLabel(dateStr: string): string {
   if (dateStr === todayStr) return 'Today'
   if (dateStr === yesterdayStr) return 'Yesterday'
 
-  // Future date — show "Scheduled: Jun 12" (task 90.1)
+  // Future date â€” show "Scheduled: Jun 12" (task 90.1)
   if (dateStr > todayStr) {
     const d = new Date(dateStr + 'T00:00:00')
     const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -57,23 +57,23 @@ export function isFutureDate(dateStr: string): boolean {
   return dateStr > todayStr
 }
 
-// ── Component Props ──────────────────────────────────────────────────────────
+// â”€â”€ Component Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface DatePickerChipsProps {
   /** Current selected date in YYYY-MM-DD format */
   selectedDate: string
   /** Called when date changes */
   onDateChange: (date: string) => void
-  /** Whether to show the future date chip (Next Mon) — default false */
+  /** Whether to show the future date chip (Next Mon) â€” default false */
   allowFutureDates?: boolean
-  /** Custom label override for the date button — defaults to getRelativeDateLabel */
+  /** Custom label override for the date button â€” defaults to getRelativeDateLabel */
   customLabel?: string
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * DatePickerChips — shared date selection component (task 91.1)
+ * DatePickerChips â€” shared date selection component (task 91.1)
  * 
  * Provides a compact chip-based date picker with shortcuts:
  * - Today
@@ -142,17 +142,17 @@ export function DatePickerChips({
           padding: '6px 12px',
           background:
             selectedDate !== todayStr
-              ? 'rgba(129, 140, 248, 0.12)'
-              : 'rgba(255, 255, 255, 0.04)',
+              ? 'var(--accent-200)'
+              : 'var(--fill-04)',
           border:
             selectedDate !== todayStr
-              ? '1px solid rgba(129, 140, 248, 0.4)'
-              : '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: borderRadius.full,
+              ? '1px solid var(--accent-400)'
+              : '1px solid var(--fill-10)',
+          borderRadius: radius.full,
           cursor: 'pointer',
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           fontFamily: FONT_FAMILY,
-          fontWeight: 500,
+          fontWeight: fontWeights.medium,
           color:
             selectedDate !== todayStr ? 'var(--text)' : 'var(--sub)',
         }}
@@ -182,7 +182,7 @@ export function DatePickerChips({
               marginTop: 10,
               display: 'flex',
               flexWrap: 'wrap',
-              gap: 8,
+              gap: spacing.xs,
               justifyContent: 'center',
             }}
             role="group"
@@ -197,16 +197,16 @@ export function DatePickerChips({
                 padding: '8px 14px',
                 background:
                   selectedDate === todayStr
-                    ? 'rgba(129, 140, 248, 0.12)'
-                    : 'rgba(255, 255, 255, 0.04)',
+                    ? 'var(--accent-200)'
+                    : 'var(--fill-04)',
                 border:
                   selectedDate === todayStr
-                    ? '1px solid rgba(129, 140, 248, 0.4)'
-                    : '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: borderRadius.full,
+                    ? '1px solid var(--accent-400)'
+                    : '1px solid var(--fill-10)',
+                borderRadius: radius.full,
                 cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 color:
                   selectedDate === todayStr ? 'var(--text)' : 'var(--sub)',
@@ -224,16 +224,16 @@ export function DatePickerChips({
                 padding: '8px 14px',
                 background:
                   selectedDate === yesterdayStr
-                    ? 'rgba(129, 140, 248, 0.12)'
-                    : 'rgba(255, 255, 255, 0.04)',
+                    ? 'var(--accent-200)'
+                    : 'var(--fill-04)',
                 border:
                   selectedDate === yesterdayStr
-                    ? '1px solid rgba(129, 140, 248, 0.4)'
-                    : '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: borderRadius.full,
+                    ? '1px solid var(--accent-400)'
+                    : '1px solid var(--fill-10)',
+                borderRadius: radius.full,
                 cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 color:
                   selectedDate === yesterdayStr
@@ -253,16 +253,16 @@ export function DatePickerChips({
                 padding: '8px 14px',
                 background:
                   selectedDate === lastFriStr
-                    ? 'rgba(129, 140, 248, 0.12)'
-                    : 'rgba(255, 255, 255, 0.04)',
+                    ? 'var(--accent-200)'
+                    : 'var(--fill-04)',
                 border:
                   selectedDate === lastFriStr
-                    ? '1px solid rgba(129, 140, 248, 0.4)'
-                    : '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: borderRadius.full,
+                    ? '1px solid var(--accent-400)'
+                    : '1px solid var(--fill-10)',
+                borderRadius: radius.full,
                 cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 color:
                   selectedDate === lastFriStr ? 'var(--text)' : 'var(--sub)',
@@ -281,16 +281,16 @@ export function DatePickerChips({
                   padding: '8px 14px',
                   background:
                     selectedDate === nextMonStr
-                      ? 'rgba(129, 140, 248, 0.12)'
-                      : 'rgba(255, 255, 255, 0.04)',
+                      ? 'var(--accent-200)'
+                      : 'var(--fill-04)',
                   border:
                     selectedDate === nextMonStr
-                      ? '1px solid rgba(129, 140, 248, 0.4)'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: borderRadius.full,
+                      ? '1px solid var(--accent-400)'
+                      : '1px solid var(--fill-10)',
+                  borderRadius: radius.full,
                   cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   color:
                     selectedDate === nextMonStr
@@ -310,15 +310,15 @@ export function DatePickerChips({
               style={{
                 padding: '8px 14px',
                 background: showCustomInput
-                  ? 'rgba(129, 140, 248, 0.12)'
-                  : 'rgba(255, 255, 255, 0.04)',
+                  ? 'var(--accent-200)'
+                  : 'var(--fill-04)',
                 border: showCustomInput
-                  ? '1px solid rgba(129, 140, 248, 0.4)'
-                  : '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: borderRadius.full,
+                  ? '1px solid var(--accent-400)'
+                  : '1px solid var(--fill-10)',
+                borderRadius: radius.full,
                 cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 color: showCustomInput ? 'var(--text)' : 'var(--sub)',
               }}
@@ -331,7 +331,7 @@ export function DatePickerChips({
               <div
                 style={{
                   width: '100%',
-                  marginTop: 8,
+                  marginTop: spacing.xs,
                   display: 'flex',
                   justifyContent: 'center',
                 }}
@@ -347,11 +347,11 @@ export function DatePickerChips({
                   // Allow past and future dates in the input
                   max={allowFutureDates ? undefined : todayStr}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: borderRadius.sm,
+                    background: 'var(--fill-04)',
+                    border: '1px solid var(--fill-10)',
+                    borderRadius: radius.control,
                     padding: '8px 12px',
-                    fontSize: 14,
+                    fontSize: typography.body.fontSize,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
                     colorScheme: 'dark',

@@ -5,12 +5,13 @@ import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { EmptyState } from "@/components/ui/EmptyState"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { SavingsProjection } from "@/components/simplified/SavingsProjection"
 import { CombinedGrowthOutlook } from "@/components/simplified/CombinedGrowthOutlook"
 import {
@@ -102,9 +103,9 @@ export function SavingsProjectionsScreen({
           background: "none",
           border: "none",
           color: "var(--sub)",
-          fontSize: 14,
+          fontSize: typography.body.fontSize,
           cursor: "pointer",
-          marginBottom: 20,
+          marginBottom: HORIZONTAL_PADDING,
           padding: "8px 0",
           fontFamily: FONT_FAMILY,
         }}
@@ -122,12 +123,12 @@ export function SavingsProjectionsScreen({
       >
         <p
           style={{
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.semibold,
             color: "var(--sub)",
             textTransform: "uppercase",
             letterSpacing: "0.05em",
-            marginBottom: 8,
+            marginBottom: spacing.xs,
           }}
         >
           Total Savings &amp; Investments
@@ -135,12 +136,12 @@ export function SavingsProjectionsScreen({
 
         <h2
           style={{
-            fontSize: 32,
-            fontWeight: 700,
+            fontSize: typography.title.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             fontVariantNumeric: "tabular-nums",
             lineHeight: 1.2,
-            marginBottom: 8,
+            marginBottom: spacing.xs,
           }}
         >
           {formatDollars(displayBalance)}
@@ -152,14 +153,14 @@ export function SavingsProjectionsScreen({
             display: "inline-flex",
             alignItems: "center",
             gap: 4,
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             color: monthlyChange > 0 ? "var(--success)" : "var(--muted)",
             fontVariantNumeric: "tabular-nums",
           }}
         >
           {monthlyChange > 0 && (
-            <span aria-hidden="true" style={{ fontSize: 16 }}>↑</span>
+            <span aria-hidden="true" style={{ fontSize: typography.body.fontSize }}>↑</span>
           )}
           <span>
             {monthlyChange > 0
@@ -204,13 +205,13 @@ export function SavingsProjectionsScreen({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springs.gentle, delay: 0.05 }}
-          style={{ marginBottom: 16, marginTop: 16 }}
+          style={{ marginBottom: spacing.md, marginTop: 16 }}
         >
           <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
             <p
               style={{
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--sub)",
                 textTransform: "uppercase",
                 letterSpacing: "0.04em",
@@ -219,20 +220,20 @@ export function SavingsProjectionsScreen({
             >
               What If…
             </p>
-            <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginBottom: spacing.sm }}>
               Tap a scenario to see the difference
             </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: activeWhatIf ? 12 : 0 }}>
+            <div style={{ display: "flex", gap: spacing.xs, flexWrap: "wrap", marginBottom: activeWhatIf ? 12 : 0 }}>
               <button
                 onClick={() => setActiveWhatIf(activeWhatIf === "extra50" ? null : "extra50")}
                 style={{
                   padding: "8px 14px",
-                  borderRadius: 99,
-                  border: activeWhatIf === "extra50" ? "1.5px solid var(--success)" : "1px solid rgba(255,255,255,0.08)",
-                  background: activeWhatIf === "extra50" ? "rgba(6, 214, 160, 0.1)" : "rgba(255,255,255,0.04)",
+                  borderRadius: radius.full,
+                  border: activeWhatIf === "extra50" ? "1.5px solid var(--success)" : "1px solid var(--fill-08)",
+                  background: activeWhatIf === "extra50" ? "var(--success-100)" : "var(--fill-04)",
                   color: activeWhatIf === "extra50" ? "var(--success)" : "var(--sub)",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                 }}
@@ -243,12 +244,12 @@ export function SavingsProjectionsScreen({
                 onClick={() => setActiveWhatIf(activeWhatIf === "extra1000" ? null : "extra1000")}
                 style={{
                   padding: "8px 14px",
-                  borderRadius: 99,
-                  border: activeWhatIf === "extra1000" ? "1.5px solid var(--success)" : "1px solid rgba(255,255,255,0.08)",
-                  background: activeWhatIf === "extra1000" ? "rgba(6, 214, 160, 0.1)" : "rgba(255,255,255,0.04)",
+                  borderRadius: radius.full,
+                  border: activeWhatIf === "extra1000" ? "1.5px solid var(--success)" : "1px solid var(--fill-08)",
+                  background: activeWhatIf === "extra1000" ? "var(--success-100)" : "var(--fill-04)",
                   color: activeWhatIf === "extra1000" ? "var(--success)" : "var(--sub)",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   fontFamily: FONT_FAMILY,
                   cursor: "pointer",
                 }}
@@ -298,21 +299,21 @@ export function SavingsProjectionsScreen({
                     <div
                       style={{
                         padding: 14,
-                        borderRadius: 12,
-                        background: "rgba(6, 214, 160, 0.04)",
-                        border: "1px solid rgba(6, 214, 160, 0.12)",
+                        borderRadius: radius.control,
+                        background: "var(--success-50)",
+                        border: "1px solid var(--success-200)",
                       }}
                     >
                       <div style={{ marginBottom: 10 }}>
-                        <p style={{ fontSize: 18, fontWeight: 700, color: "var(--success)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                        <p style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, color: "var(--success)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
                           +{formatDollars(difference)}
                         </p>
-                        <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>
+                        <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", margin: 0 }}>
                           more in {projectionYears} years
                         </p>
                       </div>
                       {isLearningEnabled() && (
-                      <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>
+                      <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>
                         {activeWhatIf === "extra50"
                           ? "An extra $50/mo seems small, but compound growth turns it into real wealth over time. Your future self will thank you."
                           : "Starting with $1,000 more gives compound growth a bigger base to work from \u2014 it snowballs from there."}
@@ -329,7 +330,7 @@ export function SavingsProjectionsScreen({
 
       {/* ── Account List with SavingsProjection cards (156.1) ──────── */}
       {savingsAccounts.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
           {savingsAccounts.map((account, idx) => {
             const meta = getAccountTypeMetadata(account.type)
             return (
@@ -351,8 +352,8 @@ export function SavingsProjectionsScreen({
                 >
                   <span
                     style={{
-                      fontSize: 12,
-                      fontWeight: 500,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       color: "var(--muted)",
                       fontFamily: FONT_FAMILY,
                     }}
@@ -369,12 +370,12 @@ export function SavingsProjectionsScreen({
                           setDeleteConfirmId(null)
                         }}
                         style={{
-                          background: "rgba(239, 68, 68, 0.15)",
+                          background: "var(--error-200)",
                           border: "none",
-                          borderRadius: 6,
+                          borderRadius: radius.min,
                           color: "var(--error)",
-                          fontSize: 11,
-                          fontWeight: 600,
+                          fontSize: typography.caption.fontSize,
+                          fontWeight: fontWeights.semibold,
                           padding: "4px 10px",
                           cursor: "pointer",
                           fontFamily: FONT_FAMILY,
@@ -388,7 +389,7 @@ export function SavingsProjectionsScreen({
                           background: "none",
                           border: "none",
                           color: "var(--muted)",
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           cursor: "pointer",
                           padding: "4px 8px",
                           fontFamily: FONT_FAMILY,
@@ -404,7 +405,7 @@ export function SavingsProjectionsScreen({
                         background: "none",
                         border: "none",
                         color: "var(--muted)",
-                        fontSize: 11,
+                        fontSize: typography.caption.fontSize,
                         cursor: "pointer",
                         padding: "4px 8px",
                         fontFamily: FONT_FAMILY,
@@ -448,17 +449,17 @@ export function SavingsProjectionsScreen({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          style={{ marginTop: 16, textAlign: "center" }}
+          style={{ marginTop: spacing.md, textAlign: "center" }}
         >
           <button
             onClick={() => setShowAddForm(true)}
             style={{
               background: "var(--surface)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 8,
+              border: "1px solid var(--fill-08)",
+              borderRadius: radius.control,
               color: "var(--text)",
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               padding: "12px 24px",
               cursor: "pointer",
               fontFamily: FONT_FAMILY,
@@ -473,10 +474,10 @@ export function SavingsProjectionsScreen({
       {/* ── Footer ─────────────────────────────────────────────────── */}
       <p
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: "var(--muted)",
           textAlign: "center",
-          marginTop: 24,
+          marginTop: spacing.lg,
           lineHeight: 1.5,
         }}
       >
@@ -537,19 +538,19 @@ function AddAccountForm({ onSubmit, onCancel }: AddAccountFormProps) {
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 8,
+    background: "var(--fill-04)",
+    border: "1px solid var(--fill-08)",
+    borderRadius: radius.control,
     padding: "10px 12px",
     color: "var(--text)",
-    fontSize: 14,
+    fontSize: typography.body.fontSize,
     fontFamily: FONT_FAMILY,
     outline: "none",
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 12,
-    fontWeight: 500,
+    fontSize: typography['body-sm'].fontSize,
+    fontWeight: fontWeights.medium,
     color: "var(--sub)",
     marginBottom: 6,
     display: "block",
@@ -560,17 +561,17 @@ function AddAccountForm({ onSubmit, onCancel }: AddAccountFormProps) {
     <GlassCard elevation="low" style={{ padding: "18px" }}>
       <p
         style={{
-          fontSize: 15,
-          fontWeight: 600,
+          fontSize: typography.body.fontSize,
+          fontWeight: fontWeights.semibold,
           color: "var(--text)",
-          marginBottom: 16,
+          marginBottom: spacing.md,
           fontFamily: FONT_FAMILY,
         }}
       >
         Add Account
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
         {/* Account Type */}
         <div>
           <label style={labelStyle}>Account Type</label>
@@ -643,18 +644,18 @@ function AddAccountForm({ onSubmit, onCancel }: AddAccountFormProps) {
         </div>
 
         {/* Actions */}
-        <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+        <div style={{ display: "flex", gap: spacing.sm, marginTop: 4 }}>
           <button
             onClick={handleSubmit}
             disabled={!name.trim() || submitting}
             style={{
               flex: 1,
-              background: name.trim() ? "var(--success)" : "rgba(255,255,255,0.06)",
+              background: name.trim() ? "var(--success)" : "var(--fill-06)",
               border: "none",
-              borderRadius: 8,
+              borderRadius: radius.control,
               color: name.trim() ? "var(--text)" : "var(--muted)",
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               padding: "12px 16px",
               cursor: name.trim() ? "pointer" : "default",
               fontFamily: FONT_FAMILY,
@@ -667,11 +668,11 @@ function AddAccountForm({ onSubmit, onCancel }: AddAccountFormProps) {
             onClick={onCancel}
             style={{
               background: "none",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 8,
+              border: "1px solid var(--fill-08)",
+              borderRadius: radius.control,
               color: "var(--sub)",
-              fontSize: 14,
-              fontWeight: 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.medium,
               padding: "12px 16px",
               cursor: "pointer",
               fontFamily: FONT_FAMILY,

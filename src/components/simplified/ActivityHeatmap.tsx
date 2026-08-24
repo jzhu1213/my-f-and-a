@@ -17,8 +17,9 @@ import { useMemo, useRef, useState } from "react"
 import type { CSSProperties } from "react"
 import type { Transaction, TransactionCategory } from "@/types"
 import { formatDateLocal, subtractDaysLocal } from "@/lib/dateUtils"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, typography, fontWeights } from '@/styles/typography'
 import { colorRamp, getCategoryAccent } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { spacing } from "@/styles/typography"
 
 // ============================================================================
@@ -48,11 +49,11 @@ const LEGEND_HEIGHT = 32
 
 /** Activity intensity color steps (0→4) using accent ramp */
 const ACTIVITY_COLORS = [
-  "rgba(255, 255, 255, 0.04)", // no activity
-  "rgba(129, 140, 248, 0.25)", // light
-  "rgba(129, 140, 248, 0.45)", // medium-light
-  "rgba(129, 140, 248, 0.7)",  // medium
-  "rgba(129, 140, 248, 1.0)",  // high
+  "var(--fill-04)", // no activity
+  "var(--accent-300)", // light
+  "var(--accent-400)", // medium-light
+  "var(--accent-500)",  // medium
+  "var(--accent-500)",  // high
 ] as const
 
 const DAY_LABELS = ["Mon", "", "Wed", "", "Fri", "", "Sun"]
@@ -81,7 +82,7 @@ function getCategoryIntensityColor(
   maxAmount: number,
   baseColor: string
 ): string {
-  if (amount === 0) return "rgba(255, 255, 255, 0.04)"
+  if (amount === 0) return "var(--fill-04)"
   if (maxAmount <= 0) return baseColor
   const ratio = Math.min(amount / maxAmount, 1)
   // Produce opacity-scaled version
@@ -280,7 +281,7 @@ export function ActivityHeatmap({
             <span
               style={{
                 width: 64,
-                fontSize: 10,
+                fontSize: typography.caption.fontSize,
                 fontFamily: FONT_FAMILY,
                 color: "var(--sub)",
                 textTransform: "capitalize",
@@ -315,7 +316,7 @@ export function ActivityHeatmap({
                         ? "transparent"
                         : weekTotal > 0
                           ? getCategoryIntensityColor(weekTotal, maxCategorySpend, baseColor)
-                          : "rgba(255, 255, 255, 0.04)",
+                          : "var(--fill-04)",
                       opacity: isFuture ? 0 : 1,
                     }}
                   />
@@ -331,11 +332,11 @@ export function ActivityHeatmap({
   // ── Toggle button styles ──
   const toggleBtnBase: CSSProperties = {
     border: "none",
-    borderRadius: 8,
+    borderRadius: radius.control,
     padding: "6px 14px",
-    fontSize: 13,
+    fontSize: typography['body-sm'].fontSize,
     fontFamily: FONT_FAMILY,
-    fontWeight: 500,
+    fontWeight: fontWeights.medium,
     cursor: "pointer",
     transition: prefersReducedMotion ? "none" : "background 0.15s, color 0.15s",
   }
@@ -344,7 +345,7 @@ export function ActivityHeatmap({
     <div
       style={{
         background: "var(--surface)",
-        borderRadius: 12,
+        borderRadius: radius.control,
         padding: spacing.md,
         display: "flex",
         flexDirection: "column",
@@ -357,14 +358,14 @@ export function ActivityHeatmap({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 8,
+          gap: spacing.xs,
         }}
       >
         <h3
           style={{
             fontFamily: FONT_FAMILY,
-            fontSize: 16,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             color: "var(--text)",
             margin: 0,
           }}
@@ -377,8 +378,8 @@ export function ActivityHeatmap({
           style={{
             display: "flex",
             gap: 4,
-            background: "rgba(255, 255, 255, 0.06)",
-            borderRadius: 10,
+            background: "var(--fill-06)",
+            borderRadius: radius.control,
             padding: 3,
           }}
           role="tablist"
@@ -444,7 +445,7 @@ export function ActivityHeatmap({
                   style={{
                     position: "absolute" as const,
                     left: DAY_LABEL_WIDTH + weekIdx * (CELL_SIZE + CELL_GAP),
-                    fontSize: 10,
+                    fontSize: typography.caption.fontSize,
                     fontFamily: FONT_FAMILY,
                     color: "var(--sub)",
                     whiteSpace: "nowrap",
@@ -473,7 +474,7 @@ export function ActivityHeatmap({
                     key={idx}
                     style={{
                       height: CELL_SIZE,
-                      fontSize: 10,
+                      fontSize: typography.caption.fontSize,
                       fontFamily: FONT_FAMILY,
                       color: "var(--sub)",
                       display: "flex",
@@ -510,7 +511,7 @@ export function ActivityHeatmap({
                   style={{
                     position: "absolute",
                     left: 64 + CELL_GAP + weekIdx * (CELL_SIZE + CELL_GAP),
-                    fontSize: 10,
+                    fontSize: typography.caption.fontSize,
                     fontFamily: FONT_FAMILY,
                     color: "var(--sub)",
                     whiteSpace: "nowrap",
@@ -539,7 +540,7 @@ export function ActivityHeatmap({
       >
         <span
           style={{
-            fontSize: 10,
+            fontSize: typography.caption.fontSize,
             fontFamily: FONT_FAMILY,
             color: "var(--sub)",
           }}
@@ -568,7 +569,7 @@ export function ActivityHeatmap({
                   borderRadius: 2,
                   background:
                     idx === 0
-                      ? "rgba(255, 255, 255, 0.04)"
+                      ? "var(--fill-04)"
                       : `rgba(129, 140, 248, ${alpha})`,
                 }}
               />
@@ -577,7 +578,7 @@ export function ActivityHeatmap({
         )}
         <span
           style={{
-            fontSize: 10,
+            fontSize: typography.caption.fontSize,
             fontFamily: FONT_FAMILY,
             color: "var(--sub)",
           }}

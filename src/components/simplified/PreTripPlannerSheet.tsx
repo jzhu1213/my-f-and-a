@@ -16,7 +16,7 @@ import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { useReducedMotion } from "@/lib/animations"
 import { spacingScale } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, fontWeights } from '@/styles/typography'
 import { textColors, colorRamp } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
 import { fills } from "@/styles/shared"
@@ -120,7 +120,7 @@ export function PreTripPlannerSheet({ open, onClose, onStartTrip }: PreTripPlann
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.5)",
+          background: "var(--color-canvas)",
           zIndex: 999,
         }}
         initial={{ opacity: 0 }}
@@ -328,12 +328,12 @@ export function PreTripPlannerSheet({ open, onClose, onStartTrip }: PreTripPlann
               width: "100%",
               padding: `${spacingScale["12"]} ${spacingScale["20"]}`,
               background: daysNum > 0 && dailyNum > 0 ? colorRamp.accent[500] : fills[6],
-              color: daysNum > 0 && dailyNum > 0 ? "#fff" : textColors.muted,
+              color: daysNum > 0 && dailyNum > 0 ? "var(--text)" : textColors.muted,
               border: "none",
               borderRadius: radius.control,
               cursor: daysNum > 0 && dailyNum > 0 ? "pointer" : "not-allowed",
               ...typography.body,
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
               opacity: daysNum > 0 && dailyNum > 0 ? 1 : 0.6,
             }}
           >

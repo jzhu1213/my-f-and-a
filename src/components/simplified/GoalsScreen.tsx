@@ -21,8 +21,9 @@ import type { SavingsAccount } from "@/types/folio"
 import { goalProgress, isGoalComplete } from "@/lib/goalUtils"
 import { getLinkedAccountForGoal } from "@/lib/goalInvestingUtils"
 import { SharedGoalSheet } from "./SharedGoalSheet"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, fills, colorRamp, shadows } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { fills, colorRamp, shadows, HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from "@/styles/surfaces"
 
 // ============================================================================
 // Types
@@ -129,20 +130,20 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 12,
+          gap: spacing.sm,
+          marginBottom: spacing.sm,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }} aria-hidden="true">
+        <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, minWidth: 0 }}>
+          <span style={{ fontSize: typography.headline.fontSize, lineHeight: 1, flexShrink: 0 }} aria-hidden="true">
             {goal.emoji}
           </span>
           <div style={{ minWidth: 0 }}>
             <span
               style={{
                 display: "block",
-                fontSize: 16,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--text)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -155,7 +156,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
               <span
                 style={{
                   display: "block",
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   color: deadlineInfo?.expired ? "var(--error)" : "var(--muted)",
                   marginTop: 2,
                 }}
@@ -168,8 +169,8 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 3,
-                  fontSize: 11,
+                  gap: spacing.xxs,
+                  fontSize: typography.caption.fontSize,
                   color: "var(--accent)",
                   marginTop: 2,
                 }}
@@ -181,8 +182,8 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
         </div>
         <span
           style={{
-            fontSize: 13,
-            fontWeight: 600,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.semibold,
             flexShrink: 0,
             color: complete ? "var(--success)" : "var(--sub)",
             fontVariantNumeric: "tabular-nums",
@@ -202,8 +203,8 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
         style={{
           height: 8,
           width: "100%",
-          borderRadius: borderRadius.full,
-          background: "rgba(255,255,255,0.06)",
+          borderRadius: radius.full,
+          background: "var(--fill-06)",
           overflow: "hidden",
           marginBottom: deadlineInfo && !complete ? 8 : 12,
         }}
@@ -215,7 +216,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
           style={{
             width: "100%",
             height: "100%",
-            borderRadius: borderRadius.full,
+            borderRadius: radius.full,
             background: fillColor,
             transformOrigin: "left center",
           }}
@@ -226,15 +227,15 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
       {deadlineInfo && !complete && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             lineHeight: 1.5,
             color: deadlineInfo.feasible ? "var(--sub)" : "var(--warning)",
-            marginBottom: 12,
+            marginBottom: spacing.sm,
             padding: "6px 10px",
             background: deadlineInfo.feasible
               ? fills[2]
               : colorRamp.warning[100],
-            borderRadius: 8,
+            borderRadius: radius.control,
             border: deadlineInfo.feasible
               ? `1px solid ${fills[4]}`
               : `1px solid ${colorRamp.warning[200]}`,
@@ -249,7 +250,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
         style={{
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           marginBottom: 14,
           fontVariantNumeric: "tabular-nums",
         }}
@@ -261,13 +262,13 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 3,
+                gap: spacing.xxs,
                 marginLeft: 6,
-                fontSize: 11,
+                fontSize: typography.caption.fontSize,
                 color: "var(--accent)",
                 background: "var(--accent-muted)",
                 padding: "1px 6px",
-                borderRadius: 6,
+                borderRadius: radius.min,
                 verticalAlign: "middle",
               }}
             >
@@ -281,7 +282,7 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
       </div>
 
       {/* ── Actions ───────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: spacing.xs }}>
         {!complete && (
           <motion.button
             onClick={() => onContribute(goal)}
@@ -290,13 +291,13 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
             style={{
               flex: 1,
               padding: "9px 0",
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               fontFamily: FONT_FAMILY,
               color: "var(--accent)",
               background: "var(--accent-muted)",
               border: `1px solid ${colorRamp.accent[300]}`,
-              borderRadius: 10,
+              borderRadius: radius.control,
               cursor: "pointer",
             }}
             aria-label={`Add money to ${goal.name}`}
@@ -314,13 +315,13 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
             style={{
               flex: "0 0 auto",
               padding: "9px 12px",
-              fontSize: 13,
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
               color: shared ? "var(--accent)" : "var(--sub)",
               background: shared ? "var(--accent-muted)" : fills[4],
               border: shared ? `1px solid ${colorRamp.accent[300]}` : "1px solid var(--border)",
-              borderRadius: 10,
+              borderRadius: radius.control,
               cursor: "pointer",
             }}
             aria-label={`${shared ? "Manage" : "Share"} ${goal.name}`}
@@ -337,13 +338,13 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
             style={{
               flex: complete ? 1 : "0 0 auto",
               padding: "9px 16px",
-              fontSize: 13,
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
               color: "var(--sub)",
-              background: "rgba(255,255,255,0.04)",
+              background: "var(--fill-04)",
               border: "1px solid var(--border)",
-              borderRadius: 10,
+              borderRadius: radius.control,
               cursor: "pointer",
             }}
             aria-label={`Edit ${goal.name}`}
@@ -361,13 +362,13 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
               style={{
                 flex: 1,
                 padding: "9px 12px",
-                fontSize: 13,
-                fontWeight: 500,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
                 fontFamily: FONT_FAMILY,
                 color: "var(--sub)",
-                background: "rgba(255,255,255,0.04)",
+                background: "var(--fill-04)",
                 border: "1px solid var(--border)",
-                borderRadius: 10,
+                borderRadius: radius.control,
                 cursor: "pointer",
               }}
               aria-label="Cancel delete"
@@ -384,13 +385,13 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
               style={{
                 flex: "0 0 auto",
                 padding: "9px 14px",
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: "var(--text)",
                 background: "var(--error)",
                 border: "1px solid var(--error)",
-                borderRadius: 10,
+                borderRadius: radius.control,
                 cursor: "pointer",
               }}
               aria-label={`Confirm delete ${goal.name}`}
@@ -406,13 +407,13 @@ function GoalCard({ goal, reducedMotion, monthlyIncome, linkedAccount, onContrib
             style={{
               flex: "0 0 auto",
               padding: "9px 12px",
-              fontSize: 13,
-              fontWeight: 500,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.medium,
               fontFamily: FONT_FAMILY,
               color: "var(--error)",
-              background: "rgba(239, 68, 68, 0.08)",
-              border: "1px solid rgba(239, 68, 68, 0.2)",
-              borderRadius: 10,
+              background: "var(--error-100)",
+              border: "1px solid var(--error-200)",
+              borderRadius: radius.control,
               cursor: "pointer",
             }}
             aria-label={`Delete ${goal.name}`}
@@ -561,7 +562,7 @@ export function GoalsScreen({
             color: "var(--muted)",
             cursor: "pointer",
             fontFamily: FONT_FAMILY,
-            fontSize: 14,
+            fontSize: typography.body.fontSize,
           }}
           aria-label="Back"
         >
@@ -574,12 +575,12 @@ export function GoalsScreen({
 
       {/* ── Title + cap indicator ──────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>Goals</h1>
-        <span style={{ fontSize: 13, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
+        <h1 style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.bold, color: "var(--text)" }}>Goals</h1>
+        <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
           {goals.length}/{MAX_GOALS}
         </span>
       </div>
-      <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>
+      <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}>
         Save toward what matters. Keep up to {MAX_GOALS} at a time.
       </p>
 
@@ -588,11 +589,11 @@ export function GoalsScreen({
         <section aria-label="Active goals" style={{ marginBottom: completedGoals.length > 0 ? 24 : 8 }}>
           <p
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--muted)",
               letterSpacing: "0.02em",
-              marginBottom: 12,
+              marginBottom: spacing.sm,
             }}
           >
             Active
@@ -625,14 +626,14 @@ export function GoalsScreen({
 
       {/* ── Completed goals ────────────────────────────────────────────────── */}
       {completedGoals.length > 0 && (
-        <section aria-label="Completed goals" style={{ marginBottom: 8 }}>
+        <section aria-label="Completed goals" style={{ marginBottom: spacing.xs }}>
           <p
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--muted)",
               letterSpacing: "0.02em",
-              marginBottom: 12,
+              marginBottom: spacing.sm,
             }}
           >
             Completed
@@ -665,7 +666,7 @@ export function GoalsScreen({
 
       {/* ── Empty state ────────────────────────────────────────────────────── */}
       {goals.length === 0 && (
-        <Card style={{ padding: "4px 0", textAlign: "center", marginBottom: 16 }}>
+        <Card style={{ padding: "4px 0", textAlign: "center", marginBottom: spacing.md }}>
           <EmptyState
             illustration="goals"
             title="What are you saving for?"
@@ -678,7 +679,7 @@ export function GoalsScreen({
       {atCap ? (
         <p
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: "var(--muted)",
             textAlign: "center",
             padding: "14px 0",
@@ -697,16 +698,16 @@ export function GoalsScreen({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 8,
+            gap: spacing.xs,
             width: "100%",
             padding: "14px 20px",
-            fontSize: 14,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
             background: "var(--accent-muted)",
             border: `1px solid ${colorRamp.accent[300]}`,
-            borderRadius: 12,
+            borderRadius: radius.control,
             cursor: "pointer",
           }}
           aria-label="Create a new goal"
@@ -727,17 +728,17 @@ export function GoalsScreen({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: 8,
+          gap: spacing.xs,
           width: "100%",
           padding: "12px 20px",
-          marginTop: 12,
-          fontSize: 14,
-          fontWeight: 500,
+          marginTop: spacing.sm,
+          fontSize: typography.body.fontSize,
+          fontWeight: fontWeights.medium,
           fontFamily: FONT_FAMILY,
           color: "var(--sub)",
           background: "none",
           border: "1px dashed var(--border)",
-          borderRadius: 12,
+          borderRadius: radius.control,
           cursor: "pointer",
         }}
         aria-label="Plan a big purchase"
@@ -747,11 +748,11 @@ export function GoalsScreen({
 
       {/* ── Auto-Contribute Settings ──────────────────────────────────── */}
       {activeGoals.length > 0 && (
-        <section aria-label="Auto-contribute settings" style={{ marginTop: 24, marginBottom: 8 }}>
+        <section aria-label="Auto-contribute settings" style={{ marginTop: spacing.lg, marginBottom: 8 }}>
           <p
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: typography['body-sm'].fontSize,
+              fontWeight: fontWeights.semibold,
               color: "var(--muted)",
               letterSpacing: "0.02em",
               marginBottom: 6,
@@ -761,30 +762,30 @@ export function GoalsScreen({
           </p>
           <p
             style={{
-              fontSize: 12,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
-              marginBottom: 12,
+              marginBottom: spacing.sm,
               lineHeight: 1.4,
             }}
           >
             Set a fixed amount to save toward your goals each time you log income.
           </p>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
             {activeGoals.map(goal => {
               const rule = autoRules.find(r => r.goalId === goal.id)
               const isEditing = editingAutoRule?.goalId === goal.id
 
               return (
                 <Card key={goal.id} style={{ padding: "12px 16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 18 }}>{goal.emoji}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+                    <span style={{ fontSize: typography.subhead.fontSize }}>{goal.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p
                         style={{
-                          fontSize: 13,
+                          fontSize: typography['body-sm'].fontSize,
                           fontFamily: FONT_FAMILY,
-                          fontWeight: 500,
+                          fontWeight: fontWeights.medium,
                           color: "var(--text)",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -794,7 +795,7 @@ export function GoalsScreen({
                         {goal.name}
                       </p>
                       {rule && !isEditing && (
-                        <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                        <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginTop: 2 }}>
                           ${rule.amount}/paycheck {!rule.enabled && "(paused)"}
                         </p>
                       )}
@@ -809,7 +810,7 @@ export function GoalsScreen({
                           style={{
                             width: 36,
                             height: 20,
-                            borderRadius: 10,
+                            borderRadius: radius.control,
                             border: "none",
                             cursor: "pointer",
                             position: "relative",
@@ -839,7 +840,7 @@ export function GoalsScreen({
                             background: "transparent",
                             border: "none",
                             color: "var(--muted)",
-                            fontSize: 12,
+                            fontSize: typography['body-sm'].fontSize,
                             cursor: "pointer",
                             padding: "2px 4px",
                           }}
@@ -853,7 +854,7 @@ export function GoalsScreen({
                             background: "transparent",
                             border: "none",
                             color: "var(--error)",
-                            fontSize: 12,
+                            fontSize: typography['body-sm'].fontSize,
                             cursor: "pointer",
                             padding: "2px 4px",
                           }}
@@ -863,7 +864,7 @@ export function GoalsScreen({
                       </div>
                     ) : isEditing ? (
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 13, color: "var(--muted)" }}>$</span>
+                        <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)" }}>$</span>
                         <input
                           type="number"
                           min="1"
@@ -878,12 +879,12 @@ export function GoalsScreen({
                           style={{
                             width: 60,
                             padding: "4px 8px",
-                            fontSize: 13,
+                            fontSize: typography['body-sm'].fontSize,
                             fontFamily: FONT_FAMILY,
                             color: "var(--text)",
-                            background: "rgba(255,255,255,0.06)",
+                            background: "var(--fill-06)",
                             border: "1px solid var(--line)",
-                            borderRadius: 6,
+                            borderRadius: radius.min,
                             outline: "none",
                           }}
                           autoFocus
@@ -893,13 +894,13 @@ export function GoalsScreen({
                           aria-label="Save"
                           style={{
                             padding: "4px 10px",
-                            fontSize: 12,
-                            fontWeight: 600,
+                            fontSize: typography['body-sm'].fontSize,
+                            fontWeight: fontWeights.semibold,
                             fontFamily: FONT_FAMILY,
                             color: "var(--text)",
                             background: "var(--success)",
                             border: "none",
-                            borderRadius: 6,
+                            borderRadius: radius.min,
                             cursor: "pointer",
                           }}
                         >
@@ -910,7 +911,7 @@ export function GoalsScreen({
                           aria-label="Cancel"
                           style={{
                             padding: "4px 8px",
-                            fontSize: 12,
+                            fontSize: typography['body-sm'].fontSize,
                             fontFamily: FONT_FAMILY,
                             color: "var(--muted)",
                             background: "transparent",
@@ -927,13 +928,13 @@ export function GoalsScreen({
                         aria-label={`Set up auto-save for ${goal.name}`}
                         style={{
                           padding: "6px 12px",
-                          fontSize: 12,
-                          fontWeight: 500,
+                          fontSize: typography['body-sm'].fontSize,
+                          fontWeight: fontWeights.medium,
                           fontFamily: FONT_FAMILY,
                           color: "var(--accent)",
                           background: "var(--accent-muted)",
                           border: `1px solid ${colorRamp.accent[200]}`,
-                          borderRadius: 8,
+                          borderRadius: radius.control,
                           cursor: "pointer",
                         }}
                       >

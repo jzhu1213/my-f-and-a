@@ -5,7 +5,9 @@ import { Sheet } from '@/components/ui/primitives/Sheet'
 import { useToast } from '@/contexts/ToastContext'
 import type { Transaction } from '@/types'
 import { getCategoryEmoji } from '@/lib/vocabulary'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 interface RefundSheetProps {
   isOpen: boolean
@@ -77,11 +79,11 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
       {transaction && (
         <div style={{ padding: '0 24px 32px' }}>
           {/* ── Header ────────────────────────────────────── */}
-          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ textAlign: 'center', marginBottom: HORIZONTAL_PADDING }}>
             <p style={{
-              fontSize: 15,
+              fontSize: typography.body.fontSize,
               fontFamily: FONT_FAMILY,
-              fontWeight: 600,
+              fontWeight: fontWeights.semibold,
               color: 'var(--text)',
             }}>
               Log a refund
@@ -90,21 +92,21 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
 
           {/* ── Original Transaction Card ─────────────────── */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: 12,
+            background: 'var(--fill-04)',
+            border: '1px solid var(--fill-08)',
+            borderRadius: radius.control,
             padding: '14px 16px',
-            marginBottom: 24,
+            marginBottom: spacing.lg,
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            gap: spacing.sm,
           }}>
-            <span style={{ fontSize: 24 }} aria-hidden="true">
+            <span style={{ fontSize: typography.headline.fontSize }} aria-hidden="true">
               {getCategoryEmoji(transaction.category)}
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--sub)',
                 marginBottom: 2,
@@ -112,15 +114,15 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
                 Original expense
               </p>
               <p style={{
-                fontSize: 16,
+                fontSize: typography.body.fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 600,
+                fontWeight: fontWeights.semibold,
                 fontVariantNumeric: 'tabular-nums',
                 color: 'var(--text)',
               }}>
                 ${transaction.amount % 1 === 0 ? transaction.amount : transaction.amount.toFixed(2)}
                 {transaction.note && (
-                  <span style={{ fontWeight: 400, color: 'var(--sub)', fontSize: 13, marginLeft: 8 }}>
+                  <span style={{ fontWeight: fontWeights.regular, color: 'var(--sub)', fontSize: typography['body-sm'].fontSize, marginLeft: spacing.xs }}>
                     {transaction.note}
                   </span>
                 )}
@@ -131,9 +133,9 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
           {/* ── Refund Amount Input ───────────────────────── */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <p style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: 'var(--muted)',
-              marginBottom: 12,
+              marginBottom: spacing.sm,
               fontFamily: FONT_FAMILY,
             }}>
               Refund amount
@@ -147,7 +149,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
               <span style={{
                 fontSize: 28,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 300,
+                fontWeight: fontWeights.light,
                 color: 'var(--success)',
               }}>
                 $
@@ -174,7 +176,7 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
                   outline: 'none',
                   fontSize: 48,
                   fontFamily: FONT_FAMILY,
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   fontVariantNumeric: 'tabular-nums',
                   color: 'var(--text)',
                   textAlign: 'center',
@@ -190,9 +192,9 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
                 id="refund-error"
                 role="alert"
                 style={{
-                  fontSize: 12,
+                  fontSize: typography['body-sm'].fontSize,
                   color: 'var(--error)',
-                  marginTop: 8,
+                  marginTop: spacing.xs,
                   fontFamily: FONT_FAMILY,
                   lineHeight: 1.4,
                 }}
@@ -218,8 +220,8 @@ export function RefundSheet({ isOpen, onClose, transaction, onLogRefund }: Refun
                 : 'var(--dim)',
               color: canSubmit ? 'var(--color-canvas)' : 'var(--muted)',
               fontFamily: FONT_FAMILY,
-              fontSize: 16,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               borderRadius: 'var(--radius-md)',
               border: 'none',
               cursor: canSubmit ? 'pointer' : 'not-allowed',

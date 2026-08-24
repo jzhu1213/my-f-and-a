@@ -11,8 +11,10 @@
  */
 
 import { spacingScale } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, spacing, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import { textColors } from "@/styles/colors"
+import { ListRow } from "@/components/ui/primitives/ListRow"
 import { SettingsSubScreen } from "./SettingsSubScreen"
 
 // ============================================================================
@@ -26,22 +28,6 @@ export interface SettingsDataExportScreenProps {
   onOpenReports?: () => void
   onOpenSharing?: () => void
   activeShareCount?: number
-}
-
-// ============================================================================
-// Shared button style
-// ============================================================================
-
-const actionButtonStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  width: '100%',
-  padding: '14px 16px',
-  borderRadius: 12,
-  border: '1px solid rgba(167, 139, 250, 0.15)',
-  background: 'rgba(255,255,255,0.03)',
-  cursor: 'pointer',
 }
 
 // ============================================================================
@@ -59,63 +45,79 @@ export function SettingsDataExportScreen({
   return (
     <SettingsSubScreen title="Export" description="Get your data out as PDF, CSV, or a shared link." onBack={onBack}>
       {/* Export as PDF */}
-      <button
-        type="button"
-        onClick={onExportData}
-        style={actionButtonStyle}
+      <ListRow
+        variant="dense"
+        onPress={onExportData}
         aria-label="Export as PDF"
+        style={{
+          borderRadius: radius.control,
+          border: '1px solid var(--accent-200)',
+          background: 'var(--fill-03)',
+        }}
       >
-        <span style={{ ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
+        <span style={{ flex: 1, ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
           Export as PDF
         </span>
-        <span style={{ fontSize: 14, color: textColors.sub }} aria-hidden="true">
+        <span style={{ fontSize: typography.body.fontSize, color: textColors.sub, flexShrink: 0 }} aria-hidden="true">
           ›
         </span>
-      </button>
+      </ListRow>
 
       {/* Export as CSV */}
       <div style={{ marginTop: spacingScale['12'] }}>
-        <button
-          type="button"
-          onClick={onExportCSV}
-          style={actionButtonStyle}
+        <ListRow
+          variant="dense"
+          onPress={onExportCSV}
           aria-label="Export as CSV"
+          style={{
+            borderRadius: radius.control,
+            border: '1px solid var(--accent-200)',
+            background: 'var(--fill-03)',
+          }}
         >
-          <span style={{ ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
+          <span style={{ flex: 1, ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
             Export as CSV
           </span>
-          <span style={{ fontSize: 14, color: textColors.sub }} aria-hidden="true">
+          <span style={{ fontSize: typography.body.fontSize, color: textColors.sub, flexShrink: 0 }} aria-hidden="true">
             ›
           </span>
-        </button>
+        </ListRow>
       </div>
 
       {/* Reports */}
       <div style={{ marginTop: spacingScale['12'] }}>
-        <button
-          type="button"
-          onClick={onOpenReports}
-          style={actionButtonStyle}
+        <ListRow
+          variant="dense"
+          onPress={onOpenReports}
           aria-label="Open reports"
+          style={{
+            borderRadius: radius.control,
+            border: '1px solid var(--accent-200)',
+            background: 'var(--fill-03)',
+          }}
         >
-          <span style={{ ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
+          <span style={{ flex: 1, ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
             Reports
           </span>
-          <span style={{ fontSize: 14, color: textColors.sub }} aria-hidden="true">
+          <span style={{ fontSize: typography.body.fontSize, color: textColors.sub, flexShrink: 0 }} aria-hidden="true">
             ›
           </span>
-        </button>
+        </ListRow>
       </div>
 
       {/* Sharing management */}
       <div style={{ marginTop: spacingScale['12'] }}>
-        <button
-          type="button"
-          onClick={onOpenSharing}
-          style={actionButtonStyle}
+        <ListRow
+          variant="dense"
+          onPress={onOpenSharing}
           aria-label="Manage sharing"
+          style={{
+            borderRadius: radius.control,
+            border: '1px solid var(--accent-200)',
+            background: 'var(--fill-03)',
+          }}
         >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
             <span style={{ ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
               Sharing
             </span>
@@ -127,11 +129,11 @@ export function SettingsDataExportScreen({
                   justifyContent: 'center',
                   minWidth: 20,
                   height: 20,
-                  borderRadius: 10,
+                  borderRadius: radius.control,
                   padding: '0 6px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: 'rgba(167, 139, 250, 0.2)',
+                  fontSize: typography.caption.fontSize,
+                  fontWeight: fontWeights.semibold,
+                  background: 'var(--accent-200)',
                   color: textColors.text,
                 }}
                 aria-label={`${activeShareCount} active share${activeShareCount === 1 ? '' : 's'}`}
@@ -140,10 +142,10 @@ export function SettingsDataExportScreen({
               </span>
             )}
           </span>
-          <span style={{ fontSize: 14, color: textColors.sub }} aria-hidden="true">
+          <span style={{ fontSize: typography.body.fontSize, color: textColors.sub, flexShrink: 0 }} aria-hidden="true">
             ›
           </span>
-        </button>
+        </ListRow>
       </div>
     </SettingsSubScreen>
   )

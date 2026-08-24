@@ -12,7 +12,7 @@
 import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   glassSurface,
   borderRadius,
@@ -94,12 +94,12 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
   const isFull = pinnedCards.length >= MAX_PINNED_CARDS
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
       {/* ── Current pinned cards (reorderable) ─────────────────────────── */}
       {pinnedCards.length > 0 && (
         <div>
           <p style={labelStyle}>Your pinned cards ({pinnedCards.length}/{MAX_PINNED_CARDS})</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: spacing.xs }}>
             <AnimatePresence initial={false}>
               {pinnedCards.map((card, index) => {
                 const meta = CARD_META[card.type]
@@ -116,7 +116,7 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
                       display: 'flex',
                       alignItems: 'center',
                       padding: '10px 12px',
-                      gap: 10,
+                      gap: spacing.sm,
                     }}
                   >
                     {/* Reorder buttons */}
@@ -142,12 +142,12 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
                     </div>
 
                     {/* Card preview */}
-                    <span style={{ fontSize: 16 }} aria-hidden="true">{meta.emoji}</span>
+                    <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">{meta.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                      <p style={{ margin: 0, fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                         {meta.label}
                       </p>
-                      <p style={{ margin: 0, fontSize: 11, color: 'var(--sub)', fontFamily: FONT_FAMILY, opacity: 0.8 }}>
+                      <p style={{ margin: 0, fontSize: typography.caption.fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, opacity: 0.8 }}>
                         {meta.description}
                       </p>
                     </div>
@@ -156,7 +156,7 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
                     <motion.button
                       type="button"
                       onClick={() => handleRemove(card.type)}
-                      whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+                      whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
                       aria-label={`Unpin ${meta.label}`}
                       style={{
                         background: colorRamp.error[100],
@@ -168,7 +168,7 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
                         alignItems: 'center',
                         justifyContent: 'center',
                         cursor: 'pointer',
-                        fontSize: 12,
+                        fontSize: typography['body-sm'].fontSize,
                         color: 'var(--error)',
                         flexShrink: 0,
                       }}
@@ -194,7 +194,7 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
             borderRadius: borderRadius.md,
           }}
         >
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--sub)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: typography['body-sm'].fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
             Your home screen is clean by default.
             <br />
             Pin up to {MAX_PINNED_CARDS} cards for a quick glance at what matters most.
@@ -205,7 +205,7 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
       {/* ── Available cards to pin ─────────────────────────────────────── */}
       <div>
         <p style={labelStyle}>Available cards</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: spacing.xs }}>
           {ALL_CARD_TYPES.map((type) => {
             const meta = CARD_META[type]
             const alreadyPinned = isPinned(type)
@@ -216,25 +216,25 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
                   display: 'flex',
                   alignItems: 'center',
                   padding: '10px 12px',
-                  gap: 10,
+                  gap: spacing.sm,
                   background: alreadyPinned ? fills[4] : 'transparent',
                   border: `1px solid ${alreadyPinned ? fills[8] : fills[6]}`,
                   borderRadius: borderRadius.md,
                   opacity: alreadyPinned ? 0.6 : 1,
                 }}
               >
-                <span style={{ fontSize: 16 }} aria-hidden="true">{meta.emoji}</span>
+                <span style={{ fontSize: typography.body.fontSize }} aria-hidden="true">{meta.emoji}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
+                  <p style={{ margin: 0, fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: 'var(--text)', fontFamily: FONT_FAMILY }}>
                     {meta.label}
                   </p>
-                  <p style={{ margin: 0, fontSize: 11, color: 'var(--sub)', fontFamily: FONT_FAMILY, opacity: 0.8 }}>
+                  <p style={{ margin: 0, fontSize: typography.caption.fontSize, color: 'var(--sub)', fontFamily: FONT_FAMILY, opacity: 0.8 }}>
                     {meta.description}
                   </p>
                 </div>
 
                 {alreadyPinned ? (
-                  <span style={{ fontSize: 11, color: 'var(--accent)', fontFamily: FONT_FAMILY, fontWeight: 500 }}>
+                  <span style={{ fontSize: typography.caption.fontSize, color: 'var(--accent)', fontFamily: FONT_FAMILY, fontWeight: fontWeights.medium }}>
                     Pinned
                   </span>
                 ) : (
@@ -242,7 +242,7 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
                     type="button"
                     onClick={() => handleAdd(type)}
                     disabled={isFull}
-                    whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
                     aria-label={`Pin ${meta.label}`}
                     style={{
                       background: isFull ? fills[4] : colorRamp.accent[100],
@@ -250,8 +250,8 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
                       borderRadius: borderRadius.full,
                       padding: '6px 12px',
                       cursor: isFull ? 'not-allowed' : 'pointer',
-                      fontSize: 12,
-                      fontWeight: 500,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       color: isFull ? 'var(--muted)' : 'var(--accent)',
                       fontFamily: FONT_FAMILY,
                       flexShrink: 0,
@@ -275,8 +275,8 @@ export function PinManagement({ onPinnedCardsChange }: PinManagementProps) {
 
 const labelStyle: React.CSSProperties = {
   margin: 0,
-  fontSize: 11,
-  fontWeight: 600,
+  fontSize: typography.caption.fontSize,
+  fontWeight: fontWeights.semibold,
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
   color: 'var(--muted)',

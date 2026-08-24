@@ -13,7 +13,7 @@
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { spacingScale } from "@/styles/layout"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, fontWeights } from '@/styles/typography'
 import { textColors, semanticColors, colorRamp } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
 import { SettingsSubScreen } from "./SettingsSubScreen"
@@ -194,7 +194,7 @@ export function SettingsProfileScreen({
           borderRadius: radius.control,
           color: textColors.text,
           ...typography.body,
-          fontWeight: 500,
+          fontWeight: fontWeights.medium,
           cursor: "pointer",
         }}
       >
@@ -214,7 +214,7 @@ export function SettingsProfileScreen({
               color: textColors.muted,
               margin: 0,
               marginBottom: spacingScale["12"],
-              fontWeight: 500,
+              fontWeight: fontWeights.medium,
             }}
           >
             Help & onboarding
@@ -297,7 +297,7 @@ export function SettingsProfileScreen({
           borderRadius: radius.control,
           color: semanticColors.error,
           ...typography.body,
-          fontWeight: 500,
+          fontWeight: fontWeights.medium,
           cursor: "pointer",
         }}
       >

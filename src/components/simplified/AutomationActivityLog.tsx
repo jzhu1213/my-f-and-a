@@ -12,7 +12,7 @@
 
 import { useState, useMemo } from "react"
 import { spacingScale } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, fontWeights } from '@/styles/typography'
 import { textColors, semanticColors } from "@/styles/colors"
 import { radius } from "@/styles/surfaces"
 import {
@@ -66,7 +66,7 @@ export function AutomationActivityLog() {
           style={{
             ...typography["body-sm"],
             color: textColors.muted,
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
           }}
         >
           Activity
@@ -140,7 +140,7 @@ function ActivityLogItem({ entry }: ActivityLogItemProps) {
         gap: spacingScale["2"],
         padding: `${spacingScale["8"]} ${spacingScale["12"]}`,
         borderRadius: radius.min,
-        background: "rgba(255, 255, 255, 0.02)",
+        background: "var(--fill-02)",
         borderLeft: `2px solid ${getAccentForType(entry.type)}`,
       }}
     >

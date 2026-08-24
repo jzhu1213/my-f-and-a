@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 /**
  * Skeleton
@@ -21,16 +21,17 @@
 
 import type { CSSProperties, ReactNode } from "react"
 import { motion } from "framer-motion"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING } from "@/styles/shared"
 
-// ── Base ──────────────────────────────────────────────────────────────────
+// â”€â”€ Base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SkeletonProps {
-  /** Width — number (px) or any CSS length. Defaults to 100%. */
+  /** Width â€” number (px) or any CSS length. Defaults to 100%. */
   width?: number | string
-  /** Height — number (px) or any CSS length. Defaults to 16px. */
+  /** Height â€” number (px) or any CSS length. Defaults to 16px. */
   height?: number | string
-  /** Border radius override — number (px) or any CSS length. */
+  /** Border radius override â€” number (px) or any CSS length. */
   radius?: number | string
   /** Additional class names. */
   className?: string
@@ -70,10 +71,10 @@ export function Skeleton({
   )
 }
 
-// ── Circle ──────────────────────────────────────────────────────────────────
+// â”€â”€ Circle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SkeletonCircleProps {
-  /** Diameter — number (px) or any CSS length. Defaults to 40px. */
+  /** Diameter â€” number (px) or any CSS length. Defaults to 40px. */
   size?: number | string
   className?: string
   style?: CSSProperties
@@ -97,7 +98,7 @@ export function SkeletonCircle({ size = 40, className = "", style }: SkeletonCir
   )
 }
 
-// ── Text ──────────────────────────────────────────────────────────────────
+// â”€â”€ Text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SkeletonTextProps {
   /** Number of text lines to render. Defaults to 1. */
@@ -106,7 +107,7 @@ export interface SkeletonTextProps {
   lastLineWidth?: number | string
   /** Gap between lines in px. Defaults to 8. */
   gap?: number
-  /** Height of each line — number (px) or CSS length. Defaults to 12px. */
+  /** Height of each line â€” number (px) or CSS length. Defaults to 12px. */
   lineHeight?: number | string
   className?: string
   style?: CSSProperties
@@ -140,10 +141,10 @@ export function SkeletonText({
   )
 }
 
-// ── Card ──────────────────────────────────────────────────────────────────
+// â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SkeletonCardProps {
-  /** Height of the card — number (px) or CSS length. Defaults to 88px. */
+  /** Height of the card â€” number (px) or CSS length. Defaults to 88px. */
   height?: number | string
   className?: string
   style?: CSSProperties
@@ -168,7 +169,7 @@ export function SkeletonCard({
         style={{
           background: "var(--raised)",
           borderRadius: "var(--radius-md)",
-          padding: 16,
+          padding: spacing.md,
           minHeight: toLength(height),
           ...style,
         }}
@@ -186,7 +187,7 @@ export function SkeletonCard({
   )
 }
 
-// ── Crossfade wrapper ─────────────────────────────────────────────────────
+// â”€â”€ Crossfade wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface FadeInContentProps {
   children: ReactNode
@@ -196,9 +197,9 @@ export interface FadeInContentProps {
 
 /**
  * Wraps freshly-loaded content so it fades in gently instead of popping.
- * Uses framer-motion for a 250ms opacity tween (within the 150–300ms spec).
+ * Uses framer-motion for a 250ms opacity tween (within the 150â€“300ms spec).
  * When used inside AnimatePresence, guarantees the skeleton is fully unmounted
- * before content appears (CLS ≤ 0.02).
+ * before content appears (CLS â‰¤ 0.02).
  *
  * Usage with AnimatePresence in the parent:
  *   <AnimatePresence mode="wait">
@@ -222,7 +223,7 @@ export function FadeInContent({ children, className = "", style }: FadeInContent
   )
 }
 
-// ── Logo pulse ──────────────────────────────────────────────────────────────
+// â”€â”€ Logo pulse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface LogoPulseProps {
   /** Diameter of the logo mark in px. Defaults to 72. */
@@ -264,7 +265,7 @@ export function LogoPulse({
         border: "1px solid var(--border)",
         color: "var(--text)",
         fontFamily: FONT_FAMILY,
-        fontWeight: 700,
+        fontWeight: fontWeights.bold,
         fontSize: size * 0.42,
         ...style,
       }}
@@ -274,7 +275,7 @@ export function LogoPulse({
   )
 }
 
-// ── Home screen skeleton ─────────────────────────────────────────────────────
+// â”€â”€ Home screen skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface HomeScreenSkeletonProps {
   className?: string
@@ -285,19 +286,19 @@ export interface HomeScreenSkeletonProps {
  * Full-screen loading state that accurately mirrors the real Home screen
  * layout so the crossfade to loaded content is a calm, shift-free transition.
  *
- * Sections (top → bottom, matching HomeScreen):
- *  1. Hero — GlassCard high elevation with ring, amount, message
- *  2. Quick actions — row of 2 pill buttons + tertiary link
- *  3. Category budget cards — 2×2 grid with icon, name, progress bar
- *  4. Recent transactions — header + glass card with timeline rows
- *  5. Tip card — single card placeholder at the bottom
+ * Sections (top â†’ bottom, matching HomeScreen):
+ *  1. Hero â€” GlassCard high elevation with ring, amount, message
+ *  2. Quick actions â€” row of 2 pill buttons + tertiary link
+ *  3. Category budget cards â€” 2Ã—2 grid with icon, name, progress bar
+ *  4. Recent transactions â€” header + glass card with timeline rows
+ *  5. Tip card â€” single card placeholder at the bottom
  *
  * Spacing uses the real layout constants: SECTION_SPACING (32px gap),
  * HORIZONTAL_PADDING (20px sides), spacing.lg (24px top), DOCK_PADDING_BOTTOM
  * (120px bottom clearance for the floating dock).
  *
  * When used inside AnimatePresence, exits with a 250ms opacity fade so the
- * skeleton-to-content crossfade is seamless (CLS ≤ 0.02).
+ * skeleton-to-content crossfade is seamless (CLS â‰¤ 0.02).
  *
  * Validates: Requirements 17.1, 17.2, 17.3
  */
@@ -316,7 +317,7 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 32, // SECTION_SPACING
+        gap: spacing.xl, // SECTION_SPACING
         padding: "24px 20px 120px", // paddingTop: spacing.lg, sides: HORIZONTAL_PADDING, bottom: DOCK_PADDING_BOTTOM
         maxWidth: 560, // CONTENT_MAX_WIDTH
         width: "100%",
@@ -325,7 +326,7 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
         ...style,
       }}
     >
-      {/* ── 1. Hero (GlassCard elevation="high") ── */}
+      {/* â”€â”€ 1. Hero (GlassCard elevation="high") â”€â”€ */}
       <div
         className="glass-card glass-card--high"
         style={{
@@ -333,7 +334,7 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 14,
+          gap: spacing.md,
         }}
       >
         {/* Allowance ring circle */}
@@ -346,17 +347,17 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
         <Skeleton width={120} height={10} radius={5} />
       </div>
 
-      {/* ── 2. Quick Actions (2 pills + tertiary link) ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          {/* Log expense — larger pill */}
+      {/* â”€â”€ 2. Quick Actions (2 pills + tertiary link) â”€â”€ */}
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
+        <div style={{ display: "flex", gap: spacing.md, alignItems: "center" }}>
+          {/* Log expense â€” larger pill */}
           <Skeleton
             width="62%"
             height={54}
             radius={9999}
             style={{ flexShrink: 0, flex: "1.6" }}
           />
-          {/* Log income — smaller ghost pill */}
+          {/* Log income â€” smaller ghost pill */}
           <Skeleton
             width="38%"
             height={50}
@@ -365,21 +366,21 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
           />
         </div>
         {/* Tertiary link row */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: spacing.sm }}>
           <Skeleton width={80} height={28} radius={9999} />
           <Skeleton width={130} height={28} radius={9999} />
         </div>
       </div>
 
-      {/* ── 3. Category Budget Cards (2×2 grid) ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* â”€â”€ 3. Category Budget Cards (2Ã—2 grid) â”€â”€ */}
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
         {/* Section header */}
         <Skeleton width={92} height={11} radius={6} />
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: 10,
+            gap: spacing.sm,
           }}
         >
           {Array.from({ length: 4 }).map((_, i) => (
@@ -391,7 +392,7 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 6,
+                gap: spacing.xxs + 2,
               }}
             >
               {/* Category icon (44px) */}
@@ -407,8 +408,8 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
         </div>
       </div>
 
-      {/* ── 4. Recent Transactions (header + glass card with timeline) ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* â”€â”€ 4. Recent Transactions (header + glass card with timeline) â”€â”€ */}
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
         {/* Section header row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Skeleton width={56} height={11} radius={6} />
@@ -424,7 +425,7 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
             <Skeleton width={48} height={9} radius={4} />
           </div>
           {/* Transaction rows with timeline */}
-          <div style={{ position: "relative", paddingLeft: 16 }}>
+          <div style={{ position: "relative", paddingLeft: spacing.md }}>
             {/* Vertical timeline line */}
             <div
               aria-hidden="true"
@@ -476,8 +477,8 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
                     flex: 1,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 5,
-                    marginLeft: 8,
+                    gap: spacing.xxs,
+                    marginLeft: spacing.xs,
                   }}
                 >
                   <Skeleton width="55%" height={12} radius={6} />
@@ -491,14 +492,14 @@ export function HomeScreenSkeleton({ className = "", style }: HomeScreenSkeleton
         </div>
       </div>
 
-      {/* ── 5. Tip card placeholder ── */}
+      {/* â”€â”€ 5. Tip card placeholder â”€â”€ */}
       <div
         className="glass-card glass-card--low"
         style={{
           padding: "20px 16px",
           display: "flex",
           flexDirection: "column",
-          gap: 10,
+          gap: spacing.sm,
         }}
       >
         <Skeleton width={140} height={12} radius={6} />

@@ -1,7 +1,7 @@
-"use client"
+﻿"use client"
 
 /**
- * DepthSurfaceSkeleton — Loading placeholder for depth surface screens.
+ * DepthSurfaceSkeleton â€” Loading placeholder for depth surface screens.
  *
  * Displays a skeleton that matches the general layout of a depth surface:
  * - Back button area (44px height, 80px width)
@@ -17,14 +17,15 @@
 
 import { Skeleton } from "@/components/ui/Skeleton"
 import { CONTENT_MAX_WIDTH, HORIZONTAL_PADDING } from "@/styles/layout"
+import { spacing } from "@/styles/typography"
 
 // ============================================================================
-// Section skeleton — repeatable group of header + list rows
+// Section skeleton â€” repeatable group of header + list rows
 // ============================================================================
 
 function SectionGroupSkeleton({ rows = 3 }: { rows?: number }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
       {/* Section header */}
       <Skeleton width={120} height={11} radius={6} />
       {/* List rows */}
@@ -35,8 +36,8 @@ function SectionGroupSkeleton({ rows = 3 }: { rows?: number }) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 12,
-              padding: "12px 0",
+              gap: spacing.sm,
+              padding: `${spacing.sm}px 0`,
               borderBottom: i < rows - 1 ? "1px solid var(--border)" : undefined,
             }}
           >
@@ -69,8 +70,8 @@ export function DepthSurfaceSkeleton() {
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 32,
-        padding: `24px ${HORIZONTAL_PADDING}px 80px`,
+        gap: spacing.xl,
+        padding: `${spacing.lg}px ${HORIZONTAL_PADDING}px 80px`,
         maxWidth: CONTENT_MAX_WIDTH,
         width: "100%",
         marginLeft: "auto",

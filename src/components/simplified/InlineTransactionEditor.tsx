@@ -6,9 +6,11 @@ import { springs, timings, useReducedMotion } from "@/lib/animations"
 import type { Transaction, TransactionCategory } from "@/types"
 import { CategoryIcon } from "@/components/ui/CategoryIcon"
 import { fills, colorRamp } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { TagInput } from "./TagInput"
 import { getTagsForTransaction } from "@/lib/tagUtils"
 import { ReceiptAttachment } from "./ReceiptAttachment"
+import { spacing, typography, fontWeights } from '@/styles/typography'
 
 // ============================================================================
 // InlineTransactionEditor
@@ -156,12 +158,12 @@ export function InlineTransactionEditor({
           }}
         >
           {/* Amount row */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: spacing.xs, marginBottom: 10 }}>
             <span
               style={{
-                fontSize: 18,
+                fontSize: typography.subhead.fontSize,
                 fontFamily: "Inter, sans-serif",
-                fontWeight: 300,
+                fontWeight: fontWeights.light,
                 color: transaction.type === "income" ? "var(--success)" : "var(--sub)",
               }}
             >
@@ -189,9 +191,9 @@ export function InlineTransactionEditor({
                 border: "none",
                 borderBottom: "1px solid var(--line)",
                 outline: "none",
-                fontSize: 24,
+                fontSize: typography.headline.fontSize,
                 fontFamily: "Inter, sans-serif",
-                fontWeight: 600,
+                fontWeight: fontWeights.semibold,
                 color: "var(--text)",
                 width: "100%",
                 maxWidth: 140,
@@ -206,7 +208,7 @@ export function InlineTransactionEditor({
             <div
               style={{
                 display: "flex",
-                gap: 8,
+                gap: spacing.xs,
                 marginBottom: 10,
                 flexWrap: "wrap",
               }}
@@ -228,7 +230,7 @@ export function InlineTransactionEditor({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      borderRadius: 12,
+                      borderRadius: radius.control,
                       border: selected
                         ? `1.5px solid ${colorRamp.accent[400]}`
                         : `1px solid ${fills[8]}`,
@@ -275,7 +277,7 @@ export function InlineTransactionEditor({
                 border: "none",
                 borderBottom: "1px solid var(--line)",
                 outline: "none",
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 fontFamily: "Inter, sans-serif",
                 color: "var(--text)",
                 padding: "6px 0",
@@ -303,7 +305,7 @@ export function InlineTransactionEditor({
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: spacing.xs }}>
             <button
               type="button"
               onClick={handleSave}
@@ -320,9 +322,9 @@ export function InlineTransactionEditor({
                   : "var(--dim)",
                 color: canSubmit ? "var(--color-canvas)" : "var(--muted)",
                 fontFamily: "Inter, sans-serif",
-                fontSize: 13,
-                fontWeight: 600,
-                borderRadius: 10,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
+                borderRadius: radius.control,
                 border: "none",
                 cursor: canSubmit ? "pointer" : "not-allowed",
                 opacity: canSubmit ? 1 : 0.5,
@@ -343,9 +345,9 @@ export function InlineTransactionEditor({
                 background: "transparent",
                 color: "var(--sub)",
                 fontFamily: "Inter, sans-serif",
-                fontSize: 13,
-                fontWeight: 500,
-                borderRadius: 10,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.medium,
+                borderRadius: radius.control,
                 border: "1px solid var(--line)",
                 cursor: "pointer",
               }}

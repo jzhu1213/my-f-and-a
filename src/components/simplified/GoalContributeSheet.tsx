@@ -5,8 +5,9 @@ import { motion } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
 import { BottomSheet } from "@/components/ui/BottomSheet"
 import type { Goal } from "@/types"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius, shadows, fills, colorRamp } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { shadows, fills, colorRamp, HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Config
@@ -134,19 +135,19 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  gap: 12,
+                  gap: spacing.sm,
                   marginBottom: 14,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                  <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }} aria-hidden="true">
+                <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, minWidth: 0 }}>
+                  <span style={{ fontSize: typography.headline.fontSize, lineHeight: 1, flexShrink: 0 }} aria-hidden="true">
                     {displayGoal.emoji}
                   </span>
                   <div style={{ minWidth: 0 }}>
                     <h2
                       style={{
                         fontSize: 17,
-                        fontWeight: 700,
+                        fontWeight: fontWeights.bold,
                         color: "var(--text)",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -155,7 +156,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                     >
                       {displayGoal.name}
                     </h2>
-                    <p style={{ fontSize: 13, color: "var(--sub)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                    <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
                       ${formatAmount(displayGoal.currentAmount)}
                       <span style={{ color: "var(--muted)" }}> / ${formatAmount(displayGoal.targetAmount)}</span>
                     </p>
@@ -173,8 +174,8 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                     width: 32,
                     height: 32,
                     flexShrink: 0,
-                    borderRadius: borderRadius.full,
-                    background: "rgba(255,255,255,0.04)",
+                    borderRadius: radius.full,
+                    background: "var(--fill-04)",
                     border: "1px solid var(--border)",
                     color: "var(--muted)",
                     cursor: submitting ? "not-allowed" : "pointer",
@@ -196,26 +197,26 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                 style={{
                   height: 8,
                   width: "100%",
-                  borderRadius: borderRadius.full,
-                  background: "rgba(255,255,255,0.06)",
+                  borderRadius: radius.full,
+                  background: "var(--fill-06)",
                   overflow: "hidden",
-                  marginBottom: 8,
+                  marginBottom: spacing.xs,
                 }}
               >
                 <motion.div
                   initial={{ scaleX: prefersReducedMotion ? pct / 100 : 0 }}
                   animate={{ scaleX: pct / 100 }}
                   transition={prefersReducedMotion ? timings.fast : springs.gentle}
-                  style={{ width: "100%", height: "100%", borderRadius: borderRadius.full, background: "var(--accent)", transformOrigin: "left center" }}
+                  style={{ width: "100%", height: "100%", borderRadius: radius.full, background: "var(--accent)", transformOrigin: "left center" }}
                 />
               </div>
-              <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 24, fontVariantNumeric: "tabular-nums" }}>
+              <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginBottom: spacing.lg, fontVariantNumeric: "tabular-nums" }}>
                 {remaining > 0 ? `$${formatAmount(remaining)} to go` : "Goal reached 🎉"}
               </p>
 
               {/* ── Quick-add chips ────────────────────────────────── */}
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 10 }}>Quick add</p>
-              <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+              <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", marginBottom: 10 }}>Quick add</p>
+              <div style={{ display: "flex", gap: spacing.xs, marginBottom: HORIZONTAL_PADDING }}>
                 {QUICK_AMOUNTS.map(q => {
                   const active = amount === String(q)
                   return (
@@ -230,8 +231,8 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                       style={{
                         flex: 1,
                         padding: "12px 0",
-                        fontSize: 15,
-                        fontWeight: 600,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: fontWeights.semibold,
                         fontFamily: FONT_FAMILY,
                         borderRadius: "var(--radius-md)",
                         cursor: "pointer",
@@ -255,9 +256,9 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
               </div>
 
               {/* ── Custom amount ──────────────────────────────────── */}
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>Or enter an amount</p>
+              <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", marginBottom: spacing.xs }}>Or enter an amount</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: error ? 12 : 28 }}>
-                <span style={{ fontSize: 24, fontWeight: 300, color: "var(--muted)" }}>$</span>
+                <span style={{ fontSize: typography.headline.fontSize, fontWeight: fontWeights.light, color: "var(--muted)" }}>$</span>
                 <input
                   ref={amountRef}
                   type="text"
@@ -278,8 +279,8 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                     border: "none",
                     borderBottom: "1px solid var(--line)",
                     outline: "none",
-                    fontSize: 32,
-                    fontWeight: 600,
+                    fontSize: typography.title.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: "var(--text)",
                     padding: "4px 0 6px",
@@ -291,7 +292,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
 
               {/* ── Inline error (persistence failure / validation) ── */}
               {error && (
-                <p role="alert" style={{ fontSize: 13, color: "var(--error)", marginBottom: 20, lineHeight: 1.5 }}>
+                <p role="alert" style={{ fontSize: typography['body-sm'].fontSize, color: "var(--error)", marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}>
                   {error}
                 </p>
               )}
@@ -315,7 +316,7 @@ export function GoalContributeSheet({ isOpen, goal, onClose, onContribute }: Goa
                   color: canSubmit ? "var(--text)" : "var(--muted)",
                   fontFamily: FONT_FAMILY,
                   fontSize: 17,
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   borderRadius: "var(--radius-md)",
                   border: "none",
                   cursor: canSubmit ? "pointer" : "not-allowed",

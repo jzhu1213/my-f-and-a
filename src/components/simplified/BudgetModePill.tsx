@@ -161,7 +161,7 @@ function ModeOption({
         textAlign: "left",
       }}
     >
-      <span style={{ fontSize: "1.25rem" }} aria-hidden="true">{icon}</span>
+      <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">{icon}</span>
       <span style={{ ...typography.body, color: textColors.text, flex: 1 }}>{name}</span>
       {isSelected && (
         <span style={{ ...typography["body-sm"], color: colorRamp.accent[500] }}>✓</span>

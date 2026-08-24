@@ -7,8 +7,10 @@ import type { DailyAllowance } from "@/types/folio"
 import type { FundingSource } from "@/lib/fundingSources"
 import { motion, AnimatePresence } from "framer-motion"
 import { useReducedMotion, timings } from "@/lib/animations"
-import { FONT_FAMILY, spacing } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import { spacingScale } from "@/styles/layout"
+import { DOCK_PADDING_BOTTOM } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { HistoryView } from "@/components/accounting/HistoryView"
 import { InsightTrendCard } from "./InsightTrendCard"
 import { InsightBreakdownCard } from "./InsightBreakdownCard"
@@ -331,7 +333,7 @@ export const HistoryScreen = memo(function HistoryScreen({
               justifyContent: "center",
               width: 36,
               height: 36,
-              borderRadius: 8,
+              borderRadius: radius.control,
               border: "1px solid var(--border)",
               background: "var(--surface)",
               cursor: "pointer",
@@ -355,9 +357,7 @@ export const HistoryScreen = memo(function HistoryScreen({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 8,
-            // Phase 6 (task 237.1): a touch more breathing room above the
-            // stacked insight cards for a calmer top-of-screen rhythm.
+            gap: spacing.xs,
             padding: `${spacing.md}px 16px ${spacing.xxs}px`,
             fontFamily: FONT_FAMILY,
           }}
@@ -365,17 +365,17 @@ export const HistoryScreen = memo(function HistoryScreen({
         >
           <span
             style={{
-              fontSize: 13,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
-              fontWeight: 400,
+              fontWeight: fontWeights.regular,
             }}
           >
             Today&rsquo;s budget:
           </span>
           <span
             style={{
-              fontSize: 15,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               color: allowance.amount > 0 ? "var(--success)" : "var(--error)",
               fontVariantNumeric: "tabular-nums",
             }}
@@ -439,7 +439,7 @@ export const HistoryScreen = memo(function HistoryScreen({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={timings.fast}
-            style={{ padding: "0 16px", paddingBottom: 120 }}
+            style={{ padding: `0 ${spacing.md}px`, paddingBottom: DOCK_PADDING_BOTTOM }}
           >
             <HistoryByCategoryView
               transactions={filteredTransactions}
@@ -454,7 +454,7 @@ export const HistoryScreen = memo(function HistoryScreen({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={timings.fast}
-            style={{ padding: "0 16px", paddingBottom: 120 }}
+            style={{ padding: `0 ${spacing.md}px`, paddingBottom: DOCK_PADDING_BOTTOM }}
           >
             <HistoryByMerchantView
               transactions={filteredTransactions}
@@ -482,8 +482,8 @@ export const HistoryScreen = memo(function HistoryScreen({
               style={{
                 width: 24,
                 height: 24,
-                border: '2px solid rgba(255,255,255,0.15)',
-                borderTopColor: 'var(--accent, #a78bfa)',
+                border: '2px solid var(--fill-15)',
+                borderTopColor: 'var(--accent)',
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
               }}

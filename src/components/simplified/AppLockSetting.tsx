@@ -1,10 +1,10 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   sectionHeader,
   borderRadius,
@@ -33,9 +33,9 @@ import {
 // ============================================================================
 
 /**
- * AppLockSetting — opt-in control for the cold-open app lock (task 182.1).
+ * AppLockSetting â€” opt-in control for the cold-open app lock (task 182.1).
  *
- * Lives behind Settings → Privacy & security (progressive disclosure) and is
+ * Lives behind Settings â†’ Privacy & security (progressive disclosure) and is
  * OFF by default. Enabling walks the user through setting up either a device
  * biometric (WebAuthn platform authenticator) or a numeric PIN. Nothing leaves
  * the device: the PIN is only ever stored as a salted PBKDF2 hash, and the
@@ -45,7 +45,7 @@ export function AppLockSetting() {
   const [prefs, setPrefs] = useState<AppLockPreferences>(() => getAppLockPreferences())
   const [biometricSupported, setBiometricSupported] = useState(false)
 
-  // ── Setup form state (only while configuring a fresh method) ────────────────
+  // â”€â”€ Setup form state (only while configuring a fresh method) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [configuring, setConfiguring] = useState<AppLockMethod | null>(null)
   const [pin, setPin] = useState("")
   const [confirmPin, setConfirmPin] = useState("")
@@ -71,18 +71,18 @@ export function AppLockSetting() {
     setBusy(false)
   }, [])
 
-  // ── Disable the lock entirely ───────────────────────────────────────────────
+  // â”€â”€ Disable the lock entirely â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleDisable = useCallback(() => {
     clearAppLock()
     setPrefs(getAppLockPreferences())
     resetForm()
   }, [resetForm])
 
-  // ── Save a PIN ───────────────────────────────────────────────────────────────
+  // â”€â”€ Save a PIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSavePin = useCallback(async () => {
     if (busy) return
     if (!isValidPin(pin)) {
-      setError(`PIN must be ${MIN_PIN_LENGTH}–${MAX_PIN_LENGTH} digits`)
+      setError(`PIN must be ${MIN_PIN_LENGTH}â€“${MAX_PIN_LENGTH} digits`)
       return
     }
     if (pin !== confirmPin) {
@@ -103,12 +103,12 @@ export function AppLockSetting() {
       clearSessionUnlock()
       resetForm()
     } catch {
-      setError("Couldn't save your PIN — please try again")
+      setError("Couldn't save your PIN â€” please try again")
       setBusy(false)
     }
   }, [busy, pin, confirmPin, persist, resetForm])
 
-  // ── Enroll biometrics ─────────────────────────────────────────────────────────
+  // â”€â”€ Enroll biometrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleEnrollBiometric = useCallback(async () => {
     if (busy) return
     setBusy(true)
@@ -137,27 +137,27 @@ export function AppLockSetting() {
     <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
       <p style={{ ...sectionHeader }}>App lock</p>
 
-      <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, marginBottom: 16 }}>
+      <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, marginBottom: spacing.md }}>
         Ask for a PIN or your device biometrics when Folio reopens. It stays on your
-        device — your account sign-in doesn&rsquo;t change.
+        device â€” your account sign-in doesn&rsquo;t change.
       </p>
 
-      {/* ── Enabled state summary ─────────────────────────────────────────────── */}
+      {/* â”€â”€ Enabled state summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {isEnabled && !configuring && (
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 12,
+            gap: spacing.sm,
             padding: "12px 14px",
             borderRadius: borderRadius.md,
-            background: "rgba(167, 139, 250, 0.1)",
-            border: "1px solid rgba(167, 139, 250, 0.25)",
+            background: "var(--accent-100)",
+            border: "1px solid var(--accent-300)",
           }}
         >
-          <span style={{ fontSize: 14, color: "var(--text)", fontWeight: 500 }}>
-            On · {activeMethodLabel}
+          <span style={{ fontSize: typography.body.fontSize, color: "var(--text)", fontWeight: fontWeights.medium }}>
+            On Â· {activeMethodLabel}
           </span>
           <button
             type="button"
@@ -166,8 +166,8 @@ export function AppLockSetting() {
               background: "none",
               border: "none",
               padding: 0,
-              fontSize: 14,
-              fontWeight: 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.medium,
               color: "var(--sub)",
               cursor: "pointer",
               fontFamily: FONT_FAMILY,
@@ -179,7 +179,7 @@ export function AppLockSetting() {
         </div>
       )}
 
-      {/* ── Method chooser (when off and not yet configuring) ─────────────────── */}
+      {/* â”€â”€ Method chooser (when off and not yet configuring) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {!isEnabled && !configuring && (
         <div style={segmentedControl}>
           <motion.button
@@ -217,15 +217,15 @@ export function AppLockSetting() {
         </div>
       )}
 
-      {/* ── PIN setup form ─────────────────────────────────────────────────────── */}
+      {/* â”€â”€ PIN setup form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {configuring === "pin" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
           <input
             type="password"
             inputMode="numeric"
             autoComplete="off"
             aria-label="Choose a PIN"
-            placeholder={`Choose a ${MIN_PIN_LENGTH}–${MAX_PIN_LENGTH} digit PIN`}
+            placeholder={`Choose a ${MIN_PIN_LENGTH}â€“${MAX_PIN_LENGTH} digit PIN`}
             value={pin}
             onChange={(e) => {
               setPin(e.target.value.replace(/[^0-9]/g, "").slice(0, MAX_PIN_LENGTH))
@@ -246,53 +246,53 @@ export function AppLockSetting() {
             }}
             style={pinInputStyle}
           />
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: spacing.sm }}>
             <button type="button" onClick={resetForm} style={secondaryButtonStyle} aria-label="Cancel PIN setup">
               Cancel
             </button>
             <motion.button
               type="button"
               onClick={() => void handleSavePin()}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.96 }}
               transition={springs.snappy}
               disabled={busy}
               style={primaryButtonStyle(busy)}
               aria-label="Save PIN"
             >
-              {busy ? "Saving…" : "Save PIN"}
+              {busy ? "Savingâ€¦" : "Save PIN"}
             </motion.button>
           </div>
         </div>
       )}
 
-      {/* ── Biometric setup ────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Biometric setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {configuring === "biometric" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5 }}>
             You&rsquo;ll be asked to confirm with Face ID, Touch ID, or your device&rsquo;s
-            unlock. Folio only stores a reference — never your biometric data.
+            unlock. Folio only stores a reference â€” never your biometric data.
           </p>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: spacing.sm }}>
             <button type="button" onClick={resetForm} style={secondaryButtonStyle} aria-label="Cancel biometric setup">
               Cancel
             </button>
             <motion.button
               type="button"
               onClick={() => void handleEnrollBiometric()}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.96 }}
               transition={springs.snappy}
               disabled={busy}
               style={primaryButtonStyle(busy)}
               aria-label="Enable biometric lock"
             >
-              {busy ? "Waiting for device…" : "Enable"}
+              {busy ? "Waiting for deviceâ€¦" : "Enable"}
             </motion.button>
           </div>
         </div>
       )}
 
       {error && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--error)", marginTop: 12 }}>
+        <p role="alert" style={{ fontSize: typography['body-sm'].fontSize, color: "var(--error)", marginTop: spacing.sm }}>
           {error}
         </p>
       )}
@@ -306,11 +306,11 @@ export function AppLockSetting() {
 
 const pinInputStyle: React.CSSProperties = {
   width: "100%",
-  fontSize: 16,
+  fontSize: typography.body.fontSize,
   color: "var(--text)",
   fontFamily: FONT_FAMILY,
   fontVariantNumeric: "tabular-nums",
-  background: "rgba(255,255,255,0.04)",
+  background: "var(--fill-04)",
   border: "1px solid var(--border)",
   borderRadius: borderRadius.md,
   padding: "12px 14px",
@@ -324,8 +324,8 @@ const secondaryButtonStyle: React.CSSProperties = {
   border: "1px solid var(--border)",
   background: "transparent",
   color: "var(--sub)",
-  fontSize: 14,
-  fontWeight: 500,
+  fontSize: typography.body.fontSize,
+  fontWeight: fontWeights.medium,
   fontFamily: FONT_FAMILY,
   cursor: "pointer",
 }
@@ -336,10 +336,10 @@ function primaryButtonStyle(busy: boolean): React.CSSProperties {
     padding: "12px 0",
     borderRadius: borderRadius.sm,
     border: "none",
-    background: busy ? "rgba(167, 139, 250, 0.3)" : "rgba(167, 139, 250, 0.9)",
+    background: busy ? "var(--accent-300)" : "var(--accent-500)",
     color: "var(--text)",
-    fontSize: 14,
-    fontWeight: 600,
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeights.semibold,
     fontFamily: FONT_FAMILY,
     cursor: busy ? "not-allowed" : "pointer",
   }

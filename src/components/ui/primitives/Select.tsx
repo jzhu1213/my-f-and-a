@@ -249,7 +249,7 @@ export function Select({
         onClick={toggleOpen}
         onKeyDown={handleKeyDown}
         className="focus-ring"
-        whileTap={disabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.98 })}
+        whileTap={disabled ? undefined : (prefersReducedMotion ? { opacity: 0.92 } : { scale: 0.96 })}
         transition={prefersReducedMotion ? timings.fast : springs.snappy}
         style={{
           ...baseStyles,

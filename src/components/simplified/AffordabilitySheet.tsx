@@ -11,8 +11,9 @@ import type { IncomeSmoothing } from '@/types/folio'
 import type { FixedExpense } from '@/lib/fixedExpenses'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Icon } from '@/components/ui/Icon'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Props
@@ -110,11 +111,11 @@ export function AffordabilitySheet({
     <BottomSheet isOpen={isOpen} onClose={onClose} maxHeight="70vh" ariaLabel="Can I afford this?">
       <div style={{ padding: '0 24px 36px' }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ textAlign: 'center', marginBottom: spacing.lg }}>
                 <p
                   style={{
-                    fontSize: 16,
-                    fontWeight: 600,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.semibold,
                     color: 'var(--text)',
                     fontFamily: FONT_FAMILY,
                     marginBottom: 4,
@@ -124,7 +125,7 @@ export function AffordabilitySheet({
                 </p>
                 <p
                   style={{
-                    fontSize: 13,
+                    fontSize: typography['body-sm'].fontSize,
                     color: 'var(--muted)',
                     fontFamily: FONT_FAMILY,
                   }}
@@ -147,7 +148,7 @@ export function AffordabilitySheet({
                     style={{
                       fontSize: 28,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 300,
+                      fontWeight: fontWeights.light,
                       color: 'var(--muted)',
                     }}
                   >
@@ -167,7 +168,7 @@ export function AffordabilitySheet({
                       outline: 'none',
                       fontSize: 48,
                       fontFamily: FONT_FAMILY,
-                      fontWeight: 600,
+                      fontWeight: fontWeights.semibold,
                       color: 'var(--text)',
                       textAlign: 'center',
                       width: '100%',
@@ -194,23 +195,23 @@ export function AffordabilitySheet({
                       glow={result.canAfford ? 'healthy' : 'caution'}
                       style={{
                         padding: '20px',
-                        borderRadius: borderRadius.lg,
+                        borderRadius: radius.control,
                         textAlign: 'center',
                       }}
                     >
                       {/* Verdict icon */}
-                      <p style={{ fontSize: 28, marginBottom: 8, display: "flex", justifyContent: "center" }} aria-hidden="true">
+                      <p style={{ fontSize: 28, marginBottom: spacing.xs, display: "flex", justifyContent: "center" }} aria-hidden="true">
                         <Icon name={result.canAfford ? 'toast:success' : 'status:caution'} size={28} />
                       </p>
 
                       {/* Message */}
                       <p
                         style={{
-                          fontSize: 15,
-                          fontWeight: 500,
+                          fontSize: typography.body.fontSize,
+                          fontWeight: fontWeights.medium,
                           color: statusColor,
                           fontFamily: FONT_FAMILY,
-                          marginBottom: 12,
+                          marginBottom: spacing.sm,
                           lineHeight: 1.4,
                         }}
                         role="status"
@@ -224,18 +225,18 @@ export function AffordabilitySheet({
                         style={{
                           display: 'flex',
                           justifyContent: 'center',
-                          gap: 20,
+                          gap: HORIZONTAL_PADDING,
                           flexWrap: 'wrap',
                         }}
                       >
                         <div>
-                          <p style={{ fontSize: 11, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginBottom: 2 }}>
+                          <p style={{ fontSize: typography.caption.fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginBottom: 2 }}>
                             Left today
                           </p>
                           <p
                             style={{
-                              fontSize: 18,
-                              fontWeight: 600,
+                              fontSize: typography.subhead.fontSize,
+                              fontWeight: fontWeights.semibold,
                               color: statusColor,
                               fontFamily: FONT_FAMILY,
                               fontVariantNumeric: 'tabular-nums',
@@ -245,13 +246,13 @@ export function AffordabilitySheet({
                           </p>
                         </div>
                         <div>
-                          <p style={{ fontSize: 11, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginBottom: 2 }}>
+                          <p style={{ fontSize: typography.caption.fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginBottom: 2 }}>
                             Impact
                           </p>
                           <p
                             style={{
-                              fontSize: 18,
-                              fontWeight: 600,
+                              fontSize: typography.subhead.fontSize,
+                              fontWeight: fontWeights.semibold,
                               color: 'var(--text)',
                               fontFamily: FONT_FAMILY,
                               fontVariantNumeric: 'tabular-nums',
@@ -262,13 +263,13 @@ export function AffordabilitySheet({
                         </div>
                         {result.safeToSpendUntilPayday != null && (
                           <div>
-                            <p style={{ fontSize: 11, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginBottom: 2 }}>
+                            <p style={{ fontSize: typography.caption.fontSize, color: 'var(--muted)', fontFamily: FONT_FAMILY, marginBottom: 2 }}>
                               /day til payday
                             </p>
                             <p
                               style={{
-                                fontSize: 18,
-                                fontWeight: 600,
+                                fontSize: typography.subhead.fontSize,
+                                fontWeight: fontWeights.semibold,
                                 color: 'var(--text)',
                                 fontFamily: FONT_FAMILY,
                                 fontVariantNumeric: 'tabular-nums',
@@ -289,7 +290,7 @@ export function AffordabilitySheet({
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
                   <p
                     style={{
-                      fontSize: 13,
+                      fontSize: typography['body-sm'].fontSize,
                       color: 'var(--muted)',
                       fontFamily: FONT_FAMILY,
                       opacity: 0.7,
@@ -301,7 +302,7 @@ export function AffordabilitySheet({
               )}
 
               {/* Close button */}
-              <div style={{ textAlign: 'center', marginTop: 24 }}>
+              <div style={{ textAlign: 'center', marginTop: spacing.lg }}>
                 <motion.button
                   type="button"
                   onClick={onClose}
@@ -309,13 +310,13 @@ export function AffordabilitySheet({
                   transition={springs.bouncy}
                   aria-label="Close affordability check"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: borderRadius.full,
+                    background: 'var(--fill-06)',
+                    border: '1px solid var(--fill-10)',
+                    borderRadius: radius.full,
                     padding: '12px 28px',
                     color: 'var(--sub)',
-                    fontSize: 14,
-                    fontWeight: 500,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.medium,
                     fontFamily: FONT_FAMILY,
                     cursor: 'pointer',
                   }}

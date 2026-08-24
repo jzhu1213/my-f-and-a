@@ -3,7 +3,9 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, timings, useReducedMotion } from '@/lib/animations'
-import { FONT_FAMILY } from '@/styles/typography'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // ServiceWorkerUpdatePrompt — subtle "Update available" toast
@@ -54,67 +56,63 @@ export function ServiceWorkerUpdatePrompt({ visible, onUpdate }: ServiceWorkerUp
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '10px 16px',
-            background: 'rgba(26, 26, 46, 0.92)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--line)',
-            borderRadius: 12,
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0.5px 0 rgba(255,255,255,0.06)',
             maxWidth: 'calc(100vw - 32px)',
           }}
         >
-          {/* Update icon */}
-          <span style={{ color: 'var(--accent)', flexShrink: 0 }}>
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-              <path d="M16 21h5v-5" />
-            </svg>
-          </span>
-
-          {/* Message */}
-          <p
-            style={{
-              color: 'var(--text)',
-              fontFamily: FONT_FAMILY,
-              fontWeight: 400,
-              fontSize: '0.8125rem',
-              lineHeight: 1.4,
-              margin: 0,
-              whiteSpace: 'nowrap',
-            }}
+          <GlassCard
+            elevation="high"
+            className="flex items-center"
+            style={{ gap: spacing.sm, padding: '10px 16px' }}
           >
-            Update available
-          </p>
+            {/* Update icon */}
+            <span style={{ color: 'var(--accent)', flexShrink: 0 }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 21h5v-5" />
+              </svg>
+            </span>
 
-          {/* Tap to refresh button */}
-          <button
-            onClick={onUpdate}
-            style={{
-              color: 'var(--accent)',
-              fontFamily: FONT_FAMILY,
-              fontWeight: 500,
-              fontSize: '0.8125rem',
-              lineHeight: 1.4,
-              background: 'rgba(139, 92, 246, 0.12)',
-              border: 'none',
-              borderRadius: 8,
-              padding: '4px 10px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'background 150ms ease',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)')}
-            aria-label="Tap to refresh and apply update"
-          >
-            Refresh
-          </button>
+            {/* Message */}
+            <p
+              style={{
+                color: 'var(--text)',
+                fontFamily: FONT_FAMILY,
+                fontWeight: fontWeights.regular,
+                fontSize: typography['body-sm'].fontSize,
+                lineHeight: 1.4,
+                margin: 0,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Update available
+            </p>
+
+            {/* Tap to refresh button */}
+            <button
+              onClick={onUpdate}
+              style={{
+                color: 'var(--accent)',
+                fontFamily: FONT_FAMILY,
+                fontWeight: fontWeights.medium,
+                fontSize: typography['body-sm'].fontSize,
+                lineHeight: 1.4,
+                background: 'var(--accent-200)',
+                border: 'none',
+                borderRadius: radius.control,
+                padding: '4px 10px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'background 150ms ease',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-300)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--accent-200)')}
+              aria-label="Tap to refresh and apply update"
+            >
+              Refresh
+            </button>
+          </GlassCard>
         </motion.div>
       )}
     </AnimatePresence>

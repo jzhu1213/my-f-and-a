@@ -12,7 +12,7 @@
 
 import { useState } from "react"
 import { spacingScale } from "@/styles/layout"
-import { typography } from "@/styles/typography"
+import { typography, fontWeights } from '@/styles/typography'
 import { textColors, semanticColors, colorRamp } from "@/styles/colors"
 import { elevations, radius } from "@/styles/surfaces"
 import { SettingsSubScreen } from "./SettingsSubScreen"
@@ -50,7 +50,7 @@ function SectionHeading({ children, id }: { children: string; id?: string }) {
         color: textColors.muted,
         margin: 0,
         marginBottom: spacingScale["12"],
-        fontWeight: 500,
+        fontWeight: fontWeights.medium,
       }}
     >
       {children}
@@ -136,7 +136,7 @@ export function SettingsSpendDownPlansScreen({
                   borderRadius: radius.control,
                 }}
               >
-                <span style={{ fontSize: "20px", flexShrink: 0 }}>{plan.emoji}</span>
+                <span style={{ fontSize: typography.subhead.fontSize, flexShrink: 0 }}>{plan.emoji}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ ...typography.body, color: textColors.text, margin: 0, fontWeight: 500 }}>
                     {plan.label}
@@ -162,7 +162,7 @@ export function SettingsSpendDownPlansScreen({
                       cursor: "pointer",
                       borderRadius: "50%",
                       color: semanticColors.error,
-                      fontSize: "16px",
+                      fontSize: typography.body.fontSize,
                     }}
                   >
                     ✕
@@ -197,7 +197,7 @@ export function SettingsSpendDownPlansScreen({
                 cursor: "pointer",
                 ...typography.body,
                 color: textColors.text,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 textAlign: "center",
               }}
             >
@@ -285,7 +285,7 @@ export function SettingsSpendDownPlansScreen({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "18px",
+                        fontSize: typography.subhead.fontSize,
                         background: emoji === e ? colorRamp.accent[50] : "transparent",
                         border: `1px solid ${emoji === e ? colorRamp.accent[300] : elevations.resting.border}`,
                         borderRadius: radius.control,
@@ -378,12 +378,12 @@ export function SettingsSpendDownPlansScreen({
                     flex: 1,
                     padding: `${spacingScale["12"]} ${spacingScale["16"]}`,
                     background: isFormValid ? colorRamp.accent[400] : elevations.sunken.fill,
-                    color: isFormValid ? "#fff" : textColors.muted,
+                    color: isFormValid ? "var(--text)" : textColors.muted,
                     border: "none",
                     borderRadius: radius.control,
                     cursor: isFormValid ? "pointer" : "not-allowed",
                     ...typography.body,
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                   }}
                 >
                   Add plan

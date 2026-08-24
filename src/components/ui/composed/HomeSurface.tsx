@@ -29,7 +29,7 @@ import { Skeleton } from "@/components/ui/primitives/Skeleton"
 import { EmptyState } from "@/components/ui/primitives/EmptyState"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { spacingScale, CONTENT_MAX_WIDTH, HORIZONTAL_PADDING } from "@/styles/layout"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, fontWeights } from '@/styles/typography'
 import { textColors, colorRamp } from "@/styles/colors"
 import { radius } from "@/styles/surfaces"
 import type { Transaction } from "@/types"
@@ -214,7 +214,7 @@ function ContextualCardSlot({
         transition={prefersReducedMotion ? { type: "tween", duration: 0.15, ease: "easeOut" } : springs.gentle}
         style={{
           background: "var(--color-surface)",
-          border: "1px solid var(--border-resting, rgba(255,255,255,0.06))",
+          border: "1px solid var(--border-resting, var(--fill-06))",
           borderRadius: radius.card,
           padding: spacingScale["16"],
           display: "flex",
@@ -252,7 +252,7 @@ function ContextualCardSlot({
                 color: colorRamp.accent[500],
                 fontFamily: FONT_FAMILY,
                 fontSize: typography.caption.fontSize,
-                fontWeight: 600,
+                fontWeight: fontWeights.semibold,
                 cursor: "pointer",
                 minHeight: "44px",
                 minWidth: "44px",
@@ -277,7 +277,7 @@ function ContextualCardSlot({
                 color: textColors.muted,
                 fontFamily: FONT_FAMILY,
                 fontSize: typography.caption.fontSize,
-                fontWeight: 500,
+                fontWeight: fontWeights.medium,
                 cursor: "pointer",
                 minHeight: "44px",
                 minWidth: "44px",
@@ -432,7 +432,7 @@ export function HomeSurface({
                     color: textColors.muted,
                     fontFamily: FONT_FAMILY,
                     fontSize: typography.caption.fontSize,
-                    fontWeight: 500,
+                    fontWeight: fontWeights.medium,
                     cursor: "pointer",
                     minHeight: "44px",
                     minWidth: "44px",

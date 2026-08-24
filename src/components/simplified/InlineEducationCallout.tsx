@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -57,17 +57,17 @@ export function InlineEducationCallout({
           style={{
             display: 'flex',
             alignItems: 'flex-start',
-            gap: 10,
+            gap: spacing.sm,
             padding: '12px 14px',
-            background: 'rgba(99, 179, 237, 0.05)',
-            border: '1px solid rgba(99, 179, 237, 0.1)',
-            borderRadius: borderRadius.md,
+            background: 'var(--blue-50)',
+            border: '1px solid var(--blue-100)',
+            borderRadius: radius.control,
             position: 'relative',
           }}
           role="note"
           aria-label={title ?? 'Educational insight'}
         >
-          <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }} aria-hidden="true">
+          <span style={{ fontSize: typography.body.fontSize, flexShrink: 0, marginTop: 1 }} aria-hidden="true">
             {emoji}
           </span>
 
@@ -76,8 +76,8 @@ export function InlineEducationCallout({
               <p
                 style={{
                   margin: '0 0 2px 0',
-                  fontSize: 13,
-                  fontWeight: 600,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.semibold,
                   color: 'var(--text)',
                   fontFamily: FONT_FAMILY,
                   lineHeight: 1.3,
@@ -89,7 +89,7 @@ export function InlineEducationCallout({
             <p
               style={{
                 margin: 0,
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 lineHeight: 1.5,
                 color: 'var(--sub)',
                 fontFamily: FONT_FAMILY,
@@ -112,7 +112,7 @@ export function InlineEducationCallout({
                 cursor: 'pointer',
                 padding: 4,
                 color: 'var(--muted)',
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 lineHeight: 1,
               }}
               aria-label="Dismiss educational insight"

@@ -17,7 +17,7 @@
 
 import { motion } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, fontWeights } from '@/styles/typography'
 import { spacingScale } from "@/styles/layout"
 import { radius } from "@/styles/surfaces"
 import { colorRamp, textColors } from "@/styles/colors"
@@ -78,8 +78,8 @@ export function ErrorState({
           alignItems: "center",
           justifyContent: "center",
           color: colorRamp.error[500],
-          fontSize: "1.25rem",
-          fontWeight: 700,
+          fontSize: typography.subhead.fontSize,
+          fontWeight: fontWeights.bold,
         }}
       >
         !
@@ -113,7 +113,7 @@ export function ErrorState({
         <motion.button
           type="button"
           onClick={onRetry}
-          whileTap={{ scale: prefersReducedMotion ? 1 : 0.98 }}
+          whileTap={{ scale: prefersReducedMotion ? 1 : 0.96 }}
           transition={springs.snappy}
           style={{
             marginTop: spacingScale["4"],
@@ -124,7 +124,7 @@ export function ErrorState({
             color: colorRamp.error[500],
             fontFamily: FONT_FAMILY,
             fontSize: typography["body-sm"].fontSize,
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             cursor: "pointer",
             minHeight: 44,
             minWidth: 44,

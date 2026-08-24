@@ -24,7 +24,7 @@ import { useEffect, useState } from "react"
 import { motion, useReducedMotion as useFramerReducedMotion } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { colorRamp } from "@/styles/colors"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, fontWeights } from '@/styles/typography'
 
 // ============================================================================
 // Types
@@ -192,7 +192,7 @@ export function ProgressRing({
           aria-hidden="true"
           style={{
             fontSize,
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             color: "var(--text)",
             fontFamily: FONT_FAMILY,
             fontVariantNumeric: "tabular-nums",

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { springs } from "@/lib/animations"
 import { Card } from "@/components/ui/Card"
 import { Icon } from "@/components/ui/Icon"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -14,6 +14,7 @@ import {
   borderRadius,
   linkButton,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { BUDGET_CATEGORIES } from "@/types"
 import type { CustomCategory } from "@/types/folio"
 import type { CategoryGridPreference } from "@/lib/categoryGridPreferences"
@@ -124,10 +125,10 @@ function EmojiPicker({
   onClose: () => void
 }) {
   const commonEmojis = [
-    "🍕", "🏠", "🚲", "📚", "🎶", "💪", "🔄", "📦",
-    "☕", "🎮", "🛒", "✈️", "💊", "🎬", "🐕", "🌿",
-    "💈", "🎁", "🏋️", "🧹", "🔧", "📱", "👕", "🍳",
-    "🚗", "🎓", "💡", "🏥", "🎵", "🛍️", "🏖️", "🧑‍💻",
+    "ðŸ•", "ðŸ ", "ðŸš²", "ðŸ“š", "ðŸŽ¶", "ðŸ’ª", "ðŸ”„", "ðŸ“¦",
+    "â˜•", "ðŸŽ®", "ðŸ›’", "âœˆï¸", "ðŸ’Š", "ðŸŽ¬", "ðŸ•", "ðŸŒ¿",
+    "ðŸ’ˆ", "ðŸŽ", "ðŸ‹ï¸", "ðŸ§¹", "ðŸ”§", "ðŸ“±", "ðŸ‘•", "ðŸ³",
+    "ðŸš—", "ðŸŽ“", "ðŸ’¡", "ðŸ¥", "ðŸŽµ", "ðŸ›ï¸", "ðŸ–ï¸", "ðŸ§‘â€ðŸ’»",
   ]
 
   return (
@@ -143,7 +144,7 @@ function EmojiPicker({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(14, 14, 26, 0.7)",
+        background: "var(--color-canvas)",
         backdropFilter: "blur(4px)",
       }}
       onClick={onClose}
@@ -159,20 +160,20 @@ function EmojiPicker({
           width: "90%",
         }}
       >
-        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 12, fontFamily: FONT_FAMILY }}>
+        <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", marginBottom: spacing.sm, fontFamily: FONT_FAMILY }}>
           Pick an emoji
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: spacing.xs }}>
           {commonEmojis.map(emoji => (
             <button
               key={emoji}
               onClick={() => { onSelect(emoji); onClose() }}
               style={{
-                background: emoji === currentEmoji ? "rgba(255,255,255,0.1)" : "transparent",
+                background: emoji === currentEmoji ? "var(--fill-10)" : "transparent",
                 border: emoji === currentEmoji ? "1px solid var(--border)" : "1px solid transparent",
-                borderRadius: 8,
+                borderRadius: radius.control,
                 padding: 6,
-                fontSize: 20,
+                fontSize: typography.subhead.fontSize,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -194,7 +195,7 @@ function EmojiPicker({
 // ============================================================================
 
 /**
- * CategoryHubScreen — full-screen overlay for managing all categories
+ * CategoryHubScreen â€” full-screen overlay for managing all categories
  * (built-in + custom) in a single unified list.
  *
  * Supports: add, rename, re-emoji, reorder, and archive categories.
@@ -218,13 +219,13 @@ export function CategoryHubScreen({
   const [emojiPickerTarget, setEmojiPickerTarget] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newLabel, setNewLabel] = useState("")
-  const [newEmoji, setNewEmoji] = useState("📦")
+  const [newEmoji, setNewEmoji] = useState("ðŸ“¦")
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   // Rebuild when custom categories change externally
   const itemIds = useMemo(() => items.map(i => i.id).join(","), [items])
 
-  // ── Handlers ──────────────────────────────────────────────────────
+  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function handleMoveUp(index: number) {
     if (index <= 0) return
@@ -321,7 +322,7 @@ export function CategoryHubScreen({
       setItems(next)
       saveListToPrefs(next)
       setNewLabel("")
-      setNewEmoji("📦")
+      setNewEmoji("ðŸ“¦")
       setShowAddForm(false)
     }
   }
@@ -342,7 +343,7 @@ export function CategoryHubScreen({
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const activeItems = items.filter(i => !i.archived)
   const archivedItems = items.filter(i => i.archived)
@@ -356,8 +357,8 @@ export function CategoryHubScreen({
         fontFamily: FONT_FAMILY,
       }}
     >
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 20 }}>
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <div style={{ display: "flex", alignItems: "center", marginBottom: HORIZONTAL_PADDING }}>
         <motion.button
           onClick={onClose}
           whileTap={{ scale: 0.95 }}
@@ -365,20 +366,20 @@ export function CategoryHubScreen({
           style={{
             background: "none",
             border: "none",
-            fontSize: 20,
+            fontSize: typography.subhead.fontSize,
             color: "var(--text)",
             cursor: "pointer",
             padding: "4px 8px",
-            marginRight: 12,
+            marginRight: spacing.sm,
           }}
           aria-label="Go back"
         >
-          ←
+          â†
         </motion.button>
         <h1
           style={{
-            fontSize: 22,
-            fontWeight: 700,
+            fontSize: typography.headline.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             flex: 1,
           }}
@@ -390,12 +391,12 @@ export function CategoryHubScreen({
           whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            background: "var(--fill-06)",
+            border: "1px solid var(--fill-10)",
             borderRadius: borderRadius.full,
             padding: "8px 14px",
-            fontSize: 13,
-            fontWeight: 500,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
             color: "var(--text)",
             cursor: "pointer",
             fontFamily: FONT_FAMILY,
@@ -406,11 +407,11 @@ export function CategoryHubScreen({
         </motion.button>
       </div>
 
-      <p style={{ fontSize: 13, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>
+      <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}>
         Reorder, rename, change emojis, or archive categories. Archived categories still appear in your history.
       </p>
 
-      {/* ── Add Form ──────────────────────────────────────────── */}
+      {/* â”€â”€ Add Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {showAddForm && (
           <motion.div
@@ -418,18 +419,18 @@ export function CategoryHubScreen({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={springs.snappy}
-            style={{ overflow: "hidden", marginBottom: 16 }}
+            style={{ overflow: "hidden", marginBottom: spacing.md }}
           >
             <Card style={{ padding: "16px 18px" }}>
-              <p style={{ ...sectionHeader, marginBottom: 12 }}>New Category</p>
-              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}>
+              <p style={{ ...sectionHeader, marginBottom: spacing.sm }}>New Category</p>
+              <div style={{ display: "flex", gap: spacing.sm, alignItems: "center", marginBottom: 12 }}>
                 <button
                   onClick={() => setEmojiPickerTarget("__new__")}
                   style={{
-                    fontSize: 24,
-                    background: "rgba(255,255,255,0.04)",
+                    fontSize: typography.headline.fontSize,
+                    background: "var(--fill-04)",
                     border: "1px solid var(--border)",
-                    borderRadius: 8,
+                    borderRadius: radius.control,
                     padding: "6px 10px",
                     cursor: "pointer",
                   }}
@@ -445,11 +446,11 @@ export function CategoryHubScreen({
                   maxLength={30}
                   style={{
                     flex: 1,
-                    background: "rgba(255,255,255,0.04)",
+                    background: "var(--fill-04)",
                     border: "1px solid var(--border)",
-                    borderRadius: 8,
+                    borderRadius: radius.control,
                     padding: "10px 12px",
-                    fontSize: 14,
+                    fontSize: typography.body.fontSize,
                     color: "var(--text)",
                     fontFamily: FONT_FAMILY,
                     outline: "none",
@@ -458,7 +459,7 @@ export function CategoryHubScreen({
                   onKeyDown={e => { if (e.key === "Enter") handleAddCategory() }}
                 />
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: spacing.xs }}>
                 <motion.button
                   onClick={handleAddCategory}
                   whileTap={{ scale: 0.97 }}
@@ -467,12 +468,12 @@ export function CategoryHubScreen({
                   style={{
                     flex: 1,
                     padding: "10px 0",
-                    borderRadius: 8,
+                    borderRadius: radius.control,
                     border: "none",
-                    background: newLabel.trim() ? "var(--accent)" : "rgba(255,255,255,0.04)",
+                    background: newLabel.trim() ? "var(--accent)" : "var(--fill-04)",
                     color: newLabel.trim() ? "var(--text)" : "var(--muted)",
-                    fontSize: 13,
-                    fontWeight: 600,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     cursor: newLabel.trim() ? "pointer" : "not-allowed",
                   }}
@@ -480,17 +481,17 @@ export function CategoryHubScreen({
                   Add Category
                 </motion.button>
                 <motion.button
-                  onClick={() => { setShowAddForm(false); setNewLabel(""); setNewEmoji("📦") }}
+                  onClick={() => { setShowAddForm(false); setNewLabel(""); setNewEmoji("ðŸ“¦") }}
                   whileTap={{ scale: 0.97 }}
                   transition={springs.snappy}
                   style={{
                     padding: "10px 16px",
-                    borderRadius: 8,
+                    borderRadius: radius.control,
                     border: "1px solid var(--border)",
                     background: "transparent",
                     color: "var(--sub)",
-                    fontSize: 13,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     fontFamily: FONT_FAMILY,
                     cursor: "pointer",
                   }}
@@ -503,11 +504,11 @@ export function CategoryHubScreen({
         )}
       </AnimatePresence>
 
-      {/* ── Active Categories ─────────────────────────────────── */}
-      <p style={{ ...sectionHeader, marginBottom: 12 }}>
+      {/* â”€â”€ Active Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <p style={{ ...sectionHeader, marginBottom: spacing.sm }}>
         Active ({activeItems.length})
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs, marginBottom: 24 }}>
         {activeItems.map((item, idx) => {
           const globalIdx = items.indexOf(item)
           return (
@@ -517,17 +518,17 @@ export function CategoryHubScreen({
               transition={springs.snappy}
             >
               <Card style={{ padding: "12px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
                   {/* Emoji (clickable to change) */}
                   <button
                     onClick={() => setEmojiPickerTarget(item.id)}
                     style={{
-                      fontSize: 20,
+                      fontSize: typography.subhead.fontSize,
                       background: "transparent",
                       border: "none",
                       cursor: "pointer",
                       padding: 4,
-                      borderRadius: 6,
+                      borderRadius: radius.min,
                     }}
                     aria-label={`Change emoji for ${item.label}`}
                   >
@@ -550,11 +551,11 @@ export function CategoryHubScreen({
                         maxLength={30}
                         style={{
                           width: "100%",
-                          background: "rgba(255,255,255,0.04)",
+                          background: "var(--fill-04)",
                           border: "1px solid var(--border)",
-                          borderRadius: 6,
+                          borderRadius: radius.min,
                           padding: "6px 8px",
-                          fontSize: 14,
+                          fontSize: typography.body.fontSize,
                           color: "var(--text)",
                           fontFamily: FONT_FAMILY,
                           outline: "none",
@@ -568,8 +569,8 @@ export function CategoryHubScreen({
                           background: "none",
                           border: "none",
                           padding: 0,
-                          fontSize: 14,
-                          fontWeight: 500,
+                          fontSize: typography.body.fontSize,
+                          fontWeight: fontWeights.medium,
                           color: "var(--text)",
                           cursor: "pointer",
                           fontFamily: FONT_FAMILY,
@@ -579,7 +580,7 @@ export function CategoryHubScreen({
                       >
                         {item.label}
                         {item.isCustom && (
-                          <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 6 }}>custom</span>
+                          <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginLeft: 6 }}>custom</span>
                         )}
                       </button>
                     )}
@@ -593,7 +594,7 @@ export function CategoryHubScreen({
                       style={{
                         background: "none",
                         border: "none",
-                        fontSize: 14,
+                        fontSize: typography.body.fontSize,
                         color: globalIdx === 0 ? "var(--muted)" : "var(--sub)",
                         cursor: globalIdx === 0 ? "default" : "pointer",
                         padding: "4px 6px",
@@ -601,7 +602,7 @@ export function CategoryHubScreen({
                       }}
                       aria-label={`Move ${item.label} up`}
                     >
-                      ▲
+                      â–²
                     </button>
                     <button
                       onClick={() => handleMoveDown(globalIdx)}
@@ -609,7 +610,7 @@ export function CategoryHubScreen({
                       style={{
                         background: "none",
                         border: "none",
-                        fontSize: 14,
+                        fontSize: typography.body.fontSize,
                         color: globalIdx === items.length - 1 ? "var(--muted)" : "var(--sub)",
                         cursor: globalIdx === items.length - 1 ? "default" : "pointer",
                         padding: "4px 6px",
@@ -617,19 +618,19 @@ export function CategoryHubScreen({
                       }}
                       aria-label={`Move ${item.label} down`}
                     >
-                      ▼
+                      â–¼
                     </button>
                   </div>
 
                   {/* Archive button */}
                   <motion.button
                     onClick={() => handleToggleArchive(item.id)}
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.95 }}
                     transition={springs.snappy}
                     style={{
                       background: "none",
                       border: "none",
-                      fontSize: 14,
+                      fontSize: typography.body.fontSize,
                       color: "var(--sub)",
                       cursor: "pointer",
                       padding: "4px 6px",
@@ -644,22 +645,22 @@ export function CategoryHubScreen({
                   {item.isCustom && (
                     <motion.button
                       onClick={() => handleDeleteCustom(item.id)}
-                      whileTap={{ scale: 0.9 }}
+                      whileTap={{ scale: 0.95 }}
                       transition={springs.snappy}
                       style={{
-                        background: confirmDeleteId === item.id ? "rgba(239, 68, 68, 0.15)" : "none",
+                        background: confirmDeleteId === item.id ? "var(--error-200)" : "none",
                         border: "none",
                         fontSize: confirmDeleteId === item.id ? 11 : 14,
                         fontWeight: confirmDeleteId === item.id ? 600 : undefined,
-                        color: "rgba(248, 113, 113, 0.8)",
+                        color: "var(--error-500)",
                         cursor: "pointer",
                         padding: "4px 6px",
-                        borderRadius: 6,
+                        borderRadius: radius.min,
                       }}
                       aria-label={confirmDeleteId === item.id ? `Confirm delete ${item.label}` : `Delete ${item.label}`}
                       title={confirmDeleteId === item.id ? "Confirm delete" : "Delete"}
                     >
-                      {confirmDeleteId === item.id ? "Sure?" : "✕"}
+                      {confirmDeleteId === item.id ? "Sure?" : "âœ•"}
                     </motion.button>
                   )}
                 </div>
@@ -669,35 +670,35 @@ export function CategoryHubScreen({
         })}
       </div>
 
-      {/* ── Archived Categories ───────────────────────────────── */}
+      {/* â”€â”€ Archived Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {archivedItems.length > 0 && (
         <>
-          <p style={{ ...sectionHeader, marginBottom: 12 }}>
+          <p style={{ ...sectionHeader, marginBottom: spacing.sm }}>
             Archived ({archivedItems.length})
           </p>
-          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12, lineHeight: 1.4 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginBottom: spacing.sm, lineHeight: 1.4 }}>
             These won&apos;t appear in the quick-log grid but your history stays intact.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs, marginBottom: 24 }}>
             {archivedItems.map(item => (
               <motion.div key={item.id} layout transition={springs.snappy}>
                 <Card style={{ padding: "12px 14px", opacity: 0.7 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 20 }} aria-hidden="true">{item.emoji}</span>
-                    <span style={{ flex: 1, fontSize: 14, color: "var(--sub)", fontFamily: FONT_FAMILY }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+                    <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">{item.emoji}</span>
+                    <span style={{ flex: 1, fontSize: typography.body.fontSize, color: "var(--sub)", fontFamily: FONT_FAMILY }}>
                       {item.label}
                       {item.isCustom && (
-                        <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 6 }}>custom</span>
+                        <span style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", marginLeft: 6 }}>custom</span>
                       )}
                     </span>
                     <motion.button
                       onClick={() => handleToggleArchive(item.id)}
-                      whileTap={{ scale: 0.9 }}
+                      whileTap={{ scale: 0.95 }}
                       transition={springs.snappy}
                       style={{
                         background: "none",
                         border: "none",
-                        fontSize: 13,
+                        fontSize: typography['body-sm'].fontSize,
                         color: "var(--sub)",
                         cursor: "pointer",
                         padding: "4px 8px",
@@ -715,14 +716,14 @@ export function CategoryHubScreen({
         </>
       )}
 
-      {/* ── Emoji Picker Overlay ──────────────────────────────── */}
+      {/* â”€â”€ Emoji Picker Overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {emojiPickerTarget && (
           <EmojiPicker
             currentEmoji={
               emojiPickerTarget === "__new__"
                 ? newEmoji
-                : (items.find(i => i.id === emojiPickerTarget)?.emoji ?? "📦")
+                : (items.find(i => i.id === emojiPickerTarget)?.emoji ?? "ðŸ“¦")
             }
             onSelect={(emoji) => {
               if (emojiPickerTarget === "__new__") {

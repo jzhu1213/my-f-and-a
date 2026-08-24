@@ -12,7 +12,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { timings } from '@/lib/animations'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, typography } from '@/styles/typography'
 import type { TimeHorizonStats } from '@/lib/timeHorizonStats'
 
 // ============================================================================
@@ -33,14 +33,14 @@ const pillStyle: React.CSSProperties = {
   justifyContent: 'center',
   gap: 6,
   padding: '6px 14px',
-  background: 'rgba(255, 255, 255, 0.04)',
-  border: '1px solid rgba(255, 255, 255, 0.08)',
+  background: 'var(--fill-04)',
+  border: '1px solid var(--fill-08)',
   borderRadius: 'var(--radius-full)',
   width: 'fit-content',
 }
 
 const textStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: typography['body-sm'].fontSize,
   color: 'var(--sub)',
   fontFamily: FONT_FAMILY,
   opacity: 0.85,
@@ -113,7 +113,7 @@ export function TimeHorizonPills({ stats }: TimeHorizonPillsProps) {
           {...motionProps}
           style={pillStyle}
         >
-          <span style={{ fontSize: 13 }} aria-hidden="true">
+          <span style={{ fontSize: typography['body-sm'].fontSize }} aria-hidden="true">
             {pill.emoji}
           </span>
           <span style={textStyle}>{pill.text}</span>

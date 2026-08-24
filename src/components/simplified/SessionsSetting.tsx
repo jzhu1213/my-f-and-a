@@ -5,8 +5,9 @@ import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { useAuth } from "@/contexts/AuthContext"
-import { FONT_FAMILY } from "@/styles/typography"
-import { sectionHeader, borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { sectionHeader } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import {
   describeCurrentDevice,
   formatLastSeen,
@@ -125,18 +126,18 @@ export function SessionsSetting() {
   const otherCount = sessions.filter((s) => !s.isCurrent).length
 
   return (
-    <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: 16 }}>
+    <GlassCard elevation="low" style={{ padding: "18px 20px", marginTop: spacing.md }}>
       <p style={{ ...sectionHeader }}>Where you&rsquo;re signed in</p>
 
-      <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, marginBottom: 16 }}>
+      <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, marginBottom: spacing.md }}>
         The devices with Folio open on your account. Sign out any you don&rsquo;t recognise —
         it&rsquo;s always your call.
       </p>
 
       {loading ? (
-        <p style={{ fontSize: 13, color: "var(--muted)" }}>Loading your devices…</p>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)" }}>Loading your devices…</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
           {sessions.map((session) => (
             <div
               key={session.deviceId}
@@ -144,26 +145,26 @@ export function SessionsSetting() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: 12,
+                gap: spacing.sm,
                 padding: "12px 14px",
-                borderRadius: borderRadius.md,
+                borderRadius: radius.control,
                 background: session.isCurrent
-                  ? "rgba(167, 139, 250, 0.1)"
-                  : "rgba(255,255,255,0.04)",
+                  ? "var(--accent-100)"
+                  : "var(--fill-04)",
                 border: session.isCurrent
-                  ? "1px solid rgba(167, 139, 250, 0.25)"
+                  ? "1px solid var(--accent-300)"
                   : "1px solid var(--border)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1.2 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, minWidth: 0 }}>
+                <span aria-hidden="true" style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.2 }}>
                   {deviceEmoji(session.label)}
                 </span>
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: 14,
-                      fontWeight: 600,
+                      fontSize: typography.body.fontSize,
+                      fontWeight: fontWeights.semibold,
                       color: "var(--text)",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
@@ -172,10 +173,10 @@ export function SessionsSetting() {
                   >
                     {session.label}
                     {session.isCurrent && (
-                      <span style={{ color: "var(--sub)", fontWeight: 500 }}> · This device</span>
+                      <span style={{ color: "var(--sub)", fontWeight: fontWeights.medium }}> · This device</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                  <div style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 2 }}>
                     {session.isCurrent ? "Active now" : formatLastSeen(session.lastSeenAt)}
                   </div>
                 </div>
@@ -191,8 +192,8 @@ export function SessionsSetting() {
                     background: "none",
                     border: "none",
                     padding: 0,
-                    fontSize: 13,
-                    fontWeight: 500,
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
                     color: "var(--sub)",
                     cursor: busyId === session.deviceId ? "not-allowed" : "pointer",
                     fontFamily: FONT_FAMILY,
@@ -212,19 +213,19 @@ export function SessionsSetting() {
         <motion.button
           type="button"
           onClick={() => void handleSignOutOthers()}
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
           transition={springs.snappy}
           disabled={signingOutOthers}
           style={{
             width: "100%",
             marginTop: 14,
             padding: "12px 0",
-            borderRadius: borderRadius.sm,
+            borderRadius: radius.control,
             border: "1px solid var(--border)",
             background: "transparent",
             color: "var(--sub)",
-            fontSize: 14,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             cursor: signingOutOthers ? "not-allowed" : "pointer",
           }}
@@ -238,7 +239,7 @@ export function SessionsSetting() {
         <p
           role="status"
           aria-live="polite"
-          style={{ fontSize: 13, color: "var(--sub)", marginTop: 12, lineHeight: 1.5 }}
+          style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: spacing.sm, lineHeight: 1.5 }}
         >
           {status}
         </p>

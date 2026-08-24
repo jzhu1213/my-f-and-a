@@ -11,7 +11,9 @@ import {
   DEFAULT_WEEKLY_RATES,
   type SaveUpScenario,
 } from "@/lib/saveUpPlanUtils"
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -94,8 +96,8 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
     <BottomSheet isOpen={isOpen} onClose={handleClose} maxHeight="85vh" ariaLabel="Plan a big purchase">
       <div style={{ padding: "0 20px 36px" }}>
         {/* ── Header ──────────────────────────────────────────────── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.xs }}>
+          <h2 style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, color: "var(--text)" }}>
             Plan a big purchase
           </h2>
           <motion.button
@@ -107,7 +109,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
               border: "none",
               color: "var(--muted)",
               cursor: "pointer",
-              fontSize: 22,
+              fontSize: typography.headline.fontSize,
               lineHeight: 1,
               padding: 4,
             }}
@@ -116,13 +118,13 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
             ×
           </motion.button>
         </div>
-        <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 24, lineHeight: 1.5 }}>
+        <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", marginBottom: spacing.lg, lineHeight: 1.5 }}>
           See how long it takes to save at different rates. No pressure — just a plan.
         </p>
 
             {/* ── Target amount input ─────────────────────────────────── */}
             <label
-              style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--sub)", marginBottom: 6 }}
+              style={{ display: "block", fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: "var(--sub)", marginBottom: 6 }}
             >
               What are you saving for?
             </label>
@@ -134,20 +136,20 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                fontSize: 15,
+                fontSize: typography.body.fontSize,
                 fontFamily: FONT_FAMILY,
                 color: "var(--text)",
-                background: "rgba(255,255,255,0.04)",
+                background: "var(--fill-04)",
                 border: "1px solid var(--border)",
-                borderRadius: 12,
-                marginBottom: 16,
+                borderRadius: radius.control,
+                marginBottom: spacing.md,
                 outline: "none",
               }}
               aria-label="Purchase name"
             />
 
             <label
-              style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--sub)", marginBottom: 6 }}
+              style={{ display: "block", fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: "var(--sub)", marginBottom: 6 }}
             >
               How much does it cost?
             </label>
@@ -160,21 +162,21 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
               style={{
                 width: "100%",
                 padding: "14px 16px",
-                fontSize: 22,
-                fontWeight: 600,
+                fontSize: typography.headline.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: "var(--text)",
-                background: "rgba(255,255,255,0.04)",
+                background: "var(--fill-04)",
                 border: "1px solid var(--border)",
-                borderRadius: 12,
-                marginBottom: 16,
+                borderRadius: radius.control,
+                marginBottom: spacing.md,
                 outline: "none",
               }}
               aria-label="Target purchase amount"
             />
 
             <label
-              style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--sub)", marginBottom: 6 }}
+              style={{ display: "block", fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: "var(--sub)", marginBottom: 6 }}
             >
               Already saved? (optional)
             </label>
@@ -187,13 +189,13 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                fontSize: 15,
+                fontSize: typography.body.fontSize,
                 fontFamily: FONT_FAMILY,
                 color: "var(--text)",
-                background: "rgba(255,255,255,0.04)",
+                background: "var(--fill-04)",
                 border: "1px solid var(--border)",
-                borderRadius: 12,
-                marginBottom: 24,
+                borderRadius: radius.control,
+                marginBottom: spacing.lg,
                 outline: "none",
               }}
               aria-label="Amount already saved"
@@ -202,10 +204,10 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
             {/* ── Scenarios ───────────────────────────────────────────── */}
             {scenarios.length > 0 && (
               <section aria-label="Timeline scenarios">
-                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 12 }}>
+                <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--muted)", marginBottom: spacing.sm }}>
                   Your options
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
                   <AnimatePresence>
                     {scenarios.map((scenario, i) => {
                       const isSelected = selectedScenario?.label === scenario.label
@@ -223,9 +225,9 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                               padding: "14px 16px",
                               cursor: "pointer",
                               border: isSelected
-                                ? "1px solid rgba(6, 214, 160, 0.4)"
+                                ? "1px solid var(--success-400)"
                                 : "1px solid var(--border)",
-                              borderRadius: 14,
+                              borderRadius: radius.control,
                               transition: "border-color 0.15s ease",
                             }}
                           >
@@ -248,10 +250,10 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                               aria-label={formatScenarioTimeline(scenario)}
                               aria-pressed={isSelected}
                             >
-                              <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>
+                              <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>
                                 {formatScenarioTimeline(scenario)}
                               </span>
-                              <span style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.4 }}>
+                              <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.4 }}>
                                 {scenario.message}
                               </span>
                             </motion.button>
@@ -267,10 +269,10 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
             {/* ── Encouragement when no target yet ────────────────────── */}
             {target <= 0 && (
               <GlassCard elevation="low" style={{ padding: "24px 16px", textAlign: "center" }}>
-                <p style={{ fontSize: 15, color: "var(--text)", marginBottom: 4, fontWeight: 500 }}>
+                <p style={{ fontSize: typography.body.fontSize, color: "var(--text)", marginBottom: 4, fontWeight: fontWeights.medium }}>
                   🎯 Enter an amount above
                 </p>
-                <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5 }}>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5 }}>
                   We&apos;ll show you how quickly you can get there.
                 </p>
               </GlassCard>
@@ -282,7 +284,7 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                 initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={prefersReducedMotion ? timings.fast : springs.gentle}
-                style={{ marginTop: 20 }}
+                style={{ marginTop: HORIZONTAL_PADDING }}
               >
                 <motion.button
                   onClick={handleCreateGoal}
@@ -291,20 +293,20 @@ export function SaveUpPlanSheet({ isOpen, onClose, onCreateGoal }: SaveUpPlanShe
                   style={{
                     width: "100%",
                     padding: "14px 20px",
-                    fontSize: 15,
-                    fontWeight: 600,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: "var(--text)",
                     background: "var(--accent)",
                     border: "none",
-                    borderRadius: 12,
+                    borderRadius: radius.control,
                     cursor: "pointer",
                   }}
                   aria-label="Save this as a goal"
                 >
                   Save this as a goal →
                 </motion.button>
-                <p style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", marginTop: 8 }}>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", textAlign: "center", marginTop: spacing.xs }}>
                   This creates a new savings goal you can track.
                 </p>
               </motion.div>

@@ -39,6 +39,7 @@ import {
   colorRamp,
 } from "@/styles/shared"
 import { semanticColors } from "@/styles/colors"
+import { typography, fontWeights, FONT_FAMILY } from '@/styles/typography'
 
 // ============================================================================
 // Illustration types & SVGs
@@ -365,9 +366,9 @@ export function EmptyState({
             border: "none",
             padding: "6px 12px",
             color: "var(--sub)",
-            fontSize: "0.8125rem",
-            fontWeight: 500,
-            fontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
+            fontFamily: FONT_FAMILY,
             cursor: "pointer",
             opacity: 0.8,
           }}

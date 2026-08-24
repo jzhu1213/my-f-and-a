@@ -3,8 +3,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { springs, useReducedMotion } from '@/lib/animations'
-import { FONT_FAMILY } from '@/styles/typography'
-import { borderRadius } from '@/styles/shared'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING, shadows } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 import type { SpendingMode } from '@/lib/spendingModes'
 
 // ============================================================================
@@ -119,7 +120,7 @@ function IncomeStep({
   return (
     <div className="flex flex-col items-center text-center">
       <motion.span
-        style={{ fontSize: 40, marginBottom: 12 }}
+        style={{ fontSize: 40, marginBottom: spacing.sm }}
         initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
         animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
         transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
@@ -129,23 +130,23 @@ function IncomeStep({
       </motion.span>
       <h2
         style={{
-          fontSize: 20,
-          fontWeight: 700,
+          fontSize: typography.subhead.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
         }}
       >
         How much money do you have to work with each month?
       </h2>
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
           lineHeight: 1.5,
-          marginBottom: 24,
+          marginBottom: spacing.lg,
         }}
       >
         No need to be exact — a rough number works great.
@@ -173,20 +174,20 @@ function IncomeStep({
               aria-label={`$${amount.toLocaleString()} per month`}
               style={{
                 padding: '10px 16px',
-                borderRadius: borderRadius.full,
-                fontSize: 14,
-                fontWeight: 600,
+                borderRadius: radius.full,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 cursor: 'pointer',
                 background: selected
-                  ? 'rgba(129, 140, 248, 0.15)'
-                  : 'rgba(255, 255, 255, 0.04)',
+                  ? 'var(--accent-200)'
+                  : 'var(--fill-04)',
                 border: selected
-                  ? '1.5px solid rgba(129, 140, 248, 0.5)'
-                  : '1px solid rgba(255, 255, 255, 0.08)',
+                  ? '1.5px solid var(--accent-400)'
+                  : '1px solid var(--fill-08)',
                 color: selected ? 'var(--text)' : 'var(--sub)',
                 boxShadow: selected
-                  ? '0 0 12px rgba(129, 140, 248, 0.12)'
+                  ? '0 0 12px var(--accent-200)'
                   : 'none',
               }}
             >
@@ -208,17 +209,17 @@ function IncomeStep({
           aria-label="Enter custom amount"
           style={{
             padding: '10px 16px',
-            borderRadius: borderRadius.full,
-            fontSize: 14,
-            fontWeight: 600,
+            borderRadius: radius.full,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             cursor: 'pointer',
             background: showCustom
-              ? 'rgba(129, 140, 248, 0.15)'
-              : 'rgba(255, 255, 255, 0.04)',
+              ? 'var(--accent-200)'
+              : 'var(--fill-04)',
             border: showCustom
-              ? '1.5px solid rgba(129, 140, 248, 0.5)'
-              : '1px solid rgba(255, 255, 255, 0.08)',
+              ? '1.5px solid var(--accent-400)'
+              : '1px solid var(--fill-08)',
             color: showCustom ? 'var(--text)' : 'var(--sub)',
           }}
         >
@@ -238,8 +239,8 @@ function IncomeStep({
           >
             <span
               style={{
-                fontSize: 18,
-                fontWeight: 600,
+                fontSize: typography.subhead.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 color: 'var(--text)',
               }}
@@ -260,20 +261,20 @@ function IncomeStep({
               style={{
                 width: 120,
                 padding: '10px 14px',
-                borderRadius: borderRadius.md,
-                fontSize: 16,
+                borderRadius: radius.control,
+                fontSize: typography.body.fontSize,
                 fontFamily: FONT_FAMILY,
-                fontWeight: 600,
+                fontWeight: fontWeights.semibold,
                 color: 'var(--text)',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                background: 'var(--fill-04)',
+                border: '1px solid var(--fill-12)',
                 outline: 'none',
                 fontVariantNumeric: 'tabular-nums',
               }}
             />
             <span
               style={{
-                fontSize: 13,
+                fontSize: typography['body-sm'].fontSize,
                 color: 'var(--sub)',
                 fontFamily: FONT_FAMILY,
               }}
@@ -319,7 +320,7 @@ function BiggestBillStep({
   return (
     <div className="flex flex-col items-center text-center">
       <motion.span
-        style={{ fontSize: 40, marginBottom: 12 }}
+        style={{ fontSize: 40, marginBottom: spacing.sm }}
         initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
         animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
         transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
@@ -329,23 +330,23 @@ function BiggestBillStep({
       </motion.span>
       <h2
         style={{
-          fontSize: 20,
-          fontWeight: 700,
+          fontSize: typography.subhead.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
         }}
       >
         What&apos;s your biggest monthly bill?
       </h2>
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
           lineHeight: 1.5,
-          marginBottom: 24,
+          marginBottom: spacing.lg,
         }}
       >
         Usually rent or housing — helps us figure out your daily spending room.
@@ -355,8 +356,8 @@ function BiggestBillStep({
       <div className="flex items-center gap-2 mb-4">
         <span
           style={{
-            fontSize: 18,
-            fontWeight: 600,
+            fontSize: typography.subhead.fontSize,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             color: noBill ? 'var(--muted)' : 'var(--text)',
           }}
@@ -374,13 +375,13 @@ function BiggestBillStep({
           style={{
             width: 140,
             padding: '12px 16px',
-            borderRadius: borderRadius.md,
-            fontSize: 18,
+            borderRadius: radius.control,
+            fontSize: typography.subhead.fontSize,
             fontFamily: FONT_FAMILY,
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             color: noBill ? 'var(--muted)' : 'var(--text)',
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            background: 'var(--fill-04)',
+            border: '1px solid var(--fill-12)',
             outline: 'none',
             fontVariantNumeric: 'tabular-nums',
             opacity: noBill ? 0.5 : 1,
@@ -388,7 +389,7 @@ function BiggestBillStep({
         />
         <span
           style={{
-            fontSize: 13,
+            fontSize: typography['body-sm'].fontSize,
             color: 'var(--sub)',
             fontFamily: FONT_FAMILY,
           }}
@@ -404,19 +405,19 @@ function BiggestBillStep({
         aria-pressed={noBill}
         style={{
           padding: '8px 16px',
-          borderRadius: borderRadius.full,
-          fontSize: 13,
-          fontWeight: 500,
+          borderRadius: radius.full,
+          fontSize: typography['body-sm'].fontSize,
+          fontWeight: fontWeights.medium,
           fontFamily: FONT_FAMILY,
           cursor: 'pointer',
           background: noBill
-            ? 'rgba(129, 140, 248, 0.12)'
-            : 'rgba(255, 255, 255, 0.04)',
+            ? 'var(--accent-200)'
+            : 'var(--fill-04)',
           border: noBill
-            ? '1.5px solid rgba(129, 140, 248, 0.4)'
-            : '1px solid rgba(255, 255, 255, 0.08)',
+            ? '1.5px solid var(--accent-400)'
+            : '1px solid var(--fill-08)',
           color: noBill ? 'var(--text)' : 'var(--sub)',
-          marginBottom: 16,
+          marginBottom: spacing.md,
         }}
       >
         I don&apos;t have a big recurring bill
@@ -429,12 +430,12 @@ function BiggestBillStep({
             key={bill.label}
             style={{
               padding: '6px 10px',
-              borderRadius: borderRadius.full,
-              fontSize: 11,
+              borderRadius: radius.full,
+              fontSize: typography.caption.fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--muted)',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: 'var(--fill-03)',
+              border: '1px solid var(--fill-06)',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -462,7 +463,7 @@ function SpendingModeStep({
   return (
     <div className="flex flex-col items-center text-center">
       <motion.span
-        style={{ fontSize: 40, marginBottom: 12 }}
+        style={{ fontSize: 40, marginBottom: spacing.sm }}
         initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
         animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
         transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
@@ -472,23 +473,23 @@ function SpendingModeStep({
       </motion.span>
       <h2
         style={{
-          fontSize: 20,
-          fontWeight: 700,
+          fontSize: typography.subhead.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--text)',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
         }}
       >
         How do you want Folio to work?
       </h2>
       <p
         style={{
-          fontSize: 13,
+          fontSize: typography['body-sm'].fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           maxWidth: 280,
           lineHeight: 1.5,
-          marginBottom: 24,
+          marginBottom: spacing.lg,
         }}
       >
         You can always change this later in settings.
@@ -514,30 +515,30 @@ function SpendingModeStep({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
+                gap: spacing.sm,
                 padding: '14px 16px',
-                borderRadius: borderRadius.lg,
+                borderRadius: radius.control,
                 cursor: 'pointer',
                 textAlign: 'left',
                 background: selected
-                  ? 'rgba(129, 140, 248, 0.1)'
-                  : 'rgba(255, 255, 255, 0.03)',
+                  ? 'var(--accent-100)'
+                  : 'var(--fill-03)',
                 border: selected
-                  ? '1.5px solid rgba(129, 140, 248, 0.4)'
-                  : '1px solid rgba(255, 255, 255, 0.08)',
+                  ? '1.5px solid var(--accent-400)'
+                  : '1px solid var(--fill-08)',
                 boxShadow: selected
-                  ? '0 0 16px rgba(129, 140, 248, 0.08)'
+                  ? '0 0 16px var(--accent-100)'
                   : 'none',
               }}
             >
-              <span style={{ fontSize: 22, flexShrink: 0 }} aria-hidden="true">
+              <span style={{ fontSize: typography.headline.fontSize, flexShrink: 0 }} aria-hidden="true">
                 {mode.emoji}
               </span>
               <div className="flex-1 min-w-0">
                 <div
                   style={{
-                    fontSize: 14,
-                    fontWeight: 600,
+                    fontSize: typography.body.fontSize,
+                    fontWeight: fontWeights.semibold,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--text)',
                     marginBottom: 2,
@@ -547,7 +548,7 @@ function SpendingModeStep({
                 </div>
                 <div
                   style={{
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     fontFamily: FONT_FAMILY,
                     color: 'var(--sub)',
                     lineHeight: 1.4,
@@ -564,7 +565,7 @@ function SpendingModeStep({
                   style={{
                     width: 20,
                     height: 20,
-                    borderRadius: '50%',
+                    borderRadius: radius.full,
                     background: 'var(--accent)',
                     display: 'flex',
                     alignItems: 'center',
@@ -572,7 +573,7 @@ function SpendingModeStep({
                     flexShrink: 0,
                   }}
                 >
-                  <span style={{ fontSize: 11, color: 'white' }}>✓</span>
+                  <span style={{ fontSize: typography.caption.fontSize, color: 'white' }}>✓</span>
                 </motion.div>
               )}
             </motion.button>
@@ -602,11 +603,11 @@ function AllowancePreview({
       animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
       transition={prefersReducedMotion ? { duration: 0.15 } : springs.gentle}
       style={{
-        marginTop: 20,
+        marginTop: HORIZONTAL_PADDING,
         padding: '16px 20px',
-        borderRadius: borderRadius.lg,
-        background: 'rgba(74, 222, 128, 0.06)',
-        border: '1px solid rgba(74, 222, 128, 0.15)',
+        borderRadius: radius.control,
+        background: 'var(--success-100)',
+        border: '1px solid var(--success-200)',
         textAlign: 'center',
       }}
       role="status"
@@ -615,7 +616,7 @@ function AllowancePreview({
     >
       <p
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--sub)',
           marginBottom: 6,
@@ -629,19 +630,19 @@ function AllowancePreview({
         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
         transition={prefersReducedMotion ? { duration: 0.15 } : springs.bouncy}
         style={{
-          fontSize: 32,
-          fontWeight: 700,
+          fontSize: typography.title.fontSize,
+          fontWeight: fontWeights.bold,
           fontFamily: FONT_FAMILY,
           color: 'var(--success)',
           fontVariantNumeric: 'tabular-nums',
-          textShadow: '0 0 20px rgba(74, 222, 128, 0.3)',
+          textShadow: '0 0 20px var(--success-300)',
         }}
       >
         ${daily}/day
       </motion.div>
       <p
         style={{
-          fontSize: 11,
+          fontSize: typography.caption.fontSize,
           fontFamily: FONT_FAMILY,
           color: 'var(--muted)',
           marginTop: 4,
@@ -749,7 +750,7 @@ export function ConversationalOnboarding({
               style={{
                 width: idx === step ? 24 : 8,
                 height: 8,
-                borderRadius: 4,
+                borderRadius: radius.min,
                 background: idx === step ? 'var(--accent)' : idx < step ? 'var(--accent)' : 'var(--line)',
                 opacity: idx < step ? 0.5 : 1,
               }}

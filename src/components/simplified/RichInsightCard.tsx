@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -6,7 +6,7 @@ import { timings, springs } from "@/lib/animations"
 import type { SpendingInsight } from "@/lib/spendingInsights"
 import { GlassCard } from "@/components/ui/GlassCard"
 import type { GlassGlow } from "@/components/ui/GlassCard"
-import { FONT_FAMILY, typography } from "@/styles/typography"
+import { FONT_FAMILY, typography, spacing, fontWeights } from '@/styles/typography'
 import { textColors } from "@/styles/colors"
 import { spacingScale } from "@/styles/layout"
 
@@ -72,18 +72,18 @@ function getMetricLabel(insight: SpendingInsight): string | null {
       const match = insight.title.match(/(\d+)%/)
       if (!match) return null
       const isDown = insight.title.toLowerCase().includes("down")
-      return isDown ? `↓${match[1]}%` : `↑${match[1]}%`
+      return isDown ? `â†“${match[1]}%` : `â†‘${match[1]}%`
     }
     case "spending_velocity": {
       const match = insight.message.match(/~(\d+)%/)
       if (!match) return null
       const isSlowed = insight.type === "spending_velocity" && insight.tone === "positive"
-      return isSlowed ? `↓${match[1]}%` : `↑${match[1]}%`
+      return isSlowed ? `â†“${match[1]}%` : `â†‘${match[1]}%`
     }
     case "merchant_frequency": {
       // Extract count like "8th" from title
       const match = insight.title.match(/(\d+)(?:st|nd|rd|th)/)
-      return match ? `${match[1]}×` : null
+      return match ? `${match[1]}Ã—` : null
     }
     case "day_of_week": {
       const match = insight.message.match(/(\d+)%\s*more/)
@@ -98,19 +98,19 @@ function getMetricLabel(insight: SpendingInsight): string | null {
 function getExpandedDetail(insight: SpendingInsight): string {
   switch (insight.type) {
     case "under_budget_streak":
-      return "Staying under your daily budget builds momentum. Each day counts toward a healthy rhythm — keep going at your pace."
+      return "Staying under your daily budget builds momentum. Each day counts toward a healthy rhythm â€” keep going at your pace."
     case "category_trend":
       return insight.tone === "positive"
         ? "Your spending in this category has shifted compared to last month. Trends like this can help you spot where your habits are working well."
-        : "Spending in this category has grown compared to last month. This is just awareness — no action needed unless you want to adjust."
+        : "Spending in this category has grown compared to last month. This is just awareness â€” no action needed unless you want to adjust."
     case "spending_velocity":
       return insight.tone === "positive"
         ? "Your daily spending pace has slowed down compared to last week. A natural ebb and flow is totally healthy."
-        : "Your spending pace picked up this week. Sometimes that's seasonal or event-driven — nothing to worry about on its own."
+        : "Your spending pace picked up this week. Sometimes that's seasonal or event-driven â€” nothing to worry about on its own."
     case "merchant_frequency":
-      return "This merchant appears frequently in your recent transactions. Not a problem — just helpful to know where your money flows regularly."
+      return "This merchant appears frequently in your recent transactions. Not a problem â€” just helpful to know where your money flows regularly."
     case "day_of_week":
-      return "One day of the week tends to have higher spending. This is common — weekends, paydays, or social days often look different."
+      return "One day of the week tends to have higher spending. This is common â€” weekends, paydays, or social days often look different."
     default:
       return "This pattern was detected from your recent spending data. It's here to help you stay aware, not to judge."
   }
@@ -121,7 +121,7 @@ function getExpandedDetail(insight: SpendingInsight): string {
 // ============================================================================
 
 /**
- * RichInsightCard — A dismissible, expandable card for displaying a single
+ * RichInsightCard â€” A dismissible, expandable card for displaying a single
  * spending insight with a metric highlight and warm copy.
  *
  * Features:
@@ -161,20 +161,20 @@ export function RichInsightCard({ insight, onDismiss }: RichInsightCardProps) {
           transition={timings.normal}
         >
           <GlassCard elevation="low" glow={glow} style={{ padding: "14px 18px", borderRadius: 14 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: spacing.sm }}>
               {/* Emoji */}
-              <span style={{ fontSize: 20, lineHeight: 1.3 }} aria-hidden="true">
+              <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.3 }} aria-hidden="true">
                 {insight.emoji}
               </span>
 
               {/* Content */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 {/* Title + metric row */}
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: spacing.xs }}>
                   <p
                     style={{
                       ...typography["body-sm"],
-                      fontWeight: 500,
+                      fontWeight: fontWeights.medium,
                       color: textColors.text,
                       flex: 1,
                       minWidth: 0,
@@ -186,8 +186,8 @@ export function RichInsightCard({ insight, onDismiss }: RichInsightCardProps) {
                     <span
                       style={{
                         fontFamily: FONT_FAMILY,
-                        fontSize: 12,
-                        fontWeight: 600,
+                        fontSize: typography['body-sm'].fontSize,
+                        fontWeight: fontWeights.semibold,
                         color: insight.tone === "positive"
                           ? "var(--success)"
                           : insight.tone === "cautionary"
@@ -208,7 +208,7 @@ export function RichInsightCard({ insight, onDismiss }: RichInsightCardProps) {
                 <p
                   style={{
                     ...typography.caption,
-                    fontWeight: 400,
+                    fontWeight: fontWeights.regular,
                     color: textColors.sub,
                     marginTop: spacingScale["4"],
                     lineHeight: 1.45,
@@ -230,8 +230,8 @@ export function RichInsightCard({ insight, onDismiss }: RichInsightCardProps) {
                     marginTop: spacingScale["8"],
                     cursor: "pointer",
                     fontFamily: FONT_FAMILY,
-                    fontSize: 11,
-                    fontWeight: 500,
+                    fontSize: typography.caption.fontSize,
+                    fontWeight: fontWeights.medium,
                     color: "var(--accent)",
                     opacity: 0.85,
                     lineHeight: 1,
@@ -253,12 +253,12 @@ export function RichInsightCard({ insight, onDismiss }: RichInsightCardProps) {
                       <p
                         style={{
                           fontFamily: FONT_FAMILY,
-                          fontSize: 11,
+                          fontSize: typography.caption.fontSize,
                           color: textColors.muted,
                           lineHeight: 1.5,
                           marginTop: spacingScale["8"],
                           paddingTop: spacingScale["8"],
-                          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                          borderTop: "1px solid var(--fill-06)",
                         }}
                       >
                         {expandedDetail}
@@ -278,14 +278,14 @@ export function RichInsightCard({ insight, onDismiss }: RichInsightCardProps) {
                   border: "none",
                   padding: 4,
                   cursor: "pointer",
-                  fontSize: 14,
+                  fontSize: typography.body.fontSize,
                   color: "var(--sub)",
                   opacity: 0.6,
                   lineHeight: 1,
                   flexShrink: 0,
                 }}
               >
-                ✕
+                âœ•
               </button>
             </div>
           </GlassCard>

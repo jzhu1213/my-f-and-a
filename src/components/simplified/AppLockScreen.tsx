@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { HORIZONTAL_PADDING } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { Icon } from "@/components/ui/Icon"
 import {
   getAppLockPreferences,
@@ -119,7 +120,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: 24,
+        padding: spacing.lg,
         fontFamily: FONT_FAMILY,
       }}
     >
@@ -133,7 +134,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 20,
+          gap: HORIZONTAL_PADDING,
         }}
       >
         {/* Lock glyph */}
@@ -143,7 +144,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
             width: 64,
             height: 64,
             borderRadius: "50%",
-            background: "rgba(167, 139, 250, 0.14)",
+            background: "var(--accent-200)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -154,10 +155,10 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
         </div>
 
         <div style={{ textAlign: "center" }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+          <h1 style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", marginBottom: 6 }}>
             Folio is locked
           </h1>
-          <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.5 }}>
+          <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", lineHeight: 1.5 }}>
             {method === "biometric"
               ? "Unlock with your device to pick up where you left off."
               : "Enter your PIN to pick up where you left off."}
@@ -182,13 +183,13 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
                 textAlign: "center",
                 letterSpacing: "0.5em",
                 fontSize: 26,
-                fontWeight: 600,
+                fontWeight: fontWeights.semibold,
                 color: "var(--text)",
                 fontFamily: FONT_FAMILY,
                 fontVariantNumeric: "tabular-nums",
-                background: "rgba(255,255,255,0.04)",
+                background: "var(--fill-04)",
                 border: "1px solid var(--border)",
-                borderRadius: borderRadius.md,
+                borderRadius: radius.control,
                 padding: "14px 16px",
                 outline: "none",
               }}
@@ -196,21 +197,21 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
             <motion.button
               type="button"
               onClick={() => void submitPin()}
-              whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
               transition={springs.snappy}
               disabled={busy || pin.length < MIN_PIN_LENGTH}
               style={{
                 width: "100%",
                 padding: "14px 0",
-                borderRadius: borderRadius.sm,
+                borderRadius: radius.control,
                 border: "none",
                 background:
                   busy || pin.length < MIN_PIN_LENGTH
-                    ? "rgba(167, 139, 250, 0.3)"
-                    : "rgba(167, 139, 250, 0.9)",
+                    ? "var(--accent-300)"
+                    : "var(--accent-500)",
                 color: "var(--text)",
-                fontSize: 15,
-                fontWeight: 600,
+                fontSize: typography.body.fontSize,
+                fontWeight: fontWeights.semibold,
                 fontFamily: FONT_FAMILY,
                 cursor: busy || pin.length < MIN_PIN_LENGTH ? "not-allowed" : "pointer",
               }}
@@ -225,18 +226,18 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
           <motion.button
             type="button"
             onClick={() => void runBiometric()}
-            whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
             transition={springs.snappy}
             disabled={busy}
             style={{
               width: "100%",
               padding: "14px 0",
-              borderRadius: borderRadius.sm,
+              borderRadius: radius.control,
               border: "none",
-              background: busy ? "rgba(167, 139, 250, 0.3)" : "rgba(167, 139, 250, 0.9)",
+              background: busy ? "var(--accent-300)" : "var(--accent-500)",
               color: "var(--text)",
-              fontSize: 15,
-              fontWeight: 600,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.semibold,
               fontFamily: FONT_FAMILY,
               cursor: busy ? "not-allowed" : "pointer",
             }}
@@ -247,7 +248,7 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => void }) {
         )}
 
         {error && (
-          <p role="alert" style={{ fontSize: 13, color: "var(--error)", textAlign: "center" }}>
+          <p role="alert" style={{ fontSize: typography['body-sm'].fontSize, color: "var(--error)", textAlign: "center" }}>
             {error}
           </p>
         )}

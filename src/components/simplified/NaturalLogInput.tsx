@@ -23,8 +23,8 @@ import { getCategoryEmoji } from "@/lib/vocabulary"
 import { BUDGET_CATEGORIES } from "@/types"
 import { springs } from "@/lib/animations"
 import { useReducedMotion } from "@/lib/animations"
-import { FONT_FAMILY } from "@/styles/typography"
-import { borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -151,26 +151,26 @@ export function NaturalLogInput({
     parseResult.reason !== "Empty input"
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
       {/* Input bar */}
       <form onSubmit={handleSubmit} style={{ position: "relative" }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
-            background: "rgba(255, 255, 255, 0.04)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: borderRadius.full,
+            gap: spacing.sm,
+            background: "var(--fill-04)",
+            border: "1px solid var(--fill-10)",
+            borderRadius: radius.full,
             padding: "0 16px",
             transition: "border-color 0.2s",
             ...(input.trim().length > 0
-              ? { borderColor: "rgba(167, 139, 250, 0.4)" }
+              ? { borderColor: "var(--accent-400)" }
               : {}),
           }}
         >
           <span
-            style={{ fontSize: 16, opacity: 0.6 }}
+            style={{ fontSize: typography.body.fontSize, opacity: 0.6 }}
             aria-hidden="true"
           >
             ⚡
@@ -197,8 +197,8 @@ export function NaturalLogInput({
               border: "none",
               outline: "none",
               color: "var(--text)",
-              fontSize: 14,
-              fontWeight: 400,
+              fontSize: typography.body.fontSize,
+              fontWeight: fontWeights.regular,
               fontFamily: FONT_FAMILY,
             }}
             autoComplete="off"
@@ -218,7 +218,7 @@ export function NaturalLogInput({
                 background: "none",
                 border: "none",
                 color: "var(--muted)",
-                fontSize: 16,
+                fontSize: typography.body.fontSize,
                 cursor: "pointer",
                 padding: 4,
                 lineHeight: 1,
@@ -244,11 +244,11 @@ export function NaturalLogInput({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 10,
+              gap: spacing.sm,
               padding: "12px 16px",
-              background: "rgba(167, 139, 250, 0.08)",
-              border: "1px solid rgba(167, 139, 250, 0.25)",
-              borderRadius: borderRadius.md,
+              background: "var(--accent-100)",
+              border: "1px solid var(--accent-300)",
+              borderRadius: radius.control,
             }}
             role="status"
             aria-live="polite"
@@ -258,17 +258,17 @@ export function NaturalLogInput({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: spacing.sm,
                 flexWrap: "wrap",
               }}
             >
-              <span style={{ fontSize: 20 }} aria-hidden="true">
+              <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">
                 {getCategoryEmoji(parseResult.parsed.category)}
               </span>
               <span
                 style={{
-                  fontSize: 18,
-                  fontWeight: 600,
+                  fontSize: typography.subhead.fontSize,
+                  fontWeight: fontWeights.semibold,
                   color: "var(--text)",
                   fontFamily: FONT_FAMILY,
                   fontVariantNumeric: "tabular-nums",
@@ -280,9 +280,9 @@ export function NaturalLogInput({
               </span>
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: typography['body-sm'].fontSize,
                   color: "var(--sub)",
-                  fontWeight: 500,
+                  fontWeight: fontWeights.medium,
                 }}
               >
                 {categoryLabel(parseResult.parsed.category)}
@@ -290,7 +290,7 @@ export function NaturalLogInput({
               {parseResult.parsed.note && (
                 <span
                   style={{
-                    fontSize: 12,
+                    fontSize: typography['body-sm'].fontSize,
                     color: "var(--muted)",
                     fontStyle: "italic",
                   }}
@@ -301,7 +301,7 @@ export function NaturalLogInput({
             </div>
 
             {/* Confirm / Cancel buttons */}
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: spacing.xs }}>
               <button
                 type="button"
                 onClick={handleCancel}
@@ -309,11 +309,11 @@ export function NaturalLogInput({
                   flex: 1,
                   height: 40,
                   background: "transparent",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  borderRadius: borderRadius.sm,
+                  border: "1px solid var(--fill-12)",
+                  borderRadius: radius.control,
                   color: "var(--sub)",
-                  fontSize: 13,
-                  fontWeight: 500,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.medium,
                   cursor: "pointer",
                   fontFamily: FONT_FAMILY,
                 }}
@@ -326,12 +326,12 @@ export function NaturalLogInput({
                 style={{
                   flex: 2,
                   height: 40,
-                  background: "rgba(167, 139, 250, 0.25)",
-                  border: "1px solid rgba(167, 139, 250, 0.5)",
-                  borderRadius: borderRadius.sm,
+                  background: "var(--accent-300)",
+                  border: "1px solid var(--accent-400)",
+                  borderRadius: radius.control,
                   color: "var(--text)",
-                  fontSize: 13,
-                  fontWeight: 600,
+                  fontSize: typography['body-sm'].fontSize,
+                  fontWeight: fontWeights.semibold,
                   cursor: "pointer",
                   fontFamily: FONT_FAMILY,
                 }}
@@ -354,11 +354,11 @@ export function NaturalLogInput({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: spacing.xs,
               padding: "8px 14px",
-              background: "rgba(255, 255, 255, 0.03)",
-              borderRadius: borderRadius.sm,
-              fontSize: 12,
+              background: "var(--fill-03)",
+              borderRadius: radius.control,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--sub)",
             }}
             role="status"
@@ -367,7 +367,7 @@ export function NaturalLogInput({
             <span aria-hidden="true">
               {getCategoryEmoji(parseResult.parsed.category)}
             </span>
-            <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
+            <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: fontWeights.medium }}>
               ${parseResult.parsed.amount % 1 === 0
                 ? parseResult.parsed.amount
                 : parseResult.parsed.amount.toFixed(2)}
@@ -383,7 +383,7 @@ export function NaturalLogInput({
             <span
               style={{
                 marginLeft: "auto",
-                fontSize: 11,
+                fontSize: typography.caption.fontSize,
                 color: "var(--muted)",
                 opacity: 0.7,
               }}
@@ -404,11 +404,11 @@ export function NaturalLogInput({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: spacing.xs,
               padding: "8px 14px",
-              background: "rgba(251, 191, 36, 0.06)",
-              borderRadius: borderRadius.sm,
-              fontSize: 12,
+              background: "var(--warning-100)",
+              borderRadius: radius.control,
+              fontSize: typography['body-sm'].fontSize,
               color: "var(--muted)",
             }}
             role="status"

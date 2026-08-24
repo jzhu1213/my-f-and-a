@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { timings } from "@/lib/animations"
+import { timings, useReducedMotion } from "@/lib/animations"
 import type { AllowanceStatus } from "@/types/folio"
 
 interface AllowanceRingProps {
@@ -53,6 +53,7 @@ export function AllowanceRing({
   strokeWidth = 8,
   children,
 }: AllowanceRingProps) {
+  const prefersReducedMotion = useReducedMotion()
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
 
@@ -117,7 +118,7 @@ export function AllowanceRing({
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
-          transition={timings.slow}
+          transition={prefersReducedMotion ? { duration: 0 } : timings.slow}
           filter="url(#ring-glow)"
         />
 
@@ -133,7 +134,7 @@ export function AllowanceRing({
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
-          transition={timings.slow}
+          transition={prefersReducedMotion ? { duration: 0 } : timings.slow}
         />
       </svg>
 

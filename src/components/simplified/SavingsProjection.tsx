@@ -2,7 +2,8 @@
 
 import { useMemo } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { FONT_FAMILY } from '@/styles/typography'
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { radius } from '@/styles/surfaces'
 import { computeProjectionHorizons } from '@/lib/compoundGrowthUtils'
 import {
   computeRothIraContributionProgress,
@@ -95,8 +96,8 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
       >
         <p
           style={{
-            fontSize: 13,
-            fontWeight: 600,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.semibold,
             color: 'var(--text)',
             fontFamily: FONT_FAMILY,
           }}
@@ -105,8 +106,8 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
         </p>
         <p
           style={{
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             color: 'var(--sub)',
             fontFamily: FONT_FAMILY,
             fontVariantNumeric: 'tabular-nums',
@@ -121,7 +122,7 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 8,
+          gap: spacing.xs,
           marginBottom: hasContributions ? 12 : 0,
         }}
       >
@@ -131,14 +132,14 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
             style={{
               textAlign: 'center',
               padding: '8px 4px',
-              borderRadius: 10,
-              background: 'rgba(255, 255, 255, 0.03)',
+              borderRadius: radius.control,
+              background: 'var(--fill-03)',
             }}
           >
             <p
               style={{
-                fontSize: 11,
-                fontWeight: 500,
+                fontSize: typography.caption.fontSize,
+                fontWeight: fontWeights.medium,
                 color: 'var(--muted)',
                 fontFamily: FONT_FAMILY,
                 marginBottom: 4,
@@ -149,8 +150,8 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
             </p>
             <p
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 color: 'var(--success)',
                 fontFamily: FONT_FAMILY,
                 fontVariantNumeric: 'tabular-nums',
@@ -166,7 +167,7 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
       {hasContributions && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: typography['body-sm'].fontSize,
             color: 'var(--sub)',
             fontFamily: FONT_FAMILY,
             lineHeight: 1.4,
@@ -174,7 +175,7 @@ export function SavingsProjection({ account }: SavingsProjectionProps) {
         >
           Keep contributing ${account.monthlyContribution.toLocaleString('en-US')}/mo — in 10 years
           you&apos;ll have{' '}
-          <span style={{ color: 'var(--success)', fontWeight: 500 }}>
+          <span style={{ color: 'var(--success)', fontWeight: fontWeights.medium }}>
             {formatCurrency(projections[2].amount)}
           </span>
         </p>
@@ -218,7 +219,7 @@ function RothContributionTracker({
       style={{
         marginTop: isFirst ? 0 : 12,
         paddingTop: 12,
-        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+        borderTop: '1px solid var(--fill-06)',
       }}
     >
       {/* Label row: title + contributed / limit */}
@@ -227,13 +228,13 @@ function RothContributionTracker({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'baseline',
-          marginBottom: 8,
+          marginBottom: spacing.xs,
         }}
       >
         <span
           style={{
-            fontSize: 12,
-            fontWeight: 500,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
             color: 'var(--muted)',
             fontFamily: FONT_FAMILY,
           }}
@@ -242,8 +243,8 @@ function RothContributionTracker({
         </span>
         <span
           style={{
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.semibold,
             color: 'var(--sub)',
             fontFamily: FONT_FAMILY,
             fontVariantNumeric: 'tabular-nums',
@@ -265,7 +266,7 @@ function RothContributionTracker({
         style={{
           height: 6,
           borderRadius: 999,
-          background: 'rgba(255, 255, 255, 0.06)',
+          background: 'var(--fill-06)',
           overflow: 'hidden',
         }}
       >
@@ -283,11 +284,11 @@ function RothContributionTracker({
       {/* Warm encouragement / gentle nudge */}
       <p
         style={{
-          fontSize: 12,
+          fontSize: typography['body-sm'].fontSize,
           color: 'var(--sub)',
           fontFamily: FONT_FAMILY,
           lineHeight: 1.4,
-          marginTop: 8,
+          marginTop: spacing.xs,
         }}
       >
         {message}

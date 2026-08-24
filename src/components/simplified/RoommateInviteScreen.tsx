@@ -23,7 +23,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, useReducedMotion } from "@/lib/animations"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
@@ -31,6 +31,7 @@ import {
   sectionHeader,
   borderRadius,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 import { getPools, createPool, type HouseholdPool } from "@/lib/householdPool"
 import {
   buildInviteUrl,
@@ -64,12 +65,12 @@ type Step = "intro" | "pick" | "share"
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   background: "var(--color-sunken)",
   border: "1px solid var(--border)",
-  borderRadius: 10,
+  borderRadius: radius.control,
   outline: "none",
   boxSizing: "border-box",
 }
@@ -77,8 +78,8 @@ const inputStyle: React.CSSProperties = {
 const primaryButton: React.CSSProperties = {
   width: "100%",
   padding: "14px 0",
-  fontSize: 15,
-  fontWeight: 600,
+  fontSize: typography.body.fontSize,
+  fontWeight: fontWeights.semibold,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   background: "var(--accent)",
@@ -89,12 +90,12 @@ const primaryButton: React.CSSProperties = {
 
 const secondaryButton: React.CSSProperties = {
   padding: "12px 16px",
-  fontSize: 14,
-  fontWeight: 500,
+  fontSize: typography.body.fontSize,
+  fontWeight: fontWeights.medium,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
-  background: "rgba(255, 255, 255, 0.06)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
+  background: "var(--fill-06)",
+  border: "1px solid var(--fill-10)",
   borderRadius: borderRadius.sm,
   cursor: "pointer",
 }
@@ -162,24 +163,24 @@ export function RoommateInviteScreen({
         }}
       >
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: HORIZONTAL_PADDING }}>
           <button
             onClick={step === "intro" ? onClose : () => setStep(step === "share" ? "pick" : "intro")}
             style={{
               background: "none",
               border: "none",
               color: "var(--sub)",
-              fontSize: 14,
+              fontSize: typography.body.fontSize,
               fontFamily: FONT_FAMILY,
               cursor: "pointer",
               padding: "4px 0",
-              marginRight: 12,
+              marginRight: spacing.sm,
             }}
             aria-label={step === "intro" ? "Close" : "Back"}
           >
             ← {step === "intro" ? "Back" : "Back"}
           </button>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", flex: 1 }}>
+          <h2 style={{ fontSize: typography.subhead.fontSize, fontWeight: fontWeights.bold, color: "var(--text)", flex: 1 }}>
             Invite a roommate
           </h2>
         </div>
@@ -256,14 +257,14 @@ function IntroStep({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      style={{ display: "flex", flexDirection: "column", gap: 20 }}
+      style={{ display: "flex", flexDirection: "column", gap: HORIZONTAL_PADDING }}
     >
       <div style={{ textAlign: "center", padding: "12px 0 4px" }}>
         <p style={{ fontSize: 44, marginBottom: 10 }} aria-hidden="true">💌</p>
-        <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>
+        <p style={{ fontSize: 17, fontWeight: fontWeights.semibold, color: "var(--text)", marginBottom: spacing.xs }}>
           Money&apos;s easier together
         </p>
-        <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.6, maxWidth: 360, margin: "0 auto" }}>
+        <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", lineHeight: 1.6, maxWidth: 360, margin: "0 auto" }}>
           Invite a roommate to share a pool or a goal. You split the shared stuff,
           your own daily number stays yours. No pressure, and you can skip this
           anytime.
@@ -274,24 +275,24 @@ function IntroStep({
       {sentInvites.length > 0 && (
         <div>
           <p style={{ ...sectionHeader, marginBottom: 10 }}>People you&apos;ve invited</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
             {sentInvites.map((inv) => (
               <GlassCard key={inv.id} elevation="low" style={{ padding: "12px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                    <span style={{ fontSize: 20 }} aria-hidden="true">{inv.targetEmoji}</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, minWidth: 0 }}>
+                    <span style={{ fontSize: typography.subhead.fontSize }} aria-hidden="true">{inv.targetEmoji}</span>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 14, color: "var(--text)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p style={{ fontSize: typography.body.fontSize, color: "var(--text)", fontWeight: fontWeights.medium, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {inv.roommateName || "A roommate"}
                       </p>
-                      <p style={{ fontSize: 12, color: "var(--sub)" }}>
+                      <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>
                         {inv.targetType === "pool" ? "Pool" : "Goal"} · {inv.targetName}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => onRemoveInvite(inv.id)}
-                    style={{ background: "none", border: "none", fontSize: 12, color: "var(--muted)", cursor: "pointer", flexShrink: 0 }}
+                    style={{ background: "none", border: "none", fontSize: typography['body-sm'].fontSize, color: "var(--muted)", cursor: "pointer", flexShrink: 0 }}
                     aria-label={`Remove invite for ${inv.roommateName || "roommate"}`}
                   >
                     Remove
@@ -303,7 +304,7 @@ function IntroStep({
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm, marginTop: 4 }}>
         <button onClick={onStart} style={primaryButton}>
           Invite a roommate
         </button>
@@ -339,9 +340,9 @@ function PickTargetStep({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      style={{ display: "flex", flexDirection: "column", gap: 20 }}
+      style={{ display: "flex", flexDirection: "column", gap: HORIZONTAL_PADDING }}
     >
-      <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.5 }}>
+      <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", lineHeight: 1.5 }}>
         What do you want to share with your roommate? Pick a shared pool or goal —
         they&apos;ll be able to view it and chip in.
       </p>
@@ -350,7 +351,7 @@ function PickTargetStep({
       {pools.length > 0 && (
         <div>
           <p style={{ ...sectionHeader, marginBottom: 10 }}>Shared pools</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
             {pools.map((pool) => (
               <TargetCard
                 key={pool.id}
@@ -370,7 +371,7 @@ function PickTargetStep({
       {sharedGoals.length > 0 && (
         <div>
           <p style={{ ...sectionHeader, marginBottom: 10 }}>Shared goals</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.xs }}>
             {sharedGoals.map((goal) => {
               const token = goal.shareToken ?? ""
               return (
@@ -391,10 +392,10 @@ function PickTargetStep({
 
       {!hasTargets && (
         <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
-          <p style={{ fontSize: 14, color: "var(--text)", fontWeight: 500, marginBottom: 6 }}>
+          <p style={{ fontSize: typography.body.fontSize, color: "var(--text)", fontWeight: fontWeights.medium, marginBottom: 6 }}>
             Nothing shared yet
           </p>
-          <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5 }}>
             Start a shared pool below to invite your roommate into it. You can also
             make a goal shareable from the Goals screen.
           </p>
@@ -440,13 +441,13 @@ function TargetCard({
   return (
     <motion.div whileTap={{ scale: 0.98 }} transition={springs.snappy}>
       <GlassCard elevation="low" style={{ padding: "14px 16px", cursor: "pointer" }} onClick={onClick}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 22 }} aria-hidden="true">{emoji}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+          <span style={{ fontSize: typography.headline.fontSize }} aria-hidden="true">{emoji}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{title}</p>
-            <p style={{ fontSize: 12, color: "var(--sub)" }}>{subtitle}</p>
+            <p style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.semibold, color: "var(--text)" }}>{title}</p>
+            <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)" }}>{subtitle}</p>
           </div>
-          <span style={{ fontSize: 14, color: "var(--muted)" }} aria-hidden="true">→</span>
+          <span style={{ fontSize: typography.body.fontSize, color: "var(--muted)" }} aria-hidden="true">→</span>
         </div>
       </GlassCard>
     </motion.div>
@@ -474,9 +475,9 @@ function CreatePoolInline({
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
       <GlassCard elevation="low" style={{ padding: 16 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
           <div>
-            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--sub)", marginBottom: 4 }}>Pool name</p>
+            <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: "var(--sub)", marginBottom: 4 }}>Pool name</p>
             <input
               type="text"
               placeholder="e.g. Groceries, Utilities"
@@ -488,7 +489,7 @@ function CreatePoolInline({
             />
           </div>
           <div>
-            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--sub)", marginBottom: 4 }}>Monthly budget</p>
+            <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: "var(--sub)", marginBottom: 4 }}>Monthly budget</p>
             <input
               type="number"
               inputMode="decimal"
@@ -500,7 +501,7 @@ function CreatePoolInline({
               aria-label="Monthly budget"
             />
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: spacing.xs }}>
             <button onClick={onCancel} style={{ ...secondaryButton, flex: 1 }}>
               Cancel
             </button>
@@ -591,15 +592,15 @@ function ShareStep({
       {/* Target header */}
       <div style={{ textAlign: "center", padding: "4px 0" }}>
         <span style={{ fontSize: 40 }} aria-hidden="true">{target.emoji}</span>
-        <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", marginTop: 8 }}>{target.name}</p>
-        <p style={{ fontSize: 13, color: "var(--sub)", marginTop: 2 }}>
+        <p style={{ fontSize: 17, fontWeight: fontWeights.semibold, color: "var(--text)", marginTop: spacing.xs }}>{target.name}</p>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: 2 }}>
           {target.type === "pool" ? "Shared pool" : "Shared goal"}
         </p>
       </div>
 
       {/* Optional roommate name */}
       <div>
-        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--sub)", marginBottom: 4 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.medium, color: "var(--sub)", marginBottom: 4 }}>
           Who are you inviting? (optional)
         </p>
         <input
@@ -615,16 +616,16 @@ function ShareStep({
 
       {/* Preview message */}
       <GlassCard elevation="low" style={{ padding: 16 }}>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, fontWeight: 600 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginBottom: spacing.xs, fontWeight: fontWeights.semibold }}>
           Your invite
         </p>
-        <p style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--text)", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
           {message}
         </p>
       </GlassCard>
 
       {/* Actions */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
         {canNativeShare && (
           <button onClick={handleNativeShare} style={primaryButton}>
             Share invite
@@ -639,7 +640,7 @@ function ShareStep({
       </div>
 
       {/* Follow-up */}
-      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+      <div style={{ display: "flex", gap: spacing.xs, marginTop: 4 }}>
         <button onClick={onInviteAnother} style={{ ...secondaryButton, flex: 1 }}>
           Invite another
         </button>
@@ -648,7 +649,7 @@ function ShareStep({
         </button>
       </div>
 
-      <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", opacity: 0.7, lineHeight: 1.5 }}>
+      <p style={{ fontSize: typography.caption.fontSize, color: "var(--muted)", textAlign: "center", opacity: 0.7, lineHeight: 1.5 }}>
         The link is read-and-contribute only — your roommate never sees your personal budget or daily number.
       </p>
     </motion.div>

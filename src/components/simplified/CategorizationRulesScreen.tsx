@@ -9,8 +9,9 @@ import type { TransactionCategory } from "@/types"
 import type { CategorizationRule, CategorizationRuleUpdate } from "@/lib/categorizationRules"
 import type { FundingSource } from "@/lib/fundingSources"
 import { getCategoryEmoji } from "@/lib/vocabulary"
-import { FONT_FAMILY } from "@/styles/typography"
-import { listRow, borderRadius } from "@/styles/shared"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
+import { listRow } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -58,18 +59,18 @@ const DEFAULT_FORM: RuleFormData = {
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  fontSize: 14,
+  fontSize: typography.body.fontSize,
   fontFamily: FONT_FAMILY,
   color: "var(--text)",
   background: "var(--color-sunken)",
   border: "1px solid var(--border)",
-  borderRadius: 10,
+  borderRadius: radius.control,
   outline: "none",
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 500,
+  fontSize: typography['body-sm'].fontSize,
+  fontWeight: fontWeights.medium,
   color: "var(--sub)",
   marginBottom: 4,
   fontFamily: FONT_FAMILY,
@@ -78,12 +79,12 @@ const labelStyle: React.CSSProperties = {
 function chipStyle(isActive: boolean): React.CSSProperties {
   return {
     padding: "8px 14px",
-    borderRadius: borderRadius.full,
-    border: isActive ? "1.5px solid rgba(129, 140, 248, 0.8)" : "1px solid var(--border)",
-    background: isActive ? "rgba(129, 140, 248, 0.12)" : "var(--fill-04)",
+    borderRadius: radius.full,
+    border: isActive ? "1.5px solid var(--accent-500)" : "1px solid var(--border)",
+    background: isActive ? "var(--accent-200)" : "var(--fill-04)",
     color: isActive ? "var(--text)" : "var(--sub)",
-    fontSize: 13,
-    fontWeight: 500,
+    fontSize: typography['body-sm'].fontSize,
+    fontWeight: fontWeights.medium,
     fontFamily: FONT_FAMILY,
     cursor: "pointer",
   }
@@ -131,7 +132,7 @@ export function CategorizationRulesScreen({
         }}
       >
         <div
-          style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}
+          style={{ display: "flex", alignItems: "center", gap: spacing.sm, flex: 1 }}
           onClick={context.startEdit}
           role="button"
           tabIndex={0}
@@ -141,31 +142,31 @@ export function CategorizationRulesScreen({
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 14, color: "var(--text)", margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: typography.body.fontSize, color: "var(--text)", margin: 0, fontWeight: fontWeights.medium }}>
               &ldquo;{rule.keyword}&rdquo; → {getCategoryEmoji(rule.category)} {rule.category}
             </p>
             {source && (
-              <p style={{ fontSize: 12, color: "var(--muted)", margin: "2px 0 0" }}>
+              <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", margin: "2px 0 0" }}>
                 Routes to {source.emoji} {source.label}
               </p>
             )}
           </div>
         </div>
         {isConfirmingDelete ? (
-          <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+          <div style={{ display: "flex", gap: 4, marginLeft: spacing.xs }}>
             <motion.button
               onClick={confirmDelete}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               style={{
-                background: "rgba(239, 68, 68, 0.15)",
+                background: "var(--error-200)",
                 border: "none",
                 padding: "4px 8px",
                 cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: typography['body-sm'].fontSize,
+                fontWeight: fontWeights.semibold,
                 color: "var(--error)",
-                borderRadius: 6,
+                borderRadius: radius.min,
               }}
               aria-label={`Confirm delete rule for "${rule.keyword}"`}
             >
@@ -173,14 +174,14 @@ export function CategorizationRulesScreen({
             </motion.button>
             <motion.button
               onClick={cancelDelete}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.95 }}
               transition={springs.snappy}
               style={{
                 background: "none",
                 border: "none",
                 padding: "4px 8px",
                 cursor: "pointer",
-                fontSize: 12,
+                fontSize: typography['body-sm'].fontSize,
                 color: "var(--sub)",
               }}
               aria-label="Cancel delete"
@@ -191,16 +192,16 @@ export function CategorizationRulesScreen({
         ) : (
           <motion.button
             onClick={requestDelete}
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.95 }}
             transition={springs.snappy}
             style={{
               background: "none",
               border: "none",
               padding: "4px 8px",
               cursor: "pointer",
-              fontSize: 16,
+              fontSize: typography.body.fontSize,
               color: "var(--error)",
-              marginLeft: 8,
+              marginLeft: spacing.xs,
             }}
             aria-label={`Delete rule for "${rule.keyword}"`}
           >
@@ -305,8 +306,8 @@ function RuleFormWrapper({
     <div
       style={{
         padding: 14,
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.03)",
+        borderRadius: radius.control,
+        background: "var(--fill-03)",
         border: "1px solid var(--border)",
       }}
     >
@@ -326,7 +327,7 @@ function RuleFormWrapper({
       </div>
 
       {/* Category */}
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: spacing.sm }}>
         <p style={labelStyle}>Always categorize as</p>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {BUDGET_CATEGORIES.map(cat => {
@@ -387,7 +388,7 @@ function RuleFormWrapper({
       )}
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: spacing.xs }}>
         <motion.button
           onClick={onCancel}
           whileTap={{ scale: 0.97 }}
@@ -395,13 +396,13 @@ function RuleFormWrapper({
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--text)",
-            background: "rgba(255, 255, 255, 0.06)",
+            background: "var(--fill-06)",
             border: "1px solid var(--border)",
-            borderRadius: borderRadius.full,
+            borderRadius: radius.full,
             cursor: "pointer",
           }}
           aria-label="Cancel"
@@ -416,13 +417,13 @@ function RuleFormWrapper({
           style={{
             flex: 1,
             padding: "10px 16px",
-            fontSize: 14,
-            fontWeight: 600,
+            fontSize: typography.body.fontSize,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             color: canSave ? "var(--text)" : "var(--muted)",
-            background: canSave ? "rgba(129, 140, 248, 0.9)" : "rgba(255,255,255,0.06)",
+            background: canSave ? "var(--accent-500)" : "var(--fill-06)",
             border: "none",
-            borderRadius: borderRadius.full,
+            borderRadius: radius.full,
             cursor: canSave ? "pointer" : "not-allowed",
             opacity: canSave ? 1 : 0.6,
           }}

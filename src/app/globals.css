@@ -282,112 +282,112 @@
 
   /* ════════════════════════════════════════════════════════════════════════
    * LEGACY ALIASES — backward compat with existing components
-   * These map old variable names → same underlying values.
+   * These map old variable names → the canonical design token values.
    * ════════════════════════════════════════════════════════════════════════ */
 
-  /* Surface aliases */
-  --bg:        #12121f;
-  --surface:   #1a1a2e;
-  --raised:    #22223a;
-  --hover:     #2a2a44;
+  /* Surface aliases (reference canonical tokens) */
+  --bg:        var(--color-sunken);
+  --surface:   var(--color-surface);
+  --raised:    var(--color-raised);
+  --hover:     var(--color-overlay);
   --border:    #34344f;
   --line:      #3f3f5a;
-  --text:      #ffffff;
-  --sub:       #b4b4d4;
-  --muted:     #9494b8;
+  --text:      var(--color-text);
+  --sub:       var(--color-sub);
+  --muted:     var(--color-muted);
   --dim:       #2a2a40;
 
-  /* Semantic status */
-  --success:   #4ade80;
-  --warning:   #fbbf24;
-  --caution:   #facc15;
-  --error:     #f87171;
-  --blue:      #60a5fa;
-  --info:      #60a5fa;
+  /* Semantic status (reference canonical ramp 500 values) */
+  --success:   var(--color-success-500);
+  --warning:   var(--color-warning-500);
+  --caution:   var(--color-caution-500);
+  --error:     var(--color-error-500);
+  --blue:      var(--color-blue-500);
+  --info:      var(--color-blue-500);
 
   /* Accent shorthand */
-  --accent:      #818cf8;
-  --accent-muted: rgba(129, 140, 248, 0.15);
+  --accent:      var(--color-accent-500);
+  --accent-muted: var(--color-accent-200);
 
-  /* Accent ramp aliases */
-  --accent-50:  rgba(129, 140, 248, 0.04);
-  --accent-100: rgba(129, 140, 248, 0.08);
-  --accent-200: rgba(129, 140, 248, 0.14);
-  --accent-300: rgba(129, 140, 248, 0.25);
-  --accent-400: rgba(129, 140, 248, 0.40);
-  --accent-500: #818cf8;
-  --accent-600: #6366f1;
-  --accent-700: #4f46e5;
-  --accent-800: #4338ca;
-  --accent-900: #3730a3;
+  /* Accent ramp aliases (reference canonical --color-accent-* tokens) */
+  --accent-50:  var(--color-accent-50);
+  --accent-100: var(--color-accent-100);
+  --accent-200: var(--color-accent-200);
+  --accent-300: var(--color-accent-300);
+  --accent-400: var(--color-accent-400);
+  --accent-500: var(--color-accent-500);
+  --accent-600: var(--color-accent-600);
+  --accent-700: var(--color-accent-700);
+  --accent-800: var(--color-accent-800);
+  --accent-900: var(--color-accent-900);
 
-  /* Success ramp aliases */
-  --success-50:  rgba(74, 222, 128, 0.04);
-  --success-100: rgba(74, 222, 128, 0.08);
-  --success-200: rgba(74, 222, 128, 0.14);
-  --success-300: rgba(74, 222, 128, 0.25);
-  --success-400: rgba(74, 222, 128, 0.40);
-  --success-500: #4ade80;
-  --success-600: #22c55e;
-  --success-700: #16a34a;
-  --success-800: #15803d;
-  --success-900: #166534;
+  /* Success ramp aliases (reference canonical --color-success-* tokens) */
+  --success-50:  var(--color-success-50);
+  --success-100: var(--color-success-100);
+  --success-200: var(--color-success-200);
+  --success-300: var(--color-success-300);
+  --success-400: var(--color-success-400);
+  --success-500: var(--color-success-500);
+  --success-600: var(--color-success-600);
+  --success-700: var(--color-success-700);
+  --success-800: var(--color-success-800);
+  --success-900: var(--color-success-900);
 
-  /* Warning ramp aliases */
-  --warning-50:  rgba(251, 191, 36, 0.04);
-  --warning-100: rgba(251, 191, 36, 0.08);
-  --warning-200: rgba(251, 191, 36, 0.14);
-  --warning-300: rgba(251, 191, 36, 0.25);
-  --warning-400: rgba(251, 191, 36, 0.40);
-  --warning-500: #fbbf24;
-  --warning-600: #eab308;
-  --warning-700: #ca8a04;
-  --warning-800: #a16207;
-  --warning-900: #854d0e;
+  /* Warning ramp aliases (reference canonical --color-warning-* tokens) */
+  --warning-50:  var(--color-warning-50);
+  --warning-100: var(--color-warning-100);
+  --warning-200: var(--color-warning-200);
+  --warning-300: var(--color-warning-300);
+  --warning-400: var(--color-warning-400);
+  --warning-500: var(--color-warning-500);
+  --warning-600: var(--color-warning-600);
+  --warning-700: var(--color-warning-700);
+  --warning-800: var(--color-warning-800);
+  --warning-900: var(--color-warning-900);
 
-  /* Error ramp aliases */
-  --error-50:  rgba(248, 113, 113, 0.04);
-  --error-100: rgba(248, 113, 113, 0.08);
-  --error-200: rgba(248, 113, 113, 0.14);
-  --error-300: rgba(248, 113, 113, 0.25);
-  --error-400: rgba(248, 113, 113, 0.40);
-  --error-500: #f87171;
-  --error-600: #ef4444;
-  --error-700: #dc2626;
-  --error-800: #b91c1c;
-  --error-900: #991b1b;
+  /* Error ramp aliases (reference canonical --color-error-* tokens) */
+  --error-50:  var(--color-error-50);
+  --error-100: var(--color-error-100);
+  --error-200: var(--color-error-200);
+  --error-300: var(--color-error-300);
+  --error-400: var(--color-error-400);
+  --error-500: var(--color-error-500);
+  --error-600: var(--color-error-600);
+  --error-700: var(--color-error-700);
+  --error-800: var(--color-error-800);
+  --error-900: var(--color-error-900);
 
-  /* Caution ramp aliases */
-  --caution-50:  rgba(250, 204, 21, 0.04);
-  --caution-100: rgba(250, 204, 21, 0.08);
-  --caution-200: rgba(250, 204, 21, 0.14);
-  --caution-300: rgba(250, 204, 21, 0.25);
-  --caution-400: rgba(250, 204, 21, 0.40);
-  --caution-500: #facc15;
-  --caution-600: #eab308;
-  --caution-700: #ca8a04;
-  --caution-800: #a16207;
-  --caution-900: #854d0e;
+  /* Caution ramp aliases (reference canonical --color-caution-* tokens) */
+  --caution-50:  var(--color-caution-50);
+  --caution-100: var(--color-caution-100);
+  --caution-200: var(--color-caution-200);
+  --caution-300: var(--color-caution-300);
+  --caution-400: var(--color-caution-400);
+  --caution-500: var(--color-caution-500);
+  --caution-600: var(--color-caution-600);
+  --caution-700: var(--color-caution-700);
+  --caution-800: var(--color-caution-800);
+  --caution-900: var(--color-caution-900);
 
-  /* Blue ramp aliases */
-  --blue-50:  rgba(96, 165, 250, 0.04);
-  --blue-100: rgba(96, 165, 250, 0.08);
-  --blue-200: rgba(96, 165, 250, 0.14);
-  --blue-300: rgba(96, 165, 250, 0.25);
-  --blue-400: rgba(96, 165, 250, 0.40);
-  --blue-500: #60a5fa;
-  --blue-600: #3b82f6;
-  --blue-700: #2563eb;
-  --blue-800: #1d4ed8;
-  --blue-900: #1e40af;
+  /* Blue ramp aliases (reference canonical --color-blue-* tokens) */
+  --blue-50:  var(--color-blue-50);
+  --blue-100: var(--color-blue-100);
+  --blue-200: var(--color-blue-200);
+  --blue-300: var(--color-blue-300);
+  --blue-400: var(--color-blue-400);
+  --blue-500: var(--color-blue-500);
+  --blue-600: var(--color-blue-600);
+  --blue-700: var(--color-blue-700);
+  --blue-800: var(--color-blue-800);
+  --blue-900: var(--color-blue-900);
 
   /* Legacy color shorthand aliases */
-  --green:     #4ade80;
-  --green-glow: rgba(74, 222, 128, 0.10);
-  --red:       #f87171;
-  --red-glow:  rgba(248, 113, 113, 0.10);
-  --amber:     #fbbf24;
-  --blue-glow: rgba(96, 165, 250, 0.10);
+  --green:     var(--color-success-500);
+  --green-glow: var(--color-success-100);
+  --red:       var(--color-error-500);
+  --red-glow:  var(--color-error-100);
+  --amber:     var(--color-warning-500);
+  --blue-glow: var(--color-blue-100);
 
   /* Border radius — legacy values preserved */
   --radius-sm: 8px;
@@ -613,7 +613,7 @@ textarea:focus:not(:focus-visible),
 }
 
 .sheet-handle {
-  width: 40px;
+  width: 36px;
   height: 4px;
   margin: 14px auto 18px;
   background: var(--line);

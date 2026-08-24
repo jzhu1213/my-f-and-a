@@ -20,7 +20,7 @@ import { useReducedMotion } from '@/lib/animations'
 import type { TransactionCategory, Transaction } from '@/types'
 import { parseStatement, type ImportCandidate } from '@/lib/statementImport'
 import { insertTransaction } from '@/lib/supabaseData'
-import { FONT_FAMILY, pxToRem, typography, spacing } from '@/styles/typography'
+import { FONT_FAMILY, pxToRem, typography, spacing, fontWeights } from '@/styles/typography'
 import {
   fills,
   borderRadius,
@@ -31,6 +31,7 @@ import {
   emptyStateSubtitle,
   CONTENT_MAX_WIDTH,
 } from '@/styles/shared'
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -180,7 +181,7 @@ export function StatementImportSheet({
       paddingBottom: 120,
     }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: spacing.lg }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
         <button
           onClick={onBack}
           aria-label="Go back"
@@ -314,7 +315,7 @@ function UploadPhase({
           gap: spacing.md,
           textAlign: 'center',
           border: isDragging
-            ? `2px dashed var(--accent, #a78bfa)`
+            ? `2px dashed var(--accent)`
             : `1px solid ${fills[8]}`,
           background: isDragging ? colorRamp.accent[50] : fills[3],
           borderRadius: borderRadius.lg,
@@ -336,14 +337,14 @@ function UploadPhase({
         </div>
         <button
           style={{
-            marginTop: 8,
+            marginTop: spacing.xs,
             padding: '10px 24px',
-            borderRadius: 9999,
+            borderRadius: radius.full,
             border: 'none',
             background: colorRamp.accent[200],
-            color: 'var(--accent, #a78bfa)',
+            color: 'var(--accent)',
             fontSize: pxToRem(13),
-            fontWeight: 500,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             cursor: 'pointer',
           }}
@@ -370,9 +371,9 @@ function UploadPhase({
           marginTop: spacing.md,
           padding: '12px 16px',
           borderRadius: borderRadius.sm,
-          background: 'rgba(248, 113, 113, 0.1)',
-          border: '1px solid rgba(248, 113, 113, 0.3)',
-          color: 'var(--error, #f87171)',
+          background: 'var(--error-100)',
+          border: '1px solid var(--error-300)',
+          color: 'var(--error)',
           fontSize: pxToRem(13),
           fontFamily: FONT_FAMILY,
         }}>
@@ -435,7 +436,7 @@ function ReviewPhase({
           <p style={{ ...typography.caption, color: 'var(--muted)', margin: '4px 0 0' }}>
             {candidates.length} rows found · {includedCount} selected
             {duplicateCount > 0 && (
-              <span style={{ color: 'var(--warning, #fbbf24)' }}>
+              <span style={{ color: 'var(--warning)' }}>
                 {' '}· {duplicateCount} possible duplicate{duplicateCount > 1 ? 's' : ''}
               </span>
             )}
@@ -457,7 +458,7 @@ function ReviewPhase({
       </div>
 
       {/* Transaction rows */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
         {candidates.map(candidate => (
           <ImportRow
             key={candidate.id}
@@ -479,13 +480,13 @@ function ReviewPhase({
             padding: '14px 0',
             borderRadius: borderRadius.md,
             border: 'none',
-            background: includedCount > 0 ? 'var(--accent, #a78bfa)' : fills[6],
+            background: includedCount > 0 ? 'var(--accent)' : fills[6],
             color: includedCount > 0 ? '#fff' : 'var(--muted)',
             fontSize: pxToRem(15),
-            fontWeight: 600,
+            fontWeight: fontWeights.semibold,
             fontFamily: FONT_FAMILY,
             cursor: includedCount > 0 ? 'pointer' : 'not-allowed',
-            boxShadow: includedCount > 0 ? '0 4px 20px rgba(129, 140, 248, 0.3)' : 'none',
+            boxShadow: includedCount > 0 ? 'var(--shadow-glow-accent-strong)' : 'none',
             transition: 'background 0.2s, box-shadow 0.2s',
           }}
         >
@@ -520,20 +521,20 @@ function ImportRow({
         padding: '12px 14px',
         opacity: candidate.included ? 1 : 0.5,
         borderColor: candidate.isDuplicate
-          ? 'rgba(251, 191, 36, 0.4)'
+          ? 'var(--warning-400)'
           : undefined,
         transition: 'opacity 0.2s',
       }}
     >
       {/* Main row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
         {/* Checkbox */}
         <input
           type="checkbox"
           checked={candidate.included}
           onChange={onToggleIncluded}
           aria-label={`Include ${candidate.description}`}
-          style={{ width: 18, height: 18, flexShrink: 0, cursor: 'pointer', accentColor: 'var(--accent, #a78bfa)' }}
+          style={{ width: 18, height: 18, flexShrink: 0, cursor: 'pointer', accentColor: 'var(--accent)' }}
         />
 
         {/* Content */}
@@ -566,7 +567,7 @@ function ImportRow({
               <p style={{ ...typography.caption, color: 'var(--muted)', margin: '2px 0 0' }}>
                 {candidate.date} · {candidate.category}
                 {candidate.isDuplicate && (
-                  <span style={{ color: 'var(--warning, #fbbf24)', marginLeft: 6 }}>
+                  <span style={{ color: 'var(--warning)', marginLeft: 6 }}>
                     ⚠ possible duplicate
                   </span>
                 )}
@@ -574,11 +575,11 @@ function ImportRow({
             </div>
             <span style={{
               ...typography['body-sm'],
-              fontWeight: 600,
+              fontWeight: fontWeights.semibold,
               fontVariantNumeric: 'tabular-nums',
               color: candidate.type === 'income' ? 'var(--success, #4ade80)' : 'var(--text)',
               flexShrink: 0,
-              marginLeft: 8,
+              marginLeft: spacing.xs,
             }}>
               {candidate.type === 'income' ? '+' : '−'}${candidate.amount.toFixed(2)}
             </span>
@@ -596,9 +597,9 @@ function ImportRow({
             transition={{ duration: 0.2 }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ marginTop: 10, paddingLeft: 28, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ marginTop: 10, paddingLeft: 28, display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
               {/* Category select */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
                 <label
                   style={{ ...typography.caption, color: 'var(--muted)', minWidth: 60 }}
                 >
@@ -627,7 +628,7 @@ function ImportRow({
               </div>
 
               {/* Note input */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
                 <label
                   style={{ ...typography.caption, color: 'var(--muted)', minWidth: 60 }}
                 >
@@ -665,7 +666,7 @@ function ImportRow({
 function DonePhase({ importedCount, onClose }: { importedCount: number; onClose: () => void }) {
   return (
     <div style={{ ...emptyStateContainer, paddingTop: 60 }}>
-      <div style={{ fontSize: 48, lineHeight: 1, marginBottom: 8 }}>✓</div>
+      <div style={{ fontSize: 48, lineHeight: 1, marginBottom: spacing.xs }}>✓</div>
       <div style={{ ...emptyStateTitle }}>
         Imported {importedCount} transaction{importedCount !== 1 ? 's' : ''} from your statement
       </div>
@@ -677,12 +678,12 @@ function DonePhase({ importedCount, onClose }: { importedCount: number; onClose:
         style={{
           marginTop: spacing.md,
           padding: '12px 28px',
-          borderRadius: 9999,
+          borderRadius: radius.full,
           border: 'none',
           background: colorRamp.accent[200],
-          color: 'var(--accent, #a78bfa)',
+          color: 'var(--accent)',
           fontSize: pxToRem(14),
-          fontWeight: 500,
+          fontWeight: fontWeights.medium,
           fontFamily: FONT_FAMILY,
           cursor: 'pointer',
         }}

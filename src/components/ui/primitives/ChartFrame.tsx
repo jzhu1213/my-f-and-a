@@ -25,7 +25,7 @@
 import type { ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
-import { typography, FONT_FAMILY } from "@/styles/typography"
+import { typography, FONT_FAMILY, fontWeights } from '@/styles/typography'
 import { spacingScale } from "@/styles/layout"
 import { radius, elevations } from "@/styles/surfaces"
 import { textColors, colorRamp } from "@/styles/colors"
@@ -220,7 +220,7 @@ export function ChartFrame({
                   color: colorRamp.error[500],
                   fontFamily: FONT_FAMILY,
                   fontSize: typography.caption.fontSize,
-                  fontWeight: 600,
+                  fontWeight: fontWeights.semibold,
                   cursor: "pointer",
                   minHeight: 44,
                   minWidth: 44,

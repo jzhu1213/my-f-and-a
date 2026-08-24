@@ -14,13 +14,14 @@ import type { CancelledSubscription } from "@/lib/subscriptionSavingsTracker"
 import { buildSavingsSummary, getSavingsCopy } from "@/lib/subscriptionSavingsTracker"
 import { TIP_EMOJI } from "@/lib/vocabulary"
 import { CancelNegotiateHelper } from "./CancelNegotiateHelper"
-import { FONT_FAMILY } from "@/styles/typography"
+import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typography'
 import {
   CONTENT_MAX_WIDTH,
   HORIZONTAL_PADDING,
   DOCK_PADDING_BOTTOM,
   sectionHeader,
 } from "@/styles/shared"
+import { radius } from '@/styles/surfaces'
 
 // ============================================================================
 // Types
@@ -84,7 +85,7 @@ function confidenceBadgeStyle(level: ConfidenceBadge['level']): { bg: string; fg
       return { bg: "var(--accent-200)", fg: "var(--accent-300)", border: "var(--accent-300)" }
     case 'low':
     default:
-      return { bg: "rgba(255, 255, 255, 0.08)", fg: "var(--sub)", border: "var(--border)" }
+      return { bg: "var(--fill-08)", fg: "var(--sub)", border: "var(--border)" }
   }
 }
 
@@ -171,11 +172,11 @@ export function SubscriptionAuditScreen({
       }}
     >
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: HORIZONTAL_PADDING }}>
         <h2
           style={{
-            fontSize: 22,
-            fontWeight: 700,
+            fontSize: typography.headline.fontSize,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
           }}
         >
@@ -186,12 +187,12 @@ export function SubscriptionAuditScreen({
           whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           style={{
-            background: "rgba(255,255,255,0.06)",
+            background: "var(--fill-06)",
             border: "1px solid var(--border)",
-            borderRadius: 8,
+            borderRadius: radius.control,
             padding: "8px 14px",
-            fontSize: 13,
-            fontWeight: 500,
+            fontSize: typography['body-sm'].fontSize,
+            fontWeight: fontWeights.medium,
             fontFamily: FONT_FAMILY,
             color: "var(--sub)",
             cursor: "pointer",
@@ -203,30 +204,30 @@ export function SubscriptionAuditScreen({
       </div>
 
       {/* ── Warm intro copy ────────────────────────────────────────── */}
-      <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>
+      <p style={{ fontSize: typography.body.fontSize, color: "var(--sub)", marginBottom: HORIZONTAL_PADDING, lineHeight: 1.5 }}>
         Here&apos;s what&apos;s renewing automatically. No pressure — just a quick check so nothing surprises you.
       </p>
 
       {/* ── Monthly total card ─────────────────────────────────────── */}
-      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: 20 }}>
+      <GlassCard elevation="low" style={{ padding: "18px 20px", marginBottom: HORIZONTAL_PADDING }}>
         <p style={{ ...sectionHeader }}>Monthly total</p>
         <p
           style={{
             fontSize: 28,
-            fontWeight: 700,
+            fontWeight: fontWeights.bold,
             color: "var(--text)",
             fontVariantNumeric: "tabular-nums",
           }}
         >
           ${monthlyTotal.toFixed(2)}
-          <span style={{ fontSize: 14, fontWeight: 400, color: "var(--sub)", marginLeft: 4 }}>/mo</span>
+          <span style={{ fontSize: typography.body.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 4 }}>/mo</span>
         </p>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+        <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)", marginTop: 6 }}>
           {subscriptions.length} subscription{subscriptions.length !== 1 ? "s" : ""} detected
         </p>
         {/* ── Aggregate summary (task 354.2) ─────────────────────── */}
         {savingsSummary && savingsSummary.totalSavedFromCancellations > 0 && (
-          <p style={{ fontSize: 13, color: "var(--sub)", marginTop: 12, lineHeight: 1.5 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: spacing.sm, lineHeight: 1.5 }}>
             Total active: ${monthlyTotal.toFixed(2)}/mo · Saved from cancellations: ${savingsSummary.totalSavedFromCancellations.toFixed(0)} total.
             {" "}That&apos;s money staying in your pocket 💚
           </p>
@@ -235,15 +236,15 @@ export function SubscriptionAuditScreen({
 
       {/* ── Renewing soon / trial ending heads-up ──────────────────── */}
       {alerts.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={{ ...sectionHeader }}>Coming up soon</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm, marginTop: 8 }}>
             {alerts.map((alert) => {
               const { emoji, text } = alertCopy(alert)
               return (
-                <div key={`${alert.subscription.id}-${alert.nextRenewalDate}`} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 16, lineHeight: 1.4 }} aria-hidden="true">{emoji}</span>
-                  <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>{text}</p>
+                <div key={`${alert.subscription.id}-${alert.nextRenewalDate}`} style={{ display: "flex", gap: spacing.sm, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: typography.body.fontSize, lineHeight: 1.4 }} aria-hidden="true">{emoji}</span>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>{text}</p>
                 </div>
               )
             })}
@@ -253,9 +254,9 @@ export function SubscriptionAuditScreen({
 
       {/* ── Student savings opportunities ──────────────────────────── */}
       {savingsOpportunities.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={{ ...sectionHeader }}>Student perks worth a peek</p>
-          <p style={{ fontSize: 13, color: "var(--sub)", marginTop: 6, lineHeight: 1.5 }}>
+          <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: 6, lineHeight: 1.5 }}>
             {savingsOpportunities.length === 1
               ? "One of these offers a student rate — a quick switch could free up a little room."
               : `${savingsOpportunities.length} of these offer student rates — a few quick switches could free up some room.`}
@@ -265,25 +266,25 @@ export function SubscriptionAuditScreen({
 
       {/* ── Possibly unused subscriptions ──────────────────────────── */}
       {possiblyUnused.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={{ ...sectionHeader }}>Possibly unused</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm, marginTop: 10 }}>
             {possiblyUnused.map((item) => (
               <div
                 key={item.subscription.id}
-                style={{ display: "flex", gap: 10, alignItems: "flex-start" }}
+                style={{ display: "flex", gap: spacing.sm, alignItems: "flex-start" }}
               >
-                <span style={{ fontSize: 18, lineHeight: 1.4, flexShrink: 0 }} aria-hidden="true">
+                <span style={{ fontSize: typography.subhead.fontSize, lineHeight: 1.4, flexShrink: 0 }} aria-hidden="true">
                   {emojiForCategory(item.subscription.category)}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", margin: 0 }}>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, fontWeight: fontWeights.semibold, color: "var(--text)", margin: 0 }}>
                     {item.subscription.label}
-                    <span style={{ fontWeight: 400, color: "var(--sub)", marginLeft: 6, fontSize: 12 }}>
+                    <span style={{ fontWeight: fontWeights.regular, color: "var(--sub)", marginLeft: 6, fontSize: typography['body-sm'].fontSize }}>
                       ${item.subscription.amount.toFixed(2)}{frequencyLabel(item.subscription.frequency)}
                     </span>
                   </p>
-                  <p style={{ fontSize: 12.5, color: "var(--sub)", marginTop: 4, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginTop: 4, lineHeight: 1.5 }}>
                     You haven&apos;t used anything in {item.categoryLabel} besides this subscription in 2 months — still worth it?
                   </p>
                 </div>
@@ -295,16 +296,16 @@ export function SubscriptionAuditScreen({
 
       {/* ── Savings from cancellations (task 354.1) ────────────────── */}
       {savingsSummary && savingsSummary.items.length > 0 && (
-        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: 20 }}>
+        <GlassCard elevation="low" style={{ padding: "16px 20px", marginBottom: HORIZONTAL_PADDING }}>
           <p style={{ ...sectionHeader }}>Savings from cancellations</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm, marginTop: 8 }}>
             {savingsSummary.items.map((item) => (
               <div
                 key={item.subscription.id}
-                style={{ display: "flex", gap: 10, alignItems: "flex-start" }}
+                style={{ display: "flex", gap: spacing.sm, alignItems: "flex-start" }}
               >
-                <span style={{ fontSize: 16, lineHeight: 1.4 }} aria-hidden="true">💰</span>
-                <p style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>
+                <span style={{ fontSize: typography.body.fontSize, lineHeight: 1.4 }} aria-hidden="true">💰</span>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", lineHeight: 1.5, margin: 0 }}>
                   {getSavingsCopy(item)}
                 </p>
               </div>
@@ -323,12 +324,12 @@ export function SubscriptionAuditScreen({
           />
         </GlassCard>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
           {subscriptions.map((sub) => (
             <GlassCard key={sub.id} elevation="low" style={{ padding: "14px 18px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, flexWrap: "wrap" }}>
                 {/* Emoji */}
-                <span style={{ fontSize: 22 }} aria-hidden="true">
+                <span style={{ fontSize: typography.headline.fontSize }} aria-hidden="true">
                   {emojiForCategory(sub.category)}
                 </span>
 
@@ -336,8 +337,8 @@ export function SubscriptionAuditScreen({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p
                     style={{
-                      fontSize: 14,
-                      fontWeight: 600,
+                      fontSize: typography.body.fontSize,
+                      fontWeight: fontWeights.semibold,
                       color: "var(--text)",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -357,12 +358,12 @@ export function SubscriptionAuditScreen({
                             alignItems: "center",
                             gap: 4,
                             padding: "2px 8px",
-                            borderRadius: 8,
+                            borderRadius: radius.control,
                             background: style.bg,
                             border: `1px solid ${style.border}`,
                             color: style.fg,
-                            fontSize: 11,
-                            fontWeight: 600,
+                            fontSize: typography.caption.fontSize,
+                            fontWeight: fontWeights.semibold,
                             lineHeight: 1.3,
                             whiteSpace: "nowrap",
                           }}
@@ -370,24 +371,24 @@ export function SubscriptionAuditScreen({
                           aria-label={`Confidence: ${badge.label}, about ${badge.percent} percent`}
                         >
                           {badge.label}
-                          <span style={{ fontWeight: 400, fontVariantNumeric: "tabular-nums", opacity: 0.85 }}>
+                          <span style={{ fontWeight: fontWeights.regular, fontVariantNumeric: "tabular-nums", opacity: 0.85 }}>
                             {badge.percent}%
                           </span>
                         </span>
                       )
                     })()}
-                    <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                    <span style={{ fontSize: typography['body-sm'].fontSize, color: "var(--muted)" }}>
                       {sub.isConfirmed ? "Confirmed" : "Detected"} · {sub.chargeCount} charges
                       {sub.isLikelyTrialConversion ? " · started as a trial" : ""}
                     </span>
                   </div>
                   {sub.isLikelyDuplicate && (
-                    <p style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 4, lineHeight: 1.45 }}>
+                    <p style={{ fontSize: typography.caption.fontSize, color: "var(--sub)", marginTop: 4, lineHeight: 1.45 }}>
                       You have another {sub.serviceKind === "music" ? "music" : "streaming"} service too — keep both if you love them.
                     </p>
                   )}
                   {sub.studentDiscountHint && (
-                    <p style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 4, lineHeight: 1.45 }}>
+                    <p style={{ fontSize: typography.caption.fontSize, color: "var(--sub)", marginTop: 4, lineHeight: 1.45 }}>
                       💡 {sub.studentDiscountHint}
                     </p>
                   )}
@@ -397,14 +398,14 @@ export function SubscriptionAuditScreen({
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <p
                     style={{
-                      fontSize: 15,
-                      fontWeight: 600,
+                      fontSize: typography.body.fontSize,
+                      fontWeight: fontWeights.semibold,
                       color: "var(--text)",
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     ${sub.amount.toFixed(2)}
-                    <span style={{ fontSize: 11, fontWeight: 400, color: "var(--sub)" }}>
+                    <span style={{ fontSize: typography.caption.fontSize, fontWeight: fontWeights.regular, color: "var(--sub)" }}>
                       {frequencyLabel(sub.frequency)}
                     </span>
                   </p>
@@ -413,7 +414,7 @@ export function SubscriptionAuditScreen({
                 {/* Dismiss button */}
                 <motion.button
                   onClick={() => onDismiss(sub.id)}
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={{ scale: 0.95 }}
                   transition={springs.snappy}
                   style={{
                     background: "none",
@@ -421,7 +422,7 @@ export function SubscriptionAuditScreen({
                     padding: 6,
                     cursor: "pointer",
                     color: "var(--muted)",
-                    fontSize: 16,
+                    fontSize: typography.body.fontSize,
                     lineHeight: 1,
                     flexShrink: 0,
                   }}
@@ -434,21 +435,21 @@ export function SubscriptionAuditScreen({
 
               {/* Action row: one-tap confirm (unconfirmed only) + cancel/negotiate + mark cancelled */}
               {(onOpenCancelNegotiate || inlineCancelTarget === null || (onConfirm && !sub.isConfirmed) || onCancelSubscription) && (
-                <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: spacing.xs, marginTop: spacing.sm, flexWrap: "wrap" }}>
                   {onConfirm && !sub.isConfirmed && (
                     <motion.button
                       onClick={() => onConfirm(sub)}
-                      whileTap={{ scale: 0.98 }}
+                      whileTap={{ scale: 0.96 }}
                       transition={springs.snappy}
                       style={{
                         flex: 1,
                         padding: "10px 0",
-                        background: "rgba(74, 222, 128, 0.14)",
-                        border: "1px solid rgba(74, 222, 128, 0.32)",
-                        borderRadius: 10,
+                        background: "var(--success-200)",
+                        border: "1px solid var(--success-300)",
+                        borderRadius: radius.control,
                         color: "var(--success-300)",
-                        fontSize: 13,
-                        fontWeight: 600,
+                        fontSize: typography['body-sm'].fontSize,
+                        fontWeight: fontWeights.semibold,
                         fontFamily: FONT_FAMILY,
                         cursor: "pointer",
                       }}
@@ -466,17 +467,17 @@ export function SubscriptionAuditScreen({
                         setInlineCancelTarget(sub)
                       }
                     }}
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={{ scale: 0.96 }}
                     transition={springs.snappy}
                     style={{
                       flex: 1,
                       padding: "10px 0",
-                      background: "rgba(129, 140, 248, 0.12)",
+                      background: "var(--accent-200)",
                       border: "1px solid var(--border)",
-                      borderRadius: 10,
+                      borderRadius: radius.control,
                       color: "var(--text)",
-                      fontSize: 13,
-                      fontWeight: 500,
+                      fontSize: typography['body-sm'].fontSize,
+                      fontWeight: fontWeights.medium,
                       fontFamily: FONT_FAMILY,
                       cursor: "pointer",
                     }}
@@ -487,17 +488,17 @@ export function SubscriptionAuditScreen({
                   {onCancelSubscription && (
                     <motion.button
                       onClick={() => onCancelSubscription(sub)}
-                      whileTap={{ scale: 0.98 }}
+                      whileTap={{ scale: 0.96 }}
                       transition={springs.snappy}
                       style={{
                         flex: 1,
                         padding: "10px 0",
-                        background: "rgba(248, 113, 113, 0.10)",
-                        border: "1px solid rgba(248, 113, 113, 0.25)",
-                        borderRadius: 10,
+                        background: "var(--error-100)",
+                        border: "1px solid var(--error-300)",
+                        borderRadius: radius.control,
                         color: "var(--sub)",
-                        fontSize: 13,
-                        fontWeight: 500,
+                        fontSize: typography['body-sm'].fontSize,
+                        fontWeight: fontWeights.medium,
                         fontFamily: FONT_FAMILY,
                         cursor: "pointer",
                       }}

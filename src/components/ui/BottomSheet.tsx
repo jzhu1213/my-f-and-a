@@ -246,7 +246,7 @@ export function BottomSheet({
               position: "fixed",
               inset: 0,
               zIndex: 40,
-              background: "rgba(14, 14, 26, 0.95)",
+              background: "var(--color-canvas)",
             }}
           />
 
@@ -276,7 +276,7 @@ export function BottomSheet({
               flexDirection: "column",
               background: "var(--surface)",
               borderTop: "1px solid var(--line)",
-              borderRadius: "var(--radius-lg) var(--radius-lg) 0 0",
+              borderRadius: "var(--radius-sheet) var(--radius-sheet) 0 0",
               maxHeight,
               minHeight,
               overflow: "hidden",
