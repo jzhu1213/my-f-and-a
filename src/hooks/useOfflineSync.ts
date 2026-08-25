@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   getOfflineQueue,
+  getOfflineQueueAsync,
   processOfflineQueue,
   clearOfflineQueue,
   updateQueueItem,
@@ -9,15 +10,17 @@ import {
   markRecentlySynced,
   hasRetryableItems,
   getNextRetryTime,
+  ensureQueueMigration,
   QUEUE_CHANGE_EVENT,
+  QUEUE_SIZE_WARNING_EVENT,
+  QUEUE_SIZE_LIMIT,
   dispatchQueueChange,
 } from '@/lib/offlineQueue'
 
 // ============================================================================
 // useOfflineSync — React hook for managing offline transaction queue
-// Requirements: 10.2, 10.3, 10.4, 13.7, 28.6
-// Extends Phase 1 task 7 — exposes per-item sync state
-// Phase 20 task 474.3 — exponential backoff, persistent syncing indicator
+// Requirements: 10.2, 10.3, 10.4, 13.7, 28.6, 32.5
+// Task 526 — IndexedDB support, failure messaging, size warning
 // ============================================================================
 
 export interface UseOfflineSyncReturn {
@@ -25,10 +28,14 @@ export interface UseOfflineSyncReturn {
   pendingCount: number
   /** Whether any items have permanently failed (3 retries exhausted) */
   hasFailed: boolean
+  /** Number of items that failed to sync (Task 526.3) */
+  failedCount: number
   /** Whether a sync operation is currently in progress */
   isSyncing: boolean
   /** Whether the queue is in a backoff retry cycle (for persistent indicator) */
   isRetrying: boolean
+  /** Whether queue size exceeds limit (Task 526.5) */
+  hasQueueSizeWarning: boolean
   /** Set of transaction IDs currently pending in the offline queue (for per-item indicators) */
   pendingIds: Set<string>
   /** Set of IDs recently synced (briefly shows "synced ✓" state) */
@@ -44,8 +51,10 @@ export interface UseOfflineSyncReturn {
 export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn {
   const [pendingCount, setPendingCount] = useState(0)
   const [hasFailed, setHasFailed] = useState(false)
+  const [failedCount, setFailedCount] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [hasQueueSizeWarning, setHasQueueSizeWarning] = useState(false)
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
   const [recentlySyncedIds, setRecentlySyncedIds] = useState<Set<string>>(new Set())
 
@@ -55,7 +64,10 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
   const refresh = useCallback(() => {
     const queue = getOfflineQueue()
     setPendingCount(queue.length)
-    setHasFailed(queue.some((item) => item.status === 'failed'))
+    const failedItems = queue.filter((item) => item.status === 'failed')
+    setHasFailed(failedItems.length > 0)
+    setFailedCount(failedItems.length)
+    setHasQueueSizeWarning(queue.length >= QUEUE_SIZE_LIMIT)
     if (userId) {
       setPendingIds(getPendingTransactionIds(userId))
     }
@@ -70,19 +82,45 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     }
   }, [userId])
 
+  // Trigger IndexedDB migration on mount, then refresh from async source
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    ensureQueueMigration().then(() => {
+      // After migration, do an async refresh to get accurate IndexedDB data
+      getOfflineQueueAsync().then((queue) => {
+        setPendingCount(queue.length)
+        const failedItems = queue.filter((item) => item.status === 'failed')
+        setHasFailed(failedItems.length > 0)
+        setFailedCount(failedItems.length)
+        setHasQueueSizeWarning(queue.length >= QUEUE_SIZE_LIMIT)
+      }).catch(() => {
+        // Fallback already handled by synchronous refresh
+      })
+    }).catch(() => {})
+  }, [])
+
   // Read queue state on mount and when userId changes
   useEffect(() => {
     refresh()
   }, [refresh, userId])
 
   // Listen for queue-change events so pending count updates within 500ms
-  // of any addToOfflineQueue / removeFromOfflineQueue call (Req 17.8)
   useEffect(() => {
     if (typeof window === 'undefined') return
     const handleQueueChange = () => refresh()
     window.addEventListener(QUEUE_CHANGE_EVENT, handleQueueChange)
     return () => window.removeEventListener(QUEUE_CHANGE_EVENT, handleQueueChange)
   }, [refresh])
+
+  // Listen for queue size warning events (Task 526.5)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handleSizeWarning = () => {
+      setHasQueueSizeWarning(true)
+    }
+    window.addEventListener(QUEUE_SIZE_WARNING_EVENT, handleSizeWarning)
+    return () => window.removeEventListener(QUEUE_SIZE_WARNING_EVENT, handleSizeWarning)
+  }, [])
 
   // Expire recently-synced indicators after the display window
   useEffect(() => {
@@ -103,7 +141,6 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
 
     // Check if there are items ready to process
     if (!hasRetryableItems(userId)) {
-      // Nothing ready now — schedule for when the next item is due
       scheduleNextRetry()
       return
     }
@@ -185,14 +222,11 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
     }
   }, [userId, syncAndSchedule])
 
-  // Retry pending items in the background as soon as connectivity returns.
-  // This is what clears the sync indicator after an offline write eventually
-  // succeeds. (Requirements 10.2, 10.4, 28.6)
+  // Retry pending items in the background as soon as connectivity returns
   useEffect(() => {
     if (!userId || typeof window === 'undefined') return
     const handleOnline = () => {
       // When coming back online, reset nextRetryAt on all pending items
-      // so they retry immediately
       const queue = getOfflineQueue()
       for (const item of queue) {
         if (item.userId === userId && item.status === 'pending' && item.nextRetryAt) {
@@ -250,10 +284,8 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
       .map((item) => item.id)
 
     if (failedIds.length === queue.length) {
-      // All are failed — just clear everything
       clearOfflineQueue()
     } else {
-      // Remove failed items by filtering and re-persisting
       const remaining = queue.filter((item) => item.status !== 'failed')
       if (typeof window !== 'undefined') {
         localStorage.setItem('folio-offline-queue', JSON.stringify(remaining))
@@ -266,8 +298,10 @@ export function useOfflineSync(userId: string | undefined): UseOfflineSyncReturn
   return {
     pendingCount,
     hasFailed,
+    failedCount,
     isSyncing,
     isRetrying,
+    hasQueueSizeWarning,
     pendingIds,
     recentlySyncedIds,
     retryAll,

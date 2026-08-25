@@ -36,6 +36,8 @@ export interface SinkingFund {
   /** Amount to reserve each month toward the target */
   monthlyReserve: number
   createdAt: string
+  /** Server-side timestamp of last modification (task 523) */
+  updatedAt?: string
 }
 
 /** Payload for creating a new fund (id/userId/createdAt are assigned on persist). */

@@ -42,22 +42,42 @@ export interface CategorizationRuleUpdate {
 const STORAGE_KEY = 'folio-categorization-rules'
 
 // ============================================================================
-// Persistence helpers
+// Schema for versioned storage
+// ============================================================================
+
+import { z } from 'zod'
+import * as versionedStorage from './versionedStorage'
+import { TransactionCategorySchema } from './schemas/transaction'
+
+const CategorizationRuleSchema = z.object({
+  id: z.string(),
+  keyword: z.string(),
+  category: TransactionCategorySchema,
+  fundingSourceId: z.string().nullable().optional(),
+  createdAt: z.string(),
+})
+
+const CategorizationRulesArraySchema = z.array(CategorizationRuleSchema)
+
+// ============================================================================
+// Persistence helpers (versioned)
 // ============================================================================
 
 /**
  * Load all user-defined categorization rules from localStorage.
+ * Uses versioned storage with schema validation.
  */
 export function getCategorizationRules(): CategorizationRule[] {
   if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
+  const stored = versionedStorage.get(STORAGE_KEY, CategorizationRulesArraySchema)
+  return (stored as CategorizationRule[]) ?? []
+}
+
+/**
+ * Persist the full rules array to versioned storage.
+ */
+function persistRules(rules: CategorizationRule[]): void {
+  versionedStorage.set(STORAGE_KEY, rules, CategorizationRulesArraySchema)
 }
 
 /**
@@ -81,7 +101,7 @@ export function saveCategorizationRule(
     createdAt: new Date().toISOString(),
   }
   rules.push(rule)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(rules))
+  persistRules(rules)
   return rule
 }
 
@@ -109,7 +129,7 @@ export function updateCategorizationRule(
       : {}),
   }
   rules[index] = updated
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(rules))
+  persistRules(rules)
   return updated
 }
 
@@ -119,7 +139,7 @@ export function updateCategorizationRule(
 export function deleteCategorizationRule(id: string): void {
   const rules = getCategorizationRules()
   const filtered = rules.filter(r => r.id !== id)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+  persistRules(filtered)
 }
 
 // ============================================================================

@@ -1,13 +1,36 @@
 import type { TransactionCategory, TransactionType } from '@/types'
 import { insertTransaction, updateTransaction, deleteTransaction, getTransactionFull } from '@/lib/supabaseData'
+import { notifyConflictResolved } from '@/lib/conflictResolution'
+import { z } from 'zod'
+import { TransactionCategorySchema, TransactionTypeSchema } from './schemas/transaction'
+import {
+  isIndexedDBAvailable,
+  getAllItems,
+  getItemsByUser,
+  addItem as idbAddItem,
+  updateItem as idbUpdateItem,
+  removeItem as idbRemoveItem,
+  clearAll as idbClearAll,
+  getCount as idbGetCount,
+  findPendingByTransactionId,
+  replaceItemPayload,
+  migrateFromLocalStorage,
+  type QueueItemWithSeq,
+} from './offlineQueueDB'
 
 // ============================================================================
-// Offline Queue — localStorage-backed transaction queue with background retry
-// Requirements: 10.2, 10.3, 10.4, 13.7
-// Extends Phase 1 task 7 — supports income, edits, deletes, and conflict resolution
+// Offline Queue — IndexedDB-backed transaction queue with background retry
+// Requirements: 10.2, 10.3, 10.4, 13.7, 32.5
+// Task 526 — IndexedDB persistence, ordering, deduplication, size limits
 // ============================================================================
 
 const STORAGE_KEY = 'folio-offline-queue'
+
+/** Maximum queue size before warning (Task 526.5) */
+export const QUEUE_SIZE_LIMIT = 100
+
+/** Event dispatched when queue exceeds size limit */
+export const QUEUE_SIZE_WARNING_EVENT = 'folio-queue-size-warning'
 
 // ============================================================================
 // Operation Types — the queue now supports multiple operation kinds
@@ -44,7 +67,7 @@ export type OfflineOperation =
   | { kind: 'delete'; payload: DeletePayload }
 
 // ============================================================================
-// Pending Transaction — expanded to support all operation kinds
+// Pending Transaction — expanded with seq for ordering (526.2)
 // ============================================================================
 
 export interface PendingTransaction {
@@ -58,6 +81,8 @@ export interface PendingTransaction {
   queuedAt: string
   /** Exponential backoff: earliest time this item should be retried (ISO string) */
   nextRetryAt?: string
+  /** Sequence number for ordering guarantees (Task 526.2) */
+  seq?: number
 }
 
 /**
@@ -74,10 +99,29 @@ interface LegacyPendingTransaction {
 }
 
 // ============================================================================
-// Queue CRUD helpers
+// Initialization — migrate localStorage to IndexedDB on first use
 // ============================================================================
 
-/** Reads the offline queue from localStorage, migrating legacy items on the fly */
+let _migrationPromise: Promise<void> | null = null
+
+/** Ensure IndexedDB migration has run. Call once at app startup. */
+export function ensureQueueMigration(): Promise<void> {
+  if (!isIndexedDBAvailable()) return Promise.resolve()
+  if (!_migrationPromise) {
+    _migrationPromise = migrateFromLocalStorage()
+  }
+  return _migrationPromise
+}
+
+// ============================================================================
+// Queue CRUD helpers — dual storage (IndexedDB primary, localStorage fallback)
+// ============================================================================
+
+/**
+ * Reads the offline queue synchronously from localStorage.
+ * Used for backward compatibility with synchronous consumers and SSR.
+ * Migrates legacy items on the fly.
+ */
 export function getOfflineQueue(): PendingTransaction[] {
   if (typeof window === 'undefined') return []
   try {
@@ -98,7 +142,7 @@ export function getOfflineQueue(): PendingTransaction[] {
             category: legacy.transaction.category,
             amount: legacy.transaction.amount,
             type: 'expense' as TransactionType,
-            date: legacy.createdAt.slice(0, 10), // YYYY-MM-DD from ISO
+            date: legacy.createdAt.slice(0, 10),
             note: legacy.transaction.note,
           },
         },
@@ -114,7 +158,111 @@ export function getOfflineQueue(): PendingTransaction[] {
   }
 }
 
-/** Adds a new operation to the offline queue */
+/**
+ * Async queue read from IndexedDB — preferred for new code paths.
+ * Falls back to localStorage if IndexedDB is unavailable.
+ * Items are returned ordered by seq (Task 526.2).
+ */
+export async function getOfflineQueueAsync(): Promise<PendingTransaction[]> {
+  if (!isIndexedDBAvailable()) return getOfflineQueue()
+  try {
+    await ensureQueueMigration()
+    return await getAllItems()
+  } catch {
+    return getOfflineQueue()
+  }
+}
+
+/**
+ * Async queue read for a specific user, ordered by seq.
+ */
+export async function getOfflineQueueForUser(userId: string): Promise<PendingTransaction[]> {
+  if (!isIndexedDBAvailable()) {
+    return getOfflineQueue().filter((item) => item.userId === userId)
+  }
+  try {
+    await ensureQueueMigration()
+    return await getItemsByUser(userId)
+  } catch {
+    return getOfflineQueue().filter((item) => item.userId === userId)
+  }
+}
+
+/**
+ * Adds a new operation to the offline queue.
+ * Task 526.4 — deduplicates update operations (keeps latest payload per transactionId).
+ * Task 526.5 — dispatches warning event if queue exceeds QUEUE_SIZE_LIMIT.
+ */
+export async function addToOfflineQueueAsync(
+  userId: string,
+  operation: OfflineOperation
+): Promise<PendingTransaction> {
+  const now = new Date().toISOString()
+  const item: PendingTransaction = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    userId,
+    operation,
+    retryCount: 0,
+    createdAt: now,
+    status: 'pending',
+    queuedAt: now,
+  }
+
+  if (isIndexedDBAvailable()) {
+    try {
+      await ensureQueueMigration()
+
+      // Task 526.4 — Deduplication: if this is an update for a transaction
+      // that already has a pending update, replace the payload in-place
+      if (operation.kind === 'update') {
+        const existing = await findPendingByTransactionId(
+          userId,
+          operation.payload.transactionId,
+          'update'
+        )
+        if (existing) {
+          await replaceItemPayload(existing.id, operation, now)
+          // Also update localStorage fallback
+          _syncToLocalStorage(userId)
+          dispatchQueueChange()
+          return { ...existing, operation, queuedAt: now, retryCount: 0, status: 'pending', nextRetryAt: undefined }
+        }
+      }
+
+      // If this is a delete and there's a pending update for the same ID, remove the update
+      if (operation.kind === 'delete') {
+        const existingUpdate = await findPendingByTransactionId(
+          userId,
+          operation.payload.transactionId,
+          'update'
+        )
+        if (existingUpdate) {
+          await idbRemoveItem(existingUpdate.id)
+        }
+      }
+
+      const result = await idbAddItem(item)
+
+      // Task 526.5 — Check queue size and warn if exceeded
+      const count = await idbGetCount()
+      if (count >= QUEUE_SIZE_LIMIT) {
+        dispatchQueueSizeWarning(count)
+      }
+
+      // Sync to localStorage as fallback
+      _syncToLocalStorage(userId)
+      dispatchQueueChange()
+      return result
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+
+  // localStorage fallback (synchronous path)
+  return addToOfflineQueue(userId, operation)
+}
+
+/** Synchronous add — legacy API, still used by callers that can't be async */
 export function addToOfflineQueue(
   userId: string,
   operation: OfflineOperation
@@ -131,20 +279,114 @@ export function addToOfflineQueue(
   }
 
   const queue = getOfflineQueue()
+
+  // Task 526.4 — Deduplication for localStorage path
+  if (operation.kind === 'update') {
+    const existingIdx = queue.findIndex(
+      (q) =>
+        q.userId === userId &&
+        q.status === 'pending' &&
+        q.operation.kind === 'update' &&
+        q.operation.payload.transactionId === operation.payload.transactionId
+    )
+    if (existingIdx >= 0) {
+      // Replace payload in-place, preserving position
+      queue[existingIdx] = {
+        ...queue[existingIdx],
+        operation,
+        queuedAt: now,
+        retryCount: 0,
+        status: 'pending',
+        nextRetryAt: undefined,
+      }
+      persistQueue(queue)
+      dispatchQueueChange()
+      return queue[existingIdx]
+    }
+  }
+
+  // If delete, remove any pending update for the same transaction
+  if (operation.kind === 'delete') {
+    const filtered = queue.filter(
+      (q) =>
+        !(
+          q.userId === userId &&
+          q.status === 'pending' &&
+          q.operation.kind === 'update' &&
+          q.operation.payload.transactionId === operation.payload.transactionId
+        )
+    )
+    filtered.push(item)
+    persistQueue(filtered)
+
+    // Task 526.5 — size warning
+    if (filtered.length >= QUEUE_SIZE_LIMIT) {
+      dispatchQueueSizeWarning(filtered.length)
+    }
+
+    dispatchQueueChange()
+    return item
+  }
+
   queue.push(item)
   persistQueue(queue)
+
+  // Task 526.5 — size warning
+  if (queue.length >= QUEUE_SIZE_LIMIT) {
+    dispatchQueueSizeWarning(queue.length)
+  }
+
   dispatchQueueChange()
   return item
 }
 
 /** Removes a successfully synced transaction from the queue */
-export function removeFromOfflineQueue(id: string): void {
+export async function removeFromOfflineQueueAsync(id: string): Promise<void> {
+  if (isIndexedDBAvailable()) {
+    try {
+      await idbRemoveItem(id)
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+  // Also remove from localStorage fallback
   const queue = getOfflineQueue().filter((item) => item.id !== id)
   persistQueue(queue)
   dispatchQueueChange()
 }
 
+/** Synchronous remove — backward compatible */
+export function removeFromOfflineQueue(id: string): void {
+  const queue = getOfflineQueue().filter((item) => item.id !== id)
+  persistQueue(queue)
+  // Also remove from IndexedDB (fire-and-forget)
+  if (isIndexedDBAvailable()) {
+    idbRemoveItem(id).catch(() => {})
+  }
+  dispatchQueueChange()
+}
+
 /** Updates an existing queue item (e.g. retryCount, status) */
+export async function updateQueueItemAsync(
+  id: string,
+  updates: Partial<PendingTransaction>
+): Promise<void> {
+  if (isIndexedDBAvailable()) {
+    try {
+      await idbUpdateItem(id, updates)
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+  // Also update localStorage fallback
+  const queue = getOfflineQueue().map((item) =>
+    item.id === id ? { ...item, ...updates } : item
+  )
+  persistQueue(queue)
+  dispatchQueueChange()
+}
+
+/** Synchronous update — backward compatible */
 export function updateQueueItem(
   id: string,
   updates: Partial<PendingTransaction>
@@ -153,19 +395,52 @@ export function updateQueueItem(
     item.id === id ? { ...item, ...updates } : item
   )
   persistQueue(queue)
+  // Also update IndexedDB (fire-and-forget)
+  if (isIndexedDBAvailable()) {
+    idbUpdateItem(id, updates).catch(() => {})
+  }
   dispatchQueueChange()
 }
 
 /** Clears the entire offline queue */
-export function clearOfflineQueue(): void {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem(STORAGE_KEY)
+export async function clearOfflineQueueAsync(): Promise<void> {
+  if (isIndexedDBAvailable()) {
+    try {
+      await idbClearAll()
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(STORAGE_KEY)
+  }
   dispatchQueueChange()
 }
 
-/** Returns the current queue length */
+/** Synchronous clear — backward compatible */
+export function clearOfflineQueue(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(STORAGE_KEY)
+  // Also clear IndexedDB (fire-and-forget)
+  if (isIndexedDBAvailable()) {
+    idbClearAll().catch(() => {})
+  }
+  dispatchQueueChange()
+}
+
+/** Returns the current queue length (synchronous — from localStorage) */
 export function getQueueSize(): number {
   return getOfflineQueue().length
+}
+
+/** Async queue size — from IndexedDB (more accurate) */
+export async function getQueueSizeAsync(): Promise<number> {
+  if (!isIndexedDBAvailable()) return getQueueSize()
+  try {
+    return await idbGetCount()
+  } catch {
+    return getQueueSize()
+  }
 }
 
 /** Quick boolean check for whether pending items exist */
@@ -188,37 +463,29 @@ export function getPendingTransactionIds(userId: string): Set<string> {
     } else if (item.operation.kind === 'delete') {
       ids.add(item.operation.payload.transactionId)
     }
-    // For 'create', no existing transaction ID to flag
   }
   return ids
 }
 
 // ============================================================================
 // Background processing — dispatches based on operation kind
+// Task 526.2 — processes in seq order
+// Task 526.3 — graceful failure: marks failed items and continues
 // ============================================================================
 
-/** In-memory lock to prevent concurrent processOfflineQueue calls (avoids duplicate inserts) */
+/** In-memory lock to prevent concurrent processOfflineQueue calls */
 let _processingLock = false
 
 /**
- * Processes all pending/failed items in the queue sequentially.
- * - create: inserts a new transaction (expense or income)
- * - update: updates an existing transaction (last-write-wins conflict resolution)
- * - delete: removes a transaction
+ * Processes all pending/failed items in the queue sequentially by seq order.
+ * Task 526.3 — On failure, marks the item and continues with the rest.
+ * Never blocks the queue on a single failed item.
  *
- * Conflict resolution strategy (last-write-wins):
- * For update/delete operations, the queue item carries a `queuedAt` timestamp.
- * If the server-side transaction has been modified more recently (checked via
- * the DB's `updated_at` column if available), the queued operation is skipped
- * and removed — the server wins. For creates, no conflict check is needed.
- *
- * Returns counts of succeeded and failed items.
+ * Returns counts of succeeded, failed, and skipped items.
  */
 export async function processOfflineQueue(
   userId: string
 ): Promise<{ succeeded: number; failed: number }> {
-  // Prevent concurrent processing — avoids duplicate inserts when both
-  // the mount-timer and 'online' event fire close together
   if (_processingLock) return { succeeded: 0, failed: 0 }
   _processingLock = true
 
@@ -229,135 +496,249 @@ export async function processOfflineQueue(
   }
 }
 
+// ============================================================================
+// Payload Validation (Task 520.4)
+// ============================================================================
+
+const CreatePayloadSchema = z.object({
+  category: TransactionCategorySchema,
+  amount: z.number().nonnegative(),
+  type: TransactionTypeSchema,
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  note: z.string().optional(),
+})
+
+const UpdatePayloadSchema = z.object({
+  transactionId: z.string().min(1),
+  amount: z.number().nonnegative(),
+  category: TransactionCategorySchema,
+  type: TransactionTypeSchema,
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  note: z.string().optional(),
+})
+
+const DeletePayloadSchema = z.object({
+  transactionId: z.string().min(1),
+})
+
+/** Validate an offline operation payload before replay. */
+function validateOfflinePayload(operation: OfflineOperation): boolean {
+  switch (operation.kind) {
+    case 'create':
+      return CreatePayloadSchema.safeParse(operation.payload).success
+    case 'update':
+      return UpdatePayloadSchema.safeParse(operation.payload).success
+    case 'delete':
+      return DeletePayloadSchema.safeParse(operation.payload).success
+    default:
+      return false
+  }
+}
+
+/**
+ * Get quarantined (failed-validation) queue items for user review.
+ */
+export function getQuarantinedItems(userId: string): PendingTransaction[] {
+  return getOfflineQueue().filter(
+    (item) => item.userId === userId && item.status === 'failed'
+  )
+}
+
 async function _processQueueInternal(
   userId: string
 ): Promise<{ succeeded: number; failed: number }> {
-  const queue = getOfflineQueue()
+  // Prefer IndexedDB (ordered by seq) over localStorage
+  let queue: PendingTransaction[]
+  if (isIndexedDBAvailable()) {
+    try {
+      await ensureQueueMigration()
+      queue = await getItemsByUser(userId)
+    } catch {
+      queue = getOfflineQueue().filter((item) => item.userId === userId)
+    }
+  } else {
+    queue = getOfflineQueue().filter((item) => item.userId === userId)
+  }
+
   let succeeded = 0
   let failed = 0
   const now = new Date().toISOString()
 
   for (const item of queue) {
-    // Skip items that don't belong to this user
-    if (item.userId !== userId) continue
-
-    // Skip items already marked failed (user must explicitly retry these)
+    // Skip items already marked failed — user must explicitly retry
     if (item.status === 'failed') {
       failed++
       continue
     }
 
-    // Skip already synced items (shouldn't happen, but be safe)
+    // Skip already synced items
     if (item.status === 'synced') continue
 
-    // Exponential backoff: skip items whose retry time hasn't arrived yet
+    // Exponential backoff: skip items whose retry time hasn't arrived
     if (item.nextRetryAt && new Date(item.nextRetryAt) > new Date(now)) {
+      continue
+    }
+
+    // Schema validation (Task 520.4)
+    if (!validateOfflinePayload(item.operation)) {
+      updateQueueItem(item.id, { status: 'failed' })
+      if (isIndexedDBAvailable()) {
+        idbUpdateItem(item.id, { status: 'failed' }).catch(() => {})
+      }
+      failed++
+      // Task 526.3 — continue processing remaining items
       continue
     }
 
     // Mark as retrying
     updateQueueItem(item.id, { status: 'retrying' })
+    if (isIndexedDBAvailable()) {
+      idbUpdateItem(item.id, { status: 'retrying' }).catch(() => {})
+    }
 
     let success = false
 
-    switch (item.operation.kind) {
-      case 'create': {
-        const { payload } = item.operation
-        // Idempotency: use the queue item ID as a dedup key.
-        // Check if a transaction with the same fingerprint already exists
-        // (same user, amount, category, date, type — created within 2 minutes of queuedAt).
-        // This prevents duplicates when the same create is processed twice
-        // (e.g., network timeout where the server actually succeeded).
-        const result = await insertTransaction(userId, {
-          date: payload.date,
-          amount: payload.amount,
-          type: payload.type,
-          category: payload.category,
-          note: payload.note,
-          accountType: 'personal',
-        })
-        success = !!result
-        break
+    try {
+      switch (item.operation.kind) {
+        case 'create': {
+          const { payload } = item.operation
+          const result = await insertTransaction(userId, {
+            date: payload.date,
+            amount: payload.amount,
+            type: payload.type,
+            category: payload.category,
+            note: payload.note,
+            accountType: 'personal',
+          })
+          success = !!result
+          break
+        }
+
+        case 'update': {
+          const { payload } = item.operation
+          // Last-write-wins conflict resolution
+          const serverRecord = await getTransactionFull(userId, payload.transactionId)
+          if (!serverRecord) {
+            // Delete-wins (Task 524.3)
+            notifyConflictResolved({
+              entityType: 'transaction',
+              resolution: 'deleted',
+              message: 'Updated from another device',
+            })
+            removeFromOfflineQueue(item.id)
+            if (isIndexedDBAvailable()) {
+              idbRemoveItem(item.id).catch(() => {})
+            }
+            succeeded++
+            continue
+          }
+
+          const serverCreatedAt = new Date(serverRecord.createdAt).getTime()
+          const queuedAt = new Date(item.queuedAt).getTime()
+
+          if (serverCreatedAt > queuedAt) {
+            // Record was recreated — server wins
+            notifyConflictResolved({
+              entityType: 'transaction',
+              resolution: 'server-wins',
+              message: 'Updated from another device',
+            })
+            removeFromOfflineQueue(item.id)
+            if (isIndexedDBAvailable()) {
+              idbRemoveItem(item.id).catch(() => {})
+            }
+            succeeded++
+            continue
+          }
+
+          // Task 524.2: Last-write-wins by updatedAt
+          if (serverRecord.updatedAt) {
+            const serverUpdatedAt = new Date(serverRecord.updatedAt).getTime()
+            if (serverUpdatedAt > queuedAt) {
+              notifyConflictResolved({
+                entityType: 'transaction',
+                resolution: 'server-wins',
+                message: 'Updated from another device',
+              })
+              removeFromOfflineQueue(item.id)
+              if (isIndexedDBAvailable()) {
+                idbRemoveItem(item.id).catch(() => {})
+              }
+              succeeded++
+              continue
+            }
+          }
+
+          const result = await updateTransaction(userId, payload.transactionId, {
+            date: payload.date,
+            amount: payload.amount,
+            type: payload.type,
+            category: payload.category,
+            note: payload.note,
+          })
+          success = result !== null
+          if (!success) {
+            // Server rejected — treat as conflict resolved
+            removeFromOfflineQueue(item.id)
+            if (isIndexedDBAvailable()) {
+              idbRemoveItem(item.id).catch(() => {})
+            }
+            succeeded++
+            continue
+          }
+          break
+        }
+
+        case 'delete': {
+          const { payload } = item.operation
+          const result = await deleteTransaction(userId, payload.transactionId)
+          success = result
+          if (!success) {
+            // Already deleted on server — same end state
+            removeFromOfflineQueue(item.id)
+            if (isIndexedDBAvailable()) {
+              idbRemoveItem(item.id).catch(() => {})
+            }
+            succeeded++
+            continue
+          }
+          break
+        }
       }
-
-      case 'update': {
-        const { payload } = item.operation
-        // Last-write-wins conflict resolution:
-        // Fetch the current server state. If the record's createdAt indicates
-        // it was re-created by another device (a newer record with the same slot),
-        // or if the record no longer exists, resolve the conflict gracefully.
-        const serverRecord = await getTransactionFull(userId, payload.transactionId)
-        if (!serverRecord) {
-          // The server no longer has this transaction — conflict resolved (server wins)
-          removeFromOfflineQueue(item.id)
-          succeeded++
-          continue
-        }
-
-        // If the server record's createdAt is AFTER our queuedAt, another device
-        // likely re-created or the record was modified more recently. Under
-        // last-write-wins by queue time, our offline edit still applies since the
-        // user explicitly made this change. Only skip if server record was recreated.
-        const serverCreatedAt = new Date(serverRecord.createdAt).getTime()
-        const queuedAt = new Date(item.queuedAt).getTime()
-
-        // If the server record was created AFTER we queued this update,
-        // it means the original was deleted and a new one was created — skip.
-        if (serverCreatedAt > queuedAt) {
-          removeFromOfflineQueue(item.id)
-          succeeded++ // Conflict resolved — server's newer record wins
-          continue
-        }
-
-        const result = await updateTransaction(userId, payload.transactionId, {
-          date: payload.date,
-          amount: payload.amount,
-          type: payload.type,
-          category: payload.category,
-          note: payload.note,
-        })
-        success = result !== null
-        if (!success) {
-          // Server rejected the update — treat as conflict resolved
-          removeFromOfflineQueue(item.id)
-          succeeded++
-          continue
-        }
-        break
-      }
-
-      case 'delete': {
-        const { payload } = item.operation
-        const result = await deleteTransaction(userId, payload.transactionId)
-        // If the transaction is already gone, that's fine — same end state.
-        success = result
-        if (!success) {
-          // Already deleted on server — treat as resolved
-          removeFromOfflineQueue(item.id)
-          succeeded++
-          continue
-        }
-        break
-      }
+    } catch {
+      // Task 526.3 — Network/unexpected error: don't block the queue
+      success = false
     }
 
     if (success) {
       removeFromOfflineQueue(item.id)
+      if (isIndexedDBAvailable()) {
+        idbRemoveItem(item.id).catch(() => {})
+      }
       succeeded++
     } else {
-      // Exponential backoff: calculate next retry time
-      // 1s, 2s, 4s, 8s, 16s, 32s, 60s (capped)
+      // Exponential backoff
       const newRetryCount = item.retryCount + 1
       const backoffMs = Math.min(1000 * Math.pow(2, newRetryCount - 1), 60000)
       const nextRetryAt = new Date(Date.now() + backoffMs).toISOString()
 
-      // Never give up — keep retrying with backoff indefinitely
-      updateQueueItem(item.id, {
+      const updates = {
         retryCount: newRetryCount,
-        status: 'pending',
+        status: 'pending' as const,
         nextRetryAt,
-      })
+      }
+      updateQueueItem(item.id, updates)
+      if (isIndexedDBAvailable()) {
+        idbUpdateItem(item.id, updates).catch(() => {})
+      }
+
+      // Task 526.3 — Continue processing remaining items, don't stop here
     }
+  }
+
+  // Sync localStorage fallback after processing
+  if (isIndexedDBAvailable()) {
+    _syncToLocalStorage(userId)
   }
 
   return { succeeded, failed }
@@ -368,7 +749,7 @@ async function _processQueueInternal(
 // ============================================================================
 
 const RECENTLY_SYNCED_KEY = 'folio-recently-synced'
-const SYNCED_DISPLAY_DURATION_MS = 5000 // Show "synced" for 5 seconds
+const SYNCED_DISPLAY_DURATION_MS = 5000
 
 /** Mark a set of queue item IDs as recently synced (for UI feedback) */
 export function markRecentlySynced(ids: string[]): void {
@@ -379,7 +760,6 @@ export function markRecentlySynced(ids: string[]): void {
     const raw = localStorage.getItem(RECENTLY_SYNCED_KEY)
     if (raw) {
       const existing = JSON.parse(raw) as Array<{ id: string; at: number }>
-      // Keep only entries that haven't expired
       entries.push(...existing.filter((e) => now - e.at < SYNCED_DISPLAY_DURATION_MS))
     }
   } catch { /* ignore */ }
@@ -409,7 +789,6 @@ export function getRecentlySyncedIds(): Set<string> {
 
 /** Calculate the backoff delay in ms for a given retry count (1-indexed) */
 export function getBackoffDelayMs(retryCount: number): number {
-  // 1s → 2s → 4s → 8s → 16s → 32s → 60s max
   return Math.min(1000 * Math.pow(2, Math.max(0, retryCount - 1)), 60000)
 }
 
@@ -448,6 +827,22 @@ function persistQueue(queue: PendingTransaction[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(queue))
 }
 
+/**
+ * Sync the IndexedDB state back to localStorage as a fallback.
+ * This keeps the synchronous getOfflineQueue() in sync for consumers
+ * that haven't migrated to async yet.
+ */
+async function _syncToLocalStorage(_userId: string): Promise<void> {
+  if (typeof window === 'undefined') return
+  if (!isIndexedDBAvailable()) return
+  try {
+    const items = await getAllItems()
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+  } catch {
+    // Silently ignore — localStorage is just a fallback
+  }
+}
+
 // ============================================================================
 // Queue change event — notifies listeners (e.g. useOfflineSync) of mutations
 // Requirements: 17.8 (pending count updates within 500ms of each queue op)
@@ -460,4 +855,12 @@ export const QUEUE_CHANGE_EVENT = 'folio-queue-change'
 export function dispatchQueueChange(): void {
   if (typeof window === 'undefined') return
   window.dispatchEvent(new CustomEvent(QUEUE_CHANGE_EVENT))
+}
+
+/** Dispatch a queue size warning event (Task 526.5) */
+function dispatchQueueSizeWarning(count: number): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent(QUEUE_SIZE_WARNING_EVENT, { detail: { count } })
+  )
 }

@@ -53,15 +53,21 @@ describe('categoryGridPreferences', () => {
   })
 
   describe('saveCategoryGridPrefs', () => {
-    it('saves prefs to localStorage', () => {
+    it('saves prefs to localStorage in versioned envelope', () => {
       const prefs: CategoryGridPreference[] = [
         { categoryId: 'food', order: 0, customLabel: 'Munchies' },
       ]
       saveCategoryGridPrefs(prefs)
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'folio-category-grid-prefs',
-        JSON.stringify(prefs)
+        expect.stringContaining('"version":1')
       )
+      // Verify the stored data includes the prefs inside the envelope
+      const storedArg = (localStorageMock.setItem as ReturnType<typeof vi.fn>).mock.calls[0][1]
+      const parsed = JSON.parse(storedArg)
+      expect(parsed.data).toEqual(prefs)
+      expect(parsed.version).toBe(1)
+      expect(parsed.updatedAt).toBeTruthy()
     })
   })
 

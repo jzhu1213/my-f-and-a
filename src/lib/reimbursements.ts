@@ -35,6 +35,8 @@ export interface Reimbursement {
   exchangeRate?: number
   /** Amount in the original foreign currency when different from home (task 426.1) */
   originalAmount?: number
+  /** Server-side timestamp of last modification (task 523) */
+  updatedAt?: string
 }
 
 // ============================================================================

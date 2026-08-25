@@ -170,6 +170,8 @@ export interface Transaction {
    * stored so display never requires a network call. Absent means no conversion.
    */
   exchangeRate?: number
+  /** Server-side timestamp of last modification (task 523) */
+  updatedAt?: string
 }
 
 // Account Types (3 buckets)
@@ -244,6 +246,8 @@ export interface Budget {
    * `undefined` or `0` means disabled.
    */
   perTransactionAlert?: number
+  /** Server-side timestamp of last modification (task 523) */
+  updatedAt?: string
 }
 
 export const BUDGET_CATEGORIES: { category: TransactionCategory; emoji: string; label: string }[] = [
@@ -303,6 +307,8 @@ export interface Goal {
   shareToken?: string
   /** Optional linked savings/investment account — progress reflects account balance */
   linkedAccountId?: string
+  /** Server-side timestamp of last modification (task 523) */
+  updatedAt?: string
 }
 
 // Finance Lesson Types

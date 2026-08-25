@@ -20,6 +20,7 @@ import type { SpendingPaceAlert, YesterdaySurplus } from '@/lib/spendVelocity'
 import { getAutomationPreferences } from '@/lib/automationPreferences'
 import { shouldSuppressTip } from '@/lib/engagementTracker'
 import { isLearningEnabled } from '@/lib/educationPreferences'
+import { hasExportedBackup } from '@/lib/backupRestore'
 
 // ============================================================================
 // Tip Cooldown & Throttle (Task 75)
@@ -1203,6 +1204,23 @@ export function selectContextualTip(
         relatedLessonId: pick.relatedLessonId,
       })
     }
+  }
+
+  // Step 3c: Backup reminder — if the user has >100 transactions and has never
+  // exported a full backup, surface a one-time "did_you_know" tip. Dismiss-once
+  // means the standard tip dismissal mechanism handles it. (Task 529.3)
+  if (context.totalTransactions > 100 && !hasExportedBackup()) {
+    candidates.push({
+      id: 'backup-reminder',
+      type: 'did_you_know',
+      title: 'Back up your data',
+      message: "You've logged over 100 transactions — nice work! Consider exporting a backup in Settings so your data is always safe.",
+      emoji: TIP_EMOJI.did_you_know,
+      priority: 'low',
+      actionLabel: 'Go to Settings',
+      actionType: 'view_insight',
+      triggerCondition: { type: 'first_goal_progress' },
+    })
   }
 
   // Step 4: Filter out previously dismissed tips

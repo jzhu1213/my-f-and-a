@@ -14,6 +14,7 @@
 import type { TransactionCategory, TransactionType, Transaction } from '@/types'
 import { autoCategorize } from './autoCategorize'
 import { lookupMerchant } from './merchantMemory'
+import { ImportCandidateFieldsSchema } from './schemas/transaction'
 
 // ============================================================================
 // Types
@@ -431,6 +432,19 @@ export function parseStatement(
 
     // Override category for income
     const finalCategory: TransactionCategory = type === 'income' ? 'income' : category
+
+    // Validate parsed row against schema (Task 520.5)
+    const rowValidation = ImportCandidateFieldsSchema.safeParse({
+      date,
+      amount: Math.round(amount * 100) / 100,
+      type,
+      category: finalCategory,
+      description,
+    })
+    if (!rowValidation.success) {
+      // Skip malformed rows — they won't be included as candidates
+      continue
+    }
 
     candidates.push({
       id: `import-${i}`,

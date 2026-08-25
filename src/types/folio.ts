@@ -537,6 +537,8 @@ export interface SavingsAccount {
   monthlyContribution: number
   expectedAnnualReturn: number
   createdAt: string
+  /** Server-side timestamp of last modification (task 523) */
+  updatedAt?: string
 }
 
 // ============================================================================
@@ -565,6 +567,8 @@ export interface Debt {
   apr: number // Annual percentage rate (e.g., 6.5 for 6.5%)
   minimumPayment: number
   createdAt: string
+  /** Server-side timestamp of last modification (task 523) */
+  updatedAt?: string
 }
 
 // ============================================================================

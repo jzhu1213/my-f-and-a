@@ -1,5 +1,9 @@
 import type { Transaction, Budget, Goal } from '@/types'
 import type { DailyAllowance } from '@/types/folio'
+import { TransactionSchema } from './schemas/transaction'
+import { BudgetSchema } from './schemas/budget'
+import { GoalSchema } from './schemas/goal'
+import { validateArray } from './schemas/validate'
 
 // ============================================================================
 // Home Screen Cache — Zero Perceptible Load
@@ -20,8 +24,10 @@ const CACHE_KEY_PREFIX = 'folio-home-cache-'
 /**
  * Shape of the cached home screen state.
  * Includes everything needed to paint the hero + recent transactions + budgets + goals instantly.
+ * The cache uses a version field for future migration support (Task 522.3).
  */
 export interface HomeCachePayload {
+  version: number
   allowance: DailyAllowance
   recentTransactions: Transaction[]
   budgets: Budget[]
@@ -29,6 +35,9 @@ export interface HomeCachePayload {
   cachedAt: number // Date.now() timestamp
   lastSyncedAt: number | null // timestamp of last successful background sync
 }
+
+/** Current home cache version */
+const HOME_CACHE_VERSION = 1
 
 /** Build the localStorage key for a given user */
 function cacheKey(userId: string): string {
@@ -58,6 +67,11 @@ export function getHomeCache(userId: string): HomeCachePayload | null {
       return null
     }
 
+    // Backfill version for older cache entries (Task 522.3)
+    if (typeof parsed.version !== 'number') {
+      parsed.version = HOME_CACHE_VERSION
+    }
+
     // Backfill optional fields for older cache entries
     if (!Array.isArray(parsed.goals)) {
       parsed.goals = []
@@ -65,6 +79,27 @@ export function getHomeCache(userId: string): HomeCachePayload | null {
     if (parsed.lastSyncedAt === undefined) {
       parsed.lastSyncedAt = null
     }
+
+    // Schema-validate sub-collections (Task 520.3)
+    // If any sub-collection is entirely invalid, clear cache to trigger refetch
+    const txResult = validateArray(parsed.recentTransactions, TransactionSchema, 'homeCache.transactions')
+    const budgetResult = validateArray(parsed.budgets, BudgetSchema, 'homeCache.budgets')
+    const goalResult = validateArray(parsed.goals, GoalSchema, 'homeCache.goals')
+
+    // If all transactions or all budgets are quarantined, treat cache as invalid
+    if (parsed.recentTransactions.length > 0 && txResult.valid.length === 0) {
+      localStorage.removeItem(cacheKey(userId))
+      return null
+    }
+    if (parsed.budgets.length > 0 && budgetResult.valid.length === 0) {
+      localStorage.removeItem(cacheKey(userId))
+      return null
+    }
+
+    // Use only validated data
+    parsed.recentTransactions = txResult.valid as Transaction[]
+    parsed.budgets = budgetResult.valid as Budget[]
+    parsed.goals = goalResult.valid as Goal[]
 
     return parsed
   } catch {
@@ -91,6 +126,7 @@ export function setHomeCache(
 
   try {
     const payload: HomeCachePayload = {
+      version: HOME_CACHE_VERSION,
       allowance: data.allowance,
       recentTransactions: data.transactions.slice(0, 50),
       budgets: data.budgets,
@@ -105,6 +141,7 @@ export function setHomeCache(
     if (!ensureCacheSpace(userId, serialized.length)) {
       // Even after eviction we can't fit — write a minimal cache
       const minimalPayload: HomeCachePayload = {
+        version: HOME_CACHE_VERSION,
         allowance: data.allowance,
         recentTransactions: data.transactions.slice(0, 5),
         budgets: data.budgets,

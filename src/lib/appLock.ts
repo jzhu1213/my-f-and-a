@@ -64,6 +64,17 @@ const PBKDF2_HASH = "SHA-256"
 /** Derived key length in bits. */
 const DERIVED_KEY_BITS = 256
 
+import { z } from 'zod'
+import * as versionedStorage from './versionedStorage'
+
+const AppLockPreferencesSchema = z.object({
+  enabled: z.boolean(),
+  method: z.enum(['pin', 'biometric']),
+  pinHash: z.string().nullable(),
+  pinSalt: z.string().nullable(),
+  credentialId: z.string().nullable(),
+})
+
 export const DEFAULT_APP_LOCK_PREFERENCES: AppLockPreferences = {
   enabled: false,
   method: "pin",
@@ -73,7 +84,7 @@ export const DEFAULT_APP_LOCK_PREFERENCES: AppLockPreferences = {
 }
 
 // ============================================================================
-// Persistence
+// Persistence (versioned)
 // ============================================================================
 
 /**
@@ -83,24 +94,14 @@ export const DEFAULT_APP_LOCK_PREFERENCES: AppLockPreferences = {
  */
 export function getAppLockPreferences(): AppLockPreferences {
   if (typeof window === "undefined") return DEFAULT_APP_LOCK_PREFERENCES
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored) return DEFAULT_APP_LOCK_PREFERENCES
-    const parsed = JSON.parse(stored) as Partial<AppLockPreferences>
-    return { ...DEFAULT_APP_LOCK_PREFERENCES, ...parsed }
-  } catch {
-    return DEFAULT_APP_LOCK_PREFERENCES
-  }
+  const stored = versionedStorage.get(STORAGE_KEY, AppLockPreferencesSchema)
+  if (!stored) return DEFAULT_APP_LOCK_PREFERENCES
+  return { ...DEFAULT_APP_LOCK_PREFERENCES, ...stored }
 }
 
-/** Persist app-lock preferences to localStorage (fails silently). */
+/** Persist app-lock preferences to localStorage via versioned storage. */
 export function setAppLockPreferences(prefs: AppLockPreferences): void {
-  if (typeof window === "undefined") return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
-  } catch {
-    // localStorage unavailable — fail silently
-  }
+  versionedStorage.set(STORAGE_KEY, prefs, AppLockPreferencesSchema)
 }
 
 /**

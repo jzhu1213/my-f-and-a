@@ -1,11 +1,15 @@
 /**
  * Automation preferences — persistence for automation & prediction toggles.
  *
- * Stores user preferences in localStorage. All features default to ON,
- * giving users full control to disable any automation they don't want.
+ * Stores user preferences in localStorage via the versioned storage wrapper.
+ * All features default to ON, giving users full control to disable any
+ * automation they don't want.
  *
  * Requirements: 23.7
  */
+
+import { z } from 'zod'
+import * as versionedStorage from './versionedStorage'
 
 // ============================================================================
 // Types
@@ -23,6 +27,18 @@ export interface AutomationPreferences {
   /** Whether bill amounts are pre-filled from history */
   billPreFill: boolean
 }
+
+// ============================================================================
+// Schema
+// ============================================================================
+
+const AutomationPreferencesSchema = z.object({
+  autoSuggestRecurring: z.boolean(),
+  includeSuggestionsInAllowance: z.boolean(),
+  showComingUp: z.boolean(),
+  spendingPaceAlerts: z.boolean(),
+  billPreFill: z.boolean(),
+})
 
 // ============================================================================
 // Constants
@@ -44,30 +60,21 @@ const DEFAULT_PREFERENCES: AutomationPreferences = {
 
 /**
  * Get the user's automation preferences from localStorage.
- * Returns default preferences (all ON) if none are stored.
+ * Uses versioned storage with schema validation.
+ * Returns default preferences (all ON) if none are stored or validation fails.
  */
 export function getAutomationPreferences(): AutomationPreferences {
   if (typeof window === "undefined") return DEFAULT_PREFERENCES
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored) return DEFAULT_PREFERENCES
-    const parsed = JSON.parse(stored) as Partial<AutomationPreferences>
-    return { ...DEFAULT_PREFERENCES, ...parsed }
-  } catch {
-    return DEFAULT_PREFERENCES
-  }
+  const stored = versionedStorage.get(STORAGE_KEY, AutomationPreferencesSchema)
+  if (!stored) return DEFAULT_PREFERENCES
+  return { ...DEFAULT_PREFERENCES, ...stored }
 }
 
 /**
- * Save automation preferences to localStorage.
+ * Save automation preferences to localStorage via versioned storage.
  */
 export function setAutomationPreferences(prefs: AutomationPreferences): void {
-  if (typeof window === "undefined") return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
-  } catch {
-    // localStorage unavailable — fail silently
-  }
+  versionedStorage.set(STORAGE_KEY, prefs, AutomationPreferencesSchema)
 }
 
 /**

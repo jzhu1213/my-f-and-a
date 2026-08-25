@@ -17,6 +17,7 @@
 
 import type { Transaction } from '@/types'
 import { formatDateLocal, subtractDaysLocal } from '@/lib/dateUtils'
+import { syncStreakToServer } from './gamificationSync'
 
 // ============================================================================
 // Types
@@ -66,7 +67,7 @@ export function getStreakData(): StreakData | null {
 }
 
 /**
- * Persists streak data to localStorage.
+ * Persists streak data to localStorage and syncs to server in background.
  */
 export function saveStreakData(data: StreakData): void {
   if (typeof window === 'undefined') return
@@ -75,6 +76,8 @@ export function saveStreakData(data: StreakData): void {
   } catch {
     // Best-effort persistence — localStorage may be full or unavailable
   }
+  // Fire-and-forget sync to Supabase (Task 525.2)
+  syncStreakToServer(data)
 }
 
 // ============================================================================

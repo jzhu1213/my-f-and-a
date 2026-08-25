@@ -118,46 +118,38 @@ export function computeAutoContributeTotal(contributions: AutoContribution[]): n
 }
 
 // ============================================================================
-// Persistence (localStorage-based settings)
+// Persistence (versioned localStorage-based settings)
 // ============================================================================
+
+import { z } from 'zod'
+import * as versionedStorage from './versionedStorage'
 
 const STORAGE_KEY = 'folio_auto_contribute_rules'
 
+const AutoContributeRuleSchema = z.object({
+  goalId: z.string(),
+  amount: z.number(),
+  enabled: z.boolean(),
+})
+
+const AutoContributeRulesArraySchema = z.array(AutoContributeRuleSchema)
+
 /**
  * Load persisted auto-contribute rules from localStorage.
+ * Uses versioned storage with schema validation.
  * Returns an empty array if nothing is stored or if running server-side.
  */
 export function loadAutoContributeRules(): AutoContributeRule[] {
   if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    // Basic shape validation
-    return parsed.filter(
-      (r: unknown): r is AutoContributeRule =>
-        typeof r === 'object' &&
-        r !== null &&
-        typeof (r as AutoContributeRule).goalId === 'string' &&
-        typeof (r as AutoContributeRule).amount === 'number' &&
-        typeof (r as AutoContributeRule).enabled === 'boolean'
-    )
-  } catch {
-    return []
-  }
+  const stored = versionedStorage.get(STORAGE_KEY, AutoContributeRulesArraySchema)
+  return (stored as AutoContributeRule[]) ?? []
 }
 
 /**
- * Persist auto-contribute rules to localStorage.
+ * Persist auto-contribute rules to localStorage via versioned storage.
  */
 export function saveAutoContributeRules(rules: AutoContributeRule[]): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(rules))
-  } catch {
-    // Storage full or unavailable — fail silently
-  }
+  versionedStorage.set(STORAGE_KEY, rules, AutoContributeRulesArraySchema)
 }
 
 /**

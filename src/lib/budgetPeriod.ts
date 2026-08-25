@@ -67,7 +67,23 @@ const STORAGE_KEY = 'folio-budget-period'
 const DAY_MS = 24 * 60 * 60 * 1000
 
 // ============================================================================
-// Persistence Helpers (localStorage)
+// Zod schema for versioned storage
+// ============================================================================
+
+import { z } from 'zod'
+import * as versionedStorage from './versionedStorage'
+
+const BudgetPeriodPreferenceSchema = z.object({
+  type: z.enum(['monthly', 'weekly', 'biweekly', 'term']),
+  startDay: z.number().min(0).max(6).optional(),
+  termDates: z.object({
+    startDate: z.string(),
+    endDate: z.string(),
+  }).optional(),
+})
+
+// ============================================================================
+// Persistence Helpers (versioned localStorage)
 // ============================================================================
 
 /**
@@ -76,15 +92,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
  */
 export function loadBudgetPeriodPreference(): BudgetPeriodPreference | null {
   if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if (!parsed || !parsed.type) return null
-    return parsed as BudgetPeriodPreference
-  } catch {
-    return null
-  }
+  return versionedStorage.get(STORAGE_KEY, BudgetPeriodPreferenceSchema) as BudgetPeriodPreference | null
 }
 
 /**
@@ -92,14 +100,10 @@ export function loadBudgetPeriodPreference(): BudgetPeriodPreference | null {
  */
 export function saveBudgetPeriodPreference(pref: BudgetPeriodPreference | null): void {
   if (typeof window === 'undefined') return
-  try {
-    if (pref === null) {
-      localStorage.removeItem(STORAGE_KEY)
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(pref))
-    }
-  } catch {
-    // localStorage full or unavailable — fail silently
+  if (pref === null) {
+    versionedStorage.remove(STORAGE_KEY)
+  } else {
+    versionedStorage.set(STORAGE_KEY, pref, BudgetPeriodPreferenceSchema)
   }
 }
 

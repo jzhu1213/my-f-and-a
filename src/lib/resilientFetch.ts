@@ -30,6 +30,7 @@ const BASE_BACKOFF_MS = 1_000      // Exponential backoff: 1s, 2s, 4s
 const MESSAGES = {
   network: "Couldn't reach the server — check your connection and try again",
   server: "Something went wrong on our end — trying again...",
+  rateLimit: "Too many requests — slowing down and trying again...",
   exhausted: "Still having trouble connecting. Your data is safe — we'll sync when you're back online.",
   unknown: "Something unexpected happened — please try again",
 } as const
@@ -58,6 +59,8 @@ function isTransientError(error: unknown): boolean {
 
   // HTTP status-based classification
   if (supaError.status !== undefined) {
+    // 429 Too Many Requests is transient — back off and retry
+    if (supaError.status === 429) return true
     return supaError.status >= 500 || supaError.status === 0
   }
 
@@ -80,6 +83,9 @@ function getUserMessage(error: unknown, retriesRemaining: number): string {
   }
 
   const supaError = error as { status?: number }
+  if (supaError.status === 429) {
+    return retriesRemaining > 0 ? MESSAGES.rateLimit : MESSAGES.exhausted
+  }
   if (supaError.status !== undefined && supaError.status >= 500) {
     return retriesRemaining > 0 ? MESSAGES.server : MESSAGES.exhausted
   }
@@ -128,6 +134,22 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+// ── Rate-Limit Backoff ─────────────────────────────────────────────────────────
+
+/**
+ * For 429 (rate limit) errors, use a longer base backoff to respect Supabase
+ * rate limits. If the error carries a Retry-After hint we could parse it here,
+ * but since Supabase errors are { code, message, status } objects (not full
+ * Response objects with headers), we default to a generous 3s base.
+ */
+const RATE_LIMIT_BACKOFF_MS = 3_000
+
+function getBackoffMs(error: unknown, attempt: number): number {
+  const shaped = error as { status?: number }
+  const base = shaped?.status === 429 ? RATE_LIMIT_BACKOFF_MS : BASE_BACKOFF_MS
+  return base * Math.pow(2, attempt)
+}
+
 // ── Core Resilient Wrapper ─────────────────────────────────────────────────────
 
 /**
@@ -169,7 +191,7 @@ export async function withResilience<T>(
 
       // Log the retry attempt
       if (retriesRemaining > 0) {
-        const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt)
+        const backoff = getBackoffMs(err, attempt)
         console.warn(
           `[resilientFetch] ${operationName} attempt ${attempt + 1}/${MAX_RETRIES} failed (transient), retrying in ${backoff}ms...`
         )
@@ -231,7 +253,7 @@ export async function withSupabaseResilience<T>(
 
         lastError = error
         if (retriesRemaining > 0) {
-          const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt)
+          const backoff = getBackoffMs(error, attempt)
           console.warn(
             `[resilientFetch] ${operationName} attempt ${attempt + 1}/${MAX_RETRIES} failed (transient), retrying in ${backoff}ms...`
           )
@@ -260,7 +282,7 @@ export async function withSupabaseResilience<T>(
       }
 
       if (retriesRemaining > 0) {
-        const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt)
+        const backoff = getBackoffMs(err, attempt)
         console.warn(
           `[resilientFetch] ${operationName} attempt ${attempt + 1}/${MAX_RETRIES} failed (transient), retrying in ${backoff}ms...`
         )

@@ -87,34 +87,32 @@ const MAX_DURATION = 14
 const SUGGESTIONS_COUNT = 3
 
 // ============================================================================
-// localStorage Persistence
+// localStorage Persistence (versioned)
 // ============================================================================
+
+import { z } from 'zod'
+import * as versionedStorage from './versionedStorage'
+import { syncChallengeToServer } from './gamificationSync'
+import { ChallengeDataSchema } from './schemas/challenge'
 
 /**
  * Reads persisted challenge data from localStorage.
+ * Uses versioned storage with schema validation.
  * Returns null if no data exists or parsing fails.
  */
 export function getChallengeData(): ChallengeData | null {
   if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw) as ChallengeData
-  } catch {
-    return null
-  }
+  return versionedStorage.get(STORAGE_KEY, ChallengeDataSchema) as ChallengeData | null
 }
 
 /**
- * Persists challenge data to localStorage.
+ * Persists challenge data to localStorage via versioned storage
+ * and syncs to server in background.
  */
 export function saveChallengeData(data: ChallengeData): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  } catch {
-    // Best-effort persistence — localStorage may be full or unavailable
-  }
+  versionedStorage.set(STORAGE_KEY, data, ChallengeDataSchema)
+  // Fire-and-forget sync to Supabase (Task 525.2)
+  syncChallengeToServer(data)
 }
 
 // ============================================================================

@@ -1,5 +1,10 @@
 "use client"
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { initStorageVersions } from '@/lib/storageKeys'
+
+// Initialize versioned storage on app boot (Task 522.3)
+initStorageVersions()
+
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { timings, NAV_ORDER, navScreenVariants, navScreenVariantsReduced, useReducedMotion } from '@/lib/animations'
@@ -220,13 +225,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useHomeData } from '@/hooks/useHomeData'
 import { useCustomCategories } from '@/hooks/useCustomCategories'
-import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, upsertPaySchedule, upsertBudget, deleteAllUserData } from '@/lib/supabaseData'
+import { carryForwardBudgetLimits, insertAllocation, createDebt, updateDebt, deleteDebt, getDebts, getReimbursements, updateProfilePreferences, createReimbursement, upsertPaySchedule, upsertBudget, deleteAllUserData, signOut as supabaseSignOut, countSelectiveDeletion, deleteSelectiveData } from '@/lib/supabaseData'
 import { createSplit, type CreateSplitInput } from '@/lib/social/splits'
 import type { StoredDataCategory } from '@/components/simplified/PrivacyDataScreen'
 import { exportUserData, exportTransactionsCSV, deleteUserAccount } from '@/lib/accountUtils'
 import { getOnboardingProgress, setOnboardingProgress, clearOnboardingProgress, setOnboardingPath, markOnboardingStepCompleted } from '@/lib/storage'
 import { getChecklistState, activateChecklist, markChecklistStepComplete, dismissChecklist, resumeChecklist, shouldShowChecklist, getAllStepsWithStatus, getChecklistProgress, isChecklistDismissed, isChecklistComplete } from '@/lib/setupChecklist'
 import type { TransactionCategory, Transaction, OnboardingPath, UserGoal } from '@/types'
+import { BUDGET_CATEGORIES } from '@/types'
 import type { CelebrationEvent, OnboardingResult, BudgetPreset, IncomeAllocation, Debt } from '@/types/folio'
 import { heroMeaningStatus } from '@/lib/dailyAllowanceUtils'
 import { computePeriodContext } from '@/lib/budgetPeriod'
@@ -237,6 +243,7 @@ import { createRefundTransaction } from '@/lib/refundUtils'
 import { saveTagsForTransaction } from '@/lib/tagUtils'
 import { formatMoney } from '@/lib/localeFormat'
 import { useUndo } from '@/hooks/useUndo'
+import { useConflictNotification } from '@/hooks/useConflictNotification'
 import { useRecurringBills } from '@/hooks/useRecurringBills'
 import { useSuggestedEntries } from '@/hooks/useSuggestedEntries'
 import { useComingUpItems } from '@/hooks/useComingUpItems'
@@ -248,6 +255,7 @@ import { ServiceWorkerUpdatePrompt } from '@/components/ui/ServiceWorkerUpdatePr
 import { PwaInstallBanner } from '@/components/ui/PwaInstallBanner'
 import { useAppLock } from '@/hooks/useAppLock'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
+import { clearOfflineQueue } from '@/lib/offlineQueue'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 import { useOverlayRouter } from '@/hooks/useOverlayRouter'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -264,6 +272,9 @@ export default function FolioApp() {
   const { user, loading: authLoading, refreshUser } = useAuth()
   const { showToast } = useToast()
   const { performWithUndo } = useUndo()
+
+  // ── Conflict notification (Task 524.4) ─────────────────────────
+  useConflictNotification()
 
   // ── Routing & UI State ─────────────────────────────────────────
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('loading')
@@ -2059,11 +2070,67 @@ export default function FolioApp() {
     // data is already gone regardless of the outcome here).
     await deleteUserAccount(user.id).catch(() => {})
 
+    // Clear ALL local storage: IndexedDB (offline queue) + every folio-* key.
+    clearOfflineQueue()
+    if (typeof window !== 'undefined') {
+      const keysToRemove: string[] = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('folio')) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k))
+    }
+
+    // Sign out from Supabase auth to invalidate the session.
+    await supabaseSignOut().catch(() => {})
+
     showToast('Everything\u2019s been deleted. Take care of yourself.', 'success')
     overlay.closeOverlay()
     // handleSignOut clears local onboarding state and returns to the tutorial.
     handleSignOut()
   }, [user?.id, showToast, overlay])
+
+  // ── Selective data deletion (Task 530.2) ───────────────────────
+  const handleCountSelective = useCallback(async (
+    dateFrom?: string,
+    dateTo?: string,
+    cats?: string[]
+  ): Promise<number> => {
+    if (!user?.id) return 0
+    const { count, error } = await countSelectiveDeletion({
+      userId: user.id,
+      dateFrom,
+      dateTo,
+      categories: cats,
+    })
+    if (error) {
+      showToast(error, 'error')
+      return 0
+    }
+    return count
+  }, [user?.id, showToast])
+
+  const handleDeleteSelective = useCallback(async (
+    dateFrom?: string,
+    dateTo?: string,
+    cats?: string[]
+  ): Promise<number> => {
+    if (!user?.id) throw new Error('Not signed in')
+    const result = await deleteSelectiveData({
+      userId: user.id,
+      dateFrom,
+      dateTo,
+      categories: cats,
+    })
+    if (!result.success) {
+      throw new Error(result.error || 'Deletion failed')
+    }
+    // Refresh the data so counts update
+    refresh()
+    return result.deletedCount
+  }, [user?.id, refresh])
 
   // ── Memoized HomeScreen props (Issue 1 — prevent new references every render) ──
   const hasSkippedSetupSteps = useMemo(() => {
@@ -2483,6 +2550,9 @@ export default function FolioApp() {
           onExportCSV={handleExportCSV}
           onDeleteEverything={handleDeleteEverything}
           onNotify={showToast}
+          onCountSelective={handleCountSelective}
+          onDeleteSelective={handleDeleteSelective}
+          availableCategories={BUDGET_CATEGORIES}
         />
       </FocusTrapContainer>
     )

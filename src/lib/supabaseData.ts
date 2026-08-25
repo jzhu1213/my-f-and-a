@@ -1,5 +1,14 @@
 import { supabase } from './supabaseClient'
 import { withResilience } from './resilientFetch'
+import { validateArray } from './schemas/validate'
+import { TransactionSchema } from './schemas/transaction'
+import { BudgetSchema } from './schemas/budget'
+import { GoalSchema } from './schemas/goal'
+import { DebtSchema } from './schemas/debt'
+import { SavingsAccountSchema } from './schemas/savingsAccount'
+import { SinkingFundSchema } from './schemas/sinkingFund'
+import { ReimbursementSchema } from './schemas/reimbursement'
+import { checkForConflict, handleDeleteWins, notifyConflictResolved } from './conflictResolution'
 import type { 
   Transaction, 
   UserProfile, 
@@ -38,6 +47,7 @@ interface DbTransaction {
   account_type?: string
   created_at: string
   funding_source_id?: string
+  updated_at?: string
 }
 
 /**
@@ -48,7 +58,7 @@ interface DbTransaction {
  *
  * Full records (all metadata) are fetched only for detail/edit views via getTransactionFull().
  */
-const TRANSACTION_LIST_FIELDS = 'id,user_id,date,type,amount,category,note,is_recurring,created_at,funding_source_id' as const
+const TRANSACTION_LIST_FIELDS = 'id,user_id,date,type,amount,category,note,is_recurring,created_at,funding_source_id,updated_at' as const
 
 interface DbProfile {
   id: string
@@ -76,6 +86,7 @@ interface DbBudget {
   monthly_limit: number
   spent: number
   month: string
+  updated_at?: string
 }
 
 interface DbGoal {
@@ -90,6 +101,7 @@ interface DbGoal {
   linked_account_id?: string | null
   is_shared?: boolean | null
   share_token?: string | null
+  updated_at?: string
 }
 
 interface DbGoalParticipant {
@@ -119,6 +131,7 @@ interface DbSavingsAccount {
   monthly_contribution: number
   expected_annual_return: number
   created_at: string
+  updated_at?: string
 }
 
 interface DbDebt {
@@ -130,6 +143,7 @@ interface DbDebt {
   apr: number
   minimum_payment: number
   created_at: string
+  updated_at?: string
 }
 
 interface DbSinkingFund {
@@ -142,6 +156,7 @@ interface DbSinkingFund {
   saved_amount: number
   monthly_reserve: number
   created_at: string
+  updated_at?: string
 }
 
 interface DbAllocation {
@@ -182,6 +197,7 @@ function dbTransactionToApp(db: DbTransaction): Transaction {
     accountType: (db.account_type || 'personal') as AccountType,
     createdAt: db.created_at,
     fundingSourceId: db.funding_source_id,
+    ...(db.updated_at ? { updatedAt: db.updated_at } : {}),
   }
 }
 
@@ -221,6 +237,7 @@ function dbBudgetToApp(db: DbBudget): Budget {
     ...(row.per_transaction_alert != null && typeof row.per_transaction_alert === 'number'
       ? { perTransactionAlert: row.per_transaction_alert }
       : {}),
+    ...(db.updated_at ? { updatedAt: db.updated_at } : {}),
   }
 }
 
@@ -237,6 +254,7 @@ function dbGoalToApp(db: DbGoal): Goal {
     ...(db.linked_account_id ? { linkedAccountId: db.linked_account_id } : {}),
     ...(db.is_shared ? { isShared: true } : {}),
     ...(db.share_token ? { shareToken: db.share_token } : {}),
+    ...(db.updated_at ? { updatedAt: db.updated_at } : {}),
   }
 }
 
@@ -270,6 +288,7 @@ function dbSavingsAccountToApp(db: DbSavingsAccount): SavingsAccount {
     monthlyContribution: db.monthly_contribution,
     expectedAnnualReturn: db.expected_annual_return,
     createdAt: db.created_at,
+    ...(db.updated_at ? { updatedAt: db.updated_at } : {}),
   }
 }
 
@@ -284,6 +303,7 @@ function dbSinkingFundToApp(db: DbSinkingFund): SinkingFund {
     savedAmount: db.saved_amount,
     monthlyReserve: db.monthly_reserve,
     createdAt: db.created_at,
+    ...(db.updated_at ? { updatedAt: db.updated_at } : {}),
   }
 }
 
@@ -297,6 +317,7 @@ function dbDebtToApp(db: DbDebt): Debt {
     apr: db.apr,
     minimumPayment: db.minimum_payment,
     createdAt: db.created_at,
+    ...(db.updated_at ? { updatedAt: db.updated_at } : {}),
   }
 }
 
@@ -404,7 +425,8 @@ export async function getTransactions(userId: string): Promise<Transaction[]> {
       .limit(500)
 
     if (error) throw error
-    return (data || []).map(dbTransactionToApp)
+    const mapped = (data || []).map(dbTransactionToApp)
+    return validateArray(mapped, TransactionSchema, 'transactions').valid as Transaction[]
   }, 'getTransactions')
 
   if (!result.ok) return []
@@ -444,7 +466,7 @@ export async function getTransactionsPaginated(
     const pageRows = hasMore ? rows.slice(0, pageSize) : rows
 
     return {
-      transactions: pageRows.map(dbTransactionToApp),
+      transactions: validateArray(pageRows.map(dbTransactionToApp), TransactionSchema, 'transactions_paginated').valid as Transaction[],
       hasMore,
     }
   }, 'getTransactionsPaginated')
@@ -512,7 +534,8 @@ export async function getCurrentMonthTransactions(
       .order('date', { ascending: false })
 
     if (error) throw error
-    return (data || []).map(dbTransactionToApp)
+    const mapped = (data || []).map(dbTransactionToApp)
+    return validateArray(mapped, TransactionSchema, 'current_month_transactions').valid as Transaction[]
   }, 'getCurrentMonthTransactions')
 
   if (!result.ok) return []
@@ -536,7 +559,8 @@ export async function getMonthTransactions(userId: string, month: string): Promi
     return []
   }
 
-  return (data || []).map(dbTransactionToApp)
+  const mapped = (data || []).map(dbTransactionToApp)
+  return validateArray(mapped, TransactionSchema, 'month_transactions').valid as Transaction[]
 }
 
 export async function insertTransaction(
@@ -586,9 +610,54 @@ export async function updateTransaction(
     type: TransactionType
     category: TransactionCategory
     note?: string
-  }
+  },
+  /** The client's last-known updatedAt for conflict detection (task 524) */
+  localUpdatedAt?: string
 ): Promise<Transaction | null> {
   const result = await withResilience(async () => {
+    // Task 524.1/524.3: Check for conflicts before writing
+    if (localUpdatedAt) {
+      const { data: serverRow, error: fetchError } = await supabase
+        .from('transactions')
+        .select('updated_at')
+        .eq('id', txId)
+        .eq('user_id', userId)
+        .single()
+
+      // Delete-wins: if the record no longer exists, another device deleted it
+      if (fetchError || !serverRow) {
+        const deleteCheck = handleDeleteWins<Transaction>(false)
+        if (deleteCheck.conflict && deleteCheck.resolution === 'deleted') {
+          notifyConflictResolved({
+            entityType: 'transaction',
+            resolution: 'deleted',
+            message: 'Updated from another device',
+          })
+          return null
+        }
+      }
+
+      // Last-write-wins: if server is newer, re-fetch and return server state
+      if (serverRow && checkForConflict(localUpdatedAt, serverRow.updated_at)) {
+        const { data: fullRow } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('id', txId)
+          .eq('user_id', userId)
+          .single()
+
+        if (fullRow) {
+          notifyConflictResolved({
+            entityType: 'transaction',
+            resolution: 'server-wins',
+            message: 'Updated from another device',
+          })
+          return dbTransactionToApp(fullRow)
+        }
+        return null
+      }
+    }
+
     const { data, error } = await supabase
       .from('transactions')
       .update({
@@ -642,7 +711,8 @@ export async function getBudgets(userId: string): Promise<Budget[]> {
       .eq('month', currentMonth)
 
     if (error) throw error
-    return (data || []).map(dbBudgetToApp)
+    const mapped = (data || []).map(dbBudgetToApp)
+    return validateArray(mapped, BudgetSchema, 'budgets').valid as Budget[]
   }, 'getBudgets')
 
   if (!result.ok) return []
@@ -920,7 +990,7 @@ export async function getGoals(userId: string): Promise<Goal[]> {
       }
     }
 
-    return goals
+    return validateArray(goals, GoalSchema, 'goals').valid as Goal[]
   }, 'getGoals')
 
   if (!result.ok) return []
@@ -956,8 +1026,48 @@ export async function createGoal(
 export async function updateGoalProgress(
   userId: string,
   goalId: string,
-  amount: number
+  amount: number,
+  /** The client's last-known updatedAt for conflict detection (task 524) */
+  localUpdatedAt?: string
 ): Promise<Goal | null> {
+  // Task 524.1/524.3: Check for conflicts before writing
+  if (localUpdatedAt) {
+    const { data: serverRow, error: fetchError } = await supabase
+      .from('goals')
+      .select('updated_at')
+      .eq('id', goalId)
+      .eq('user_id', userId)
+      .single()
+
+    if (fetchError || !serverRow) {
+      notifyConflictResolved({
+        entityType: 'goal',
+        resolution: 'deleted',
+        message: 'Updated from another device',
+      })
+      return null
+    }
+
+    if (checkForConflict(localUpdatedAt, serverRow.updated_at)) {
+      const { data: fullRow } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('id', goalId)
+        .eq('user_id', userId)
+        .single()
+
+      if (fullRow) {
+        notifyConflictResolved({
+          entityType: 'goal',
+          resolution: 'server-wins',
+          message: 'Updated from another device',
+        })
+        return dbGoalToApp(fullRow)
+      }
+      return null
+    }
+  }
+
   const { data, error } = await supabase
     .from('goals')
     .update({ current_amount: amount })
@@ -977,8 +1087,48 @@ export async function updateGoalProgress(
 export async function updateGoal(
   userId: string,
   goalId: string,
-  updates: { name: string; targetAmount: number; emoji: string; targetDate?: string; linkedAccountId?: string }
+  updates: { name: string; targetAmount: number; emoji: string; targetDate?: string; linkedAccountId?: string },
+  /** The client's last-known updatedAt for conflict detection (task 524) */
+  localUpdatedAt?: string
 ): Promise<Goal | null> {
+  // Task 524.1/524.3: Check for conflicts before writing
+  if (localUpdatedAt) {
+    const { data: serverRow, error: fetchError } = await supabase
+      .from('goals')
+      .select('updated_at')
+      .eq('id', goalId)
+      .eq('user_id', userId)
+      .single()
+
+    if (fetchError || !serverRow) {
+      notifyConflictResolved({
+        entityType: 'goal',
+        resolution: 'deleted',
+        message: 'Updated from another device',
+      })
+      return null
+    }
+
+    if (checkForConflict(localUpdatedAt, serverRow.updated_at)) {
+      const { data: fullRow } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('id', goalId)
+        .eq('user_id', userId)
+        .single()
+
+      if (fullRow) {
+        notifyConflictResolved({
+          entityType: 'goal',
+          resolution: 'server-wins',
+          message: 'Updated from another device',
+        })
+        return dbGoalToApp(fullRow)
+      }
+      return null
+    }
+  }
+
   const { data, error } = await supabase
     .from('goals')
     .update({
@@ -1441,7 +1591,8 @@ export async function getSavingsAccounts(userId: string): Promise<SavingsAccount
     return []
   }
 
-  return (data || []).map(dbSavingsAccountToApp)
+  const mapped = (data || []).map(dbSavingsAccountToApp)
+  return validateArray(mapped, SavingsAccountSchema, 'savings_accounts').valid as SavingsAccount[]
 }
 
 export async function createSavingsAccount(
@@ -1579,7 +1730,8 @@ export async function getDebts(userId: string): Promise<Debt[]> {
     return []
   }
 
-  return (data || []).map(dbDebtToApp)
+  const mapped = (data || []).map(dbDebtToApp)
+  return validateArray(mapped, DebtSchema, 'debts').valid as Debt[]
 }
 
 export async function createDebt(
@@ -1681,7 +1833,8 @@ export async function getSinkingFunds(userId: string): Promise<SinkingFund[]> {
     return []
   }
 
-  return (data || []).map(dbSinkingFundToApp)
+  const mapped = (data || []).map(dbSinkingFundToApp)
+  return validateArray(mapped, SinkingFundSchema, 'sinking_funds').valid as SinkingFund[]
 }
 
 export async function createSinkingFund(
@@ -1859,6 +2012,7 @@ interface DbReimbursement {
   exchange_rate?: number | null
   /** Amount in the original foreign currency (task 426.1) */
   original_amount?: number | null
+  updated_at?: string
 }
 
 function dbReimbursementToApp(db: DbReimbursement): Reimbursement {
@@ -1877,6 +2031,7 @@ function dbReimbursementToApp(db: DbReimbursement): Reimbursement {
     ...(db.currency ? { currency: db.currency } : {}),
     ...(db.exchange_rate != null ? { exchangeRate: db.exchange_rate } : {}),
     ...(db.original_amount != null ? { originalAmount: db.original_amount } : {}),
+    ...(db.updated_at ? { updatedAt: db.updated_at } : {}),
   }
 }
 
@@ -1892,7 +2047,8 @@ export async function getReimbursements(userId: string): Promise<Reimbursement[]
     return []
   }
 
-  return (data || []).map(dbReimbursementToApp)
+  const mapped = (data || []).map(dbReimbursementToApp)
+  return validateArray(mapped, ReimbursementSchema, 'reimbursements').valid as Reimbursement[]
 }
 
 export async function createReimbursement(
@@ -2225,6 +2381,8 @@ const USER_DATA_TABLES = [
   'budgets',
   'lesson_progress',
   'user_sessions',
+  // Gamification (Task 525)
+  'user_gamification',
 ] as const
 
 export interface DeleteAllUserDataResult {
@@ -2406,6 +2564,117 @@ export async function deleteAllUserData(userId: string): Promise<DeleteAllUserDa
   deletedTables.push('profiles')
 
   return { success: true, deletedTables }
+}
+
+// ============================================================================
+// Selective Data Deletion (Task 530.2)
+// ============================================================================
+
+export interface SelectiveDeleteOptions {
+  /** User's Supabase auth id. */
+  userId: string
+  /** Only delete transactions on or after this date (ISO YYYY-MM-DD). */
+  dateFrom?: string
+  /** Only delete transactions on or before this date (ISO YYYY-MM-DD). */
+  dateTo?: string
+  /** Only delete transactions matching these categories. Empty/undefined = all. */
+  categories?: string[]
+}
+
+export interface SelectiveDeleteResult {
+  success: boolean
+  /** How many transaction rows were actually removed. */
+  deletedCount: number
+  error?: string
+}
+
+/**
+ * Count how many transactions match the selective deletion filters WITHOUT
+ * actually deleting anything. Useful for a confirmation dialog ("12 transactions
+ * will be permanently removed").
+ */
+export async function countSelectiveDeletion(
+  options: SelectiveDeleteOptions
+): Promise<{ count: number; error?: string }> {
+  if (!options.userId) return { count: 0, error: 'Missing user id' }
+
+  let query = supabase
+    .from('transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', options.userId)
+
+  if (options.dateFrom) {
+    query = query.gte('date', options.dateFrom)
+  }
+  if (options.dateTo) {
+    query = query.lte('date', options.dateTo)
+  }
+  if (options.categories && options.categories.length > 0) {
+    query = query.in('category', options.categories)
+  }
+
+  const { count, error } = await query
+
+  if (error) {
+    console.error('Error counting selective deletion:', error)
+    return { count: 0, error: 'Could not count matching transactions.' }
+  }
+
+  return { count: count ?? 0 }
+}
+
+/**
+ * Selectively delete transactions matching date range and/or category filters.
+ * Ideal for "start fresh for a new semester" without losing everything.
+ *
+ * Only targets the `transactions` table — budgets, goals, and preferences
+ * are left intact so the user keeps their structure.
+ */
+export async function deleteSelectiveData(
+  options: SelectiveDeleteOptions
+): Promise<SelectiveDeleteResult> {
+  if (!options.userId) {
+    return { success: false, deletedCount: 0, error: 'Missing user id' }
+  }
+
+  // First count so we can report how many were removed.
+  const { count: expectedCount, error: countError } = await countSelectiveDeletion(options)
+  if (countError) {
+    return { success: false, deletedCount: 0, error: countError }
+  }
+
+  if (expectedCount === 0) {
+    return { success: true, deletedCount: 0 }
+  }
+
+  // Perform the actual deletion.
+  let query = supabase
+    .from('transactions')
+    .delete()
+    .eq('user_id', options.userId)
+
+  if (options.dateFrom) {
+    query = query.gte('date', options.dateFrom)
+  }
+  if (options.dateTo) {
+    query = query.lte('date', options.dateTo)
+  }
+  if (options.categories && options.categories.length > 0) {
+    query = query.in('category', options.categories)
+  }
+
+  const { error } = await query
+
+  if (error) {
+    console.error('Error in selective deletion:', error)
+    return {
+      success: false,
+      deletedCount: 0,
+      error: "Couldn't delete the selected transactions — nothing was removed. Try again in a moment.",
+    }
+  }
+
+  return { success: true, deletedCount: expectedCount }
 }
 
 // ============================================
@@ -2702,4 +2971,104 @@ export async function fetchHomeDataBatch(
     fundingSources: fundingSourcesData,
     failedSources,
   }
+}
+
+
+// ============================================
+// GAMIFICATION STATE FUNCTIONS (Task 525.1)
+// Requirements: 32.4
+// ============================================
+
+import type { StreakData } from './streaks'
+import type { ChallengeData } from './challenges'
+
+/** Shape of the user_gamification row from Supabase. */
+export interface DbGamificationState {
+  user_id: string
+  streak_data: Record<string, unknown>
+  challenge_progress: Record<string, unknown>
+  zero_spend_days: string[]
+  updated_at: string
+}
+
+/** Application-level gamification state. */
+export interface GamificationState {
+  userId: string
+  streakData: StreakData | null
+  challengeProgress: ChallengeData | null
+  zeroSpendDays: string[]
+  updatedAt: string
+}
+
+function dbGamificationToApp(db: DbGamificationState): GamificationState {
+  return {
+    userId: db.user_id,
+    streakData: (db.streak_data && Object.keys(db.streak_data).length > 0)
+      ? db.streak_data as unknown as StreakData
+      : null,
+    challengeProgress: (db.challenge_progress && Object.keys(db.challenge_progress).length > 0)
+      ? db.challenge_progress as unknown as ChallengeData
+      : null,
+    zeroSpendDays: db.zero_spend_days ?? [],
+    updatedAt: db.updated_at,
+  }
+}
+
+/**
+ * Fetch the user's gamification state from Supabase.
+ * Returns null if no row exists or on error.
+ */
+export async function getGamificationState(userId: string): Promise<GamificationState | null> {
+  const { data, error } = await supabase
+    .from('user_gamification')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  if (error || !data) {
+    // PGRST116 = "no rows" — not a real error, just means no data yet
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching gamification state:', error)
+    }
+    return null
+  }
+
+  return dbGamificationToApp(data as DbGamificationState)
+}
+
+/**
+ * Upsert the user's gamification state to Supabase.
+ * Merges streak_data, challenge_progress, and zero_spend_days.
+ * Returns true on success, false on failure.
+ */
+export async function upsertGamificationState(
+  userId: string,
+  data: {
+    streakData?: StreakData | null
+    challengeProgress?: ChallengeData | null
+    zeroSpendDays?: string[]
+  }
+): Promise<boolean> {
+  const payload: Record<string, unknown> = { user_id: userId }
+
+  if (data.streakData !== undefined) {
+    payload.streak_data = data.streakData ?? {}
+  }
+  if (data.challengeProgress !== undefined) {
+    payload.challenge_progress = data.challengeProgress ?? {}
+  }
+  if (data.zeroSpendDays !== undefined) {
+    payload.zero_spend_days = data.zeroSpendDays
+  }
+
+  const { error } = await supabase
+    .from('user_gamification')
+    .upsert(payload, { onConflict: 'user_id' })
+
+  if (error) {
+    console.error('Error upserting gamification state:', error)
+    return false
+  }
+
+  return true
 }

@@ -1,5 +1,7 @@
 import type { TransactionCategory } from '@/types'
 import { BUDGET_CATEGORIES } from '@/types'
+import { z } from 'zod'
+import * as versionedStorage from './versionedStorage'
 
 // ============================================================================
 // Category Grid Preferences (Task 133.1)
@@ -67,7 +69,7 @@ export function recordCategoryUsage(categoryId: string): void {
 
     // Remove entries with no remaining timestamps
     const pruned = entries.filter(e => e.timestamps.length > 0)
-    localStorage.setItem(FREQUENCY_STORAGE_KEY, JSON.stringify(pruned))
+    versionedStorage.set(FREQUENCY_STORAGE_KEY, pruned, CategoryFrequencyArraySchema)
   } catch {
     // Silently fail if storage is unavailable
   }
@@ -97,19 +99,19 @@ export function getCategoryFrequencies(): Map<string, number> {
 }
 
 /**
- * Loads raw frequency entries from localStorage.
+ * Loads raw frequency entries from localStorage via versioned storage.
  * Returns an empty array if none exist or on parse failure.
  */
+
+const CategoryFrequencyEntrySchema = z.object({
+  categoryId: z.string(),
+  timestamps: z.array(z.string()),
+})
+const CategoryFrequencyArraySchema = z.array(CategoryFrequencyEntrySchema)
+
 function loadFrequencyEntries(): CategoryFrequencyEntry[] {
-  try {
-    const stored = localStorage.getItem(FREQUENCY_STORAGE_KEY)
-    if (!stored) return []
-    const parsed = JSON.parse(stored)
-    if (!Array.isArray(parsed)) return []
-    return parsed as CategoryFrequencyEntry[]
-  } catch {
-    return []
-  }
+  const stored = versionedStorage.get(FREQUENCY_STORAGE_KEY, CategoryFrequencyArraySchema)
+  return (stored as CategoryFrequencyEntry[]) ?? []
 }
 
 /**
@@ -171,35 +173,35 @@ export function isCategoryArchived(
 }
 
 /**
- * Loads saved category grid preferences from localStorage.
+ * Loads saved category grid preferences from localStorage via versioned storage.
  * Returns null if no preferences exist (fallback to defaults).
  *
  * SSR-safe: returns null on the server.
  */
+
+const CategoryGridPreferenceSchema = z.object({
+  categoryId: z.string(),
+  order: z.number(),
+  customLabel: z.string().optional(),
+  customEmoji: z.string().optional(),
+  archived: z.boolean().optional(),
+})
+const CategoryGridPrefsArraySchema = z.array(CategoryGridPreferenceSchema)
+
 export function loadCategoryGridPrefs(): CategoryGridPreference[] | null {
   if (typeof window === 'undefined') return null
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored) return null
-    const parsed = JSON.parse(stored) as CategoryGridPreference[]
-    if (!Array.isArray(parsed) || parsed.length === 0) return null
-    return parsed
-  } catch {
-    return null
-  }
+  const stored = versionedStorage.get(STORAGE_KEY, CategoryGridPrefsArraySchema)
+  if (!stored || stored.length === 0) return null
+  return stored as CategoryGridPreference[]
 }
 
 /**
- * Saves category grid preferences to localStorage.
+ * Saves category grid preferences to localStorage via versioned storage.
  * Silent failure if storage is unavailable.
  */
 export function saveCategoryGridPrefs(prefs: CategoryGridPreference[]): void {
   if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
-  } catch {
-    // Silently fail if storage is unavailable
-  }
+  versionedStorage.set(STORAGE_KEY, prefs, CategoryGridPrefsArraySchema)
 }
 
 /**
@@ -207,11 +209,7 @@ export function saveCategoryGridPrefs(prefs: CategoryGridPreference[]): void {
  */
 export function resetCategoryGridPrefs(): void {
   if (typeof window === 'undefined') return
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // Silently fail
-  }
+  versionedStorage.remove(STORAGE_KEY)
 }
 
 /**

@@ -68,6 +68,18 @@ export interface PrivacyDataScreenProps {
   onDeleteEverything: () => Promise<void> | void
   /** Optional toast surface for success/error feedback. */
   onNotify?: (message: string, kind?: "success" | "error") => void
+  /**
+   * Selective deletion: count how many transactions match a filter.
+   * Returns the count for confirmation UI.
+   */
+  onCountSelective?: (dateFrom?: string, dateTo?: string, categories?: string[]) => Promise<number>
+  /**
+   * Selective deletion: permanently remove matching transactions.
+   * Returns the number deleted. May throw on failure.
+   */
+  onDeleteSelective?: (dateFrom?: string, dateTo?: string, categories?: string[]) => Promise<number>
+  /** Available categories for the selective deletion filter. */
+  availableCategories?: { category: string; emoji: string; label: string }[]
 }
 
 // ============================================================================
@@ -83,12 +95,24 @@ export function PrivacyDataScreen({
   onExportCSV,
   onDeleteEverything,
   onNotify,
+  onCountSelective,
+  onDeleteSelective,
+  availableCategories,
 }: PrivacyDataScreenProps) {
   const { prefersReducedMotion } = useReducedMotion()
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [confirmText, setConfirmText] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Selective deletion state
+  const [showSelectiveDelete, setShowSelectiveDelete] = useState(false)
+  const [selectiveDateFrom, setSelectiveDateFrom] = useState("")
+  const [selectiveDateTo, setSelectiveDateTo] = useState("")
+  const [selectiveCategories, setSelectiveCategories] = useState<string[]>([])
+  const [selectiveCount, setSelectiveCount] = useState<number | null>(null)
+  const [isCounting, setIsCounting] = useState(false)
+  const [isSelectiveDeleting, setIsSelectiveDeleting] = useState(false)
 
   const totalItems = useMemo(
     () => categories.reduce((sum, c) => sum + c.count, 0),
@@ -108,6 +132,60 @@ export function PrivacyDataScreen({
       setIsDeleting(false)
     }
   }, [canDelete, onDeleteEverything, onNotify])
+
+  // Selective deletion: preview count
+  const handleCountSelective = useCallback(async () => {
+    if (!onCountSelective) return
+    setIsCounting(true)
+    try {
+      const count = await onCountSelective(
+        selectiveDateFrom || undefined,
+        selectiveDateTo || undefined,
+        selectiveCategories.length > 0 ? selectiveCategories : undefined
+      )
+      setSelectiveCount(count)
+    } catch {
+      onNotify?.("Couldn't check how many records match. Try again.", "error")
+    } finally {
+      setIsCounting(false)
+    }
+  }, [onCountSelective, selectiveDateFrom, selectiveDateTo, selectiveCategories, onNotify])
+
+  // Selective deletion: actually delete
+  const handleSelectiveDelete = useCallback(async () => {
+    if (!onDeleteSelective) return
+    setIsSelectiveDeleting(true)
+    try {
+      const deleted = await onDeleteSelective(
+        selectiveDateFrom || undefined,
+        selectiveDateTo || undefined,
+        selectiveCategories.length > 0 ? selectiveCategories : undefined
+      )
+      onNotify?.(
+        deleted === 0
+          ? "No matching transactions found."
+          : `Done \u2014 ${deleted} ${deleted === 1 ? 'transaction' : 'transactions'} removed.`,
+        deleted === 0 ? "error" : "success"
+      )
+      // Reset the form
+      setSelectiveCount(null)
+      setShowSelectiveDelete(false)
+      setSelectiveDateFrom("")
+      setSelectiveDateTo("")
+      setSelectiveCategories([])
+    } catch {
+      onNotify?.("Couldn't finish deleting. Nothing was lost \u2014 try again.", "error")
+    } finally {
+      setIsSelectiveDeleting(false)
+    }
+  }, [onDeleteSelective, selectiveDateFrom, selectiveDateTo, selectiveCategories, onNotify])
+
+  const toggleSelectiveCategory = useCallback((cat: string) => {
+    setSelectiveCategories(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    )
+    setSelectiveCount(null) // Reset count when filter changes
+  }, [])
 
   const containerStyle = {
     maxWidth: CONTENT_MAX_WIDTH,
@@ -306,6 +384,223 @@ export function PrivacyDataScreen({
       </section>
 
       {/* â”€â”€ Section 3: Delete everything (GDPR / CCPA) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Selective deletion — start fresh for a new semester (Task 530.2) */}
+      {onDeleteSelective && (
+        <section aria-labelledby="privacy-selective-heading" style={{ marginBottom: 28 }}>
+          <h2
+            id="privacy-selective-heading"
+            style={{ ...sectionHeader, marginBottom: spacing.sm }}
+          >
+            Clean up old data
+          </h2>
+
+          <GlassCard elevation="low" style={{ padding: "18px 20px" }}>
+            {!showSelectiveDelete ? (
+              <>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: spacing.md, lineHeight: 1.5 }}>
+                  Starting a new semester? You can remove transactions from a specific time period
+                  or category without losing your budgets, goals, or preferences.
+                </p>
+                <motion.button
+                  onClick={() => setShowSelectiveDelete(true)}
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={secondaryButton}
+                  aria-label="Open selective data deletion options"
+                >
+                  Choose what to remove
+                </motion.button>
+              </>
+            ) : (
+              <div>
+                <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: spacing.md, lineHeight: 1.5 }}>
+                  Pick a date range, category, or both. Only matching transactions are removed
+                  {"\u2014"}everything else stays.
+                </p>
+
+                {/* Date range inputs */}
+                <div style={{ marginBottom: spacing.sm }}>
+                  <label
+                    htmlFor="selective-date-from"
+                    style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", display: "block", marginBottom: 4 }}
+                  >
+                    From date (optional)
+                  </label>
+                  <input
+                    id="selective-date-from"
+                    type="date"
+                    value={selectiveDateFrom}
+                    onChange={(e) => { setSelectiveDateFrom(e.target.value); setSelectiveCount(null) }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      fontSize: typography.body.fontSize,
+                      fontFamily: FONT_FAMILY,
+                      color: "var(--text)",
+                      background: "var(--color-sunken)",
+                      border: "1px solid var(--border)",
+                      borderRadius: borderRadius.sm,
+                      outline: "none",
+                    }}
+                    aria-label="Start date for selective deletion"
+                  />
+                </div>
+
+                <div style={{ marginBottom: spacing.md }}>
+                  <label
+                    htmlFor="selective-date-to"
+                    style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", display: "block", marginBottom: 4 }}
+                  >
+                    To date (optional)
+                  </label>
+                  <input
+                    id="selective-date-to"
+                    type="date"
+                    value={selectiveDateTo}
+                    onChange={(e) => { setSelectiveDateTo(e.target.value); setSelectiveCount(null) }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      fontSize: typography.body.fontSize,
+                      fontFamily: FONT_FAMILY,
+                      color: "var(--text)",
+                      background: "var(--color-sunken)",
+                      border: "1px solid var(--border)",
+                      borderRadius: borderRadius.sm,
+                      outline: "none",
+                    }}
+                    aria-label="End date for selective deletion"
+                  />
+                </div>
+
+                {/* Category filter chips */}
+                {availableCategories && availableCategories.length > 0 && (
+                  <div style={{ marginBottom: spacing.md }}>
+                    <p style={{ fontSize: typography['body-sm'].fontSize, color: "var(--sub)", marginBottom: 8 }}>
+                      Categories (optional{"\u2014"}leave empty for all)
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {availableCategories.map(cat => {
+                        const isSelected = selectiveCategories.includes(cat.category)
+                        return (
+                          <button
+                            key={cat.category}
+                            onClick={() => toggleSelectiveCategory(cat.category)}
+                            style={{
+                              padding: "6px 12px",
+                              fontSize: typography['body-sm'].fontSize,
+                              fontFamily: FONT_FAMILY,
+                              fontWeight: isSelected ? fontWeights.semibold : fontWeights.regular,
+                              color: isSelected ? "var(--text)" : "var(--sub)",
+                              background: isSelected ? "var(--accent-500)" : "var(--fill-04)",
+                              border: isSelected ? "1px solid var(--accent-500)" : "1px solid var(--border)",
+                              borderRadius: borderRadius.full,
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                            aria-pressed={isSelected}
+                            aria-label={`${isSelected ? 'Deselect' : 'Select'} ${cat.label} category`}
+                          >
+                            {cat.emoji} {cat.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Preview count / confirm */}
+                {selectiveCount === null ? (
+                  <motion.button
+                    onClick={handleCountSelective}
+                    disabled={isCounting || (!selectiveDateFrom && !selectiveDateTo && selectiveCategories.length === 0)}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+                    transition={springs.snappy}
+                    style={{
+                      ...primaryButton(
+                        !isCounting && (!!selectiveDateFrom || !!selectiveDateTo || selectiveCategories.length > 0)
+                      ),
+                      marginBottom: 10,
+                    }}
+                    aria-label="Check how many transactions match your filters"
+                  >
+                    {isCounting ? "Checking\u2026" : "Preview what matches"}
+                  </motion.button>
+                ) : (
+                  <div style={{ marginBottom: 10 }}>
+                    <p
+                      role="status"
+                      aria-live="polite"
+                      style={{
+                        fontSize: typography.body.fontSize,
+                        color: selectiveCount === 0 ? "var(--muted)" : "var(--text)",
+                        fontWeight: fontWeights.semibold,
+                        marginBottom: spacing.sm,
+                      }}
+                    >
+                      {selectiveCount === 0
+                        ? "No transactions match those filters."
+                        : `${selectiveCount} ${selectiveCount === 1 ? 'transaction' : 'transactions'} will be permanently removed.`}
+                    </p>
+                    {selectiveCount > 0 && (
+                      <motion.button
+                        onClick={handleSelectiveDelete}
+                        disabled={isSelectiveDeleting}
+                        whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+                        transition={springs.snappy}
+                        style={{
+                          width: "100%",
+                          padding: "14px 20px",
+                          borderRadius: borderRadius.full,
+                          background: isSelectiveDeleting ? "var(--fill-03)" : "var(--error)",
+                          border: "none",
+                          color: "var(--text)",
+                          fontSize: typography.body.fontSize,
+                          fontFamily: FONT_FAMILY,
+                          fontWeight: fontWeights.semibold,
+                          cursor: isSelectiveDeleting ? "not-allowed" : "pointer",
+                          opacity: isSelectiveDeleting ? 0.6 : 1,
+                          marginBottom: 10,
+                        }}
+                        aria-label={`Permanently delete ${selectiveCount} transactions`}
+                      >
+                        {isSelectiveDeleting ? "Removing\u2026" : `Delete ${selectiveCount} ${selectiveCount === 1 ? 'transaction' : 'transactions'}`}
+                      </motion.button>
+                    )}
+                  </div>
+                )}
+
+                <motion.button
+                  onClick={() => {
+                    setShowSelectiveDelete(false)
+                    setSelectiveDateFrom("")
+                    setSelectiveDateTo("")
+                    setSelectiveCategories([])
+                    setSelectiveCount(null)
+                  }}
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+                  transition={springs.snappy}
+                  style={{
+                    width: "100%",
+                    padding: "10px 16px",
+                    fontSize: typography['body-sm'].fontSize,
+                    fontWeight: fontWeights.medium,
+                    fontFamily: FONT_FAMILY,
+                    color: "var(--sub)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                  aria-label="Cancel selective deletion"
+                >
+                  Never mind
+                </motion.button>
+              </div>
+            )}
+          </GlassCard>
+        </section>
+      )}
+
       <section aria-labelledby="privacy-delete-heading">
         <h2
           id="privacy-delete-heading"
