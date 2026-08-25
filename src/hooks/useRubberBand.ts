@@ -90,37 +90,28 @@ export function useRubberBand(
       const scrollTop = isElementScrollable
         ? el.scrollTop
         : (window.scrollY || document.documentElement.scrollTop)
-      const scrollHeight = isElementScrollable
-        ? el.scrollHeight
-        : document.documentElement.scrollHeight
-      const clientHeight = isElementScrollable
-        ? el.clientHeight
-        : window.innerHeight
 
       const touchY = e.touches[0].clientY
       const deltaY = touchY - touchStartY.current
 
       const atTop = scrollTop <= 0
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 1
 
-      // Only activate rubber-band when genuinely past bounds AND pulling away
-      // from the content. Require a minimum delta of 10px to avoid false triggers
-      // that block normal scrolling.
+      // Only activate rubber-band when genuinely past the TOP bound AND pulling
+      // away from the content (finger moving down).
+      //
+      // IMPORTANT: Bottom overscroll rubber-band is intentionally disabled.
+      // On mobile Safari/Chrome, calling e.preventDefault() when at the bottom
+      // traps the scroll position — the user cannot scroll back up because every
+      // upward touch movement gets intercepted. The top overscroll (pull-down at
+      // top) is safe because releasing it allows the page to stay at scrollTop=0
+      // and the user can freely scroll down afterward.
       if (atTop && deltaY > 10) {
-        // User is pulling down past the top
+        // User is pulling down past the top — rubber-band overscroll
         isOverscrolling.current = true
         overscrollY.set(deltaY)
 
         // Prevent native scroll bounce on iOS only when clearly overscrolling
         if (deltaY > 15) {
-          e.preventDefault()
-        }
-      } else if (atBottom && deltaY < -10) {
-        // User is pulling up past the bottom
-        isOverscrolling.current = true
-        overscrollY.set(deltaY)
-
-        if (deltaY < -15) {
           e.preventDefault()
         }
       } else if (isOverscrolling.current) {
