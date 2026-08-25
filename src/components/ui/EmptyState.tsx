@@ -28,8 +28,10 @@
  */
 
 import type { ReactNode } from "react"
+import { useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { springs, timings, useReducedMotion } from "@/lib/animations"
+import { track } from "@/lib/analytics"
 import {
   emptyStateContainer,
   emptyStateTitle,
@@ -77,6 +79,8 @@ export interface EmptyStateProps {
   actionAriaLabel?: string
   /** Custom accent color for the action button. Defaults to accent purple. */
   actionColor?: "accent" | "success"
+  /** Analytics context identifier for tracking empty state impressions (task 535.2). */
+  analyticsContext?: string
 }
 
 // ============================================================================
@@ -299,8 +303,18 @@ export function EmptyState({
   onSecondary,
   actionAriaLabel,
   actionColor = "accent",
+  analyticsContext,
 }: EmptyStateProps) {
   const { prefersReducedMotion } = useReducedMotion()
+
+  // Task 535.2: Track empty state impression (fires once per mount)
+  const trackedRef = useRef(false)
+  useEffect(() => {
+    if (analyticsContext && !trackedRef.current) {
+      trackedRef.current = true
+      track('empty_state_shown', { context: analyticsContext })
+    }
+  }, [analyticsContext])
 
   const illustrationNode =
     typeof illustration === "string"
@@ -339,7 +353,12 @@ export function EmptyState({
       {actionLabel && onAction && (
         <motion.button
           type="button"
-          onClick={onAction}
+          onClick={() => {
+            if (analyticsContext) {
+              track('empty_state_cta_tapped', { context: analyticsContext })
+            }
+            onAction()
+          }}
           whileTap={{ scale: prefersReducedMotion ? 1 : 0.96 }}
           transition={springs.snappy}
           style={{

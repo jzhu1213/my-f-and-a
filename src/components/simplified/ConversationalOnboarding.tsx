@@ -7,6 +7,7 @@ import { FONT_FAMILY, spacing, typography, fontWeights } from '@/styles/typograp
 import { HORIZONTAL_PADDING, shadows } from '@/styles/shared'
 import { radius } from '@/styles/surfaces'
 import type { SpendingMode } from '@/lib/spendingModes'
+import { track } from '@/lib/analytics'
 
 // ============================================================================
 // Types
@@ -698,6 +699,11 @@ export function ConversationalOnboarding({
     return () => clearTimeout(timer)
   }, [step])
 
+  // Task 534.4: Track onboarding started on mount
+  useEffect(() => {
+    track('onboarding_started')
+  }, [])
+
   // Can advance from step 1 only if income is set
   const canAdvanceStep0 = monthlyIncome > 0
   // Step 2 always allows advancing (bill can be 0 = "no big bill")
@@ -709,9 +715,14 @@ export function ConversationalOnboarding({
 
   const goNext = useCallback(() => {
     if (step >= totalSteps - 1) {
+      // Task 534.4: Track final step completed and onboarding completed
+      track('onboarding_step_completed', { step: step + 1 })
+      track('onboarding_completed')
       onComplete({ monthlyIncome, biggestBill, spendingMode })
       return
     }
+    // Task 534.4: Track step completed
+    track('onboarding_step_completed', { step: step + 1 })
     setDirection(1)
     setStep((prev) => prev + 1)
   }, [step, monthlyIncome, biggestBill, spendingMode, onComplete])
@@ -839,7 +850,10 @@ export function ConversationalOnboarding({
             )}
 
             <button
-              onClick={onSkip}
+              onClick={() => {
+                track('onboarding_skipped')
+                onSkip()
+              }}
               className="text-sm py-2 px-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               style={{ color: 'var(--muted)', fontFamily: FONT_FAMILY }}
               aria-label="Skip setup for now"

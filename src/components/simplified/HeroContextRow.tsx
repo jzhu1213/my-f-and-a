@@ -17,6 +17,7 @@
 import { useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { timings, useReducedMotion as useAppReducedMotion } from "@/lib/animations"
+import { track } from "@/lib/analytics"
 import { FONT_FAMILY, spacing, typography } from '@/styles/typography'
 import { radius } from '@/styles/surfaces'
 import type { PeriodContext } from "@/lib/budgetPeriod"
@@ -326,7 +327,13 @@ export function HeroContextRow({
       {/* Collapsed: single tappable summary line */}
       <motion.button
         type="button"
-        onClick={() => setExpanded((prev) => !prev)}
+        onClick={() => setExpanded((prev) => {
+          const next = !prev
+          if (next) {
+            track('hero_context_expanded')
+          }
+          return next
+        })}
         aria-expanded={expanded}
         aria-label={expanded ? "Collapse context info" : `${summaryText}. Tap to expand.`}
         initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}

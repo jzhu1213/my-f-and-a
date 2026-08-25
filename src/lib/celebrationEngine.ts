@@ -7,6 +7,7 @@ import { checkIncomeGrowthMilestone, checkIncomeRecordMonth } from '@/lib/income
 import { hasBeenTriggered, markTriggered } from '@/lib/celebrationDedup'
 import { computeStreakData, getStreakData } from '@/lib/streaks'
 import { isStreakCounterActive, isMilestoneCelebrationsActive } from '@/lib/gamificationPreferences'
+import { track } from '@/lib/analytics'
 
 // Re-export for consumers that previously imported from here
 export { hasBeenTriggered, markTriggered } from '@/lib/celebrationDedup'
@@ -145,6 +146,8 @@ export function checkStreak3Days(
   if (hasBeenTriggered(id)) return null
 
   markTriggered(id)
+  // Task 534.5: Track 3-day streak achievement
+  track('streak_achieved', { streak_bucket: 3 })
   return createEvent(
     id,
     'streak_3_days',
@@ -182,6 +185,8 @@ export function checkStreak7Days(
   if (hasBeenTriggered(id)) return null
 
   markTriggered(id)
+  // Task 534.5: Track 7-day streak achievement
+  track('streak_achieved', { streak_bucket: 7 })
   return createEvent(
     id,
     'streak_7_days',
@@ -371,6 +376,8 @@ export function checkStreak14Days(
   if (hasBeenTriggered(id)) return null
 
   markTriggered(id)
+  // Task 534.5: Track 14-day streak achievement
+  track('streak_achieved', { streak_bucket: 14 })
   return createEvent(
     id,
     'streak_14_days',
@@ -406,6 +413,8 @@ export function checkStreak30Days(
   if (hasBeenTriggered(id)) return null
 
   markTriggered(id)
+  // Task 534.5: Track 30-day streak achievement
+  track('streak_achieved', { streak_bucket: 30 })
   return createEvent(
     id,
     'streak_30_days',
@@ -850,6 +859,11 @@ export function checkAllCelebrations(
   const streakMilestone = checkStreakMilestone(transactions, now)
   if (streakMilestone) events.push(streakMilestone)
 
+  // Task 534.5: Track each celebration that fires
+  for (const event of events) {
+    track('celebration_triggered', { type: event.type })
+  }
+
   return events
 }
 
@@ -962,6 +976,9 @@ export function checkStreakMilestone(
     if (hasBeenTriggered(id)) continue
 
     markTriggered(id)
+    // Task 534.5: Track streak achievement with bucket
+    const streakBucket = milestone.days >= 30 ? 30 : milestone.days >= 14 ? 14 : milestone.days >= 7 ? 7 : 3
+    track('streak_achieved', { streak_bucket: streakBucket })
     return createEvent(
       id,
       'streak_milestone',

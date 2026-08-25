@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { layoutTransition, MAX_STAGGER_ITEMS, useReducedMotion } from "@/lib/animations"
 import { getPeerContextEnabled, setPeerContextEnabled } from "@/lib/uiPreferences"
 import { recordToolUsage, getRecentlyUsedTools, hasSectionBeenUsed } from "@/lib/toolUsageTracker"
+import { track } from "@/lib/analytics"
 import { SectionHeader, ListRow, Card } from "@/components/ui"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/lib/icons"
@@ -484,6 +485,8 @@ export function ToolsScreen({
       ...tool,
       onOpen: () => {
         recordToolUsage(tool.id)
+        // Task 534.3: Track feature adoption
+        track('tool_opened', { tool_id: tool.id })
         tool.onOpen!()
       },
     }
@@ -530,7 +533,11 @@ export function ToolsScreen({
                 <button
                   key={tool.id}
                   type="button"
-                  onClick={wrapped.onOpen}
+                  onClick={() => {
+                    // Task 535.3: Track discovery via recently used section
+                    track('recently_used_tool_tapped', { tool_id: tool.id })
+                    wrapped.onOpen?.()
+                  }}
                   aria-label={tool.title}
                   style={{
                     display: "flex",

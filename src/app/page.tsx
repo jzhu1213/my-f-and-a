@@ -265,6 +265,7 @@ import { SyncIndicator } from '@/components/simplified/SyncIndicator'
 import { KeyboardShortcutsHelp } from '@/components/simplified/KeyboardShortcutsHelp'
 import { OfflineBanner } from '@/components/ui/OfflineBanner'
 import { PartialLoadBanner } from '@/components/ui/PartialLoadBanner'
+import { track, initAnalytics } from '@/lib/analytics'
 
 type OnboardingStep = 'loading' | 'tutorial' | 'conversational' | 'transitioning' | 'demo_replay' | 'done'
 
@@ -289,6 +290,8 @@ export default function FolioApp() {
     setNavDirection(dir)
     prevNavRef.current = next
     setActiveNav(next)
+    // Task 534.1: Track screen views for navigation analytics
+    track('screen_view', { screen: next })
   }, [])
 
   // ── Settings deep-link state (384.3) ───────────────────────────
@@ -312,6 +315,10 @@ export default function FolioApp() {
 
   // Single overlay/sheet state machine (replaces ~20 individual boolean flags)
   const overlay = useOverlayRouter()
+
+  // ── Task 535.1: Sheet abandonment tracking refs ─────────────────
+  const expenseSubmittedRef = useRef(false)
+  const incomeSubmittedRef = useRef(false)
 
   // ── Keyboard Shortcuts (task 452.2) ────────────────────────────
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
@@ -839,6 +846,39 @@ export default function FolioApp() {
     }
   }, [user?.id, authLoading, budgetPeriod, termSchedule])
 
+  // ── Analytics initialization (Task 534.1) ─────────────────────
+  useEffect(() => {
+    initAnalytics()
+    track('screen_view', { screen: 'home' })
+  }, [])
+
+  // ── Session tracking (Task 534.5) ─────────────────────────────
+  useEffect(() => {
+    const sessionStartTime = Date.now()
+    track('session_start')
+
+    const handleSessionEnd = () => {
+      const durationMs = Date.now() - sessionStartTime
+      const durationMin = durationMs / 60000
+      let durationBucket: string
+      if (durationMin < 1) durationBucket = '<1min'
+      else if (durationMin < 5) durationBucket = '1-5min'
+      else if (durationMin < 15) durationBucket = '5-15min'
+      else if (durationMin < 30) durationBucket = '15-30min'
+      else durationBucket = '30min+'
+      track('session_end', { duration_bucket: durationBucket })
+    }
+
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') handleSessionEnd()
+    })
+    window.addEventListener('beforeunload', handleSessionEnd)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleSessionEnd)
+    }
+  }, [])
+
   // ── Onboarding Handlers ────────────────────────────────────────
   const handleTutorialComplete = async () => {
     // Build the onboarding result from tutorial setup state
@@ -1281,6 +1321,9 @@ export default function FolioApp() {
     if (result) {
       setLastLoggedId(result.id)
 
+      // Task 534.2: Track expense logged (category only, never amounts)
+      track('expense_logged', { category: data.category })
+
       // Clear first-run flag once the user logs their first expense (task 391.2)
       if (typeof window !== 'undefined' && localStorage.getItem('folio-just-onboarded') === 'true') {
         localStorage.removeItem('folio-just-onboarded')
@@ -1439,6 +1482,8 @@ export default function FolioApp() {
 
     if (result) {
       setLastLoggedId(result.id)
+      // Task 534.2: Track income logged
+      track('income_logged')
       // Task 336.1: Show encouraging acknowledgment when income is logged.
       // The daily budget recalculates automatically (transactions dependency),
       // and this toast confirms the positive outcome to the user.
@@ -1517,6 +1562,9 @@ export default function FolioApp() {
   const handleDeleteTransaction = useCallback(async (id: string) => {
     const tx = transactions.find(t => t.id === id)
     if (!tx) { await deleteTransaction(id); return }
+
+    // Task 534.2: Track transaction deletion
+    track('transaction_deleted')
 
     await performWithUndo(
       'delete_transaction',
@@ -1688,6 +1736,8 @@ export default function FolioApp() {
     const editPayload = overlay.getSheetPayload('edit')
     const editTx = editPayload?.transaction ?? transactions.find(t => t.id === id) ?? null
     if (!editTx) return null
+    // Task 534.2: Track transaction edited
+    track('transaction_edited')
     return updateTransaction(id, {
       amount: data.amount,
       category: data.category,
@@ -1704,6 +1754,9 @@ export default function FolioApp() {
   ) => {
     const tx = transactions.find(t => t.id === id)
     if (!tx) return null
+
+    // Task 534.2: Track transaction edited
+    track('transaction_edited')
 
     const originalData = { amount: tx.amount, category: tx.category, type: tx.type, date: tx.date, note: tx.note }
 
@@ -1768,6 +1821,8 @@ export default function FolioApp() {
   const handleCreateGoal = async (data: { name: string; targetAmount: number; emoji: string; targetDate?: string; linkedAccountId?: string }) => {
     const result = await createGoal(data)
     if (result) {
+      // Task 534.2: Track goal creation
+      track('goal_created')
       showToast('Goal created')
       // Mark "create goal" checklist step complete (task 392.1)
       if (getChecklistState().activated && !getChecklistState().completedSteps.includes('create-goal')) {
@@ -1804,6 +1859,8 @@ export default function FolioApp() {
   const handleUpdateBudget = async (category: TransactionCategory, limit: number) => {
     const result = await updateBudget(category, limit)
     if (result) {
+      // Task 534.2: Track budget set (category only, never amounts)
+      track('budget_set', { category })
       showToast('Budget updated')
       // Mark "set budget" checklist step complete (task 392.1)
       if (getChecklistState().activated && !getChecklistState().completedSteps.includes('set-budget')) {
@@ -3164,8 +3221,17 @@ export default function FolioApp() {
       {/* ── Expense Sheet ──────────────────────────────────────── */}
       <ExpenseSheet
         isOpen={overlay.isSheetOpen('expense')}
-        onClose={() => overlay.closeSheet('expense')}
-        onSubmit={handleExpenseSubmit}
+        onClose={() => {
+          if (!expenseSubmittedRef.current) {
+            track('sheet_abandoned', { sheet_type: 'expense' })
+          }
+          expenseSubmittedRef.current = false
+          overlay.closeSheet('expense')
+        }}
+        onSubmit={(...args) => {
+          expenseSubmittedRef.current = true
+          return handleExpenseSubmit(...args)
+        }}
         onUndo={lastLoggedId ? handleExpenseUndo : undefined}
         defaultCategory={overlay.getSheetPayload('expense')?.defaultCategory}
         transactions={transactions}
@@ -3244,8 +3310,17 @@ export default function FolioApp() {
       {/* ── Income Sheet ───────────────────────────────────────── */}
       <IncomeSheet
         isOpen={overlay.isSheetOpen('income')}
-        onClose={() => overlay.closeSheet('income')}
-        onSubmit={handleIncomeSubmit}
+        onClose={() => {
+          if (!incomeSubmittedRef.current) {
+            track('sheet_abandoned', { sheet_type: 'income' })
+          }
+          incomeSubmittedRef.current = false
+          overlay.closeSheet('income')
+        }}
+        onSubmit={(...args) => {
+          incomeSubmittedRef.current = true
+          return handleIncomeSubmit(...args)
+        }}
         onShowPaycheck={handleShowPaycheck}
         onUndo={lastLoggedId ? handleIncomeUndo : undefined}
         fundingSources={fundingSources}
