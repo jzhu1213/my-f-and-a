@@ -54,6 +54,14 @@ export function SettingsPrivacySecurityScreen({ onBack, onOpenPrivacyDashboard }
     }
   }, [analyticsEnabled])
 
+  // Open the public privacy policy in a new tab so the user keeps their place
+  // in the app (and the same URL works as the app-store privacy link).
+  const handleOpenPrivacyPolicy = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.open("/privacy", "_blank", "noopener,noreferrer")
+    }
+  }, [])
+
   return (
     <SettingsSubScreen title="Privacy" description="Keep your data safe and control who sees what." onBack={onBack}>
       <AppLockSetting />
@@ -170,6 +178,27 @@ export function SettingsPrivacySecurityScreen({ onBack, onOpenPrivacyDashboard }
           </span>
           <span style={{ fontSize: typography.body.fontSize, color: textColors.sub, flexShrink: 0 }} aria-hidden="true">
             ›
+          </span>
+        </ListRow>
+      </div>
+
+      {/* Privacy policy — public, plain-language explainer (Task 542.3) */}
+      <div style={{ marginTop: spacingScale['12'] }}>
+        <ListRow
+          variant="dense"
+          onPress={handleOpenPrivacyPolicy}
+          aria-label="Read the privacy policy (opens in a new tab)"
+          style={{
+            borderRadius: radius.control,
+            border: '1px solid var(--border)',
+            background: 'var(--fill-03)',
+          }}
+        >
+          <span style={{ flex: 1, ...typography['body-sm'], color: textColors.text, fontWeight: 500 }}>
+            Privacy policy
+          </span>
+          <span style={{ fontSize: typography.body.fontSize, color: textColors.sub, flexShrink: 0 }} aria-hidden="true">
+            ↗
           </span>
         </ListRow>
       </div>

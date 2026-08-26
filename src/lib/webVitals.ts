@@ -9,6 +9,7 @@
  */
 
 import type { Metric } from 'web-vitals';
+import { reportPerformanceMetric } from './errorMonitoring';
 
 /** Optional endpoint for production metric reporting */
 const ANALYTICS_ENDPOINT = process.env.NEXT_PUBLIC_WEB_VITALS_ENDPOINT;
@@ -67,6 +68,11 @@ function handleMetric(metric: Metric): void {
 
   // Always attempt to report to analytics endpoint if configured
   sendToAnalytics(metric);
+
+  // Surface performance degradations in the error-monitoring dashboard so
+  // they live alongside errors (Phase 25, task 537.4). No-ops in dev / when
+  // monitoring is unconfigured, and only reports poorly-rated metrics.
+  reportPerformanceMetric(metric);
 }
 
 /**

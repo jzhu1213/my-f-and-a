@@ -138,7 +138,7 @@ function IncomeStep({
           marginBottom: spacing.xs,
         }}
       >
-        How much money do you have to work with each month?
+        How much money comes in each month?
       </h2>
       <p
         style={{
@@ -150,7 +150,7 @@ function IncomeStep({
           marginBottom: spacing.lg,
         }}
       >
-        No need to be exact — a rough number works great.
+        Paychecks, allowance, anything regular. A rough number is perfect.
       </p>
 
       {/* Preset chips */}
@@ -253,7 +253,13 @@ function IncomeStep({
               inputMode="numeric"
               placeholder="e.g. 2500"
               value={customValue}
-              onChange={(e) => setCustomValue(e.target.value)}
+              onChange={(e) => {
+                setCustomValue(e.target.value)
+                // Commit live so the Next button enables and the preview updates
+                // without the user needing to blur the field first.
+                const parsed = parseInt(e.target.value, 10)
+                onChange(parsed > 0 ? parsed : 0)
+              }}
               onBlur={handleCustomConfirm}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCustomConfirm()
@@ -424,25 +430,32 @@ function BiggestBillStep({
         I don&apos;t have a big recurring bill
       </button>
 
-      {/* Quick-add bill chips */}
-      <div className="flex flex-wrap justify-center gap-2">
+      {/* Example bills — passive hints, not selectable. Labeled so they don't
+          read as tappable chips (which would leave the next action unclear). */}
+      <p
+        style={{
+          fontSize: typography.caption.fontSize,
+          fontFamily: FONT_FAMILY,
+          color: 'var(--muted)',
+          marginBottom: spacing.xs,
+        }}
+      >
+        Common ones:
+      </p>
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1" aria-hidden="true">
         {COMMON_BILLS.map((bill) => (
           <span
             key={bill.label}
             style={{
-              padding: '6px 10px',
-              borderRadius: radius.full,
               fontSize: typography.caption.fontSize,
               fontFamily: FONT_FAMILY,
               color: 'var(--muted)',
-              background: 'var(--fill-03)',
-              border: '1px solid var(--fill-06)',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
             }}
           >
-            <span aria-hidden="true">{bill.emoji}</span>
+            <span>{bill.emoji}</span>
             {bill.label}
           </span>
         ))}
